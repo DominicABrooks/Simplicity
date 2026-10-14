@@ -101,7 +101,8 @@ The world is a graph of **areas** joined by **exits** (caves, for now). Each are
 - `life` says what lives there (enemies, potions, critters and decor). Leave it out for an empty area.
 
 Props are data too: each kind (a camp, a cave, a curtain wall around any polygon, a house, a keep,
-a cathedral, a bridge, a fountain, a market stall, a lamp) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built stands on
+a cathedral, a bridge, a lamp in `town.ts`; a plaza, fountain, stall, statue, planter, bench, stock, bunting
+and standard in `market.ts`) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built stands on
 `Wall` tiles, which block movement like trees, so collision stays a tile lookup however many buildings
 an area has. A new kind of building is a `Prop` variant plus one builder. A builder can return
 `occluders` (boxes around anything tall); `src/render/occlusion.ts` fades whichever of them, and

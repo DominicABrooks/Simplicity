@@ -3,8 +3,8 @@
 // Laid out like a real castle town. A moat rings an oval town wall with a tower every few dozen paces;
 // you cross a bridge to the gatehouse. Inside, the streets come first: a ring road inside the wall, lanes
 // running east-west, cross streets, and a winding high street climbing from the gate to
-// the market square (a fountain, stalls, the guildhall and the cathedral), then a straight road leads to
-// the castle: an inner ward with taller walls and its own gatehouse, and the keep on a rocky crag in the
+// the market square (a fountain, stalls, the guildhall, an inn and the cathedral), then the King's Way, an
+// avenue lined with statues of the kingdom's kings, leads to the castle: an inner ward with taller walls and its own gatehouse, and the keep on a rocky crag in the
 // middle. Nothing hostile lives here.
 //
 // Between each pair of lanes, terraces of houses stand back to back, each with its door onto a street, and
@@ -28,7 +28,9 @@ const TOWERS = 18;
 const WARD = { x0: 32, y0: 11, x1: 56, y1: 27 };
 const KEEP: TileRect = [37, 13, 14, 9];
 const SQUARE = { x0: 37, y0: 39, x1: 51, y1: 48 };
-const FOUNTAIN: TileRect = [43, 43, 2, 2];
+const FOUNTAIN: TileRect = [42, 42, 4, 4];
+/** The King's Way: the avenue from the square up to the castle gate (tile columns). */
+const AVENUE = { x0: 39, x1: 48 };
 const CATHEDRAL: TileRect = [55, 39, 13, 8];
 const GUILDHALL: TileRect = [24, 40, 9, 5];
 /** The barracks and the stables, in the castle courtyard. */
@@ -73,7 +75,7 @@ function isStreet(x: number, y: number, gateY: number): boolean {
   return isLane(y) || CROSS.some(c => x === c || x === c + 1) ||
     (d > 0.85 && d < 0.9) ||                                                          // the ring road
     (y > SQUARE.y1 && Math.abs(x - streetX(y) - 0.5) < 2) ||                          // the high street
-    (y > WARD.y1 && y < SQUARE.y0 && Math.abs(x - MID + 0.5) < 2) ||                  // the castle road
+    (y > WARD.y1 && y < SQUARE.y0 && x >= AVENUE.x0 && x <= AVENUE.x1) ||               // the King's Way
     (x >= WARD.x0 - 2 && x <= WARD.x1 + 2 && y >= WARD.y0 - 2 && y <= WARD.y1 + 2) || // round the castle
     (y >= SQUARE.y0 - 1 && y <= SQUARE.y1 + 1 && x >= SQUARE.x0 - 1 && x <= SQUARE.x1 + 1) ||
     (y >= gateY - 4 && Math.abs(x - MID + 0.5) < 3.5);                                // inside the gate
@@ -83,9 +85,62 @@ interface Town {
   map: TileMap;
   gateY: number;
   bridge: TileRect;
-  houses: { rect: TileRect; roof: string; storeys: number; doorSide: "north" | "south" }[];
+  houses: { rect: TileRect; roof: string; storeys: number; doorSide: "north" | "south"; sign?: string }[];
   lamps: Point[];
-  stalls: { rect: TileRect; awning: string }[];
+  /** The square's and the King's Way's furnishings. */
+  furnishings: Prop[];
+}
+
+/** A prop at a tile's centre (game px). */
+const tileCentre = (x: number, y: number) => ({ x: x * T + HALF, y: y * T + HALF });
+
+/**
+ * The market square and the King's Way: everything that stands in them, and which tiles it blocks.
+ * The square is flagstoned, with the fountain in the middle; two rows of stalls face it from north and
+ * south, benches face it from east and west, and planters and heaps of stock fill the corners, under
+ * bunting strung between the corner lamps. The King's Way is lined with planters and statues of kings,
+ * and two bronze knights and the kingdom's standards guard the castle gate.
+ */
+function furnish(): { solid: TileRect[]; props: Prop[]; lamps: Point[] } {
+  const solid: TileRect[] = [], props: Prop[] = [];
+  const one = (x: number, y: number, prop: Prop) => { solid.push([x, y, 1, 1]); props.push(prop); };
+  const [fx, fy, fw, fh] = FOUNTAIN, centre = { x: (fx + fw / 2) * T, y: (fy + fh / 2) * T };
+  props.push({ kind: "plaza", rect: px([SQUARE.x0, SQUARE.y0, SQUARE.x1 - SQUARE.x0 + 1, SQUARE.y1 - SQUARE.y0 + 1]), centre });
+  solid.push(FOUNTAIN);
+  props.push({ kind: "fountain", ...centre, radius: fw / 2 - 0.2 });
+  const goods = [["produce", "bread", "cloth", "pottery"], ["fish", "flowers", "produce", "cloth"]] as const;
+  ([[SQUARE.y0 + 1, "south"], [SQUARE.y1 - 1, "north"]] as const).forEach(([y, facing], row) =>
+    [38, 40, 47, 49].forEach((x, i) => {
+      const rect: TileRect = [x, y, 2, 1];
+      solid.push(rect);
+      props.push({ kind: "stall", rect: px(rect), awning: AWNINGS[(row * 4 + i) % AWNINGS.length]!, goods: goods[row][i]!, facing });
+    }));
+  for (const [x, y, what] of [[SQUARE.x0, SQUARE.y0 + 1, "barrels"], [SQUARE.x1, SQUARE.y0 + 1, "crates"], [SQUARE.x0, SQUARE.y1 - 1, "sacks"], [SQUARE.x1, SQUARE.y1 - 1, "hay"]] as const)
+    one(x, y, { kind: "stock", ...tileCentre(x, y), what });
+  for (const x of [SQUARE.x0, SQUARE.x1]) for (const y of [fy, fy + fh - 1]) one(x, y, { kind: "planter", ...tileCentre(x, y) });
+  for (const [x, facing] of [[fx - 2, "east"], [fx + fw + 1, "west"]] as const) {
+    const rect: TileRect = [x, fy + 1, 1, 2];
+    solid.push(rect);
+    props.push({ kind: "bench", rect: px(rect), facing });
+  }
+  // Lamps on the square's corners, with bunting strung between them round its edge.
+  const corners = [[SQUARE.x0, SQUARE.y0], [SQUARE.x1, SQUARE.y0], [SQUARE.x1, SQUARE.y1], [SQUARE.x0, SQUARE.y1]] as const;
+  const lamps: Point[] = corners.map(([x, y]) => tileCentre(x, y));
+  lamps.forEach((a, i) => props.push({ kind: "bunting", from: a, to: lamps[(i + 1) % lamps.length]!, height: 1.85 }));
+  // The King's Way: planters and kings down both sides, lamps with bunting across, and at the top the
+  // knights and standards either side of the castle gate.
+  for (const [x, facing] of [[AVENUE.x0, "east"], [AVENUE.x1, "west"]] as const) {
+    for (const y of [31, 35]) one(x, y, { kind: "planter", ...tileCentre(x, y) });
+    one(x, 33, { kind: "statue", ...tileCentre(x, 33), figure: "king", facing });
+    one(x, WARD.y1 + 2, { kind: "statue", ...tileCentre(x, WARD.y1 + 2), figure: "knight", facing: "south" });
+    props.push({ kind: "standard", ...tileCentre(x === AVENUE.x0 ? x - 1 : x + 1, WARD.y1 + 2) });
+  }
+  for (const y of [32, 36]) {
+    const a = tileCentre(AVENUE.x0 + 1, y), b = tileCentre(AVENUE.x1 - 1, y);
+    lamps.push(a, b);
+    props.push({ kind: "bunting", from: a, to: b, height: 1.85 });
+  }
+  return { solid, props, lamps };
 }
 
 function buildTown(): Town {
@@ -162,8 +217,8 @@ function buildTown(): Town {
   fill([cx0 + 6, cy0, 3, ch], Tile.Wall);
   fill([cx0, cy0 + 2, 3, ch - 4], Tile.Wall);
   fill(GUILDHALL, Tile.Wall);
-  const stalls: Town["stalls"] = [[38, 40], [48, 40], [38, 46], [48, 46], [41, 40], [45, 46]].map(([x, y], i) => ({ rect: [x!, y!, 2, 1] as TileRect, awning: AWNINGS[i]! }));
-  for (const s of stalls) fill(s.rect, Tile.Wall);
+  const furnishings = furnish();
+  for (const r of furnishings.solid) fill(r, Tile.Wall);
 
   // The houses: in each block between two lanes, a terrace along the north side with doors onto the lane
   // above, and one along the south side with doors onto the lane below, back to back. A house only goes
@@ -177,14 +232,24 @@ function buildTown(): Town {
     }
     return true;
   };
+  const place = (house: Town["houses"][number]) => { fill(house.rect, Tile.Wall); houses.push(house); };
+  // First the square's own: the Crown inn and a shop facing it across the lane from the north (where the
+  // camera sees their signs), and a row of tall houses along its south side, either side of the high street.
+  place({ rect: [AVENUE.x0 - 6, SQUARE.y0 - 5, 5, 3], roof: "#a8473a", storeys: 3, doorSide: "south", sign: "#c8423a" });
+  place({ rect: [AVENUE.x1 + 1, SQUARE.y0 - 5, 4, 3], roof: "#4a5a7a", storeys: 3, doorSide: "south", sign: "#3f6fd0" });
+  for (let x = SQUARE.x0 - 1; x <= SQUARE.x1 + 1;) {
+    const w = 3 + Math.floor(hash(x, 7, 17) * 2), y = SQUARE.y1 + 2;
+    if (!fits(x, y, w, 3, y - 1)) { x++; continue; }
+    place({ rect: [x, y, w, 3], roof: ROOFS[Math.floor(hash(x, 7, 18) * ROOFS.length)]!, storeys: 3, doorSide: "north" });
+    x += w;
+  }
   for (let lane = LANE0; lane < H; lane += LANES) for (const side of ["north", "south"] as const) {
     for (let x = 1; x < W - 1;) {
       const k = x * 7 + lane + (side === "north" ? 0 : 1000);
       const w = 3 + Math.floor(hash(k, lane, 11) * 2.4), h = hash(k, lane, 15) < 0.4 ? 3 : 2;
       const y = side === "north" ? lane + 2 : lane + LANES - h, front = side === "north" ? y - 1 : y + h;
       if (!fits(x, y, w, h, front)) { x++; continue; }
-      fill([x, y, w, h], Tile.Wall);
-      houses.push({ rect: [x, y, w, h], roof: ROOFS[Math.floor(hash(k, lane, 13) * ROOFS.length)]!, storeys: hash(k, lane, 14) < 0.22 ? 3 : 2, doorSide: side });
+      place({ rect: [x, y, w, h], roof: ROOFS[Math.floor(hash(k, lane, 13) * ROOFS.length)]!, storeys: hash(k, lane, 14) < 0.22 ? 3 : 2, doorSide: side });
       x += w + (hash(k, lane, 16) < 0.45 ? 1 : 0);           // terraced, with the odd alley through to the yards
     }
   }
@@ -196,15 +261,16 @@ function buildTown(): Town {
     if (clear) set(x, y, Tile.Tree);
   }
 
-  // Lamps along the high street (alternating sides), round the square, up the castle road, and at the bridge.
-  const lamps: Point[] = [];
+  // Lamps along the high street (alternating sides), round the square and up the King's Way (see
+  // furnish()), and at the bridge.
+  const lamps: Point[] = [...furnishings.lamps];
   for (let y = SQUARE.y1 + 3; y < gateY - 2; y += 4) lamps.push({ x: (y % 8 < 4 ? streetX(y) - 1 : streetX(y) + 2) * T + HALF, y: y * T + HALF });
-  for (const [x, y] of [[SQUARE.x0, SQUARE.y0], [SQUARE.x1, SQUARE.y0], [SQUARE.x0, SQUARE.y1], [SQUARE.x1, SQUARE.y1], [MID - 3, 31], [MID + 2, 31], [MID - 3, 35], [MID + 2, 35], [MID - 3, bridgeBottom + 2], [MID + 2, bridgeBottom + 2]])
+  for (const [x, y] of [[MID - 3, bridgeBottom + 2], [MID + 2, bridgeBottom + 2]])
     lamps.push({ x: x! * T + HALF, y: y! * T + HALF });
 
   return {
     map: { width: W, height: H, tiles, solids: [] },
-    gateY, bridge: [MID - 1, bridgeTop, 2, bridgeBottom - bridgeTop + 1], houses, lamps, stalls,
+    gateY, bridge: [MID - 1, bridgeTop, 2, bridgeBottom - bridgeTop + 1], houses, lamps, furnishings: furnishings.props,
   };
 }
 
@@ -216,14 +282,13 @@ function props(town: Town): Prop[] {
     { kind: "keep", rect: px(KEEP), plinth: 1.6 },
     { kind: "cathedral", rect: px(CATHEDRAL) },
     { kind: "house", rect: px(GUILDHALL), roof: "#4a5a7a", storeys: 3 },
-    { kind: "fountain", x: (FOUNTAIN[0] + FOUNTAIN[2] / 2) * T, y: (FOUNTAIN[1] + FOUNTAIN[3] / 2) * T },
     { kind: "bridge", rect: px(town.bridge) },
     { kind: "cave", x: MID * T, y: H * T, facing: "north" },
     { kind: "house", rect: px(BARRACKS), roof: "#a8473a", storeys: 2 },
     { kind: "house", rect: px(STABLES), roof: "#a8473a", storeys: 2 },
   ];
-  for (const h of town.houses) out.push({ kind: "house", rect: px(h.rect), roof: h.roof, storeys: h.storeys, doorSide: h.doorSide });
-  for (const s of town.stalls) out.push({ kind: "stall", rect: px(s.rect), awning: s.awning });
+  for (const h of town.houses) out.push({ kind: "house", rect: px(h.rect), roof: h.roof, storeys: h.storeys, doorSide: h.doorSide, ...(h.sign ? { sign: h.sign } : {}) });
+  out.push(...town.furnishings);
   for (const l of town.lamps) out.push({ kind: "lamp", x: l.x, y: l.y });
   return out;
 }

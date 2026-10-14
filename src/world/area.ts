@@ -45,18 +45,38 @@ export type Prop =
       height: number;
       tower: { radius: number; height: number; roof: string };
     }
-  /** A town house; its door is on the `doorSide` face (south by default), onto the street. */
-  | { kind: "house"; rect: Rect; roof: string; storeys?: number; doorSide?: "north" | "south" }
+  /** A town house; its door is on the `doorSide` face (south by default), onto the street. An inn or
+   * shop hangs a `sign` (its board's colour) over the door. */
+  | { kind: "house"; rect: Rect; roof: string; storeys?: number; doorSide?: "north" | "south"; sign?: string }
   /** The castle keep, raised on a rocky crag `plinth` high with a stair up to its door. */
   | { kind: "keep"; rect: Rect; plinth: number }
   /** A cathedral: a long nave running east-west, a bell tower with a spire at its west end. */
   | { kind: "cathedral"; rect: Rect }
   /** A plank bridge over water, running north-south. */
   | { kind: "bridge"; rect: Rect }
-  | { kind: "fountain"; x: number; y: number }
-  | { kind: "stall"; rect: Rect; awning: string }
+  /** A two-tier fountain, `radius` world units across its basin, with a crowned king on top. */
+  | { kind: "fountain"; x: number; y: number; radius: number }
+  /** A market stall selling `goods`, its counter toward `facing`. */
+  | { kind: "stall"; rect: Rect; awning: string; goods: Goods; facing: "north" | "south" }
+  /** A statue on a plinth, looking toward `facing`. */
+  | { kind: "statue"; x: number; y: number; figure: "king" | "knight"; facing: Facing }
+  /** A stone planter with a tree in it. */
+  | { kind: "planter"; x: number; y: number }
+  /** A bench along the rect's long side; you'd sit looking toward `facing`. */
+  | { kind: "bench"; rect: Rect; facing: Facing }
+  /** A heap of market stock. */
+  | { kind: "stock"; x: number; y: number; what: "barrels" | "crates" | "sacks" | "hay" }
+  /** A string of little flags between two points, `height` up at each end (not solid). */
+  | { kind: "bunting"; from: Point; to: Point; height: number }
+  /** A tall pole flying a banner (not solid). */
+  | { kind: "standard"; x: number; y: number }
+  /** Flagstones over a rect, with a kerb round the edge and rings of paving round `centre` (not solid). */
+  | { kind: "plaza"; rect: Rect; centre: Point }
   /** A street lamp (not solid: you walk past it). */
   | { kind: "lamp"; x: number; y: number };
+
+export type Facing = "north" | "south" | "east" | "west";
+export type Goods = "produce" | "bread" | "cloth" | "pottery" | "fish" | "flowers";
 
 /** Everything about an area's ground, built once (deterministically) when you enter it. */
 export interface AreaLayout {

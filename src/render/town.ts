@@ -1,7 +1,7 @@
 // Town buildings, low-poly and hand-painted like everything else, at the hero's scale (the hero is
 // about 1.1 units tall): curtain walls with round towers and gatehouses you walk under, timber-framed
-// houses with jettied upper floors, a keep on a crag, a cathedral, a bridge, a fountain, market stalls
-// and street lamps. Each builds into its area's scenery group (see props.ts); tall ones are occluders
+// houses with jettied upper floors, a keep on a crag, a cathedral, a bridge and street lamps. (The
+// market square's things are in market.ts.) Each builds into its area's scenery group (see props.ts); tall ones are occluders
 // that fade when they'd hide the hero (see occlusion.ts).
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
@@ -12,14 +12,14 @@ import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 
-type PropOf<K extends Prop["kind"]> = Extract<Prop, { kind: K }>;
+export type PropOf<K extends Prop["kind"]> = Extract<Prop, { kind: K }>;
 
-const SLATE = "#4a5a7a", CLAY = "#a8473a", WOOD = "#8b5a34", DARK_WOOD = "#4f3222", IRON = "#2b2438";
-const LIT = "#f5d562";                                       // lamplight in windows and lanterns
+export const SLATE = "#4a5a7a", CLAY = "#a8473a", WOOD = "#8b5a34", DARK_WOOD = "#4f3222", IRON = "#2b2438";
+export const LIT = "#f5d562";                                       // lamplight in windows and lanterns
 const DOORWAY = "#1a120d";
 
 /** A box whose texture repeats once per `unit` world units on every face, instead of stretching. */
-function tiledBox(w: number, h: number, d: number, unit = 1): THREE.BoxGeometry {
+export function tiledBox(w: number, h: number, d: number, unit = 1): THREE.BoxGeometry {
   const geo = new THREE.BoxGeometry(w, h, d), uv = geo.attributes.uv!;
   // Faces in order: +x, -x, +y, -y, +z, -z; four vertices each.
   const spans: [number, number][] = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
@@ -30,9 +30,9 @@ function tiledBox(w: number, h: number, d: number, unit = 1): THREE.BoxGeometry 
   return geo;
 }
 
-/** A cylinder whose texture repeats once per `unit` around and up. */
-function tiledCylinder(r: number, h: number, segments = 8, unit = 1): THREE.CylinderGeometry {
-  const geo = new THREE.CylinderGeometry(r, r * 1.06, h, segments), uv = geo.attributes.uv!;
+/** A cylinder whose texture repeats once per `unit` around and up; `open` leaves off the ends. */
+export function tiledCylinder(r: number, h: number, segments = 8, unit = 1, open = false): THREE.CylinderGeometry {
+  const geo = new THREE.CylinderGeometry(r, r * 1.06, h, segments, 1, open), uv = geo.attributes.uv!;
   const around = (Math.PI * 2 * r) / unit;
   for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * around, (uv.getY(k) * h) / unit);
   return geo;
@@ -56,7 +56,7 @@ function roofGeometry(w: number, d: number, h: number): THREE.BufferGeometry {
 }
 
 /** A hanging banner: red cloth with a gold emblem, its face toward +z, hanging down from y = 0. */
-function banner(ctx: RenderContext, w: number, h: number): THREE.Group {
+export function banner(ctx: RenderContext, w: number, h: number): THREE.Group {
   const g = new THREE.Group();
   const cloth = new THREE.Mesh(new THREE.PlaneGeometry(w, h), ctx.lambert(CLAY, { side: THREE.DoubleSide }));
   cloth.position.y = -h / 2;
@@ -113,7 +113,7 @@ function merlons(len: number, h: number, depth: number, mat: THREE.Material): TH
 }
 
 /** An axis-aligned occluder around a group placed at (x, z), `w` wide and `d` deep. */
-const occluder = (object: THREE.Object3D, x: number, z: number, w: number, d: number, height: number): Occluder =>
+export const occluder = (object: THREE.Object3D, x: number, z: number, w: number, d: number, height: number): Occluder =>
   ({ object, x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, height });
 
 // ---------- Curtain walls ----------
@@ -260,6 +260,22 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   const step = new THREE.Mesh(box(0.7, 0.08, 0.24), lambert("#8a8378"));
   step.position.set(doorX, 0.04, d / 2 + 0.12);
   g.add(door, lintel, step);
+  // An inn's or shop's sign, hanging from an iron bracket beside the door, its face to the street.
+  if (p.sign) {
+    const iron = lambert(IRON), sx = doorX + (doorX < 0 ? 0.75 : -0.75);
+    const arm = new THREE.Mesh(box(0.05, 0.05, 0.55), iron);
+    arm.position.set(sx, 1.95, front + 0.27);
+    const board = new THREE.Mesh(box(0.5, 0.38, 0.05), lambert(p.sign));
+    board.position.set(sx, 1.68, front + 0.45);
+    const trim = new THREE.Mesh(box(0.56, 0.44, 0.03), lambert(DARK_WOOD));
+    trim.position.set(sx, 1.68, front + 0.43);
+    const mug = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.16, 8), basic(PAL.Y));   // a tankard
+    mug.position.set(sx, 1.68, front + 0.49);
+    mug.rotation.x = Math.PI / 2;
+    const lamp = new THREE.Mesh(box(0.14, 0.18, 0.14), basic(LIT));                        // and a lantern by the door
+    lamp.position.set(doorX + (doorX < 0 ? -0.45 : 0.45) * -1, 1.45, front + 0.1);
+    g.add(arm, board, trim, mug, lamp);
+  }
   // Wider houses get a chimney.
   if (p.rect.w >= 4 * T) {
     const chimney = new THREE.Mesh(tiledBox(0.35, 1.1, 0.35, 0.5), lambert("#ffffff", { map: tex.stone }));
@@ -517,74 +533,6 @@ export function buildBridge(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
   }
   g.position.set((p.rect.x + p.rect.w / 2) / T, 0, (p.rect.y + p.rect.h / 2) / T);
   parent.add(g);
-}
-
-// ---------- Fountain ----------
-export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf<"fountain">): PropView {
-  const { lambert, tex, particles } = ctx, g = new THREE.Group(), stone = lambert("#ffffff", { map: tex.stone });
-  const basin = new THREE.Mesh(tiledCylinder(0.98, 0.5, 12, 0.6), stone);
-  basin.position.y = 0.25;
-  const pool = new THREE.Mesh(new THREE.CircleGeometry(0.86, 12).rotateX(-Math.PI / 2), lambert("#ffffff", { map: tex.water, transparent: true, opacity: 0.85 }));
-  pool.position.y = 0.44;
-  const pillar = new THREE.Mesh(tiledCylinder(0.15, 1.3, 6, 0.4), stone);
-  pillar.position.y = 0.65;
-  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.22, 0.18, 10), stone);
-  bowl.position.y = 1.35;
-  const bowlWater = new THREE.Mesh(new THREE.CircleGeometry(0.4, 10).rotateX(-Math.PI / 2), lambert("#ffffff", { map: tex.water }));
-  bowlWater.position.y = 1.445;
-  const spout = new THREE.Mesh(tiledCylinder(0.07, 0.35, 6, 0.3), stone);
-  spout.position.y = 1.6;
-  const finial = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12, 0), lambert(PAL.Y));
-  finial.position.y = 1.82;
-  g.add(basin, pool, pillar, bowl, bowlWater, spout, finial);
-  const cx = p.x / T, cz = p.y / T;
-  g.position.set(cx, 0, cz);
-  parent.add(g);
-  return {
-    update(_t, dt) {
-      if (Math.random() < dt * 18) {                        // water spilling over the bowl's rim
-        const a = Math.random() * Math.PI * 2;
-        particles.spawn("water", cx + Math.cos(a) * 0.46, 1.42, cz + Math.sin(a) * 0.46, Math.cos(a) * 0.55, 0.7, Math.sin(a) * 0.55, 0.5);
-      }
-    },
-    occluders: [occluder(g, cx, cz, 2, 2, 1.9)],
-  };
-}
-
-// ---------- Market stall ----------
-export function buildStall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"stall">): PropView {
-  const { lambert } = ctx, g = new THREE.Group();
-  const w = p.rect.w / T - 0.2, d = p.rect.h / T - 0.15;
-  const counter = new THREE.Mesh(box(w, 0.8, d * 0.6), lambert(WOOD));
-  counter.position.set(0, 0.4, d * 0.15);
-  g.add(counter);
-  // Wares on the counter: apples, loaves and bolts of cloth.
-  const wares = [["#c8423a", "ball"], ["#d9b46a", "box"], ["#3f6fd0", "box"], ["#5fb04a", "ball"], ["#e8963a", "ball"]] as const;
-  for (let i = 0; i < 5; i++) {
-    const [c, shape] = wares[Math.floor(hash(p.rect.x + i, p.rect.y, 400) * wares.length)]!;
-    const m = new THREE.Mesh(shape === "ball" ? new THREE.IcosahedronGeometry(0.1, 0) : box(0.22, 0.12, 0.16), lambert(c));
-    m.position.set(-w / 2 + 0.25 + (i * (w - 0.5)) / 4, 0.88, d * 0.15 + (hash(i, p.rect.x, 401) - 0.5) * 0.15);
-    g.add(m);
-  }
-  // Four posts and a striped awning sloping down toward the street.
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-    const post = new THREE.Mesh(box(0.07, 1.75, 0.07), lambert(DARK_WOOD));
-    post.position.set(sx * (w / 2 - 0.04), 0.875, sz * (d / 2 - 0.04));
-    g.add(post);
-  }
-  const awning = new THREE.Group(), stripes = 6;
-  for (let i = 0; i < stripes; i++) {
-    const s = new THREE.Mesh(box(w / stripes + 0.01, 0.04, d + 0.4), lambert(i % 2 ? "#e6dcc4" : p.awning));
-    s.position.x = -w / 2 + (i + 0.5) * (w / stripes);
-    awning.add(s);
-  }
-  awning.position.set(0, 1.78, 0.05);
-  awning.rotation.x = 0.3;
-  g.add(awning);
-  const cx = (p.rect.x + p.rect.w / 2) / T, cz = (p.rect.y + p.rect.h / 2) / T;
-  g.position.set(cx, 0, cz);
-  parent.add(g);
-  return { occluders: [occluder(g, cx, cz, w + 0.2, d + 0.6, 2.0)] };
 }
 
 // ---------- Street lamp ----------

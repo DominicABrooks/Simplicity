@@ -7,7 +7,8 @@ import { buildCamp } from "./camp.ts";
 import { buildCave } from "./cave.ts";
 import type { RenderContext } from "./context.ts";
 import type { Occluder } from "./occlusion.ts";
-import { buildBridge, buildCathedral, buildCurtainWall, buildFountain, buildHouse, buildKeep, buildLamp, buildStall } from "./town.ts";
+import { buildBench, buildBunting, buildFountain, buildPlanter, buildPlaza, buildStall, buildStandard, buildStatue, buildStock } from "./market.ts";
+import { buildBridge, buildCathedral, buildCurtainWall, buildHouse, buildKeep, buildLamp } from "./town.ts";
 
 /** What a built prop gives back: a per-frame update if it animates, and occluders if it's tall. */
 export type PropView = { update?(t: number, dt: number): void; occluders?: Occluder[] } | void;
@@ -22,9 +23,16 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   bridge: buildBridge,
   house: buildHouse,
   keep: buildKeep,
+  lamp: buildLamp,
   fountain: buildFountain,
   stall: buildStall,
-  lamp: buildLamp,
+  statue: buildStatue,
+  planter: buildPlanter,
+  bench: buildBench,
+  stock: buildStock,
+  bunting: buildBunting,
+  standard: buildStandard,
+  plaza: buildPlaza,
 };
 
 /** Build one prop; returns its per-frame update (if it animates) and occluders (if it's tall). */
