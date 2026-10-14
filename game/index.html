@@ -13,6 +13,7 @@
     --ink: #14101e; --void: #2b2438; --bone: #f2ead8; --stone: #b8ad9c; --glow: #f5d562;
     --oak: #8b5a34; --bark: #4f3222; --magic: #7fa6ff; --moss: #5fb04a; --ember: #c8423a;
     --pixel: "Simplicity Pixel", monospace;
+    --u: 2px;   /* one game pixel on screen; main.js keeps it in step with the 3D view's pixel size */
   }
   * { font-family: var(--pixel); font-weight: normal; font-style: normal; letter-spacing: 0; -webkit-font-smoothing: none; font-smooth: never; text-rendering: optimizeSpeed; }
   html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; cursor: crosshair; user-select: none; -webkit-user-select: none; }  /* clicks and drags never select text */
@@ -29,26 +30,26 @@
   /* ---------- Inventory panel ---------- */
   #inventory {
     position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 20;
-    padding: 12px 14px 14px; color: var(--bone); font-size: 12px; line-height: 18px; cursor: default;
+    padding: calc(var(--u) * 6) calc(var(--u) * 7) calc(var(--u) * 7); color: var(--bone); font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9); cursor: default;
     background: linear-gradient(#231b30, #15111f);
     border: 2px solid var(--bark);
     box-shadow: inset 0 0 0 1px var(--oak), inset 0 0 0 3px #1a1424, 0 12px 32px rgb(0 0 0 / 0.6);
   }
   #inventory[hidden] { display: none; }
-  #inventory h2 { font-size: 18px; line-height: 24px; text-align: center; color: var(--glow); margin: 0 0 8px; text-shadow: 3px 3px 0 var(--bark); }
-  #invEquip { position: relative; width: 320px; height: 224px; }
+  #inventory h2 { font-size: calc(var(--u) * 12); line-height: calc(var(--u) * 15); text-align: center; color: var(--glow); margin: 0 0 calc(var(--u) * 4); text-shadow: var(--u) var(--u) 0 var(--bark); }
+  #invEquip { position: relative; width: calc(var(--u) * 160); height: calc(var(--u) * 112); }
   .slot { position: absolute; box-sizing: border-box; background: rgb(0 0 0 / 0.35); border: 1px solid var(--bark); display: grid; place-items: center; }
-  .slot .ghost { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; opacity: 0.14; filter: grayscale(1); pointer-events: none; }
-  #invStats { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 14px; margin: 10px 0; color: var(--stone); font-size: 12px; line-height: 18px; }
+  .slot .ghost { image-rendering: pixelated; opacity: 0.14; filter: grayscale(1); pointer-events: none; }
+  #invStats { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 calc(var(--u) * 7); margin: calc(var(--u) * 5) 0; color: var(--stone); max-width: calc(var(--u) * 160); }   /* wrap within the grid's width */
   #invStats b { color: var(--bone); }
   #invGrid {
-    position: relative; width: 320px; height: 160px; box-sizing: content-box;
+    position: relative; width: calc(var(--u) * 160); height: calc(var(--u) * 80); box-sizing: content-box;
     border: 1px solid var(--bark); background-color: rgb(0 0 0 / 0.35);
     background-image: linear-gradient(var(--void) 1px, transparent 1px), linear-gradient(90deg, var(--void) 1px, transparent 1px);
-    background-size: 32px 32px;
+    background-size: calc(var(--u) * 16) calc(var(--u) * 16);
   }
   .item { position: absolute; box-sizing: border-box; display: grid; place-items: center; cursor: pointer; }
-  .item img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
+  .item img { position: absolute; image-rendering: pixelated; pointer-events: none; }   /* sized by inventory.js at an exact integer scale */
   .item:hover { outline: 1px solid var(--bone); outline-offset: -1px; }
   .item.rarity-normal { background: rgb(184 173 156 / 0.10); }
   .item.rarity-magic { background: rgb(63 111 208 / 0.25); }
@@ -60,13 +61,13 @@
 
   /* ---------- Tooltip, ground labels, toast ---------- */
   #tooltip {
-    position: fixed; z-index: 40; pointer-events: none; min-width: 170px; padding: 8px 14px 10px; text-align: center;
-    background: rgb(14 11 22 / 0.96); border: 1px solid var(--oak); color: var(--stone); font-size: 12px; line-height: 18px;
+    position: fixed; z-index: 40; pointer-events: none; min-width: calc(var(--u) * 85); max-width: calc(var(--u) * 110); padding: calc(var(--u) * 4) calc(var(--u) * 7) calc(var(--u) * 5); text-align: center;
+    background: rgb(14 11 22 / 0.96); border: 1px solid var(--oak); color: var(--stone); font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9);
   }
   #tooltip[hidden], #toast[hidden] { display: none; }
-  .tip-name { font-size: 12px; margin-bottom: 2px; }
+  .tip-name { margin-bottom: var(--u); }
   .tip-base { color: var(--bone); }
-  .tip-slot { color: #6b5f78; margin-bottom: 4px; }
+  .tip-slot { color: #6b5f78; margin-bottom: calc(var(--u) * 2); }
   .tip-stat { color: var(--bone); }
   .tip-mod { color: var(--magic); }
   .tip-name.rarity-normal, .label.rarity-normal { color: var(--bone); }

@@ -808,6 +808,11 @@ let pixelSize = 3;
 
 function resize() {
   pixelSize = Math.max(2, Math.round(innerHeight / 300));
+  // UI panels measure in game pixels too, so they scale in step with the world, stepping down a
+  // size when the inventory (about 254 x 176 game pixels) wouldn't fit the window.
+  const ui = Math.max(1, Math.min(pixelSize, Math.floor((innerHeight - 32) / 254), Math.floor((innerWidth - 32) / 176)));
+  document.documentElement.style.setProperty("--u", `${ui}px`);
+  inv.setScale(ui);
   view.resize(pixelSize);
   hudCanvas.width = Math.ceil(innerWidth / pixelSize);
   hudCanvas.height = Math.ceil(innerHeight / pixelSize);
@@ -905,7 +910,7 @@ function drawXPBar(g, W, H) {
   pixelDisc(g, cx, cy, 5.2, PAL.O);
   pixelDisc(g, cx, cy, 4.4, PAL.k);
   const label = String(p.level);
-  pixelText(g, label, cx - Math.floor(pixelTextWidth(label) / 2), cy - 3, PAL.Y);
+  pixelText(g, label, cx - Math.floor(pixelTextWidth(label) / 2), cy - 2, PAL.Y);   // 5 rows centred on cy
 }
 
 // Combat text: the shared pixel font, outlined in ink like every other sprite.

@@ -1,7 +1,18 @@
 // Simplicity inventory: Diablo/PoE-style grid, equipment slots and random loot.
 // Items live entirely here; the game asks for stat totals and hands over picked-up loot.
 
-export const COLS = 10, ROWS = 5, CELL = 32;
+export const COLS = 10, ROWS = 5;
+// The inventory is sized in game pixels so it scales with the world: one cell is 16 game pixels,
+// and an icon's art pixel is 2 game pixels. UI is the screen size of one game pixel (set on resize).
+const CELL_UNITS = 16, ART_UNITS = 2;
+let UI = 2, CELL = CELL_UNITS * UI;
+
+// Icon <img> at an exact integer scale: art is 8 px per cell plus a 1 px outline all round,
+// so the outline overhangs the box by one art pixel on each side.
+function sizeIcon(img, w, h) {
+  const k = ART_UNITS * UI;
+  Object.assign(img.style, { width: `${(8 * w + 2) * k}px`, height: `${(8 * h + 2) * k}px`, left: `${-k}px`, top: `${-k}px` });
+}
 
 // Base item types. w/h are inventory cells; icons come from art/items.
 const BASES = {
@@ -125,6 +136,7 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
     el.className = `item ${rarityClass(item)}`;
     Object.assign(el.style, { left: `${x * CELL}px`, top: `${y * CELL}px`, width: `${item.w * CELL}px`, height: `${item.h * CELL}px` });
     const img = new Image(); img.src = icons[item.type][item.rarity]; img.alt = item.name; img.draggable = false;
+    sizeIcon(img, item.w, item.h);
     el.append(img);
     el.addEventListener("mouseenter", () => showTip(item));
     el.addEventListener("mouseleave", hideTip);
@@ -150,6 +162,8 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
         box.append(el);
       } else {                                              // empty slot: faded silhouette of what goes there
         const ghost = new Image(); ghost.src = icons[SLOT_ICON[slot]].normal; ghost.alt = s.label; ghost.className = "ghost"; ghost.draggable = false;
+        const gb = BASES[SLOT_ICON[slot]], k = ART_UNITS * UI;
+        Object.assign(ghost.style, { width: `${(8 * gb.w + 2) * k}px`, height: `${(8 * gb.h + 2) * k}px` });
         box.title = s.label;
         box.append(ghost);
       }
@@ -169,6 +183,7 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
     heldEl.hidden = !held;
     if (!held) return;
     const img = new Image(); img.src = icons[held.type][held.rarity]; img.draggable = false;
+    sizeIcon(img, held.w, held.h);
     Object.assign(heldEl.style, { width: `${held.w * CELL}px`, height: `${held.h * CELL}px` });
     heldEl.className = `item held ${rarityClass(held)}`;
     heldEl.append(img);
@@ -307,6 +322,7 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
   return {
     add, reset, stats,
     refresh: changed,                                       // re-total stats (after a level-up)
+    setScale(px) { UI = px; CELL = CELL_UNITS * UI; render(); },   // px = screen size of one game pixel
     toggle: () => setOpen(panel.hidden),
     close: () => setOpen(false),
     isOpen: () => !panel.hidden,
