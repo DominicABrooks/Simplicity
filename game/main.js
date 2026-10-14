@@ -823,12 +823,59 @@ function renderLabels() {
 const alertEl = document.getElementById("alert");
 
 // WoW-style XP bar along the bottom, and "+10 XP" floating up from kills.
-const xpFill = document.getElementById("xpFill"), xpLevel = document.getElementById("xpLevel");
+// The bar is pixel art on the HUD canvas, like the hearts: palette colours, 1px ink outline,
+// a bark-and-oak frame, 20 notched segments, and the level in a gold-rimmed badge with a 3x5 pixel font.
+const DIGITS = ["111101101101111", "010110010010111", "111001111100111", "111001111001111", "101101111001001",
+  "111100111001111", "111100111101111", "111001010010010", "111101111101111", "111101111001111"];
+function pixelText(g, text, x, y, color) {
+  for (const ch of String(text)) {
+    const bits = DIGITS[+ch];
+    for (let i = 0; i < 15; i++) if (bits[i] === "1") {
+      g.fillStyle = PAL.K; g.fillRect(x + (i % 3), y + Math.floor(i / 3) + 1, 1, 1);       // drop shadow
+    }
+    for (let i = 0; i < 15; i++) if (bits[i] === "1") { g.fillStyle = color; g.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1); }
+    x += 4;
+  }
+}
+function pixelDisc(g, cx, cy, r, color) {
+  g.fillStyle = color;
+  for (let y = -Math.ceil(r); y <= Math.ceil(r); y++) for (let x = -Math.ceil(r); x <= Math.ceil(r); x++)
+    if (x * x + y * y <= r * r) g.fillRect(cx + x, cy + y, 1, 1);
+}
+function drawXPBar(g, W, H) {
+  const p = player, max = p.level >= XP.maxLevel;
+  const frac = max ? 1 : p.xp / xpToNext(p.level);
+  const bw = Math.min(200, W - 40), x0 = Math.round((W - bw) / 2) + 6, y0 = H - 9, inner = 4;
+  // Frame: ink outline, bark body, oak highlight on the top edge.
+  g.fillStyle = PAL.K; g.fillRect(x0 - 2, y0 - 2, bw + 4, inner + 4);
+  g.fillStyle = PAL.n; g.fillRect(x0 - 1, y0 - 1, bw + 2, inner + 2);
+  g.fillStyle = PAL.N; g.fillRect(x0 - 1, y0 - 1, bw + 2, 1);
+  // Track and fill: arcane purple with a light top row and a dark bottom row.
+  g.fillStyle = PAL.k; g.fillRect(x0, y0, bw, inner);
+  const fw = Math.round(bw * frac);
+  if (fw > 0) {
+    g.fillStyle = PAL.P; g.fillRect(x0, y0, fw, inner);
+    g.fillStyle = "#b48ae0"; g.fillRect(x0, y0, fw, 1);
+    g.fillStyle = "#5e2f8a"; g.fillRect(x0, y0 + inner - 1, fw, 1);
+  }
+  // 20 segments: a bark notch with an ink centre between each.
+  for (let i = 1; i < 20; i++) {
+    const sx = x0 + Math.round((bw * i) / 20);
+    g.fillStyle = PAL.n; g.fillRect(sx, y0, 1, inner);
+  }
+  // Level badge on the left end: ink ring, gold rim, void centre, gold digits.
+  const cx = x0 - 6, cy = y0 + 1;
+  pixelDisc(g, cx, cy, 7.2, PAL.K);
+  pixelDisc(g, cx, cy, 6.2, PAL.Y);
+  pixelDisc(g, cx, cy, 5.2, PAL.O);
+  pixelDisc(g, cx, cy, 4.4, PAL.k);
+  const label = String(p.level);
+  pixelText(g, label, cx - Math.floor((label.length * 4 - 1) / 2), cy - 3, PAL.Y);
+}
+
 const floaterEls = new Map();
 function renderXP() {
-  const p = player, max = p.level >= XP.maxLevel;
-  xpFill.style.width = max ? "100%" : `${(p.xp / xpToNext(p.level)) * 100}%`;
-  xpLevel.textContent = p.level;
+  drawXPBar(hg, hudCanvas.width, hudCanvas.height);
   for (const [f, el] of floaterEls) if (!floaters.includes(f)) { el.remove(); floaterEls.delete(f); }
   for (const f of floaters) {
     let el = floaterEls.get(f);
