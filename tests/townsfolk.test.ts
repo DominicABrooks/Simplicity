@@ -9,7 +9,7 @@ import { HALF, T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { startTalk, talking } from "../src/game/talk.ts";
-import { isCommoner, populate, residentById, setCensus, updateTownsfolk, walkersOf } from "../src/game/townsfolk.ts";
+import { isCommoner, isDoor, knock, populate, residentById, setCensus, updateTownsfolk, walkersOf } from "../src/game/townsfolk.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { FAMILIES } from "../src/world/people.ts";
 import { residentsOf } from "../src/world/residents.ts";
@@ -153,5 +153,57 @@ describe("townsfolk", () => {
     const at = { ...transform };
     run(g, 2);
     expect(g.world.need(e, "transform")).toEqual(at);                                    // they stand still while you talk
+  });
+});
+
+describe("knocking at doors", () => {
+  const doorsOf = (g: Game) => g.world.entities().flatMap(e => (isDoor(e) ? [e] : []));
+  const standAt = (g: Game, door: Entity, d = 6) => { const t = g.world.need(door, "transform"); Object.assign(g.world.need(g.player, "transform"), { x: t.x, y: t.y + d }); };
+  const toasts = (g: Game) => { const said: string[] = []; g.events.on("toast", ({ text }) => said.push(text)); return said; };
+
+  it("every house with people in it has a door to knock at, named for the house", async () => {
+    const g = await inArea("capital", 12), all = doorsOf(g);
+    expect(all.length).toBeGreaterThan(60);
+    for (const d of all) expect(g.world.need(d, "targetable").name).toMatch(/^[A-Z]/);
+    expect(all.some(d => /house$/.test(g.world.need(d, "targetable").name))).toBe(true);
+    expect(all.some(d => /^The (Crown|Bell)/.test(g.world.need(d, "targetable").name))).toBe(true);
+  });
+
+  it("brings someone who's home to the door, who stands there facing you, and goes back in when you go", async () => {
+    const g = await inArea("capital", 12), said = toasts(g);
+    let answered: Entity | null = null;
+    for (const door of doorsOf(g)) {
+      const before = new Set(folk(g).map(([e]) => e));
+      standAt(g, door);
+      expect(knock(g, door)).toBe(true);
+      run(g, TOWNSFOLK.knock.answer + 0.1);
+      answered = folk(g).find(([e, { walker }]) => !before.has(e) && walker.plan === "answer")?.[0] ?? null;
+      if (answered) break;
+    }
+    expect(answered).not.toBeNull();
+    const w = g.world.need(answered!, "walker"), t = g.world.need(answered!, "transform"), hero = g.world.need(g.player, "transform");
+    expect(g.target).toBe(answered);
+    expect(said.some(s => s.endsWith("comes to the door."))).toBe(true);
+    run(g, 1);
+    expect(g.world.need(answered!, "transform")).toEqual(t);                // stays in the doorway
+    expect(w.facing).toBeCloseTo(Math.atan2(hero.y - t.y, hero.x - t.x));
+    hero.y += 60;                                                          // walk off
+    run(g, 0.2);
+    expect(g.world.isAlive(answered!)).toBe(false);
+  });
+
+  it("can't be done from afar, and late at night mostly gets no answer", async () => {
+    const g = await inArea("capital", 3), said = toasts(g), [door] = doorsOf(g);
+    standAt(g, door!, TOWNSFOLK.knock.reach + 12);
+    expect(knock(g, door!)).toBe(true);
+    expect(said).toContain("Too far away to knock");
+    for (const d of doorsOf(g).slice(0, 12)) { standAt(g, d); knock(g, d); run(g, TOWNSFOLK.knock.answer + 0.1); g.world.need(g.player, "transform").y += 60; run(g, 0.1); }
+    expect(said.some(s => /No answer at .*asleep/.test(s))).toBe(true);
+  });
+
+  it("isn't anything but a door", async () => {
+    const g = await inArea("capital", 12), [e] = folk(g)[0]!;
+    expect(knock(g, e)).toBe(false);
+    expect(knock(g, null)).toBe(false);
   });
 });

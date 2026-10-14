@@ -22,7 +22,7 @@ import { createMapView } from "./ui/mapView.ts";
 import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
-import { enterTownsfolk, updateTownsfolk } from "./game/townsfolk.ts";
+import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -77,14 +77,18 @@ g.events.on("state", ({ state }) => {
 const SAY_ON = ["enter", " ", "e", "j"];
 const input = bindInput(g, {
   toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels,
-  talkClick: at => { if (talking(g)) { advanceTalk(g); return true; } return startTalk(g, pickTarget(g, view, at)); },
+  talkClick: at => {
+    if (talking(g)) { advanceTalk(g); return true; }
+    const hit = pickTarget(g, view, at);
+    return knock(g, hit) || startTalk(g, hit);              // a door: knock; someone: talk
+  },
   talkKey: k => {
     if (talking(g)) {
       if (k === "escape") { endTalk(g); return true; }
       if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
       return false;
     }
-    return k === "e" && startTalk(g, g.target);
+    return k === "e" && (knock(g, g.target) || startTalk(g, g.target));
   },
 });
 

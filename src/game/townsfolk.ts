@@ -6,7 +6,8 @@
 // grown-ups drift to the Crown and the Bell and stand about outside, or go home; by night the streets are
 // all but empty. Children never wander off alone: they come out with a parent from their own house, walking
 // in their steps and standing at their side, or in a band of children near their own age, off to play in
-// the square. Royalty, nobles and the court stay indoors; the guards are guards (see spawnGuard).
+// the square. Royalty, nobles and the court stay indoors; the guards are guards (see spawnGuard). And you can
+// knock at anyone's door: someone who's home comes and stands in the doorway, and you can talk to them.
 import type { Entity } from "../core/ecs.ts";
 import { Rng } from "../core/rng.ts";
 import { loadArea } from "../areas/index.ts";
@@ -19,7 +20,8 @@ import { FAMILIES, type Where } from "../world/people.ts";
 import { residentsOf, type Resident } from "../world/residents.ts";
 import { doorOf, findPath, nearestWalkable, walkable, walkwaysOf, type TileXY, type Walkways } from "../world/walkways.ts";
 import type { Errand, Walker } from "./components.ts";
-import type { Game } from "./game.ts";
+import { combatText } from "./combat.ts";
+import { toast, type Game } from "./game.ts";
 
 // ---------- The census ----------
 const CITY: readonly Where[] = ["capital", "castle", "kingsroad"];
@@ -163,6 +165,7 @@ export function populate(g: Game, people: readonly Resident[]): void {
   // Those at work are at their posts already; everyone else is somewhere along their way.
   const cap = capOf(s, hourOf(g));
   for (let tries = 0; s.out.size < cap && tries < cap * 3; tries++) comeOut(g, s, 0.15 + rng.next() * 0.7);
+  hangDoors(g, s, people);
 }
 
 // ---------- Where people go ----------
@@ -341,6 +344,87 @@ function spawn(g: Game, s: Streets, r: Resident, [x, y]: [number, number]): Enti
   return e;
 }
 
+// ---------- Doors ----------
+/** A house's front door: who lives behind it, and someone knocking. */
+interface Door {
+  tile: TileXY;
+  name: string;
+  household: Resident[];
+  /** Seconds till whoever's coming gets to the door (0: nobody's knocked), and who that is (null: nobody's home). */
+  knocked: number;
+  who: Resident | null;
+}
+const doors = new Map<Entity, Door>();
+
+/** What a house is called, from where its people live: "the Mallow house" is The Mallow house, "The Crown, on the square..." the Crown. */
+const houseName = (place: string) => { const n = place.split(",")[0]!.replace(/ \(a guest\)$/, ""); return n.charAt(0).toUpperCase() + n.slice(1); };
+
+/** Every house door with a household behind it becomes something to target (and knock at), named for the house. */
+function hangDoors(g: Game, s: Streets, people: readonly Resident[]): void {
+  doors.clear();
+  const byDoor = new Map<string, { tile: TileXY; household: Resident[] }>();
+  for (const r of people) {
+    if (r.home.area !== s.area || r.prisoner) continue;
+    const px = (r.home.x + 0.5) * T, py = (r.home.y + 0.5) * T;
+    if (!s.props.some(p => p.kind === "house" && px >= p.rect.x && py >= p.rect.y && px <= p.rect.x + p.rect.w && py <= p.rect.y + p.rect.h)) continue;
+    const tile = doorOf(s.ways, s.props, r.home.x, r.home.y);
+    if (!tile) continue;
+    const at = byDoor.get(keyOf(tile)) ?? { tile, household: [] };
+    at.household.push(r);
+    byDoor.set(keyOf(tile), at);
+  }
+  for (const { tile, household } of byDoor.values()) {
+    const name = houseName(household.find(r => r.role === "head" || r.role === "family")?.home.place ?? household[0]!.home.place);
+    const e = g.world.create({ transform: { x: tile[0] * T, y: tile[1] * T }, targetable: { hostile: false, name, radius: 4, height: 1.6 } });
+    doors.set(e, { tile, name, household, knocked: 0, who: null });
+  }
+}
+
+/** Is this a door? */
+export const isDoor = (e: Entity | null): e is Entity => e !== null && doors.has(e);
+
+/** Who'd come to the door: someone of the house who's in (not out, not at work), a grown-up if there is one; at a noble house, a servant. */
+function answererOf(s: Streets, door: Door): Resident | null {
+  const home = door.household.filter(r => !s.out.has(r.id) && !s.atWork.has(r.id) && r.age >= 10 && (isCommoner(r) || r.role === "servant"));
+  const serving = home.filter(r => r.role === "servant");
+  const grown = home.filter(r => r.age >= 16 && isCommoner(r));
+  const pool = door.household.some(r => r.role === "family" && !isCommoner(r)) && serving.length ? serving : grown.length ? grown : home;
+  return pool.length ? pool[s.rng.int(0, pool.length - 1)]! : null;
+}
+
+/** Knock at a door, if it is one and the hero's close enough. Returns whether it was a door at all. */
+export function knock(g: Game, e: Entity | null): boolean {
+  const s = here, door = e !== null ? doors.get(e) : undefined;
+  if (!s || !door || e === null) return false;
+  g.target = e;
+  const hero = g.world.need(g.player, "transform"), [dx, dy] = centre(door.tile);
+  if (Math.hypot(hero.x + HALF - dx, hero.y + HALF - dy) > TOWNSFOLK.knock.reach) { toast(g, "Too far away to knock"); return true; }
+  if (door.knocked > 0 || door.household.some(r => { const w = s.out.get(r.id); return w !== undefined && g.world.get(w, "walker")?.plan === "answer"; })) return true;
+  combatText(g, dx - HALF, dy - HALF - 4, "Knock knock", "#e8dcc4");
+  const h = hourOf(g), night = h >= TOWNSFOLK.hours.bedtime || h < 6;
+  door.who = night && s.rng.next() < TOWNSFOLK.knock.asleep ? null : answererOf(s, door);
+  door.knocked = TOWNSFOLK.knock.answer;
+  return true;
+}
+
+/** Knocks waiting on an answer: whoever's coming opens up and stands in the doorway, facing the hero; or nobody comes. */
+function answerDoors(g: Game, s: Streets, dt: number): void {
+  for (const [e, door] of doors) {
+    if (door.knocked <= 0 || (door.knocked -= dt) > 0) continue;
+    door.knocked = 0;
+    const r = door.who;
+    if (!r || s.out.has(r.id)) {
+      const h = hourOf(g);
+      toast(g, h >= TOWNSFOLK.hours.bedtime || h < 6 ? `No answer at ${door.name}. They must be asleep.` : `No answer at ${door.name}.`);
+      continue;
+    }
+    const a = spawn(g, s, r, centre(door.tile)), w = g.world.need(a, "walker");
+    Object.assign(w, { plan: "answer", moving: false, wait: TOWNSFOLK.knock.wait, goIn: true });
+    if (g.target === e) g.target = a;                        // the ring's on whoever came to the door
+    toast(g, `${r.name} comes to the door.`, true);
+  }
+}
+
 // ---------- Every frame ----------
 /** Everyone walks on, stays at what they're doing, keeps with their party; the streets fill and empty with the hour. */
 export function updateTownsfolk(g: Game, dt: number): void {
@@ -348,11 +432,18 @@ export function updateTownsfolk(g: Game, dt: number): void {
   if (!s || s.area !== g.area.def.id || g.state !== "play") return;
   const hero = g.world.need(g.player, "transform"), talkingTo = g.world.get(g.player, "conversation")?.with;
   const cap = capOf(s, hourOf(g)), crowded = s.out.size > cap * 1.15;
+  answerDoors(g, s, dt);
   for (const [id, e] of [...s.out]) {
     const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
     if (!w || !t) { s.out.delete(id); release(s, e); continue; }
     if (talkingTo === e) { w.moving = false; w.runTo = null; w.facing = Math.atan2(hero.y - t.y, hero.x - t.x); continue; }   // they stop to talk
     if (w.follow) { keepUp(g, s, e, w, t, dt); continue; }
+    if (w.plan === "answer") {                               // in the doorway: facing the hero till they go, then back in
+      const hd = Math.hypot(hero.x - t.x, hero.y - t.y);
+      w.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
+      if ((w.wait -= dt) <= 0 || hd > TOWNSFOLK.knock.leave) goIn(g, s, e, w);
+      continue;
+    }
     if (!w.moving) {
       if (w.plan === "play" && w.playAt) runAbout(g, s, w, t, w.playAt, dt);
       if ((w.wait -= dt) <= 0) next(g, s, e, w, t, crowded);

@@ -235,7 +235,7 @@ export interface Dummy {
 }
 
 /** What one of the townsfolk is out to do (see src/game/townsfolk.ts). */
-export type Errand = "work" | "shop" | "chat" | "drink" | "church" | "errand" | "play" | "home";
+export type Errand = "work" | "shop" | "chat" | "drink" | "church" | "errand" | "play" | "home" | "answer";
 
 /** One of the census's people out in the streets (see src/game/townsfolk.ts). Paths are in tiles. */
 export interface Walker {

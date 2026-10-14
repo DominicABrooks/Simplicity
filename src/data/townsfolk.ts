@@ -19,6 +19,9 @@ export const TOWNSFOLK = {
   hours: { workFrom: 7, workTo: 18, innFrom: 17, bedtime: 22, kidsIn: 19 },
   /** How far behind their leader (px) a child walks, and how far beside them they stand; how far kids run about at play (tiles). */
   follow: { gap: 7, beside: 6, play: 2.5 },
+  /** Knocking at a door: how close the hero must be (px), how long before someone comes (s), how long they'll stand
+   *  in the doorway (s), how far off the hero can go before they go back in (px), and how likely nobody comes at night. */
+  knock: { reach: 16, answer: 1.4, wait: 30, leave: 36, asleep: 0.6 },
   /** As a target: ring radius (px) and height (world units, for an adult). */
   radius: 4.5,
   height: 1.3,
