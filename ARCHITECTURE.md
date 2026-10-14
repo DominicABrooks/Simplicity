@@ -24,7 +24,9 @@ sit around it: input fills in the controls, the renderer and UI read the state a
 - Game space is 2D, in **game pixels**: a tile is 8 px (`T`), the map is 64 x 44 tiles.
 - Every position is the **top-left of an 8x8 cell**. Add `HALF` (4) for the cell's centre. Hit tests between
   two cells compare positions directly (`Math.hypot(a.x - b.x, a.y - b.y) < 5`).
-- Collision checks a box at the feet (`blocked()` in `src/world/collision.ts`), so sprites overlap trees above them.
+- Collision checks a box at the feet, centred where the body is drawn (`blocked()` in `src/world/collision.ts`). Trees and
+  water block by the tile; buildings block by their shapes (below). Moves go in steps of at most 2 px, so nothing
+  fast skips through a thin post.
 - The 3D view maps game x to world X and game y to world Z, one tile per world unit: `toWorld(x, y)` in
   `src/render/context.ts` gives the cell's centre.
 - Speeds are px per second, times are seconds.
@@ -102,9 +104,14 @@ The world is a graph of **areas** joined by **exits** (caves, for now). Each are
 
 Props are data too: each kind (a camp, a cave, a curtain wall around any polygon, a house, a keep,
 a cathedral, a bridge, a lamp in `town.ts`; a plaza, fountain, stall, statue, planter, bench, stock, bunting
-and standard in `market.ts`) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built stands on
-`Wall` tiles, which block movement like trees, so collision stays a tile lookup however many buildings
-an area has. A new kind of building is a `Prop` variant plus one builder. A builder can return
+and standard in `market.ts`) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built is solid by
+its shape: `propSolids()` (`src/world/solids.ts`) turns each prop into boxes, circles and capsules (thick
+lines, for wall runs at any angle), which go in the area's `map.solids`; `src/world/shapes.ts` buckets them
+into a grid, so a collision test only looks at the few nearby. The bigger buildings have ground plans
+(`src/world/plans.ts`) that both their renderer and their shapes are made from, so what you see is what you
+bump into. Built things also stand on `Wall` tiles, which mark the map (for the map view, spawning and
+reachability) but don't block movement themselves. A new kind of building is a `Prop` variant, one builder
+and its shapes. A builder can return
 `occluders` (boxes around anything tall); `src/render/occlusion.ts` fades whichever of them, and
 whichever trees, stand between the camera and the hero or the ground just around them.
 
@@ -136,7 +143,9 @@ appears, updates it every frame and removes it when the entity is destroyed. The
 (`hero.ts`) for its pose, weapons, hands, swoosh, sheep form, ice block and dash afterimages. Terrain,
 koi, fishing visuals, ambience and effects are their own modules. Grass covers all the ground; paths
 and paving are overlays (`groundLayers.ts`) whose edges follow a noisy field instead of the tile grid,
-so they blend into it while collision stays on tiles.
+so they blend into it while collision stays on tiles. Everything flat on the ground draws in ordered layers
+(`GROUND` in `context.ts`: paving, paths, the plaza, stains, shadows, then markers like the aim arrow and target
+ring on top), each pulled toward the camera in the depth test a little more than the last.
 
 Rendering reads the game and never writes to it, except draining the effects queue.
 

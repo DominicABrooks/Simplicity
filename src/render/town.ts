@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
+import { WALL_D, cathedralPlan, houseBody, keepPlan, wallPlan } from "../world/plans.ts";
 import { box, type RenderContext } from "./context.ts";
 import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
@@ -117,20 +118,17 @@ export const occluder = (object: THREE.Object3D, x: number, z: number, w: number
   ({ object, x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, height });
 
 // ---------- Curtain walls ----------
-const WALL_D = 0.9;
 
 /**
  * A defensive wall around a polygon: a run of crenellated wall along each edge, a round tower at every
  * corner, and a gatehouse (two tall towers and an arch you walk under) in the gate's edge.
  */
 export function buildCurtainWall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"curtainWall">): PropView {
-  const pts = p.points.map(q => ({ x: q.x / T, z: q.y / T })), H = p.height;
-  const centre = { x: pts.reduce((s, q) => s + q.x, 0) / pts.length, z: pts.reduce((s, q) => s + q.z, 0) / pts.length };
+  const plan = wallPlan(p), H = p.height;
   const occluders: Occluder[] = [];
   // Each run of wall is its own object with its own material, so only the bit in front of you fades.
   const run = (a: { x: number; z: number }, b: { x: number; z: number }) => {
     const len = Math.hypot(b.x - a.x, b.z - a.z), seg = new THREE.Group();
-    if (len < 0.2) return;
     const stone = ctx.lambert("#ffffff", { map: ctx.tex.stone });
     const body = new THREE.Mesh(tiledBox(len, H, WALL_D, 0.8), stone);
     body.position.y = H / 2;
@@ -141,56 +139,43 @@ export function buildCurtainWall(ctx: RenderContext, parent: THREE.Group, p: Pro
     occluders.push({ object: seg, x0: Math.min(a.x, b.x) - WALL_D / 2, x1: Math.max(a.x, b.x) + WALL_D / 2, z0: Math.min(a.z, b.z) - WALL_D / 2, z1: Math.max(a.z, b.z) + WALL_D / 2, height: H + 0.4 });
   };
   const flags: THREE.Mesh[] = [];
-  pts.forEach((a, i) => {
-    const b = pts[(i + 1) % pts.length]!;
-    if (i !== p.gate.edge) { run(a, b); return; }
-    // The gate's edge: wall up to the gatehouse on either side.
-    const len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
-    const s0 = ((p.gate.x / T - a.x) / (b.x - a.x)) * len, half = p.gate.width / T / 2 + 1;
-    const along = (s: number) => ({ x: a.x + dx * s, z: a.z + dz * s });
-    run(a, along(s0 - half));
-    run(along(s0 + half), b);
-    // The gatehouse, built along the edge with its face outward (away from the walls' centre).
-    const gate = new THREE.Group(), g0 = along(s0), gapW = half * 2, r = p.tower.radius * 0.92, th = p.tower.height + 0.4;
-    for (const s of [-1, 1]) {
-      const t = tower(ctx, r, th, p.tower.roof);
-      t.position.set((s * gapW) / 2, 0, 0.5);
-      const b2 = banner(ctx, r * 0.66, th * 0.4);
-      b2.position.set(0, th * 0.82, r + 0.02);
-      const flag = pennant(ctx, 1.1, 0.7);
-      flag.group.position.y = th + p.tower.radius * 1.4 * 1.05;
-      flags.push(flag.cloth);
-      t.add(b2, flag.group);
-      gate.add(t);
-    }
-    const stone = ctx.lambert("#ffffff", { map: ctx.tex.stone }), archBottom = 2.85, archH = Math.max(1.1, H + 0.6 - archBottom);
-    const arch = new THREE.Mesh(tiledBox(gapW, archH, WALL_D + 0.2, 0.8), stone);
-    arch.position.set(0, archBottom + archH / 2, 0.25);
-    const archTop = merlons(gapW, archBottom + archH, WALL_D + 0.2, stone);
-    archTop.position.z = 0.25;
-    const vault = new THREE.Mesh(new THREE.PlaneGeometry(gapW - 1.6, 0.25), ctx.basic(DOORWAY, { side: THREE.DoubleSide }));
-    vault.position.set(0, archBottom - 0.13, 0.25 + (WALL_D + 0.2) / 2 + 0.01);
-    gate.add(arch, archTop, vault);
-    // The portcullis, raised into the arch: iron bars with points, hanging just below it.
-    const iron = ctx.basic(IRON);
-    for (let k = 0; k < 6; k++) {
-      const x = -gapW / 2 + 0.95 + (k * (gapW - 1.9)) / 5;
-      const bar = new THREE.Mesh(box(0.06, 0.35, 0.06), iron);
-      bar.position.set(x, archBottom - 0.17, 0.25);
-      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.12, 4).rotateX(Math.PI), iron);
-      tip.position.set(x, archBottom - 0.41, 0.25);
-      gate.add(bar, tip);
-    }
-    // Local +x runs along the edge; turn the group so local +z points outward.
-    let yaw = Math.atan2(-dz, dx);
-    const out = { x: -dz, z: dx };                            // where local +z ends up for that yaw
-    if (out.x * (g0.x - centre.x) + out.z * (g0.z - centre.z) < 0) yaw += Math.PI;
-    gate.rotation.y = yaw;
-    gate.position.set(g0.x, 0, g0.z);
-    parent.add(gate);
-    occluders.push({ object: gate, x0: g0.x - gapW / 2 - r, x1: g0.x + gapW / 2 + r, z0: g0.z - 1.5, z1: g0.z + 1.5, height: th + 1.5 });
-  });
-  for (const q of pts) {
+  for (const [a, b] of plan.runs) run(a, b);
+  // The gatehouse, built along the edge with its face outward (away from the walls' centre).
+  const gate = new THREE.Group(), g0 = plan.gate.at, gapW = plan.gate.gapW, r = plan.gate.towerR, th = p.tower.height + 0.4;
+  for (const s of [-1, 1]) {
+    const t = tower(ctx, r, th, p.tower.roof);
+    t.position.set((s * gapW) / 2, 0, 0.5);
+    const b2 = banner(ctx, r * 0.66, th * 0.4);
+    b2.position.set(0, th * 0.82, r + 0.02);
+    const flag = pennant(ctx, 1.1, 0.7);
+    flag.group.position.y = th + p.tower.radius * 1.4 * 1.05;
+    flags.push(flag.cloth);
+    t.add(b2, flag.group);
+    gate.add(t);
+  }
+  const stone = ctx.lambert("#ffffff", { map: ctx.tex.stone }), archBottom = 2.85, archH = Math.max(1.1, H + 0.6 - archBottom);
+  const arch = new THREE.Mesh(tiledBox(gapW, archH, WALL_D + 0.2, 0.8), stone);
+  arch.position.set(0, archBottom + archH / 2, 0.25);
+  const archTop = merlons(gapW, archBottom + archH, WALL_D + 0.2, stone);
+  archTop.position.z = 0.25;
+  const vault = new THREE.Mesh(new THREE.PlaneGeometry(gapW - 1.6, 0.25), ctx.basic(DOORWAY, { side: THREE.DoubleSide }));
+  vault.position.set(0, archBottom - 0.13, 0.25 + (WALL_D + 0.2) / 2 + 0.01);
+  gate.add(arch, archTop, vault);
+  // The portcullis, raised into the arch: iron bars with points, hanging just below it.
+  const iron = ctx.basic(IRON);
+  for (let k = 0; k < 6; k++) {
+    const x = -gapW / 2 + 0.95 + (k * (gapW - 1.9)) / 5;
+    const bar = new THREE.Mesh(box(0.06, 0.35, 0.06), iron);
+    bar.position.set(x, archBottom - 0.17, 0.25);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.12, 4).rotateX(Math.PI), iron);
+    tip.position.set(x, archBottom - 0.41, 0.25);
+    gate.add(bar, tip);
+  }
+  gate.rotation.y = plan.gate.yaw;                          // local +x along the edge, +z outward
+  gate.position.set(g0.x, 0, g0.z);
+  parent.add(gate);
+  occluders.push({ object: gate, x0: g0.x - gapW / 2 - r, x1: g0.x + gapW / 2 + r, z0: g0.z - 1.5, z1: g0.z + 1.5, height: th + 1.5 });
+  for (const q of plan.towers) {
     const t = tower(ctx, p.tower.radius, p.tower.height, p.tower.roof), r = p.tower.radius;
     t.position.set(q.x, 0, q.z);
     parent.add(t);
@@ -207,7 +192,7 @@ const STOREY = 1.15;                                         // floor to floor: 
 
 export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"house">): PropView {
   const { lambert, basic, tex } = ctx, g = new THREE.Group();
-  const w = p.rect.w / T - 0.2, d = p.rect.h / T - 0.25, storeys = p.storeys ?? 2;
+  const body = houseBody(p.rect), w = body.w, d = body.d, storeys = p.storeys ?? 2;
   const timber = lambert("#ffffff", { map: tex.timber }), frame = lambert(DARK_WOOD), glass = basic(LIT);
   const windowAt = (x: number, y: number, z: number, side: boolean) => {
     const pane = new THREE.Mesh(box(side ? 0.05 : 0.34, 0.4, side ? 0.34 : 0.05), glass);
@@ -295,9 +280,8 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
 export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"keep">): PropView {
   const { lambert, basic, tex } = ctx, root = new THREE.Group(), g = new THREE.Group();
   const stone = lambert("#ffffff", { map: tex.stone });
-  const w = p.rect.w / T - 2.4, d = p.rect.h / T - 3.4, H = 5.0, P = p.plinth, back = -0.6;
+  const plan = keepPlan(p), { w, d, back, baseW, baseD } = plan, H = 5.0, P = p.plinth;
   // The crag: a stone-faced base, boulders heaped around its foot, and a stair up the front.
-  const baseW = w + 1.4, baseD = d + 1.4;
   const face = new THREE.Mesh(tiledBox(baseW, P, baseD, 0.8), lambert("#b8b0a4", { map: tex.stone }));
   face.position.set(0, P / 2, back);
   root.add(face);
@@ -311,10 +295,10 @@ export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ke
     b.rotation.set(hash(i, 5, 502) * 3, hash(i, 6, 503) * 3, 0);
     root.add(b);
   }
-  const steps = Math.round(P / 0.2), stepD = 1.3 / steps;
+  const steps = Math.round(P / 0.2), stepD = plan.stairD / steps;
   for (let i = 0; i < steps; i++) {
-    const s = new THREE.Mesh(box(2.6, 0.2 * (i + 1), stepD), lambert("#8a8378"));
-    s.position.set(0, 0.1 * (i + 1), back + baseD / 2 + 1.3 - (i + 0.5) * stepD);
+    const s = new THREE.Mesh(box(plan.stairW, 0.2 * (i + 1), stepD), lambert("#8a8378"));
+    s.position.set(0, 0.1 * (i + 1), back + baseD / 2 + plan.stairD - (i + 0.5) * stepD);
     root.add(s);
   }
   g.position.set(0, P, back);
@@ -402,8 +386,7 @@ const GLASS = ["#3f6fd0", "#c8423a", "#f5d562", "#5fb04a", "#8a4fc0"] as const;
 export function buildCathedral(ctx: RenderContext, parent: THREE.Group, p: PropOf<"cathedral">): PropView {
   const { lambert, basic, tex } = ctx, g = new THREE.Group();
   const stone = lambert("#e0d8c8", { map: tex.stone }), lead = lambert("#5a6470", { map: tex.shingles, side: THREE.DoubleSide });
-  const W = p.rect.w / T, D = p.rect.h / T, naveD = Math.min(4.4, D - 2.6), naveH = 4.6, roofH = 2.8;
-  const towerS = 3.0, west = -W / 2 + towerS, east = W / 2 - 2.4, naveL = east - west, naveX = (west + east) / 2;
+  const { W, D, naveD, towerS, west, east, naveL, naveX, crossX, transW, transD, towerX: tx } = cathedralPlan(p.rect), naveH = 4.6, roofH = 2.8;
   // The nave.
   const nave = new THREE.Mesh(tiledBox(naveL, naveH, naveD, 0.8), stone);
   nave.position.set(naveX, naveH / 2, 0);
@@ -433,7 +416,6 @@ export function buildCathedral(ctx: RenderContext, parent: THREE.Group, p: PropO
     }
   }
   // The transept, crossing the nave, with its gable and rose window facing south over the portal.
-  const crossX = naveX + naveL * 0.12, transW = 2.8, transD = D - 0.4;
   const trans = new THREE.Mesh(tiledBox(transW, naveH, transD, 0.8), stone);
   trans.position.set(crossX, naveH / 2, 0);
   const transRoof = new THREE.Mesh(roofGeometry(transD + 0.3, transW + 0.6, roofH), lead);
@@ -476,7 +458,7 @@ export function buildCathedral(ctx: RenderContext, parent: THREE.Group, p: PropO
   apseRoof.position.set(east, naveH + roofH / 2, 0);
   g.add(apse, apseRoof);
   // The bell tower at the west end: belfry arches, corner pinnacles, a spire and a gold cross.
-  const towerH = 9.0, tx = -W / 2 + towerS / 2;
+  const towerH = 9.0;
   const belltower = new THREE.Mesh(tiledBox(towerS, towerH, towerS, 0.8), stone);
   belltower.position.set(tx, towerH / 2, 0);
   g.add(belltower);

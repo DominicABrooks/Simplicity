@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import type { Fx } from "../game/fx.ts";
-import { PX_PER_TILE, toWorld, type RenderContext } from "./context.ts";
+import { GROUND, onGround, PX_PER_TILE, toWorld, type RenderContext } from "./context.ts";
 import { SPARK_PAIRS } from "./particles.ts";
 
 export interface FxView {
@@ -47,7 +47,7 @@ export function createFxView(ctx: RenderContext): FxView {
             break;
           case "nova": {
             const R = f.radius / PX_PER_TILE;
-            add(new THREE.Mesh(new THREE.RingGeometry(R * 0.8, R, 24).rotateX(-Math.PI / 2), additive(PAL.W)), x, 0.05, z, 0.35, { grow: true });
+            add(new THREE.Mesh(new THREE.RingGeometry(R * 0.8, R, 24).rotateX(-Math.PI / 2), additive(PAL.W, onGround(GROUND.marker))), x, 0.05, z, 0.35, { grow: true });
             particles.burst(SPARK_PAIRS.frost, 10, x, 0.4, z, 2.5, rise, 0.25);
             break;
           }

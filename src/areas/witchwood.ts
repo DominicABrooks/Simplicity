@@ -2,9 +2,10 @@
 // a dirt path from the camp north through the woods to a cave in the mountains, which leads up to
 // the capital.
 import { Rng } from "../core/rng.ts";
-import { HALF, T, Tile, type Rect } from "../data/world.ts";
+import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
 import { isOpenGround, reachableFrom, type TileMap } from "../world/map.ts";
+import type { Shape } from "../world/shapes.ts";
 
 const W = 64, H = 44, SEED = 7;
 
@@ -21,9 +22,9 @@ export const CAMP = {
   seat: { x: 25 * T + 3, y: 17 * T + 2 },
 } as const;
 
-export const CAMP_SOLIDS: readonly Rect[] = [
-  { x: CAMP.tent.x + 1, y: CAMP.tent.y + 2, w: CAMP.tent.w - 2, h: CAMP.tent.h - 3 },
-  { x: CAMP.fire.x + 1, y: CAMP.fire.y + 1, w: T - 2, h: T - 2 },
+export const CAMP_SOLIDS: readonly Extract<Shape, { kind: "box" }>[] = [
+  { kind: "box", x: CAMP.tent.x + 1, y: CAMP.tent.y + 2, w: CAMP.tent.w - 2, h: CAMP.tent.h - 3 },
+  { kind: "box", x: CAMP.fire.x + 1, y: CAMP.fire.y + 1, w: T - 2, h: T - 2 },
 ];
 
 /** The path's column under the cave mouth: it runs straight for the last few rows, up to the cave. */

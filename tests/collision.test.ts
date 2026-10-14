@@ -9,7 +9,7 @@ const G = Tile.Grass, X = Tile.Tree, W = Tile.Water;
 const map: TileMap = {
   width: 6,
   height: 6,
-  solids: [{ x: 16, y: 32, w: 6, h: 6 }],
+  solids: [{ kind: "box", x: 16, y: 32, w: 6, h: 6 }],
   tiles: [
     [X, X, X, X, X, X],
     [X, G, G, G, G, X],

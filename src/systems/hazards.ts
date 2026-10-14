@@ -1,13 +1,12 @@
 // Mage spells in the world: bolts in flight (curving after you) and lightning strikes waiting to land.
 import { SPELLS, type BoltKind } from "../data/enemies.ts";
-import { isSolidTile } from "../data/world.ts";
 import { angleDiff, clamp } from "../core/math.ts";
 import type { Bolt } from "../game/components.ts";
 import { damagePlayer, polymorph } from "../game/combat.ts";
 import type { BurstPalette } from "../game/fx.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts } from "../game/hero.ts";
-import { tileAt, type Point } from "../world/collision.ts";
+import { solidAt, type Point } from "../world/collision.ts";
 
 const BOLT_BURST: Record<BoltKind, BurstPalette> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark" };
 /** Bolt hit radius, px between cell positions. */
@@ -33,7 +32,7 @@ export function boltSystem(g: Game, dt: number): void {
   for (const [e, { transform: f, bolt }] of w.query("bolt", "transform")) {
     steer(bolt, f, p, dt);
     f.x += bolt.vx * dt; f.y += bolt.vy * dt; bolt.life -= dt;
-    if (isSolidTile(tileAt(g.map, f.x + 4, f.y + 4))) bolt.life = 0;
+    if (solidAt(g.map, f.x + 4, f.y + 4)) bolt.life = 0;
     else if (status.hurt <= 0 && motion.dash <= 0 && motion.jump <= 0 && Math.hypot(p.x - f.x, p.y - f.y) < BOLT_HIT) {
       if (bolt.kind === "poly") polymorph(g);
       else {

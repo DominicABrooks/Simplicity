@@ -1,6 +1,10 @@
+// Movement and shot collision. Trees (and water, for things that can't swim) block by the tile; anything
+// built blocks by its shapes (shapes.ts, made from its props by solids.ts), so walls, towers, stalls and
+// posts are as solid as they look and no more.
 import type { Rng } from "../core/rng.ts";
-import { T, Tile, isSolidTile } from "../data/world.ts";
+import { T, Tile } from "../data/world.ts";
 import { isOpenGround, tileOf, type TileMap } from "./map.ts";
+import { anyContains, anyOverlaps } from "./shapes.ts";
 
 export interface Point {
   x: number;
@@ -14,24 +18,37 @@ export const tileAt = (map: TileMap, px: number, py: number): Tile => tileOf(map
  * 6 px wide and 4 deep, so you stand as close to a wall coming from the south as from the north. */
 export const FEET = { x: 1, y: 2, w: 6, h: 4 } as const;
 
-/** Does the feet box of the cell at (x, y) touch a solid (the camp's tent or fire)? */
+/** Does the feet box of the cell at (x, y) touch a solid shape (a building, a post, the camp's tent)? */
 export const hitsSolid = (map: TileMap, x: number, y: number): boolean =>
-  map.solids.some(r => x + FEET.x < r.x + r.w && r.x < x + FEET.x + FEET.w && y + FEET.y < r.y + r.h && r.y < y + FEET.y + FEET.h);
+  anyOverlaps(map.solids, { x0: x + FEET.x, y0: y + FEET.y, x1: x + FEET.x + FEET.w, y1: y + FEET.y + FEET.h });
+
+/** Is there something solid at a point (for shots: arrows stick in it, bolts burst on it)? */
+export const solidAt = (map: TileMap, px: number, py: number): boolean => tileAt(map, px, py) === Tile.Tree || anyContains(map.solids, px, py);
 
 /** Does the feet box of the cell at (x, y) touch anything solid (or water, if `blocksWater`)? */
 export function blocked(map: TileMap, x: number, y: number, blocksWater: boolean): boolean {
   const x0 = x + FEET.x, x1 = x + FEET.x + FEET.w - 0.01, y0 = y + FEET.y, y1 = y + FEET.y + FEET.h - 0.01;
   for (const [px, py] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]] as const) {
     const t = tileAt(map, px, py);
-    if (isSolidTile(t) || (blocksWater && t === Tile.Water)) return true;
+    if (t === Tile.Tree || (blocksWater && t === Tile.Water)) return true;
   }
   return hitsSolid(map, x, y);
 }
 
-/** Move by (dx, dy), one axis at a time, so you slide along walls instead of sticking. */
+/** The most a move goes in one step, so nothing fast (a dash, a slow frame) skips through a thin post. */
+const STEP = 2;
+
+/**
+ * Move by (dx, dy) in small steps, one axis at a time, so you slide along walls instead of sticking, and
+ * come to rest right against whatever stops you.
+ */
 export function moveBy(map: TileMap, p: Point, dx: number, dy: number, blocksWater: boolean): void {
-  if (dx && !blocked(map, p.x + dx, p.y, blocksWater)) p.x += dx;
-  if (dy && !blocked(map, p.x, p.y + dy, blocksWater)) p.y += dy;
+  const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / STEP)), sx = dx / n, sy = dy / n;
+  let xFree = sx !== 0, yFree = sy !== 0;
+  for (let i = 0; i < n && (xFree || yFree); i++) {
+    if (xFree) { if (blocked(map, p.x + sx, p.y, blocksWater)) xFree = false; else p.x += sx; }
+    if (yFree) { if (blocked(map, p.x, p.y + sy, blocksWater)) yFree = false; else p.y += sy; }
+  }
 }
 
 /** Two cells overlap enough to touch (pickups, contact damage). */

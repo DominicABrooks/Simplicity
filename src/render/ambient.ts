@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { Tile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
-import { WATER_Y, col, type RenderContext } from "./context.ts";
+import { GROUND, onGround, WATER_Y, col, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { hash } from "./terrain.ts";
 
@@ -85,7 +85,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
 
   // ---------- Critters ----------
   const shadowGeo = new THREE.CircleGeometry(0.12, 6).rotateX(-Math.PI / 2);
-  const shadowMat = basic("#000000", { transparent: true, opacity: 0.3, depthWrite: false });
+  const shadowMat = basic("#000000", { transparent: true, opacity: 0.3, depthWrite: false, ...onGround(GROUND.shadow) });
   const dark = basic(PAL.k);
 
   function makeBunny(): Bunny {
@@ -141,7 +141,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
   }
 
   // ---------- Atmosphere ----------
-  const cloudMat = basic("#000000", { transparent: true, opacity: 0.12, depthWrite: false });
+  const cloudMat = basic("#000000", { transparent: true, opacity: 0.12, depthWrite: false, ...onGround(GROUND.stain) });
   const leafGeo = new THREE.PlaneGeometry(0.08, 0.05);
   const leafMats = [basic(PAL.G, { side: THREE.DoubleSide, transparent: true }), basic(PAL.O, { side: THREE.DoubleSide, transparent: true }), basic("#86c46a", { side: THREE.DoubleSide, transparent: true })];
   const splashGeo = new THREE.RingGeometry(0.08, 0.13, 10).rotateX(-Math.PI / 2);

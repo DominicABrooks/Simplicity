@@ -1,14 +1,13 @@
 // The bow: press draws, release shoots along the aim. You can walk (slowly) while drawn. Speed, and
 // so range, grows with draw time. Only a full draw does real damage: a power shot with +1 damage. The bow never swings.
 import { BOW } from "../data/player.ts";
-import { isSolidTile } from "../data/world.ts";
 import { COMBAT_COLORS } from "../data/ui.ts";
 import { combatText, hitEnemy, stagger } from "../game/combat.ts";
 import type { Arrow, Transform } from "../game/components.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts, weaponOf } from "../game/hero.ts";
 import { spawnArrow } from "../game/spawn.ts";
-import { tileAt } from "../world/collision.ts";
+import { solidAt } from "../world/collision.ts";
 
 export function bowSystem(g: Game, dt: number): void {
   const h = heroParts(g), { pos, hero, motion: m, actions: a } = h, input = g.input;
@@ -45,7 +44,7 @@ export function arrowSystem(g: Game, dt: number): void {
       continue;
     }
     p.x += a.vx * dt; p.y += a.vy * dt; a.life -= dt;
-    if (isSolidTile(tileAt(g.map, p.x + 4, p.y + 4))) { a.stuck = BOW.stuckTime; a.vx = a.vy = 0; continue; }
+    if (solidAt(g.map, p.x + 4, p.y + 4)) { a.stuck = BOW.stuckTime; a.vx = a.vy = 0; continue; }
     if (a.dud) {                                             // harmless: glances off enemies, lands, lies there a moment
       if (!a.bounced) glanceOffEnemy(g, p, a);
       if (a.life <= 0) { a.stuck = BOW.stuckTime; a.grounded = true; a.vx = a.vy = 0; }

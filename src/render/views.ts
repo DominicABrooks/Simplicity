@@ -11,7 +11,7 @@ import { HALF } from "../data/world.ts";
 import type { RenderKind, Transform } from "../game/components.ts";
 import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
-import { PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
+import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { dressBody, removeBody, type Body } from "./models/body.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
@@ -61,7 +61,7 @@ const slime: EntityView<SlimeView> = {
     const wob = Math.sin(f.t * 5 + o.x);
     v.body.scale.set(1 + (hop ? -0.12 : wob * 0.06), 1 + (hop ? 0.2 : -wob * 0.08), 1 + (hop ? -0.12 : wob * 0.06));
     v.mat.emissive.set(enemy.flash > 0 ? 0xffffff : 0x000000);
-    v.shadow.position.set(x, 0.01, z);
+    v.shadow.position.set(x, SHADOW_Y, z);
     v.shadow.scale.setScalar(1 - hop * 0.3);
   },
   remove: removeSimple,
@@ -91,8 +91,8 @@ const mage: EntityView<MageView> = {
     })) as Record<BoltKind, THREE.Group>;
     // Frost Nova telegraph: the blast radius outlined on the ground, filling as the spell charges.
     const R = SPELLS.nova.radius! / PX_PER_TILE;
-    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.basic(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false }));
-    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.basic(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false }));
+    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.basic(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
+    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.basic(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false, ...onGround(GROUND.marker) }));
     novaEdge.position.y = novaFill.position.y = 0.03;
     m.group.add(novaEdge, novaFill);
     return { ...m, orbs, novaEdge, novaFill, yaw: null, wasMelee: false };
@@ -137,7 +137,7 @@ const mage: EntityView<MageView> = {
     const nova = b.casting && b.spell === "nova";
     v.novaEdge.visible = v.novaFill.visible = nova;
     if (nova) { v.novaFill.scale.setScalar(Math.max(0.01, k)); v.novaEdge.material.opacity = 0.5 + Math.sin(t * 25) * 0.3; }
-    v.shadow.position.set(x, 0.01, z);
+    v.shadow.position.set(x, SHADOW_Y, z);
   },
   remove: removeBody,
 };
@@ -160,7 +160,7 @@ const potion: EntityView<Simple> = {
     const o = g.world.need(e, "transform"), [x, z] = toWorld(o.x, o.y);
     v.group.position.set(x, 0.06 + Math.sin(f.t * 3 + o.x) * 0.06, z);
     v.group.rotation.y = f.t * 1.5 + o.x;
-    v.shadow.position.set(x, 0.01, z);
+    v.shadow.position.set(x, SHADOW_Y, z);
   },
   remove: removeSimple,
 };
@@ -189,7 +189,7 @@ const loot: EntityView<LootView> = {
     v.group.position.set(x, 0, z);
     v.gem.rotation.y = f.t * 2;
     v.gem.position.y = 0.3 + Math.sin(f.t * 3 + o.x) * 0.05;
-    v.shadow.position.set(x, 0.01, z);
+    v.shadow.position.set(x, SHADOW_Y, z);
     const despawn = g.world.get(e, "despawn");
     v.group.visible = v.shadow.visible = !despawn || blinkVisible(despawn.left);   // blinks before it vanishes
   },
@@ -224,7 +224,7 @@ const arrow: EntityView<ArrowView> = {
       v.group.position.set(x, 0.5, z);
       v.group.rotation.set(0, v.yaw, 0);
     }
-    v.shadow.position.set(x, 0.01, z);
+    v.shadow.position.set(x, SHADOW_Y, z);
     v.shadow.visible = a.stuck <= 0;
   },
   remove: removeSimple,
@@ -243,7 +243,7 @@ const bolt: EntityView<Simple> = {
     const o = g.world.need(e, "transform"), kind = g.world.need(e, "bolt").kind, [x, z] = toWorld(o.x, o.y);
     v.group.position.set(x, 0.55 + Math.sin(f.t * 12 + o.x + HALF) * 0.03, z);
     v.group.rotation.set(f.t * 6, f.t * 7, 0);
-    v.shadow.position.set(x, 0.01, z);
+    v.shadow.position.set(x, SHADOW_Y, z);
     if (Math.random() < f.dt * 30) {                         // ember trail
       const pair = SPARK_PAIRS[BOLT_SPARKS[kind]];
       ctx.particles.spawn(pair[Math.random() < 0.5 ? 0 : 1], x, 0.55, z, (Math.random() - 0.5) * 0.6, 0.8 + Math.random() * 0.6, (Math.random() - 0.5) * 0.6, 0.25);
@@ -257,8 +257,8 @@ interface StrikeView extends Simple { edge: THREE.Mesh<THREE.BufferGeometry, THR
 const strike: EntityView<StrikeView> = {
   create(ctx) {
     const R = SPELLS.strike.radius! / PX_PER_TILE, group = new THREE.Group();
-    const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.08, R, 16).rotateX(-Math.PI / 2), ctx.basic(PAL.Y, { transparent: true, opacity: 0.85, depthWrite: false }));
-    const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 16).rotateX(-Math.PI / 2), ctx.basic(PAL.Y, { transparent: true, opacity: 0.3, depthWrite: false }));
+    const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.08, R, 16).rotateX(-Math.PI / 2), ctx.basic(PAL.Y, { transparent: true, opacity: 0.85, depthWrite: false, ...onGround(GROUND.marker) }));
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 16).rotateX(-Math.PI / 2), ctx.basic(PAL.Y, { transparent: true, opacity: 0.3, depthWrite: false, ...onGround(GROUND.marker) }));
     group.add(edge, fill);
     ctx.scene.add(group);
     return { group, shadow: new THREE.Object3D(), edge, fill };

@@ -57,15 +57,27 @@ export function createContext(scene: THREE.Scene): RenderContext {
     scene, snap, lambert, basic, lathe,
     tex: createTextures(),
     shadowGeo: new THREE.CircleGeometry(0.34, 8).rotateX(-Math.PI / 2),
-    shadowMat: basic("#000000", { transparent: true, opacity: 0.35, depthWrite: false }),
+    shadowMat: basic("#000000", { transparent: true, opacity: 0.35, depthWrite: false, ...onGround(GROUND.shadow) }),
     particles: createParticles(scene, basic),
   };
 }
 
+/**
+ * Things lying flat on the ground draw in layers. Each is pulled toward the camera in the depth test a
+ * little more than the one below (polygonOffset) and sits a hair higher, so none flickers against
+ * another or vanishes under a road: the paving, then dirt paths, the plaza's flagstones and rings, then
+ * stains (cloud shadows, scorch marks), blob shadows, and on top the markers you need to see: the aim
+ * arrow, the target ring, spell circles. Overlays stay at or below y = 0.012; marks start at 0.02.
+ */
+export const GROUND = { paving: 1, path: 2, plaza: 3, plazaRings: 4, stain: 6, shadow: 7, marker: 9 } as const;
+export const onGround = (layer: number) => ({ polygonOffset: true, polygonOffsetFactor: -layer, polygonOffsetUnits: -4 * layer });
+/** How high blob shadows and markers sit. */
+export const SHADOW_Y = 0.02, MARKER_Y = 0.03;
+
 /** A blob shadow mesh, added to the scene. */
 export function addShadow(ctx: RenderContext, scale = 1): THREE.Mesh {
   const shadow = new THREE.Mesh(ctx.shadowGeo, ctx.shadowMat);
-  shadow.position.y = 0.01;
+  shadow.position.y = SHADOW_Y;
   shadow.scale.setScalar(scale);
   return shadow;
 }

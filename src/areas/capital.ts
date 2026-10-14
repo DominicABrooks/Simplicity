@@ -16,6 +16,8 @@ import { HALF, T, Tile, type Rect } from "../data/world.ts";
 import type { Point } from "../world/collision.ts";
 import type { AreaDef, AreaLayout, Prop } from "../world/area.ts";
 import type { TileMap } from "../world/map.ts";
+import type { Shape } from "../world/shapes.ts";
+import { propSolids } from "../world/solids.ts";
 
 const W = 88, H = 76;
 /** The town's centre line: the gate, the main street's end, the castle road and the cave line up on it. */
@@ -269,7 +271,7 @@ function buildTown(): Town {
     lamps.push({ x: x! * T + HALF, y: y! * T + HALF });
 
   return {
-    map: { width: W, height: H, tiles, solids: [] },
+    map: { width: W, height: H, tiles, solids: [] as Shape[] },
     gateY, bridge: [MID - 1, bridgeTop, 2, bridgeBottom - bridgeTop + 1], houses, lamps, furnishings: furnishings.props,
   };
 }
@@ -294,13 +296,14 @@ function props(town: Town): Prop[] {
 }
 
 function build(): AreaLayout {
-  const town = buildTown();
+  const town = buildTown(), all = props(town);
   return {
-    map: town.map,
+    // Everything built is solid by its shape (see src/world/solids.ts), not by its tiles.
+    map: { ...town.map, solids: all.flatMap(propSolids) },
     // Coming up out of the cave: a few steps north of its mouth, on the road to the bridge.
     entries: { cave: { x: MID * T - HALF, y: (H - 4) * T } },
     exits: [{ rect: { x: MID * T - T, y: (H - 1) * T + 2, w: 2 * T, h: T - 2 }, to: { area: "witchwood", entry: "cave" } }],
-    props: props(town),
+    props: all,
   };
 }
 

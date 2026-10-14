@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { Tile, isSolidTile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
-import { BED_Y, WATER_Y, type RenderContext } from "./context.ts";
+import { GROUND, BED_Y, WATER_Y, type RenderContext } from "./context.ts";
 import { blendLayer } from "./groundLayers.ts";
 
 type V3 = [number, number, number];
@@ -63,8 +63,8 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): { group: THREE.G
   const side = { side: THREE.DoubleSide };
   world.add(new THREE.Mesh(quadGeometry(ground), lambert("#ffffff", { map: tex.grass, ...side })));
   // Paving (under buildings too) and dirt paths, their edges blending into the grass.
-  const paving = blendLayer(ctx, map, t => t === Tile.Cobble || t === Tile.Wall, { texture: tex.cobble, repeat: 2, lift: 0.004, wobble: 0.45, seed: 1 });
-  const dirt = blendLayer(ctx, map, t => t === Tile.Path, { texture: tex.path, repeat: 4, lift: 0.008, wobble: 0.6, seed: 2 });
+  const paving = blendLayer(ctx, map, t => t === Tile.Cobble || t === Tile.Wall, { texture: tex.cobble, repeat: 2, lift: 0.004, layer: GROUND.paving, wobble: 0.45, seed: 1 });
+  const dirt = blendLayer(ctx, map, t => t === Tile.Path, { texture: tex.path, repeat: 4, lift: 0.006, layer: GROUND.path, wobble: 0.6, seed: 2 });
   for (const layer of [paving, dirt]) if (layer) world.add(layer);
   world.add(new THREE.Mesh(quadGeometry(flowers), lambert("#ffffff", { map: tex.flower, alphaTest: 0.5, ...side })));
   world.add(new THREE.Mesh(quadGeometry(bed), lambert(PAL.b, side)));

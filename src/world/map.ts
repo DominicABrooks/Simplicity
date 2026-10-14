@@ -1,12 +1,13 @@
-import { Tile, isSolidTile, type Rect } from "../data/world.ts";
+import { Tile, isSolidTile } from "../data/world.ts";
+import type { Shape } from "./shapes.ts";
 
 /** The tile grid, indexed [y][x]. */
 export interface TileMap {
   width: number;
   height: number;
   tiles: Tile[][];
-  /** Things that block movement off the tile grid (a tent, a fire pit), in game pixels. */
-  solids: readonly Rect[];
+  /** Things that block movement off the tile grid (buildings, posts, a tent, a fire pit), in game pixels. */
+  solids: readonly Shape[];
 }
 
 export const tileOf = (map: TileMap, tx: number, ty: number): Tile =>

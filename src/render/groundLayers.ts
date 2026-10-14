@@ -6,7 +6,7 @@
 import * as THREE from "three";
 import type { Tile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
-import type { RenderContext } from "./context.ts";
+import { onGround, type RenderContext } from "./context.ts";
 import { hash } from "./terrain.ts";
 
 /** Quads per tile edge where a layer meets something else. */
@@ -16,8 +16,9 @@ export interface LayerStyle {
   texture: THREE.Texture;
   /** World units per texture repeat. */
   repeat: number;
-  /** Height above the ground (layers stack: later ones sit higher). */
+  /** Height above the ground (layers stack: later ones sit higher), and its layer in GROUND. */
   lift: number;
+  layer: number;
   /** How far the edge wanders from the tile grid (0 = straight edges, ~0.6 = very ragged). */
   wobble: number;
   seed: number;
@@ -65,8 +66,7 @@ export function blendLayer(ctx: RenderContext, map: TileMap, member: (t: Tile) =
   geo.computeVertexNormals();
   const mat = ctx.lambert("#ffffff", {
     map: style.texture, vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide,
-    // Sit on the ground without fighting it.
-    polygonOffset: true, polygonOffsetFactor: -1 - style.lift * 200, polygonOffsetUnits: -4 - style.lift * 800,
+    ...onGround(style.layer),                                // sit on the ground without fighting it
   });
   return new THREE.Mesh(geo, mat);
 }

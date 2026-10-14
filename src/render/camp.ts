@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import type { Prop } from "../world/area.ts";
-import { PX_PER_TILE, toWorld, type RenderContext } from "./context.ts";
+import { GROUND, onGround, PX_PER_TILE, toWorld, type RenderContext } from "./context.ts";
 import { hash } from "./terrain.ts";
 
 export interface Camp {
@@ -68,8 +68,8 @@ function softDisc(): THREE.CanvasTexture {
   return tex;
 }
 
-/** Ground decals sit on the floor: pull them toward the camera in depth so they never flicker against it. */
-const DECAL = { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 } as const;
+/** Ground decals sit on the floor, over paths and paving (see GROUND in context.ts). */
+const DECAL = { transparent: true, depthWrite: false, ...onGround(GROUND.stain) } as const;
 
 export function buildCamp(ctx: RenderContext, parent: THREE.Group, camp: Extract<Prop, { kind: "camp" }>): Camp {
   const { lambert, basic, particles, tex } = ctx;

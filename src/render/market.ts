@@ -5,9 +5,10 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import type { Facing, Goods } from "../world/area.ts";
-import { box, type RenderContext } from "./context.ts";
+import { GROUND, box, onGround, type RenderContext } from "./context.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
+import { benchLength, stallBody } from "../world/plans.ts";
 import { DARK_WOOD, IRON, WOOD, banner, occluder, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
 
 /** Turn a group built facing south (+z) to face `facing`. */
@@ -144,7 +145,7 @@ const WARES: Record<Goods, { colors: string[]; make: (ctx: RenderContext, c: str
 
 export function buildStall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"stall">): PropView {
   const { lambert } = ctx, g = new THREE.Group();
-  const w = p.rect.w / T - 0.2, d = p.rect.h / T - 0.15, seed = p.rect.x + p.rect.y * 7;
+  const { w, d } = stallBody(p.rect), seed = p.rect.x + p.rect.y * 7;
   const counter = new THREE.Mesh(box(w, 0.8, d * 0.6), lambert(WOOD));
   counter.position.set(0, 0.4, d * 0.15);
   const top = new THREE.Mesh(box(w + 0.06, 0.05, d * 0.6 + 0.06), lambert(p.goods === "fish" ? "#e8f0f4" : DARK_WOOD));   // fish on ice
@@ -204,7 +205,7 @@ export function buildPlanter(ctx: RenderContext, parent: THREE.Group, p: PropOf<
   top.position.set(0.08, 1.95, 0.05);
   g.add(tub, rim, soil, trunk, crown, top);
   g.position.set(x, 0, z);
-  g.rotation.y = k * Math.PI;
+  g.rotation.y = Math.floor(k * 4) * (Math.PI / 2);         // quarter turns: the tub stays square to its footprint
   parent.add(g);
   return { occluders: [occluder(g, x, z, 1, 1, 2.2)] };
 }
@@ -213,7 +214,7 @@ export function buildPlanter(ctx: RenderContext, parent: THREE.Group, p: PropOf<
 /** A stone-legged wooden bench along the rect's long side, its back away from where you'd look. */
 export function buildBench(ctx: RenderContext, parent: THREE.Group, p: PropOf<"bench">): PropView {
   const { lambert } = ctx, g = new THREE.Group();
-  const len = Math.max(p.rect.w, p.rect.h) / T - 0.4, wood = lambert(WOOD), stone = lambert("#8a8378");
+  const len = benchLength(p.rect), wood = lambert(WOOD), stone = lambert("#8a8378");
   const seat = new THREE.Mesh(box(len, 0.08, 0.38), wood);
   seat.position.y = 0.42;
   const back = new THREE.Mesh(box(len, 0.32, 0.06), wood);
@@ -320,16 +321,16 @@ export function buildStandard(ctx: RenderContext, parent: THREE.Group, p: PropOf
 export function buildPlaza(ctx: RenderContext, parent: THREE.Group, p: PropOf<"plaza">): PropView {
   const { lambert, tex } = ctx, g = new THREE.Group(), [cx, cz] = centreOf(p.rect), [ox, oz] = at(p.centre);
   const w = p.rect.w / T, d = p.rect.h / T;
-  // Sit just above the paths and paving (see groundLayers.ts) without fighting them.
-  const flat = (c: string, lift: number) => lambert(c, { map: tex.stone, polygonOffset: true, polygonOffsetFactor: -6 - lift * 100, polygonOffsetUnits: -20 - lift * 400 });
+  // Just above the paths and paving, below shadows and markers (see GROUND in context.ts).
+  const flat = (c: string, layer: number) => lambert(c, { map: tex.stone, ...onGround(layer) });
   const slabs = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), uv = slabs.attributes.uv!;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * w) / 1.6, (uv.getY(i) * d) / 1.6);   // big slabs
-  const floor = new THREE.Mesh(slabs, flat("#e4dccb", 0.01));
-  floor.position.set(cx, 0.012, cz);
+  const floor = new THREE.Mesh(slabs, flat("#e4dccb", GROUND.plaza));
+  floor.position.set(cx, 0.008, cz);
   g.add(floor);
   for (const [r0, r1, c] of [[2.4, 2.9, "#9a9082"], [4.2, 4.5, "#b0a796"]] as const) {
-    const ring = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 24).rotateX(-Math.PI / 2), flat(c, 0.02));
-    ring.position.set(ox, 0.016, oz);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 24).rotateX(-Math.PI / 2), flat(c, GROUND.plazaRings));
+    ring.position.set(ox, 0.01, oz);
     g.add(ring);
   }
   const kerb = lambert("#8a8378", { map: tex.stone });

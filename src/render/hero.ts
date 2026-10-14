@@ -7,7 +7,7 @@ import { PAL } from "../data/palette.ts";
 import { BOW, FISHING, JUMP_TIME, THRUST } from "../data/player.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
-import { WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
+import { GROUND, MARKER_Y, onGround, WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
 import { dressBody, makeBody, type Body } from "./models/body.ts";
 
 const SWOOSH_COLOR: Record<string, string> = { normal: PAL.W, magic: PAL.C, rare: PAL.Y };
@@ -182,7 +182,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
   }
   const reticle = new THREE.Mesh(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0.18, 0, 0), new THREE.Vector3(-0.1, 0, -0.14), new THREE.Vector3(-0.1, 0, 0.14)]),
-    basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+    basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, ...onGround(GROUND.marker) }));
   scene.add(reticle);
 
   return {
@@ -303,7 +303,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
         return false;
       });
       // Aim marker on the ground, a short way out along the aim.
-      reticle.position.set(px + Math.cos(m.aim) * 1.4, 0.02, pz + Math.sin(m.aim) * 1.4);
+      reticle.position.set(px + Math.cos(m.aim) * 1.4, MARKER_Y, pz + Math.sin(m.aim) * 1.4);
       reticle.rotation.y = -m.aim;
       reticle.visible = !m.swimming && !(status.sheep > 0);
     },
