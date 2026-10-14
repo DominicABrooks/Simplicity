@@ -195,7 +195,47 @@ const MAGE = {
   charge: 0.7, fireSpeed: 70, fireLife: 2.4,
   polyCharge: 1.0, polySpeed: 85, polyCooldown: 12, polyChance: 0.45, sheepTime: 5,
   blinkCooldown: 6, stuckBeforeBlink: 0.3, blinkMin: 40, blinkMax: 72,
+  // Melee: caught up close with blink on cooldown, it draws a sword and chases you until it can blink.
+  chaseSpeed: 30, swingReach: 16, swingWindup: 0.32, swingSweep: 0.16, swingRecover: 0.2, swingRest: 0.5,
 };
+
+// One mage sword swing: a long, readable wind-up, a fast sweep, a short recovery.
+// The time is mapped onto the hero's swing curve (swingRel) so both swing the same way.
+function mageSwingK(t) {
+  const W = MAGE.swingWindup, S = MAGE.swingSweep, R = MAGE.swingRecover;
+  if (t < W) return SWEEP_START * (t / W);
+  if (t < W + S) return SWEEP_START + (SWEEP_END - SWEEP_START) * ((t - W) / S);
+  return Math.min(1, SWEEP_END + (1 - SWEEP_END) * ((t - W - S) / R));
+}
+
+function updateMageMelee(s, dt, dx, dy, d) {
+  const p = player;
+  s.swingCD = Math.max(0, s.swingCD - dt);
+  const sw = s.swing;
+  if (sw) {
+    s.moving = false;
+    const kPrev = mageSwingK(sw.t);
+    sw.t += dt;
+    const k = mageSwingK(sw.t);
+    s.swingK = k; s.swingRel = swingRel(sw.side, k);
+    // Same sweep test as the hero's: hit if the blade passed through the hero's direction this frame.
+    if (!sw.hit && k > SWEEP_START && kPrev < SWEEP_END && d <= MAGE.swingReach && p.hurt <= 0 && p.dash <= 0 && p.jump <= 0) {
+      const a0 = swingRel(sw.side, Math.max(kPrev, SWEEP_START)), a1 = swingRel(sw.side, Math.min(k, SWEEP_END));
+      const rel = angleDiff(Math.atan2(dy, dx), sw.aim);
+      if (rel >= Math.min(a0, a1) - 0.3 && rel <= Math.max(a0, a1) + 0.3) { sw.hit = true; damagePlayer(s.x, s.y); }
+    }
+    if (sw.t >= MAGE.swingWindup + MAGE.swingSweep + MAGE.swingRecover) { s.swing = null; s.swingCD = MAGE.swingRest; }
+    return;
+  }
+  if (d > MAGE.swingReach - 2) {                            // chase
+    moveBy(s, dx / d * MAGE.chaseSpeed * dt, dy / d * MAGE.chaseSpeed * dt, true);
+    s.moving = true;
+  } else s.moving = false;
+  if (d <= MAGE.swingReach + 2 && s.swingCD <= 0) {
+    s.swingSide = -(s.swingSide || -1);
+    s.swing = { t: 0, side: s.swingSide, aim: Math.atan2(dy, dx), hit: false };
+  }
+}
 
 // Teleport to a random open spot 5-9 tiles from the hero, clear of trees and water on all sides.
 function blinkMage(s) {
@@ -226,6 +266,16 @@ function updateMage(s, dt) {
       if (poly) s.polyCD = MAGE.polyCooldown;
       s.casting = false; s.timer = MAGE.every[0] + rand() * (MAGE.every[1] - MAGE.every[0]);
     }
+    return;
+  }
+  // Up close: blink away if it can, otherwise draw the sword and fight until blink is ready again.
+  if (!s.melee && d < MAGE.near) {
+    if (s.blinkCD <= 0) { blinkMage(s); return; }
+    s.melee = true; s.swing = null; s.swingCD = 0.35;
+  }
+  if (s.melee) {
+    if (s.blinkCD <= 0 && !s.swing) { s.melee = false; blinkMage(s); return; }
+    updateMageMelee(s, dt, dx, dy, d);
     return;
   }
   // Back off when crowded, close in when far, otherwise circle at casting range.

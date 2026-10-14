@@ -374,6 +374,16 @@ export function createView(canvas, PAL, C) {
     for (const [o, v] of mageViews) {
       const [x, z] = toWorld(o.x, o.y);
       v.group.position.set(x, 0, z);
+      dressHero(v, { helm: "ember", armor: "ember", boots: "ember", weapon: o.melee ? "ember" : null, ring: null, amulet: null, weaponType: o.melee ? "blade" : null });
+      if (!!o.melee !== !!v.wasMelee) {                     // a puff of embers as the sword is drawn or put away
+        for (let i = 0; i < 8; i++) {
+          const m = new THREE.Mesh(sparkGeo, i % 2 ? sparkMats.fire : sparkMats.ember), a = Math.random() * Math.PI * 2;
+          m.position.set(x, 0.5, z);
+          m.userData = { vx: Math.cos(a) * 1.6, vz: Math.sin(a) * 1.6, vy: 1.2 + Math.random(), life: 0.35 };
+          scene.add(m); sparks.push(m);
+        }
+        v.wasMelee = !!o.melee;
+      }
       const look = -Math.atan2(p.y - o.y, p.x - o.x);       // always face the hero
       v.yaw = v.yaw === undefined ? look : turn(v.yaw, look, dt, 8);
       v.group.rotation.y = v.yaw;
@@ -383,10 +393,15 @@ export function createView(canvas, PAL, C) {
       v.feet.forEach((f, i) => { f.position.x = v.footX + (o.moving ? Math.sin(t * 10 + i * Math.PI) * 0.08 : 0); });
       // Casting: both hands come forward and a fireball grows between them (the telegraph).
       const k = o.casting ? o.castK : 0;
+      // Sword: held at the side while chasing, swung on the same curve as the hero's swipes.
+      const sw = v.sword;
+      if (o.melee && o.swing) { const r = o.swingRel; sw.position.set(Math.cos(r) * 0.3, 0.5, Math.sin(r) * 0.3); sw.rotation.set(0, -r, -Math.PI / 2); }
+      else if (o.melee) { sw.position.set(0.12, 0.5 + Math.sin(t * 3) * 0.04, 0.46); sw.rotation.set(0, 0, 0.15); }
       v.hands.forEach((h, i) => {
         const side = i === 0 ? 1 : -1;
-        if (o.casting) h.position.set(0.32 + k * 0.08, 0.5 + k * 0.1, side * (0.22 - k * 0.08));
-        else h.position.set(0.12, 0.38 + Math.sin(t * 2.5 + i) * 0.02, side * 0.44);
+        if (o.melee && i === 0) { sw.updateMatrix(); h.position.set(0, v.gripY, 0).applyMatrix4(sw.matrix); }   // front hand on the grip
+        else if (o.casting) h.position.set(0.32 + k * 0.08, 0.5 + k * 0.1, side * (0.22 - k * 0.08));
+        else h.position.set(0.12 + (o.moving ? Math.sin(t * 12 + i * Math.PI) * 0.1 : 0), 0.38 + Math.sin(t * 2.5 + i) * 0.02, side * 0.44);
       });
       for (const [orb, spell] of [[v.orb, "fire"], [v.polyOrb, "poly"]]) {
         orb.visible = o.casting && o.spell === spell;
