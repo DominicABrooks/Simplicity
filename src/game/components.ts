@@ -264,6 +264,11 @@ export interface Walker {
   /** Where a band of children plays (tile), once they're there; where each is running to now (px). */
   playAt: readonly [number, number] | null;
   runTo: [number, number] | null;
+  /** A leader stopped to wait while the hero talks to one of their party. */
+  holdFor: Entity | null;
+  /** One of a party who's been left behind: seconds till they run off after them (saying so), then running to catch up, too busy to talk. */
+  leaving: number;
+  catchingUp: boolean;
 }
 
 /** The hero talking to someone (see src/game/talk.ts). */

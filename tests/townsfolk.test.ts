@@ -8,7 +8,7 @@ import { TOWNSFOLK } from "../src/data/townsfolk.ts";
 import { HALF, T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
-import { startTalk, talking } from "../src/game/talk.ts";
+import { endTalk, startTalk, talking } from "../src/game/talk.ts";
 import { isCommoner, isDoor, knock, populate, residentById, setCensus, updateTownsfolk, walkersOf, whoIsHome } from "../src/game/townsfolk.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { FAMILIES } from "../src/world/people.ts";
@@ -240,4 +240,81 @@ describe("knocking at doors", () => {
     expect(knock(g, e)).toBe(false);
     expect(knock(g, null)).toBe(false);
   });
+});
+
+describe("talking to one of a party on the move", () => {
+  /** A child keeping with a leader who's walking somewhere a while yet, the hero beside the child. */
+  async function partyOnTheMove(): Promise<{ g: Game; kid: Entity; leader: Entity }> {
+    for (const hour of [10, 11, 13, 14, 15]) {
+      const g = await inArea("capital", hour);
+      for (let t = 0; t < 40; t += 0.5) {
+        const found = folk(g).find(([, { walker }]) => {
+          const lw = walker.follow && g.world.get(walker.follow.leader, "walker");
+          return lw && lw.moving && lw.path.length > 8 && !walker.catchingUp;
+        });
+        if (found) {
+          const [kid, { walker, transform }] = found;
+          Object.assign(g.world.need(g.player, "transform"), { x: transform.x, y: transform.y + 8 });
+          return { g, kid, leader: walker.follow!.leader };
+        }
+        run(g, 0.5);
+      }
+    }
+    throw new Error("no party on the move");
+  }
+  /** Run, recording the furthest anyone moved in one frame (no jumping about). */
+  const runWatching = (g: Game, seconds: number, who: Entity[]) => {
+    let most = 0;
+    for (let t = 0; t < seconds; t += DT) {
+      const before = who.map(e => ({ ...g.world.need(e, "transform") }));
+      updateTownsfolk(g, DT);
+      who.forEach((e, i) => { const now = g.world.need(e, "transform"); most = Math.max(most, Math.hypot(now.x - before[i]!.x, now.y - before[i]!.y)); });
+    }
+    return most;
+  };
+  const withWait = async <R>(chance: number, f: () => Promise<R>) => {
+    const party = TOWNSFOLK.party as { wait: number }, was = party.wait;
+    party.wait = chance;
+    try { return await f(); } finally { party.wait = was; }
+  };
+
+  it("mostly waits: the leader stops and watches while you talk, then they go on together", () => withWait(1, async () => {
+    const { g, kid, leader } = await partyOnTheMove();
+    expect(startTalk(g, kid)).toBe(true);
+    run(g, DT);
+    const at = { ...g.world.need(leader, "transform") };
+    run(g, 2);
+    expect(g.world.need(leader, "transform")).toEqual(at);                     // waiting
+    expect(g.world.need(leader, "walker").holdFor).toBe(kid);
+    endTalk(g);
+    const jump = runWatching(g, 3, [kid, leader]);
+    expect(g.world.need(leader, "walker").holdFor).toBeNull();
+    expect(Math.hypot(g.world.need(leader, "transform").x - at.x, g.world.need(leader, "transform").y - at.y)).toBeGreaterThan(10);   // on their way again
+    expect(jump).toBeLessThan(4);                                              // nobody teleports
+    const k = g.world.need(kid, "transform"), l = g.world.need(leader, "transform");
+    expect(Math.hypot(k.x - l.x, k.y - l.y)).toBeLessThan(24);                 // together
+  }));
+
+  it("or goes on without them: they say they've got to go, run after it, and won't stop to talk till they've caught up", () => withWait(0, async () => {
+    const { g, kid, leader } = await partyOnTheMove();
+    startTalk(g, kid);
+    run(g, DT);
+    const c = talking(g)!, lines = [...TOWNSFOLK.gotToGo.parent, ...TOWNSFOLK.gotToGo.band].map(l => l.split("{who}")[0]!);
+    expect(c.lines).toHaveLength(1);
+    expect(lines.some(l => c.lines[0]!.startsWith(l))).toBe(true);
+    const at = { ...g.world.need(leader, "transform") };
+    run(g, TOWNSFOLK.party.sayBye + 0.2);
+    expect(Math.hypot(g.world.need(leader, "transform").x - at.x, g.world.need(leader, "transform").y - at.y)).toBeGreaterThan(5);   // didn't wait
+    expect(talking(g)).toBeNull();                                             // said it, and off
+    expect(g.world.need(kid, "walker").catchingUp).toBe(true);
+    const floaters = g.floaters.length;
+    Object.assign(g.world.need(g.player, "transform"), { ...g.world.need(kid, "transform") });
+    startTalk(g, kid);                                                         // try again: no
+    run(g, DT);
+    expect(talking(g)).toBeNull();
+    expect(g.floaters.slice(floaters).some(f => (TOWNSFOLK.brushOff as readonly string[]).includes(f.text))).toBe(true);
+    const jump = runWatching(g, 8, [kid]);
+    expect(jump).toBeLessThan(4);                                              // ran, didn't jump
+    expect(g.world.isAlive(kid) ? g.world.need(kid, "walker").catchingUp : false).toBe(false);   // caught up (or gone in with them)
+  }));
 });

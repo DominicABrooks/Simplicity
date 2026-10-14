@@ -166,6 +166,7 @@ export function populate(g: Game, people: readonly Resident[]): void {
   const cap = capOf(s, hourOf(g));
   for (let tries = 0; s.out.size < cap && tries < cap * 3; tries++) comeOut(g, s, 0.15 + rng.next() * 0.7);
   hangDoors(g, s, people);
+  lastTalk = undefined;
 }
 
 // ---------- Where people go ----------
@@ -332,7 +333,7 @@ function spawn(g: Game, s: Streets, r: Resident, [x, y]: [number, number]): Enti
   const scale = r.age < 14 ? 0.62 + (r.age / 14) * 0.25 : 1;
   const walker: Walker = {
     id: r.id, plan: "errand", path: [], lane, speed: between(s.rng, TOWNSFOLK.speed[kind]), moving: true, wait: 0, blockedFor: 0, goIn: false,
-    facing: 0, face: null, follow: null, trail: [], playAt: null, runTo: null,
+    facing: 0, face: null, follow: null, trail: [], playAt: null, runTo: null, holdFor: null, leaving: 0, catchingUp: false,
   };
   const e = g.world.create({
     transform: { x: x - HALF, y: y - HALF },
@@ -342,6 +343,55 @@ function spawn(g: Game, s: Streets, r: Resident, [x, y]: [number, number]): Enti
   });
   s.out.set(r.id, e);
   return e;
+}
+
+// ---------- Parties ----------
+/** Who the hero was talking to last frame, to notice when a new conversation starts. */
+let lastTalk: Entity | undefined;
+
+/**
+ * The hero's started talking to someone. If they're running to catch up with their party, they won't stop:
+ * it's over before it starts. If they're one of a party on the move, the party mostly waits for them (the
+ * leader stops and turns to watch); otherwise it goes on without them, and they say they've got to go and,
+ * a moment later, run after it.
+ */
+function talkStarted(g: Game, s: Streets, e: Entity): void {
+  const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
+  if (!w || !t) return;
+  if (w.catchingUp) {
+    g.world.remove(g.player, "conversation");
+    combatText(g, t.x, t.y - 4, TOWNSFOLK.brushOff[s.rng.int(0, TOWNSFOLK.brushOff.length - 1)]!, "#e8dcc4");
+    lastTalk = undefined;
+    return;
+  }
+  const lw = w.follow && g.world.get(w.follow.leader, "walker");
+  if (!w.follow || !lw || (!lw.moving && !lw.runTo)) return;            // not going anywhere: no hurry
+  if (s.rng.next() < TOWNSFOLK.party.wait) { lw.holdFor = e; return; }
+  const kid = byId.get(w.id), leader = byId.get(lw.id), c = g.world.get(g.player, "conversation");
+  if (!kid || !leader || !c) return;
+  const parent = leader.age >= 16, who = leader.sex === "f" ? "Mum" : "Da";
+  const lines = parent ? TOWNSFOLK.gotToGo.parent : TOWNSFOLK.gotToGo.band;
+  const own = parent && householdOf(leader) === householdOf(kid) && ["head", "spouse", "family"].includes(leader.role);
+  c.lines = [lines[s.rng.int(0, lines.length - 1)]!.replace("{who}", own ? who : leader.name.split(" ")[0]!)];
+  c.line = 0;
+  c.t = 0;
+  w.leaving = TOWNSFOLK.party.sayBye;
+}
+
+/** Run after the party: along a way round anything in the way, faster than they walk, till alongside again. */
+function catchUp(g: Game, s: Streets, w: Walker, t: { x: number; y: number }, lx: number, ly: number, pace: number, dt: number): void {
+  const cx = t.x + HALF, cy = t.y + HALF, gap = Math.hypot(lx - cx, ly - cy);
+  if (gap < TOWNSFOLK.follow.gap * 1.5) { w.catchingUp = false; w.path = []; return; }
+  w.catchingUp = true;
+  const at: TileXY = [Math.floor(cx / T), Math.floor(cy / T)], goal = nearestWalkable(s.ways, lx / T - 0.5, ly / T - 0.5, 2);
+  const last = w.path[w.path.length - 1];
+  if (goal && (!last || Math.hypot(last[0] - goal[0], last[1] - goal[1]) > 1.5)) w.path = findPath(s.ways, nearestWalkable(s.ways, at[0], at[1], 2) ?? at, goal) ?? [];
+  const next = w.path[0];
+  const [tx, ty] = next ? centre(next) : [lx, ly], dx = tx - cx, dy = ty - cy, d = Math.hypot(dx, dy);
+  const step = Math.min(d, pace * TOWNSFOLK.party.run * dt);
+  if (d <= step + 0.01 && next) w.path.shift();
+  if (d > 0.01) { moveBy(g.map, t, (dx / d) * step, (dy / d) * step, true); w.facing = Math.atan2(dy, dx); }
+  w.moving = true;
 }
 
 // ---------- Doors ----------
@@ -446,13 +496,23 @@ function answerDoors(g: Game, s: Streets, dt: number): void {
 export function updateTownsfolk(g: Game, dt: number): void {
   const s = here;
   if (!s || s.area !== g.area.def.id || g.state !== "play") return;
-  const hero = g.world.need(g.player, "transform"), talkingTo = g.world.get(g.player, "conversation")?.with;
+  const hero = g.world.need(g.player, "transform"), conversation = g.world.get(g.player, "conversation"), talkingTo = conversation?.with;
+  if (talkingTo !== lastTalk) { lastTalk = talkingTo; if (talkingTo !== undefined) talkStarted(g, s, talkingTo); }
   const cap = capOf(s, hourOf(g)), crowded = s.out.size > cap * 1.15;
   answerDoors(g, s, dt);
   for (const [id, e] of [...s.out]) {
     const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
     if (!w || !t) { s.out.delete(id); release(s, e); continue; }
-    if (talkingTo === e) { w.moving = false; w.runTo = null; w.facing = Math.atan2(hero.y - t.y, hero.x - t.x); continue; }   // they stop to talk
+    if (talkingTo === e && g.world.get(g.player, "conversation")) {                     // they stop to talk
+      w.moving = false; w.runTo = null; w.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
+      if (w.leaving > 0 && (w.leaving -= dt) <= 0) { g.world.remove(g.player, "conversation"); w.catchingUp = true; }   // said it: off they run
+      continue;
+    }
+    if (w.holdFor !== null) {                                // waiting for one of their party the hero's talking to
+      const them = g.world.get(w.holdFor, "transform");
+      if (talkingTo !== w.holdFor || !them) w.holdFor = null;
+      else { w.facing = Math.atan2(them.y - t.y, them.x - t.x); continue; }
+    }
     if (w.follow) { keepUp(g, s, e, w, t, dt); continue; }
     if (w.plan === "answer") {                               // in the doorway: facing the hero till they go, then back in
       const hd = Math.hypot(hero.x - t.x, hero.y - t.y);
@@ -546,7 +606,7 @@ function keepUp(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: nu
     if (!walkable(s.ways, Math.floor(to[0] / T), Math.floor(to[1] / T))) to = [lx - Math.cos(f) * F.beside, ly - Math.sin(f) * F.beside];
   }
   const dx = to[0] - t.x - HALF, dy = to[1] - t.y - HALF, d = Math.hypot(dx, dy);
-  if (d > 48) { t.x = to[0] - HALF; t.y = to[1] - HALF; return; }   // fell far behind (a corner, the hero): catch up
+  if (d > 24 || w.catchingUp) { catchUp(g, s, w, t, lx, ly, lw.speed, dt); return; }   // fallen behind: run to catch them up
   if (d > 0.8) {
     const step = Math.min(d, (lw.speed * 1.35 + (d > 16 ? 20 : 0)) * dt);
     moveBy(g.map, t, (dx / d) * step, (dy / d) * step, true);

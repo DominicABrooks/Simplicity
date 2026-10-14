@@ -390,7 +390,7 @@ const townsfolk: EntityView<FolkView> = {
     v.shadow.position.set(x, SHADOW_Y, z);
     const b = v.body;
     b.rotation.z = -v.stoop;
-    if ((w.moving || w.runTo) && w.blockedFor === 0) {      // walking (or running about at play): bob and step, like the hero
+    if ((w.moving || w.runTo) && w.blockedFor === 0 && !w.holdFor) {   // walking (or running about at play): bob and step, like the hero
       const pace = w.speed * 0.3;
       b.position.y = Math.abs(Math.sin(t * pace)) * 0.05;
       b.rotation.z -= 0.06;

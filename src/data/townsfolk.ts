@@ -22,6 +22,16 @@ export const TOWNSFOLK = {
   /** Knocking at a door: how close the hero must be (px), how long before someone comes (s), how long they'll stand
    *  in the doorway (s), how far off the hero can go before they go back in (px), and how likely nobody comes at night. */
   knock: { reach: 16, answer: 1.4, wait: 30, leave: 36, asleep: 0.6 },
+  /** Talking to one of a party on the move: how likely the rest wait for them (or else go on, and they run after them),
+   *  how long they take to say they've got to go (s), and how fast they run to catch up (times their pace). */
+  party: { wait: 0.65, sayBye: 1.4, run: 2.2 },
+  /** What someone left behind says: to a parent (as Mum or Da, or by name), or to a band of children. */
+  gotToGo: {
+    parent: ["Wait for me, {who}! Sorry, I've got to go!", "Oh, {who}'s leaving without me! Got to go!", "Coming, {who}! Bye!"],
+    band: ["Hey, wait for me! Sorry, they're leaving me!", "They're going without me! Got to go!", "Wait up! Bye!"],
+  },
+  /** Said (floating up) by someone running to catch up, if you try to talk to them. */
+  brushOff: ["Can't stop!", "Not now!", "Got to catch up!"],
   /** As a target: ring radius (px) and height (world units, for an adult). */
   radius: 4.5,
   height: 1.3,
