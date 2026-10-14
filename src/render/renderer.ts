@@ -17,6 +17,7 @@ import { createOcclusion } from "./occlusion.ts";
 import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
+import { compactScenery } from "./compact.ts";
 import { buildTerrain } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
 
@@ -75,7 +76,9 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     scenery.add(terrain.group);
     const built = layout.props.map(prop => buildProp(ctx, scenery, prop));
     animated = built.flatMap(b => (b.update ? [b.update] : []));
-    occlusion.set(built.flatMap(b => b.occluders), terrain.trees);
+    const occluders = built.flatMap(b => b.occluders);
+    compactScenery(scenery, occluders.map(o => o.object), animated, [terrain.group]);
+    occlusion.set(occluders, terrain.trees);
     koi.setMap(layout.map);
     ambient.setMap(layout.map, !!def.life?.ambient);
     const p = g.world.need(g.player, "transform");

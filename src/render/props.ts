@@ -4,12 +4,17 @@
 import type * as THREE from "three";
 import type { Prop } from "../world/area.ts";
 import { buildCamp } from "./camp.ts";
-import { buildBrazier, buildCart, buildDummy, buildHorse, buildRack, buildSmithy, buildTarget, buildTrebuchet, buildTrough, buildWell } from "./castle.ts";
+import {
+  buildBarbican, buildBrazier, buildCart, buildDrawbridge, buildDummy, buildHorse, buildRack, buildSmithy, buildStable, buildStairs, buildTarget,
+  buildTorch, buildTrebuchet, buildTrough, buildWell,
+} from "./castle.ts";
 import { buildCave } from "./cave.ts";
+import { buildCathedral, buildChapterHouse, buildChurch, buildCloister, buildCross, buildDovecote, buildGraves, buildHall } from "./civic.ts";
 import type { RenderContext } from "./context.ts";
+import { buildBoat, buildCrane, buildFence, buildField, buildGrandstand, buildPavilion, buildStoneBridge, buildWatermill, buildWindmill } from "./country.ts";
+import { buildBunting, buildFountain, buildPlaza, buildStall, buildStandard, buildStock } from "./market.ts";
 import type { Occluder } from "./occlusion.ts";
-import { buildBench, buildBunting, buildFountain, buildPlanter, buildPlaza, buildStall, buildStandard, buildStatue, buildStock } from "./market.ts";
-import { buildBridge, buildCathedral, buildCurtainWall, buildHouse, buildKeep, buildLamp } from "./town.ts";
+import { buildBridge, buildCurtainWall, buildHouse, buildKeep } from "./town.ts";
 
 /** What a built prop gives back: a per-frame update if it animates, and occluders if it's tall. */
 export type PropView = { update?(t: number, dt: number): void; occluders?: Occluder[] } | void;
@@ -19,21 +24,25 @@ type Builder<K extends Prop["kind"]> = (ctx: RenderContext, parent: THREE.Group,
 export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   camp: buildCamp,
   cave: buildCave,
+  // The town (town.ts) and its great buildings (civic.ts).
   curtainWall: buildCurtainWall,
-  cathedral: buildCathedral,
-  bridge: buildBridge,
   house: buildHouse,
   keep: buildKeep,
-  lamp: buildLamp,
-  fountain: buildFountain,
-  stall: buildStall,
-  statue: buildStatue,
-  planter: buildPlanter,
-  bench: buildBench,
-  stock: buildStock,
-  bunting: buildBunting,
-  standard: buildStandard,
-  plaza: buildPlaza,
+  bridge: buildBridge,
+  hall: buildHall,
+  church: buildChurch,
+  cathedral: buildCathedral,
+  cloister: buildCloister,
+  chapterHouse: buildChapterHouse,
+  graves: buildGraves,
+  cross: buildCross,
+  dovecote: buildDovecote,
+  // Gates, walls and the castle (castle.ts).
+  barbican: buildBarbican,
+  drawbridge: buildDrawbridge,
+  stairs: buildStairs,
+  torch: buildTorch,
+  stable: buildStable,
   guard: () => undefined,                                   // a game entity (see spawnGuard), drawn by its view
   brazier: buildBrazier,
   dummy: buildDummy,
@@ -45,6 +54,23 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   cart: buildCart,
   horse: buildHorse,
   trough: buildTrough,
+  // The country and the river (country.ts).
+  stoneBridge: buildStoneBridge,
+  windmill: buildWindmill,
+  watermill: buildWatermill,
+  boat: buildBoat,
+  crane: buildCrane,
+  fence: buildFence,
+  pavilion: buildPavilion,
+  grandstand: buildGrandstand,
+  field: buildField,
+  // The market (market.ts).
+  fountain: buildFountain,
+  stall: buildStall,
+  stock: buildStock,
+  bunting: buildBunting,
+  standard: buildStandard,
+  plaza: buildPlaza,
 };
 
 /** Build one prop; returns its per-frame update (if it animates) and occluders (if it's tall). */

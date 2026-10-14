@@ -9,11 +9,12 @@ import { sentrySystem } from "../src/systems/sentry.ts";
 
 const DT = 1 / 60;
 
+/** At the castle: guards at its barbican, its inner gate and the keep's stair. */
 async function inCapital(): Promise<Game> {
   const g = createGame();
   resetGame(g);
   setState(g, "play");
-  enterArea(g, await loadArea("capital"), "cave");
+  enterArea(g, await loadArea("castle"), "town");
   return g;
 }
 
@@ -21,10 +22,10 @@ const guards = (g: Game) => g.world.query("transform", "sentry", "targetable");
 const run = (g: Game, seconds: number) => { for (let t = 0; t < seconds; t += DT) sentrySystem(g, DT); };
 
 describe("guards", () => {
-  it("stand at their posts in the capital as friendly targets", async () => {
+  it("stand at their posts in the castle as friendly targets", async () => {
     const g = await inCapital();
     const all = guards(g);
-    expect(all.length).toBe(4);
+    expect(all.length).toBe(6);
     for (const [, { targetable }] of all) {
       expect(targetable.hostile).toBe(false);
       expect(targetable.name).toBe(GUARD.name);

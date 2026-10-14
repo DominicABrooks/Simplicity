@@ -1,32 +1,31 @@
-// The town's public spaces: the market square's flagstones, fountain, stalls, stock, benches, planters
-// and bunting, and the statues and standards along the way up to the castle. Same low-poly, hand-painted
-// look and hero scale (about 1.1 units tall) as the buildings in town.ts.
+// The town's public spaces: the market square's flagstones, fountain, stalls, stock and bunting, and
+// standards flying the kingdom's banner. Same low-poly, hand-painted look and hero scale (about 1.1
+// units tall) as the buildings in town.ts.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
-import type { Facing, Goods } from "../world/area.ts";
 import { GROUND, box, onGround, type RenderContext } from "./context.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
-import { benchLength, stallBody } from "../world/plans.ts";
-import { DARK_WOOD, IRON, WOOD, banner, occluder, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
+import { WARES } from "./wares.ts";
+import { FACING_YAW, stallBody } from "../world/plans.ts";
+import { DARK_WOOD, IRON, WOOD, banner, occluder, tiledCylinder, type PropOf } from "./town.ts";
 
-/** Turn a group built facing south (+z) to face `facing`. */
-export const TURN: Record<Facing, number> = { south: 0, north: Math.PI, east: Math.PI / 2, west: -Math.PI / 2 };
+/** Turn a group built facing south (+z) to face a facing. */
+export const TURN = FACING_YAW;
 
-export const STATUE_STONE = "#d6cfc0", BRONZE = "#5f8a78", STRAW = "#d9b46a";
+export const STATUE_STONE = "#d6cfc0", STRAW = "#d9b46a";
 
 /** Where a prop given at a point (game px) stands, in world units. */
 export const at = (p: { x: number; y: number }) => [p.x / T, p.y / T] as const;
 export const centreOf = (r: { x: number; y: number; w: number; h: number }) => [(r.x + r.w / 2) / T, (r.y + r.h / 2) / T] as const;
 
-// ---------- Figures ----------
+// ---------- The fountain's king ----------
 /**
- * A standing figure about 1.4 tall, facing +z, feet at y = 0, all in one material (stone or bronze) but
- * for gold details: a king in a long robe and cape with a crown and a raised sceptre, or a knight in a
- * tabard and helm, both hands resting on a sword planted point-down in front of him.
+ * A stone king about 1.4 tall, facing +z, feet at y = 0, all in one material but for gold details: a long
+ * robe and cape, a crown, and a sceptre raised high.
  */
-function figure(ctx: RenderContext, kind: "king" | "knight", mat: THREE.Material): THREE.Group {
+function stoneKing(ctx: RenderContext, mat: THREE.Material): THREE.Group {
   const g = new THREE.Group(), gold = ctx.basic(PAL.Y);
   const add = (geo: THREE.BufferGeometry, x: number, y: number, z: number, m: THREE.Material = mat) => {
     const mesh = new THREE.Mesh(geo, m);
@@ -35,58 +34,19 @@ function figure(ctx: RenderContext, kind: "king" | "knight", mat: THREE.Material
     return mesh;
   };
   add(new THREE.IcosahedronGeometry(0.15, 1), 0, 1.22, 0);                       // head
-  if (kind === "king") {
-    add(new THREE.CylinderGeometry(0.2, 0.36, 0.95, 8), 0, 0.48, 0);           // robe
-    add(new THREE.CylinderGeometry(0.17, 0.21, 0.3, 8), 0, 1.0, 0);            // chest
-    const cape = add(box(0.5, 0.95, 0.06), 0, 0.62, -0.24);
-    cape.rotation.x = -0.12;
-    add(new THREE.CylinderGeometry(0.15, 0.13, 0.12, 8, 1, true), 0, 1.38, 0, gold);   // crown
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      add(new THREE.ConeGeometry(0.035, 0.1, 4), Math.cos(a) * 0.13, 1.48, Math.sin(a) * 0.13, gold);
-    }
-    const arm = add(box(0.09, 0.42, 0.09), 0.24, 1.18, 0.04);                   // raised arm and sceptre
-    arm.rotation.z = -0.35;
-    add(box(0.04, 0.62, 0.04), 0.33, 1.5, 0.06, gold);
-    add(new THREE.IcosahedronGeometry(0.06, 0), 0.33, 1.84, 0.06, gold);
-    const other = add(box(0.09, 0.4, 0.09), -0.22, 0.86, 0.04);
-    other.rotation.z = 0.15;
-  } else {
-    for (const s of [-1, 1]) add(box(0.13, 0.5, 0.15), s * 0.1, 0.25, 0);      // legs
-    add(box(0.42, 0.5, 0.26), 0, 0.75, 0);                                     // body
-    add(box(0.34, 0.42, 0.03), 0, 0.68, 0.14, ctx.basic(PAL.Y));               // tabard's emblem
-    for (const s of [-1, 1]) add(new THREE.IcosahedronGeometry(0.12, 0), s * 0.25, 0.98, 0);   // pauldrons
-    for (const s of [-1, 1]) { const a = add(box(0.09, 0.4, 0.09), s * 0.17, 0.78, 0.13); a.rotation.x = -0.5; }
-    add(new THREE.CylinderGeometry(0.16, 0.15, 0.22, 8), 0, 1.25, 0);          // helm
-    add(box(0.2, 0.03, 0.02), 0, 1.24, 0.15, ctx.basic(IRON));                 // visor slit
-    add(new THREE.ConeGeometry(0.05, 0.3, 4), 0, 1.48, -0.02, ctx.lambert("#c8423a"));   // plume
-    add(box(0.06, 0.9, 0.02), 0, 0.42, 0.3);                                   // the sword, point down
-    add(box(0.3, 0.05, 0.05), 0, 0.88, 0.3, gold);
-    add(box(0.05, 0.16, 0.05), 0, 0.98, 0.3, gold);
+  add(new THREE.CylinderGeometry(0.2, 0.36, 0.95, 8), 0, 0.48, 0);               // robe
+  add(new THREE.CylinderGeometry(0.17, 0.21, 0.3, 8), 0, 1.0, 0);                // chest
+  add(box(0.5, 0.95, 0.06), 0, 0.62, -0.24).rotation.x = -0.12;                  // cape
+  add(new THREE.CylinderGeometry(0.15, 0.13, 0.12, 8, 1, true), 0, 1.38, 0, gold);   // crown
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    add(new THREE.ConeGeometry(0.035, 0.1, 4), Math.cos(a) * 0.13, 1.48, Math.sin(a) * 0.13, gold);
   }
+  add(box(0.09, 0.42, 0.09), 0.24, 1.18, 0.04).rotation.z = -0.35;              // raised arm and sceptre
+  add(box(0.04, 0.62, 0.04), 0.33, 1.5, 0.06, gold);
+  add(new THREE.IcosahedronGeometry(0.06, 0), 0.33, 1.84, 0.06, gold);
+  add(box(0.09, 0.4, 0.09), -0.22, 0.86, 0.04).rotation.z = 0.15;
   return g;
-}
-
-// ---------- Statue ----------
-export function buildStatue(ctx: RenderContext, parent: THREE.Group, p: PropOf<"statue">): PropView {
-  const { lambert, tex } = ctx, g = new THREE.Group();
-  const stone = lambert("#ffffff", { map: tex.stone });
-  const plinth = new THREE.Mesh(tiledBox(0.8, 1.0, 0.8, 0.6), stone);
-  plinth.position.y = 0.5;
-  const foot = new THREE.Mesh(box(0.96, 0.16, 0.96), lambert("#8a8378"));
-  foot.position.y = 0.08;
-  const cap = new THREE.Mesh(box(0.94, 0.1, 0.94), lambert("#8a8378"));
-  cap.position.y = 1.05;
-  const plaque = new THREE.Mesh(box(0.42, 0.24, 0.03), ctx.basic(PAL.Y));
-  plaque.position.set(0, 0.6, 0.41);
-  const body = figure(ctx, p.figure, lambert(p.figure === "king" ? STATUE_STONE : BRONZE));
-  body.position.y = 1.1;
-  g.add(plinth, foot, cap, plaque, body);
-  const [x, z] = at(p);
-  g.position.set(x, 0, z);
-  g.rotation.y = TURN[p.facing];
-  parent.add(g);
-  return { occluders: [occluder(g, x, z, 1, 1, 2.9)] };
 }
 
 // ---------- Fountain ----------
@@ -165,7 +125,7 @@ export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf
   // The king on a little plinth in the top bowl.
   const top = tiers[1]!;
   add(new THREE.Mesh(tiledCylinder(0.12, 0.22, 8, 0.4), stone), top.y + 0.14);
-  const king = figure(ctx, "king", lambert(STATUE_STONE));
+  const king = stoneKing(ctx, lambert(STATUE_STONE));
   king.scale.setScalar(0.6);
   king.position.y = top.y + 0.25;
   g.add(king);
@@ -195,15 +155,6 @@ export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf
 
 // ---------- Market stall ----------
 /** Each kind of stall's wares: shape, colours and how they're laid out on the counter. */
-const WARES: Record<Goods, { colors: string[]; make: (ctx: RenderContext, c: string) => THREE.Mesh }> = {
-  produce: { colors: ["#c8423a", "#5fb04a", "#e8963a", "#a8c84a"], make: (ctx, c) => new THREE.Mesh(new THREE.IcosahedronGeometry(0.09, 0), ctx.lambert(c)) },
-  bread: { colors: ["#c8964a", "#b07a3a", "#d9b46a"], make: (ctx, c) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.14, 2, 6), ctx.lambert(c)); m.rotation.z = Math.PI / 2; return m; } },
-  cloth: { colors: ["#3f6fd0", "#8a4fc0", "#c8423a", "#f5d562"], make: (ctx, c) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.3, 8), ctx.lambert(c)); m.rotation.z = Math.PI / 2; return m; } },
-  pottery: { colors: ["#b8613a", "#a8473a", "#d08a5a"], make: (ctx, c) => new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.2, 7), ctx.lambert(c)) },
-  fish: { colors: ["#9fb4c8", "#7f96b0", "#c0ccd8"], make: (ctx, c) => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.08, 0), ctx.lambert(c)); m.scale.set(2.2, 0.6, 0.8); return m; } },
-  flowers: { colors: ["#e85a8a", "#f5d562", "#ffffff", "#c8423a", "#8a4fc0"], make: (ctx, c) => new THREE.Mesh(new THREE.IcosahedronGeometry(0.07, 0), ctx.basic(c)) },
-};
-
 export function buildStall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"stall">): PropView {
   const { lambert } = ctx, g = new THREE.Group();
   const { w, d } = stallBody(p.rect), seed = p.rect.x + p.rect.y * 7;
@@ -246,51 +197,6 @@ export function buildStall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"s
   g.rotation.y = TURN[p.facing];
   parent.add(g);
   return { occluders: [occluder(g, cx, cz, w + 0.4, d + 0.6, 2.0)] };
-}
-
-// ---------- Planter ----------
-export function buildPlanter(ctx: RenderContext, parent: THREE.Group, p: PropOf<"planter">): PropView {
-  const { lambert, tex } = ctx, g = new THREE.Group(), [x, z] = at(p), k = hash(x, z, 600);
-  const tub = new THREE.Mesh(tiledBox(0.9, 0.45, 0.9, 0.6), lambert("#ffffff", { map: tex.stone }));
-  tub.position.y = 0.225;
-  const rim = new THREE.Mesh(box(1.0, 0.08, 1.0), lambert("#8a8378"));
-  rim.position.y = 0.47;
-  const soil = new THREE.Mesh(box(0.8, 0.02, 0.8), lambert("#5a3e2a"));
-  soil.position.y = 0.46;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.9, 5), lambert("#ffffff", { map: tex.bark }));
-  trunk.position.y = 0.9;
-  const leaf = lambert("#ffffff", { map: tex.leaf });
-  const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5 + k * 0.1, 0), leaf);
-  crown.position.y = 1.55;
-  const top = new THREE.Mesh(new THREE.IcosahedronGeometry(0.32, 0), leaf);
-  top.position.set(0.08, 1.95, 0.05);
-  g.add(tub, rim, soil, trunk, crown, top);
-  g.position.set(x, 0, z);
-  g.rotation.y = Math.floor(k * 4) * (Math.PI / 2);         // quarter turns: the tub stays square to its footprint
-  parent.add(g);
-  return { occluders: [occluder(g, x, z, 1, 1, 2.2)] };
-}
-
-// ---------- Bench ----------
-/** A stone-legged wooden bench along the rect's long side, its back away from where you'd look. */
-export function buildBench(ctx: RenderContext, parent: THREE.Group, p: PropOf<"bench">): PropView {
-  const { lambert } = ctx, g = new THREE.Group();
-  const len = benchLength(p.rect), wood = lambert(WOOD), stone = lambert("#8a8378");
-  const seat = new THREE.Mesh(box(len, 0.08, 0.38), wood);
-  seat.position.y = 0.42;
-  const back = new THREE.Mesh(box(len, 0.32, 0.06), wood);
-  back.position.set(0, 0.7, -0.17);
-  back.rotation.x = -0.15;
-  g.add(seat, back);
-  for (const s of [-1, 1]) {
-    const leg = new THREE.Mesh(box(0.12, 0.4, 0.34), stone);
-    leg.position.set(s * (len / 2 - 0.15), 0.2, 0);
-    g.add(leg);
-  }
-  const [x, z] = centreOf(p.rect);
-  g.position.set(x, 0, z);
-  g.rotation.y = TURN[p.facing];
-  parent.add(g);
 }
 
 // ---------- Market stock ----------

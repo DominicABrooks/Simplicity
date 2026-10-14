@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { area as capital } from "../src/areas/capital.ts";
+import { area as castle } from "../src/areas/castle.ts";
+import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { T, Tile } from "../src/data/world.ts";
 import { FEET, blocked, moveBy, solidAt } from "../src/world/collision.ts";
 import type { TileMap } from "../src/world/map.ts";
@@ -71,27 +72,40 @@ describe("collision against shapes", () => {
   });
 });
 
-describe("Capital City's collision", () => {
-  const { map } = capital.build();
+/** Flood out from a point at the collision box's real steps; does it ever reach somewhere `outside` says is out? */
+function floodEscapes(map: TileMap, from: [number, number], outside: (x: number, y: number) => boolean): { escaped: boolean; seen: number } {
+  const seen = new Set<number>(), todo: [number, number][] = [from];
+  while (todo.length) {
+    const [x, y] = todo.pop()!, k = x * 4096 + y;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    if (outside(x, y)) return { escaped: true, seen: seen.size };
+    for (const [dx, dy] of [[2, 0], [-2, 0], [0, 2], [0, -2]] as const) if (!blocked(map, x + dx, y + dy, true)) todo.push([x + dx, y + dy]);
+  }
+  return { escaped: false, seen: seen.size };
+}
+const shut = (map: TileMap, gate: Shape): TileMap => ({ ...map, solids: [...map.solids, gate] });
 
-  it("makes everything built solid by its shape", () => {
-    expect(map.solids.length).toBeGreaterThan(100);
+describe("Capital City's walls", () => {
+  it("make everything built solid by its shape", () => {
+    const { map } = kingsroad.build();
+    expect(map.solids.length).toBeGreaterThan(80);
     expect(map.solids.some(s => s.kind === "capsule")).toBe(true);
   });
 
-  it("keeps the town wall unbroken: shut the gate and nothing inside gets out", () => {
-    const gateY = 65;                                              // the gate's row, below the square
-    const shut = { ...map, solids: [...map.solids, { kind: "box", x: 40 * T, y: (gateY - 3) * T, w: 8 * T, h: 6 * T } as Shape] };
-    const seen = new Set<number>(), todo: [number, number][] = [[44 * T, 45 * T + 4]];
-    let escaped = false;
-    while (todo.length && !escaped) {
-      const [x, y] = todo.pop()!, k = x * 4096 + y;
-      if (seen.has(k)) continue;
-      seen.add(k);
-      if (Math.hypot((x / T - 44) / 37, (y / T - 37) / 29) > 1.08) escaped = true;
-      for (const [dx, dy] of [[2, 0], [-2, 0], [0, 2], [0, -2]] as const) if (!blocked(shut, x + dx, y + dy, true)) todo.push([x + dx, y + dy]);
-    }
-    expect(seen.size).toBeGreaterThan(1000);
-    expect(escaped).toBe(false);
+  it("keep the great south wall unbroken: shut Southgate and nothing outside gets in", () => {
+    const { map } = kingsroad.build();
+    const gate: Shape = { kind: "box", x: 45 * T, y: 9 * T, w: 7 * T, h: 4 * T };
+    const r = floodEscapes(shut(map, gate), [48 * T, 30 * T], (_x, y) => y < 8 * T);
+    expect(r.seen).toBeGreaterThan(1000);
+    expect(r.escaped).toBe(false);
+  });
+
+  it("keep the castle's inner ward shut off: close its gate and nothing in the outer bailey gets in", () => {
+    const { map } = castle.build();
+    const gate: Shape = { kind: "box", x: 44 * T, y: 31 * T, w: 9 * T, h: 5 * T };
+    const r = floodEscapes(shut(map, gate), [48 * T, 45 * T], (x, y) => y < 30 * T && x > 24 * T && x < 72 * T);
+    expect(r.seen).toBeGreaterThan(1000);
+    expect(r.escaped).toBe(false);
   });
 });

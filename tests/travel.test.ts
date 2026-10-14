@@ -39,23 +39,23 @@ describe("travel", () => {
     enterArea(g, HOME, "cave");
     walkNorth(g);
     expect(g.state).toBe("travel");
-    expect(g.travel).toEqual({ area: "capital", entry: "cave" });
+    expect(g.travel).toEqual({ area: "kingsroad", entry: "cave" });
     // The world holds still while the next area loads.
     const before = { ...g.world.need(g.player, "transform") };
     step(g, DT);
     expect(g.world.need(g.player, "transform")).toEqual(before);
 
-    arrive(g, await loadArea("capital"));
+    arrive(g, await loadArea("kingsroad"));
     expect(g.state).toBe("play");
-    expect(g.area.def.id).toBe("capital");
+    expect(g.area.def.id).toBe("kingsroad");
     expect(g.world.need(g.player, "transform")).toEqual(g.area.layout.entries.cave);
     expect(g.world.need(g.player, "hero").level).toBe(4);
     expect(g.inventory.equip.weapon?.rarity).toBe("rare");
   });
 
-  it("the new area is peaceful: nobody there but its guards, and no enemies ever come", async () => {
+  it("the city is peaceful: nobody there but its guards, and no enemies ever come", async () => {
     const g = playing();
-    enterArea(g, await loadArea("capital"), "cave");
+    enterArea(g, await loadArea("kingsroad"), "cave");
     expect(g.world.entities().filter(e => e !== g.player && !g.world.has(e, "sentry"))).toEqual([]);
     for (let t = 0; t < 10; t += DT) step(g, DT);           // long enough for several spawn ticks
     expect(g.world.count("enemy")).toBe(0);
@@ -63,8 +63,7 @@ describe("travel", () => {
 
   it("leaving an area clears it, and coming back fills it again", async () => {
     const g = playing();
-    const capital = await loadArea("capital");
-    enterArea(g, capital, "cave");
+    enterArea(g, await loadArea("kingsroad"), "cave");
     // Walk back south into the cave.
     g.input.keys.add("s");
     for (let t = 0; t < 3 && g.state === "play"; t += DT) step(g, DT);
@@ -73,6 +72,26 @@ describe("travel", () => {
     arrive(g, HOME);
     expect(g.area.def.id).toBe("witchwood");
     expect(g.world.count("enemy")).toBeGreaterThan(0);
+  });
+
+  it("walks the whole city: the King's Road, the Market Quarter, the Close and the Castle are joined both ways", async () => {
+    const g = playing();
+    // Each hop: arrive somewhere, walk until an exit takes you, and check where it leads.
+    const hop = async (from: string, entry: string, key: string, to: string) => {
+      enterArea(g, await loadArea(from), entry);
+      g.input.keys.add(key);
+      for (let t = 0; t < 6 && g.state === "play"; t += DT) step(g, DT);
+      g.input.keys.clear();
+      expect(g.travel?.area, `${from} (${entry}) walking ${key}`).toBe(to);
+      g.travel = null;
+      setState(g, "play");
+    };
+    await hop("kingsroad", "gate", "w", "capital");
+    await hop("capital", "southgate", "s", "kingsroad");
+    await hop("capital", "castle", "w", "castle");
+    await hop("castle", "town", "s", "capital");
+    await hop("capital", "close", "d", "cathedral");
+    await hop("cathedral", "town", "a", "capital");
   });
 
   it("refuses an arrival point that doesn't exist", () => {

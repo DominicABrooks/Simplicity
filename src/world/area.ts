@@ -35,40 +35,94 @@ export type Prop =
       facing: "north" | "south";
     }
   // Town buildings. Rects and points are game px (heights are world units, one tile each); their
-  // footprints should be Wall tiles in the map.
+  // footprints should be Wall tiles in the map (except what you walk under: arcades, bridges, gates).
   | {
-      /** A defensive wall around a polygon, with a round tower at every corner. */
+      /**
+       * A defensive wall along `points`, with a round tower at every point: a closed ring (outward is away
+       * from its middle) or an open run (outward is away from `inside`, a point within). Thick enough to walk along the top,
+       * behind a crenellated parapet. Each gate is a gap `width` wide at `at` on whichever edge it falls,
+       * with a gatehouse.
+       */
       kind: "curtainWall";
       points: Point[];
-      /** The gate: a gap `width` wide centred at `x` on edge `edge` (from points[edge] to the next), with a gatehouse. */
-      gate: { edge: number; x: number; width: number };
+      closed: boolean;
+      inside?: Point;
+      gates: { at: Point; width: number }[];
       height: number;
+      thickness: number;
       tower: { radius: number; height: number; roof: string };
     }
-  /** A town house; its door is on the `doorSide` face (south by default), onto the street. An inn or
-   * shop hangs a `sign` (its board's colour) over the door. */
-  | { kind: "house"; rect: Rect; roof: string; storeys?: number; doorSide?: "north" | "south"; sign?: string }
-  /** The castle keep, raised on a rocky crag `plinth` high with a stair up to its door. */
-  | { kind: "keep"; rect: Rect; plinth: number }
-  /** A cathedral: a long nave running east-west, a bell tower with a spire at its west end. */
+  /**
+   * A town house, gable end to the street when it's deeper than it's wide; its door is on the `doorSide`
+   * face, onto the street. A shop opens its ground floor onto the street with a counter of `shop` goods;
+   * an inn or shop hangs a `sign` (its board's colour); `lantern` hangs one by the door; `stone` gives
+   * it a stone ground floor.
+   */
+  | { kind: "house"; rect: Rect; roof: string; storeys: number; doorSide: Facing; shop?: Goods; sign?: string; lantern?: boolean; stone?: boolean }
+  /**
+   * A hall: a long building with its ridge along its longer side and its door on `door`. `stone` or
+   * timber-framed; `arcade` leaves the ground floor open on pillars (a market hall you walk under);
+   * `louvre` (a kitchen) gives it a pyramid roof with a smoking vent; `raised` sets it on staddle stones
+   * (a granary).
+   */
+  | { kind: "hall"; rect: Rect; door: Facing; roof: string; storeys: number; stone: boolean; arcade?: boolean; louvre?: boolean; raised?: boolean; chimneys?: number }
+  /** A parish church or chapel running west to east (door west, altar east), with a west `tower` (and spire) or a bell-cote. */
+  | { kind: "church"; rect: Rect; tower: "spire" | "tower" | "bellcote" }
+  /** The cathedral, running west to east: twin west towers, nave and aisles, a crossing tower and spire, and a rounded east end. */
   | { kind: "cathedral"; rect: Rect }
+  /** A cloister: a covered walk round a green garth, entered from `door`. */
+  | { kind: "cloister"; rect: Rect; door: Facing }
+  /** An eight-sided chapter house. */
+  | { kind: "chapterHouse"; x: number; y: number; radius: number }
+  /** Rows of headstones and crosses in a churchyard. */
+  | { kind: "graves"; rect: Rect }
+  /** A market cross on its stepped base. */
+  | { kind: "cross"; x: number; y: number }
+  /** A round dovecote, doves wheeling about it. */
+  | { kind: "dovecote"; x: number; y: number }
+  /** The castle keep on its rocky crag `plinth` high, a stair up to its door; its great hall `height` high. */
+  | { kind: "keep"; rect: Rect; plinth: number; height: number }
+  /** A barbican: an outer gate in front of a main gate, two towers and a walled passage, open toward `facing`. */
+  | { kind: "barbican"; rect: Rect; facing: Facing; height: number }
+  /** A drawbridge over a moat, running north-south, lowered. */
+  | { kind: "drawbridge"; rect: Rect }
+  /** A flight of steps up to a wall walk, against a wall, climbing toward `rises`. */
+  | { kind: "stairs"; rect: Rect; rises: Facing; height: number }
+  /** A torch in an iron sconce on a wall, facing `facing`, `height` up (not solid). */
+  | { kind: "torch"; x: number; y: number; facing: Facing; height: number }
   /** A plank bridge over water, running north-south. */
   | { kind: "bridge"; rect: Rect }
+  /** A stone bridge of arches over water, running north-south, with parapets. */
+  | { kind: "stoneBridge"; rect: Rect }
+  /** A long open-fronted stable, its stalls toward `facing`, horses in them. */
+  | { kind: "stable"; rect: Rect; facing: Facing }
+  // The country and the river.
+  /** A post windmill, its sails turning. */
+  | { kind: "windmill"; x: number; y: number }
+  /** A watermill on a riverbank, its wheel turning in the water toward `wheel`. */
+  | { kind: "watermill"; rect: Rect; wheel: Facing }
+  /** A boat moored on the water, bow toward `facing`: a rowing boat or a cog with a mast. */
+  | { kind: "boat"; x: number; y: number; facing: Facing; size: "rowing" | "cog" }
+  /** A treadwheel crane on a quay, its jib out toward `facing`. */
+  | { kind: "crane"; x: number; y: number; facing: Facing }
+  /** A post-and-rail fence along `points`. */
+  | { kind: "fence"; points: Point[] }
+  /** A round pavilion tent with a striped roof and a pennant. */
+  | { kind: "pavilion"; x: number; y: number; color: string }
+  /** A covered wooden grandstand, its seats toward `facing`. */
+  | { kind: "grandstand"; rect: Rect; facing: Facing }
+  /** A field of `crop` in rows (not solid). */
+  | { kind: "field"; rect: Rect; crop: "wheat" | "barley" | "cabbage" }
+  // The market and public places (src/render/market.ts).
   /** A two-tier fountain, `radius` world units across its basin, with a crowned king on top. */
   | { kind: "fountain"; x: number; y: number; radius: number }
   /** A market stall selling `goods`, its counter toward `facing`. */
   | { kind: "stall"; rect: Rect; awning: string; goods: Goods; facing: "north" | "south" }
-  /** A statue on a plinth, looking toward `facing`. */
-  | { kind: "statue"; x: number; y: number; figure: "king" | "knight"; facing: Facing }
-  /** A stone planter with a tree in it. */
-  | { kind: "planter"; x: number; y: number }
-  /** A bench along the rect's long side; you'd sit looking toward `facing`. */
-  | { kind: "bench"; rect: Rect; facing: Facing }
   /** A heap of market stock. */
   | { kind: "stock"; x: number; y: number; what: "barrels" | "crates" | "sacks" | "hay" }
   /** A string of little flags between two points, `height` up at each end, on its own `masts` or tied to something there. */
   | { kind: "bunting"; from: Point; to: Point; height: number; masts?: boolean }
-  /** A tall pole flying a banner (not solid). */
+  /** A tall pole flying a banner. */
   | { kind: "standard"; x: number; y: number }
   /** Flagstones over a rect, with a kerb round the edge and rings of paving round `centre` (not solid). */
   | { kind: "plaza"; rect: Rect; centre: Point }
@@ -94,14 +148,12 @@ export type Prop =
   /** A saddled horse, its head toward `facing`. */
   | { kind: "horse"; rect: Rect; facing: Facing }
   /** A water trough. */
-  | { kind: "trough"; rect: Rect }
-  /** A street lamp (not solid: you walk past it). */
-  | { kind: "lamp"; x: number; y: number };
+  | { kind: "trough"; rect: Rect };
 
 export type Facing = "north" | "south" | "east" | "west";
 /** A facing as a game angle (0 east, PI/2 south: y grows southward). */
 export const FACING_ANGLE: Record<Facing, number> = { east: 0, south: Math.PI / 2, west: Math.PI, north: -Math.PI / 2 };
-export type Goods = "produce" | "bread" | "cloth" | "pottery" | "fish" | "flowers";
+export type Goods = "produce" | "bread" | "cloth" | "pottery" | "fish" | "flowers" | "meat";
 
 /** Everything about an area's ground, built once (deterministically) when you enter it. */
 export interface AreaLayout {

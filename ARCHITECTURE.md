@@ -102,19 +102,26 @@ The world is a graph of **areas** joined by **exits** (caves, for now). Each are
   (a camp, a cave mouth). It must be deterministic.
 - `life` says what lives there (enemies, potions, critters and decor). Leave it out for an empty area.
 
-Props are data too: each kind (a camp, a cave, a curtain wall around any polygon, a house, a keep,
-a cathedral, a bridge, a lamp in `town.ts`; a plaza, fountain, stall, statue, planter, bench, stock, bunting
-and standard in `market.ts`; a guard, brazier, dummy, archery butt, weapon rack, well, smithy, trebuchet, cart,
-horse and trough in `castle.ts`) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built is solid by
-its shape: `propSolids()` (`src/world/solids.ts`) turns each prop into boxes, circles and capsules (thick
-lines, for wall runs at any angle), which go in the area's `map.solids`; `src/world/shapes.ts` buckets them
-into a grid, so a collision test only looks at the few nearby. The bigger buildings have ground plans
-(`src/world/plans.ts`) that both their renderer and their shapes are made from, so what you see is what you
-bump into. Built things also stand on `Wall` tiles, which mark the map (for the map view, spawning and
-reachability) but don't block movement themselves. A new kind of building is a `Prop` variant, one builder
-and its shapes. A builder can return
-`occluders` (boxes around anything tall); `src/render/occlusion.ts` fades whichever of them, and
-whichever trees, stand between the camera and the hero or the ground just around them.
+Props are data too: each kind has one builder in `PROP_BUILDERS` (`src/render/props.ts`): walls, houses, the
+keep and the plank bridge in `town.ts`; churches, halls, the cathedral, cloister, chapter house, graves, the
+market cross and dovecote in `civic.ts`; gates, stairs, torches, stables and the castle's things in `castle.ts`;
+the market's in `market.ts`; mills, bridges, boats, the crane, fences, the jousting ground's and fields in
+`country.ts`. Anything built is solid by its shape: `propSolids()` (`src/world/solids.ts`) turns each prop into
+boxes, circles and capsules (thick lines, for wall runs at any angle), which go in the area's `map.solids`;
+`src/world/shapes.ts` buckets them into a grid, so a collision test only looks at the few nearby. The bigger
+buildings have ground plans (`src/world/plans.ts`) that both their renderer and their shapes are made from, so
+what you see is what you bump into. A new kind of building is a `Prop` variant, one builder and its shapes.
+
+Towns are laid out with `src/world/townkit.ts`: paint the ground on a `Town`'s tile grid, `add` buildings (which
+marks the tiles their shapes cover as `Wall`, so the map view, spawning and the reachability checks agree with
+what's solid), and let `houses` line every street with deep, narrow houses, gable end on, each with its door on
+the street and shops on the shopping streets. Wall tiles mark the map but don't block movement themselves.
+
+A builder can return `occluders` (boxes around anything tall); `src/render/occlusion.ts` fades whichever of
+them, and whichever trees, stand between the camera and the hero or the ground just around them. Once an
+area's props are built, `src/render/compact.ts` merges each fading unit's still meshes into one mesh per
+material (what moves is found by running the props' animations and left alone), so a quarter of a hundred
+houses costs a few hundred draw calls, not tens of thousands.
 
 Built to scale to thousands of areas:
 
@@ -174,8 +181,8 @@ mapping in `ICON_SWAPS` (`src/data/tiers.ts`). If it's worn, dress it in `dressB
 `src/data/enemies.ts`, then handle its release in `releaseSpell()` in `src/systems/mage.ts`. Bolts reuse the
 `bolt` component; a new ground effect is an entity with its own component, system and view.
 
-**Add an area.** Make `src/areas/<id>.ts` exporting `area: AreaDef` (see `capital.ts` for a hand-laid town
-built from props). Give it entries, and exits that point at other areas' entries, and add the matching exits there.
+**Add an area.** Make `src/areas/<id>.ts` exporting `area: AreaDef` (see `capital.ts` and its neighbours for
+towns laid out with `townkit.ts`). Give it entries, and exits that point at other areas' entries, and add the matching exits there.
 `npm test` checks every link. Nothing else needs registering.
 
 **Add a system.** Write `(g: Game, dt: number) => void`, put it in the list in `src/systems/index.ts` at the

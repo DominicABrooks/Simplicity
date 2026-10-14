@@ -105,7 +105,7 @@ function build(): AreaLayout {
       // Coming back down through the cave: a couple of steps south of its mouth.
       cave: { x: CAVE_X - HALF, y: 2 * T },
     },
-    exits: [{ rect: { x: CAVE_X - T, y: 0, w: 2 * T, h: 6 }, to: { area: "capital", entry: "cave" } }],
+    exits: [{ rect: { x: CAVE_X - T, y: 0, w: 2 * T, h: 6 }, to: { area: "kingsroad", entry: "cave" } }],
     props: [
       { kind: "camp", ...CAMP },
       { kind: "cave", x: CAVE_X, y: 0, facing: "south" },

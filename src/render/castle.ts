@@ -1,7 +1,9 @@
-// What you'd find in a castle (its guards are game entities: see spawnGuard and the guard view), braziers by the keep's stair, a training yard (archery
-// butts, practice dummies, a weapon rack), a smithy at its forge, a covered well, a trebuchet, and a
-// horse at a trough by the stables with a hay cart. Low-poly and hand-painted like the rest of the town,
-// at the hero's scale (about 1.1 units tall). Each is built facing south (+z) and turned to its facing.
+// What you'd find in a castle (its guards are game entities: see spawnGuard and the guard view): the
+// barbican and drawbridge before its gate, stairs up to its wall walks and torches on its walls, braziers
+// by the keep's stair, a training yard (archery butts, practice dummies, weapon racks), a smithy at its
+// forge, a covered well, a trebuchet, stables, and horses at a trough with a hay cart. Low-poly and
+// hand-painted like the rest of the town, at the hero's scale (about 1.1 units tall). Each is built
+// facing south (+z) and turned to its facing.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
@@ -9,12 +11,13 @@ import { box, type RenderContext } from "./context.ts";
 import { STRAW, TURN, at, centreOf } from "./market.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
-import { CLAY, DARK_WOOD, IRON, WOOD, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
+import { barbicanPlan } from "../world/plans.ts";
+import { CLAY, DARK_WOOD, DOORWAY, IRON, SLATE, WOOD, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, tower, type PropOf } from "./town.ts";
 
 const STEEL = "#9aa3ad", BURLAP = "#b89a6a";
 
 /** Add a mesh to a group at a position (and optional rotation), returning it. */
-function put(g: THREE.Object3D, geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0): THREE.Mesh {
+export function put(g: THREE.Object3D, geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0): THREE.Mesh {
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
   m.rotation.set(rx, ry, rz);
@@ -23,7 +26,7 @@ function put(g: THREE.Object3D, geo: THREE.BufferGeometry, mat: THREE.Material, 
 }
 
 /** Place a group built facing south at a point, turned to `facing`. */
-function place(parent: THREE.Group, g: THREE.Group, x: number, z: number, facing: keyof typeof TURN = "south"): void {
+export function place(parent: THREE.Group, g: THREE.Group, x: number, z: number, facing: keyof typeof TURN = "south"): void {
   g.position.set(x, 0, z);
   g.rotation.y = TURN[facing];
   parent.add(g);
@@ -231,10 +234,11 @@ export function buildCart(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ca
 }
 
 // ---------- Horse ----------
-/** A saddled horse, tied up: shifting its weight, swishing its tail, now and then dropping its head. */
-export function buildHorse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"horse">): PropView {
-  const { lambert } = ctx, g = new THREE.Group(), coat = lambert(hash(p.rect.x, p.rect.y, 704) < 0.5 ? "#8a5a34" : "#e8e0d0"), mane = lambert("#3a2a20");
-  // Built along z, head toward +z.
+interface Horse { group: THREE.Group; neck: THREE.Group; tail: THREE.Group }
+
+/** A saddled horse, built along z with its head toward +z (`saddled` or bare). */
+function makeHorse(ctx: RenderContext, coatColor: string, saddled: boolean): Horse {
+  const { lambert } = ctx, g = new THREE.Group(), coat = lambert(coatColor), mane = lambert("#3a2a20");
   put(g, box(0.42, 0.42, 1.1), coat, 0, 0.82, 0);
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
     put(g, box(0.1, 0.62, 0.11), coat, sx * 0.14, 0.31, sz * 0.4);
@@ -253,14 +257,141 @@ export function buildHorse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   tail.position.set(0, 0.95, -0.56);
   tail.rotation.x = -0.25;
   g.add(tail);
-  put(g, box(0.46, 0.08, 0.4), lambert(CLAY), 0, 1.05, -0.05);                         // saddle cloth
-  put(g, box(0.3, 0.1, 0.3), lambert(DARK_WOOD), 0, 1.11, -0.05);                     // saddle
+  if (saddled) {
+    put(g, box(0.46, 0.08, 0.4), lambert(CLAY), 0, 1.05, -0.05);                       // saddle cloth
+    put(g, box(0.3, 0.1, 0.3), lambert(DARK_WOOD), 0, 1.11, -0.05);                   // saddle
+  }
+  return { group: g, neck, tail };
+}
+
+/** Shifting its weight, swishing its tail, now and then dropping its head to graze. */
+const animateHorse = (h: Horse, t: number, k: number) => {
+  h.tail.rotation.z = Math.sin(t * 2.2 + k) * 0.25;
+  h.neck.rotation.x = 0.55 + (Math.sin(t * 0.3 + k) > 0.7 ? 0.5 : 0) + Math.sin(t * 1.1 + k) * 0.03;
+};
+const COATS = ["#8a5a34", "#e8e0d0", "#5a3a26", "#3a2a20", "#a8794a"] as const;
+
+/** A saddled horse, tied up. */
+export function buildHorse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"horse">): PropView {
+  const h = makeHorse(ctx, COATS[Math.floor(hash(p.rect.x, p.rect.y, 704) * COATS.length)]!, true);
   const [x, z] = centreOf(p.rect), k = hash(x, z, 705) * 10;
+  place(parent, h.group, x, z, p.facing);
+  return { update(t) { animateHorse(h, t, k); } };
+}
+
+// ---------- Stable ----------
+/** A long timber stable, open along its front under a lean-to roof, partitioned into stalls with a horse in most of them. */
+export function buildStable(ctx: RenderContext, parent: THREE.Group, p: PropOf<"stable">): PropView {
+  const { lambert, tex } = ctx, g = new THREE.Group(), wood = lambert(WOOD), dark = lambert(DARK_WOOD);
+  const sideways = p.facing === "east" || p.facing === "west";
+  const w = (sideways ? p.rect.h : p.rect.w) / T - 0.3, d = (sideways ? p.rect.w : p.rect.h) / T - 0.3, H = 2.6;
+  put(g, tiledBox(w, H, 0.2, 1.15), lambert("#ffffff", { map: tex.timber }), 0, H / 2, -d / 2 + 0.1);   // back wall
+  for (const s of [-1, 1]) put(g, tiledBox(0.2, H, d, 1.15), lambert("#ffffff", { map: tex.timber }), s * (w / 2 - 0.1), H / 2, 0);
+  const roof = put(g, box(w + 0.4, 0.12, d + 0.9), lambert(CLAY, { map: tex.shingles }), 0, H + 0.45, 0.2);
+  roof.rotation.x = 0.3;
+  const stalls = Math.max(2, Math.floor(w / 1.6)), horses: Horse[] = [];
+  for (let i = 0; i < stalls; i++) {
+    const x = -w / 2 + (i + 0.5) * (w / stalls);
+    put(g, box(0.1, 2.1, 0.1), dark, x + w / stalls / 2, 1.05, d / 2 - 0.1);            // posts along the front
+    if (i < stalls - 1) put(g, box(0.08, 1.1, d * 0.75), wood, x + w / stalls / 2, 0.55, -d * 0.12);   // stall partitions
+    put(g, box(1.0, 0.4, 0.25), lambert("#d9b46a"), x, 1.3, -d / 2 + 0.3);                // hay racks
+    if (hash(p.rect.x + i, p.rect.y, 706) < 0.8) {
+      const h = makeHorse(ctx, COATS[Math.floor(hash(p.rect.x, p.rect.y + i, 707) * COATS.length)]!, false);
+      h.group.position.set(x, 0, 0);
+      g.add(h.group);
+      horses.push(h);
+    }
+  }
+  put(g, box(w, 0.1, 0.1), dark, 0, 2.1, d / 2 - 0.1);
+  const [x, z] = centreOf(p.rect);
   place(parent, g, x, z, p.facing);
   return {
-    update(t) {
-      tail.rotation.z = Math.sin(t * 2.2 + k) * 0.25;
-      neck.rotation.x = 0.55 + (Math.sin(t * 0.3 + k) > 0.7 ? 0.5 : 0) + Math.sin(t * 1.1 + k) * 0.03;   // grazing now and then
+    update(t) { horses.forEach((h, i) => animateHorse(h, t, i * 2.3 + x)); },
+    occluders: [occluder(g, x, z, (sideways ? d : w) + 0.8, (sideways ? w : d) + 0.8, H + 0.8)],
+  };
+}
+
+// ---------- Barbican ----------
+/**
+ * An outer gate in front of a main gate (see barbicanPlan): a walled passage with a round tower at each
+ * front corner and a crenellated arch over its mouth, open toward its facing.
+ */
+export function buildBarbican(ctx: RenderContext, parent: THREE.Group, p: PropOf<"barbican">): PropView {
+  const { lambert, basic, tex } = ctx, g = new THREE.Group(), b = barbicanPlan(p), H = p.height, stone = lambert("#ffffff", { map: tex.stone });
+  for (const s of [-1, 1]) {
+    const len = b.deep - b.towerR * 0.7, x = s * (b.gap / 2 + b.side / 2), z = -b.towerR * 0.35;
+    put(g, tiledBox(b.side, H, len, 0.8), stone, x, H / 2, z);
+    const m = merlons(len, H, 0.35, stone);
+    m.rotation.y = Math.PI / 2;
+    m.position.set(s * (b.gap / 2 + b.side - 0.2), 0, z);
+    g.add(m);
+    const t = tower(ctx, b.towerR, H + 2.6, SLATE);
+    t.position.set(s * b.towerX, 0, b.towerZ);
+    g.add(t);
+  }
+  const archY = 3.4;
+  put(g, tiledBox(b.gap + 0.6, H + 0.9 - archY, 1.2, 0.8), stone, 0, archY + (H + 0.9 - archY) / 2, b.towerZ);
+  const top = merlons(b.gap + 0.6, H + 0.9, 1.2, stone);
+  top.position.z = b.towerZ;
+  g.add(top);
+  put(g, new THREE.PlaneGeometry(b.gap, 0.3), basic(DOORWAY, { side: THREE.DoubleSide }), 0, archY - 0.15, b.towerZ + 0.61);
+  const at = centreOf(p.rect);
+  place(parent, g, at[0], at[1], p.facing);
+  return { occluders: [occluder(g, at[0], at[1], p.rect.w / T + 1, p.rect.h / T + 1, H + 4)] };
+}
+
+// ---------- Drawbridge ----------
+/** A lowered drawbridge over a moat, its gate to the north: a heavy plank deck, chains running up to the gatehouse. */
+export function buildDrawbridge(ctx: RenderContext, parent: THREE.Group, p: PropOf<"drawbridge">): PropView {
+  const { lambert } = ctx, g = new THREE.Group(), w = p.rect.w / T + 0.4, len = p.rect.h / T + 0.6, iron = lambert(IRON);
+  put(g, box(w, 0.22, len), lambert(WOOD), 0, 0.02, 0);
+  for (let z = -len / 2 + 0.3; z < len / 2; z += 0.55) put(g, box(w + 0.02, 0.02, 0.05), lambert(DARK_WOOD), 0, 0.135, z);
+  for (const s of [-1, 1]) {
+    put(g, box(0.12, 0.12, len), iron, s * (w / 2 - 0.06), 0.16, 0);
+    const rise = 3.6, run = len * 0.55, chain = put(g, new THREE.CylinderGeometry(0.04, 0.04, Math.hypot(rise, run), 4), iron, s * (w / 2 - 0.06), rise / 2 + 0.1, -len / 2 + run / 2 - len * 0.1);
+    chain.rotation.x = -Math.atan2(run, rise);
+  }
+  const [x, z] = centreOf(p.rect);
+  g.position.set(x, 0, z);
+  parent.add(g);
+}
+
+// ---------- Stairs ----------
+/** A stone flight of steps up to a wall walk, climbing toward its `rises` side. */
+export function buildStairs(ctx: RenderContext, parent: THREE.Group, p: PropOf<"stairs">): PropView {
+  const { lambert, tex } = ctx, g = new THREE.Group(), stone = lambert("#ffffff", { map: tex.stone });
+  const sideways = p.rises === "east" || p.rises === "west";
+  const len = (sideways ? p.rect.w : p.rect.h) / T - 0.1, wid = (sideways ? p.rect.h : p.rect.w) / T - 0.1;
+  const steps = Math.max(4, Math.round(p.height / 0.28)), stepD = len / steps;
+  for (let i = 0; i < steps; i++) {
+    const h = ((i + 1) * p.height) / steps;
+    put(g, tiledBox(wid, h, stepD, 0.6), stone, 0, h / 2, -len / 2 + (i + 0.5) * stepD);
+  }
+  const [x, z] = centreOf(p.rect);
+  place(parent, g, x, z, p.rises);
+  return { occluders: [occluder(g, x, z, p.rect.w / T, p.rect.h / T, p.height)] };
+}
+
+// ---------- Torch ----------
+/** A torch in an iron sconce on a wall, its flame flickering, now and then an ember. */
+export function buildTorch(ctx: RenderContext, parent: THREE.Group, p: PropOf<"torch">): PropView {
+  const { lambert, basic, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON);
+  put(g, box(0.18, 0.3, 0.05), iron, 0, 0, 0);
+  put(g, box(0.05, 0.05, 0.3), iron, 0, -0.05, 0.15);
+  put(g, new THREE.CylinderGeometry(0.035, 0.03, 0.45, 5), lambert(DARK_WOOD), 0, 0.1, 0.3, -0.25, 0, 0);
+  const flame = put(g, new THREE.ConeGeometry(0.09, 0.3, 5), basic(PAL.O), 0, 0.42, 0.36);
+  const core = put(g, new THREE.ConeGeometry(0.05, 0.18, 5), basic(PAL.Y), 0, 0.38, 0.36);
+  const [x, z] = at(p);
+  g.position.set(x, p.height, z);
+  g.rotation.y = TURN[p.facing];
+  parent.add(g);
+  const tip = new THREE.Vector3(0, 0.5, 0.36).applyAxisAngle(new THREE.Vector3(0, 1, 0), TURN[p.facing]);
+  return {
+    update(t, dt) {
+      const s = 0.85 + Math.sin(t * 13 + x) * 0.12 + Math.sin(t * 29 + z) * 0.06;
+      flame.scale.set(1, s, 1);
+      core.scale.set(1, s * 1.1, 1);
+      if (Math.random() < dt * 1.5) particles.spawn("fire", x + tip.x, p.height + tip.y, z + tip.z, 0, 0.8, 0, 0.5);
     },
   };
 }
