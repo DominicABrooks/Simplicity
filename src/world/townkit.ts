@@ -8,7 +8,7 @@ import { HALF, T, Tile, type Rect } from "../data/world.ts";
 import type { AreaLayout, ExitDef, Facing, Goods, Prop } from "./area.ts";
 import type { Point } from "./collision.ts";
 import { propSolids } from "./solids.ts";
-import { boundsOf, overlapsBox } from "./shapes.ts";
+import { boundsOf, overlapsBox, type Shape } from "./shapes.ts";
 
 /** [x, y, w, h] in tiles. */
 export type TileRect = readonly [number, number, number, number];
@@ -144,11 +144,37 @@ export class Town {
     }
   }
 
-  /** The finished layout: the map (with every prop's solid shapes) and its ways in and out. */
+  /**
+   * Show part of another area past this one's edge, as it is there: its tiles in `window`, drawn with their
+   * top-left at (tx, ty) here (off the map), and its props in the window (walls and other lines crossing
+   * it too), moved with them; but none of the `except` kinds. Only drawn (see AreaLayout.view), so walking
+   * to the edge you see the district you're walking into instead of the mountains at the world's end.
+   */
+  beyond(from: AreaLayout, window: TileRect, tx: number, ty: number, except: readonly Prop["kind"][] = ["guard"]): void {
+    const [x0, y0, w, h] = window, dx = (tx - x0) * T, dy = (ty - y0) * T, box = px(window);
+    const tiles = Array.from({ length: h }, (_, j) => Array.from({ length: w }, (_, i) => from.map.tiles[y0 + j]?.[x0 + i] ?? Tile.Grass));
+    const props = from.props.filter(p => !except.includes(p.kind) && (standsAt(p) ? [standsAt(p)!] : propSolids(p).map(rectOf)).some(r =>
+      r.x < box.x + box.w && box.x < r.x + r.w && r.y < box.y + box.h && box.y < r.y + r.h)).map(p => shift(p, dx, dy));
+    this.past.push({ tiles, x: tx, y: ty, props });
+  }
+  private readonly past: { tiles: Tile[][]; x: number; y: number; props: Prop[] }[] = [];
+
+  /** The finished layout: the map (with every prop's solid shapes) and its ways in and out, and what's seen past its edges. */
   layout(entries: Record<string, Point>, exits: ExitDef[]): AreaLayout {
-    return { map: { width: this.W, height: this.H, tiles: this.tiles, solids: this.props.flatMap(propSolids) }, entries, exits, props: this.props };
+    const map = { width: this.W, height: this.H, tiles: this.tiles, solids: this.props.flatMap(propSolids) };
+    if (!this.past.length) return { map, entries, exits, props: this.props };
+    // The view: one grid round the map and everything past it, the map's tiles and theirs laid in it, grass between.
+    const parts = [{ tiles: this.tiles, x: 0, y: 0 }, ...this.past];
+    const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y));
+    const x1 = Math.max(...parts.map(p => p.x + (p.tiles[0]?.length ?? 0))), y1 = Math.max(...parts.map(p => p.y + p.tiles.length));
+    const tiles = Array.from({ length: y1 - y0 }, () => Array.from({ length: x1 - x0 }, (): Tile => Tile.Grass));
+    for (const p of parts) p.tiles.forEach((row, j) => row.forEach((t, i) => { tiles[p.y - y0 + j]![p.x - x0 + i] = t; }));
+    const view = { map: { width: x1 - x0, height: y1 - y0, tiles, solids: [] }, x: x0, y: y0, props: this.past.flatMap(p => p.props) };
+    return { map, entries, exits, props: this.props, view };
   }
 }
+
+const rectOf = (s: Shape): Rect => { const b = boundsOf(s); return { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 }; };
 
 /** Where a prop stands (game px): its rect, or its point; null for things that are lines (walls, fences, bunting). */
 function standsAt(p: Prop): Rect | null {

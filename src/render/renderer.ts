@@ -3,7 +3,7 @@
 // Rendering reads the game and never changes it (apart from consuming the one-shot effects queue).
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
-import { HALF } from "../data/world.ts";
+import { HALF, T } from "../data/world.ts";
 import type { Game } from "../game/game.ts";
 import { createAmbient } from "./ambient.ts";
 import { disposeTree } from "./dispose.ts";
@@ -20,6 +20,7 @@ import { createTargetRing } from "./targetRing.ts";
 import { compactScenery } from "./compact.ts";
 import { buildTerrain, groundUnderBridges } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
+import { shift } from "../world/townkit.ts";
 
 export interface Renderer extends Projector {
   /** Match the window: render at 1/pixelSize resolution. */
@@ -72,9 +73,12 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     disposeTree(scenery, new Set([ctx.shadowGeo, ctx.shadowMat]));   // shared with everyone's shadows
     scenery = new THREE.Group();
     world.add(scenery);
-    const terrain = buildTerrain(ctx, groundUnderBridges(layout.map, layout.props));
+    // Drawn: the map, or its view when it shows what lies past its edges (the next district along).
+    const view = layout.view ?? { map: layout.map, x: 0, y: 0, props: [] }, props = [...layout.props, ...view.props];
+    const bridges = props.filter(p => p.kind === "bridge" || p.kind === "stoneBridge" || p.kind === "drawbridge").map(p => shift(p, -view.x * T, -view.y * T));
+    const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view);
     scenery.add(terrain.group);
-    const built = layout.props.map(prop => buildProp(ctx, scenery, prop));
+    const built = props.map(prop => buildProp(ctx, scenery, prop));
     animated = built.flatMap(b => (b.update ? [b.update] : []));
     const occluders = built.flatMap(b => b.occluders);
     compactScenery(scenery, occluders.map(o => o.object), animated, [terrain.group]);

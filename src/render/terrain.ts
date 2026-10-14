@@ -49,7 +49,8 @@ export function groundUnderBridges(map: TileMap, props: readonly Prop[]): TileMa
   return { ...map, tiles };
 }
 
-export function buildTerrain(ctx: RenderContext, map: TileMap): { group: THREE.Group; trees: TreeSet } {
+/** The scenery for a map whose top-left tile is at `origin` (tiles) in the world. */
+export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, y: 0 }): { group: THREE.Group; trees: TreeSet } {
   const { lambert, tex } = ctx, world = new THREE.Group();
   const { width: W, height: H, tiles } = map;
   const isWater = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y]![x] === Tile.Water;
@@ -165,7 +166,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): { group: THREE.G
       instanced(new THREE.IcosahedronGeometry(0.52, 0).translate(0, 0.92, 0), lambert("#ffffff", { map: tex.leaf }), placed, leafColor),
       instanced(new THREE.IcosahedronGeometry(0.36, 0).translate(0.08, 1.34, 0.04), lambert("#ffffff", { map: tex.leaf }), placed, leafColor),
     ],
-    items: placed.map(([x, z, scale, y]) => ({ x, z, scale, y })),
+    items: placed.map(([x, z, scale, y]) => ({ x: x + origin.x, z: z + origin.y, scale, y })),
   };
 
   // Undergrowth: bushes and rocks on tree tiles that face the clearing, softening the treeline.
@@ -183,5 +184,6 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): { group: THREE.G
   instanced(new THREE.IcosahedronGeometry(0.24, 0).translate(0, 0.14, 0).scale(1.2, 0.8, 1.2), lambert("#ffffff", { map: tex.leaf }), bushes, leafColor);
   instanced(new THREE.DodecahedronGeometry(0.16, 0).translate(0, 0.08, 0).scale(1.3, 0.75, 1), lambert(PAL.w), rocks,
     (x, z) => { const b = 0.75 + hash(x, z, 19) * 0.3; return new THREE.Color(b, b, b); });
+  world.position.set(origin.x, 0, origin.y);
   return { group: world, trees };
 }

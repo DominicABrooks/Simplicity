@@ -166,6 +166,12 @@ export interface AreaLayout {
   entries: Record<string, Point>;
   exits: ExitDef[];
   props: Prop[];
+  /**
+   * What's drawn, when it's more than the map: a larger grid of tiles whose top-left is (x, y) tiles from
+   * the map's (so x, y <= 0), holding the map and what lies past its edges (the next district, as it is
+   * there), and the props standing out there. Seen from the map, never walked: nothing out there is solid.
+   */
+  view?: { map: TileMap; x: number; y: number; props: Prop[] };
 }
 
 /** What lives in an area. Leave it out for an empty area. */

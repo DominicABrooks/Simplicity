@@ -7,14 +7,18 @@
 import { T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
 import { Town, at, corner, edgeExit, px, type TileRect } from "../world/townkit.ts";
+import { area as capital, CASTLE_STREET } from "./capital.ts";
 
 const W = 56, H = 48;
 /** The castle's line (its gate, Castle Street), the city wall's row, and the curtain round the ward. */
 const MID = 28.5, CITY_WALL = 3, CURTAIN = { x0: 8, x1: 49, y1: 34 };
 const MOAT = { y0: 37, y1: 39 }, BARBICAN: TileRect = [23, 41, 11, 5], STREET = { x0: 26, x1: 30 };
 const KEEP: TileRect = [20, 6, 17, 13];
+/** Its size, and Castle Street, which runs on south into the Market Quarter's high street. */
+export const CASTLE = { W, H, street: STREET } as const;
 
-function build(): AreaLayout {
+/** The castle and the streets round it, as you walk them. */
+function lay(): Town {
   const town = new Town(W, H);
 
   // The ground: the ward's paving, the moat before the curtain, the street up to the barbican and the
@@ -71,10 +75,23 @@ function build(): AreaLayout {
     frontage: [3, 4], depth: [3, 5], storeys: [3, 4], alley: 0.2, seed: 401, stone: 0.6,
   });
 
-  return town.layout(
-    { town: { x: 28 * T, y: (H - 2) * T } },
-    [edgeExit("south", STREET.x0, STREET.x1, W, H, { area: "capital", entry: "castle" })],
-  );
+  return town;
+}
+
+const finish = (town: Town): AreaLayout => town.layout(
+  // Up Castle Street from the Market Quarter, a step in from the edge (a step past where you left it).
+  { town: { x: 28 * T, y: (H - 2) * T } },
+  [edgeExit("south", STREET.x0, STREET.x1, W, H, { area: "capital", entry: "castle" })],
+);
+
+/** The castle as you walk it, without the view past its edge: what the Market Quarter shows past its own. */
+export const castleCore = (): AreaLayout => finish(lay());
+
+function build(): AreaLayout {
+  // Past the south edge, the Market Quarter's north end as it is there: Castle Street runs straight on into it.
+  const town = lay(), dx = CASTLE_STREET.x0 - STREET.x0;
+  town.beyond(capital.build(), [dx - 10, 0, W + 20, 12], -10, H);
+  return finish(town);
 }
 
 export const area: AreaDef = {

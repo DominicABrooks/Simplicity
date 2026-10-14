@@ -71,7 +71,7 @@ export function blendLayer(ctx: RenderContext, map: TileMap, member: (t: Tile) =
     Object.assign(sh.uniforms, {
       uMask: { value: maskTex }, uMapSize: { value: new THREE.Vector2(W, H) }, uWobble: { value: style.wobble }, uSeed: { value: style.seed },
     });
-    sh.vertexShader = "varying vec2 vGround;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vGround = (modelMatrix * vec4(transformed, 1.0)).xz;");
+    sh.vertexShader = "varying vec2 vGround;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vGround = transformed.xz;");
     sh.fragmentShader = "varying vec2 vGround;\nuniform sampler2D uMask;\nuniform vec2 uMapSize;\nuniform float uWobble;\nuniform float uSeed;\n" + NOISE +
       sh.fragmentShader.replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
   if (texture2D(uMask, vGround / uMapSize).r + uWobble * (layerNoise(vGround, uSeed) - 0.5) < 0.5) discard;`);
