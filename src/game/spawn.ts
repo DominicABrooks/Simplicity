@@ -1,9 +1,9 @@
 // Entity factories: every kind of thing in the world, assembled from components.
 import type { Entity } from "../core/ecs.ts";
-import { MAGE, MAGE_MIN_KILLS, SCHOOLS, SCHOOL_ORDER, SLIME, mageCap, mageChance, mageHp, type BoltKind } from "../data/enemies.ts";
+import { MAGE, MAGE_TARGET, MAGE_MIN_KILLS, SLIME_TARGET, SCHOOLS, SCHOOL_ORDER, SLIME, mageCap, mageChance, mageHp, type BoltKind } from "../data/enemies.ts";
 import { LOOT_DESPAWN } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
-import { SPAWN } from "../data/world.ts";
+import { CAMP, CAMPFIRE_TARGET, SPAWN } from "../data/world.ts";
 import type { Item } from "../items/items.ts";
 import { randomGroundSpot } from "../world/collision.ts";
 import type { Game } from "./game.ts";
@@ -46,6 +46,7 @@ export function spawnEnemy(g: Game, minDist: number): void {
         school, timer: 1.5, casting: false, castT: 0, castK: 0, spell: null, strafe: 1, strafeT: 0, stuckT: 0,
         blinkCD: 2, specialCD: 4, moving: false, melee: false, swing: null, swingCD: 0, swingSide: 0, swingK: 0, swingRel: 0,
       },
+      targetable: { name: SCHOOLS[school].name, hostile: true, ...MAGE_TARGET },
       renderable: { kind: "mage" },
     });
     toast(g, `A ${SCHOOLS[school].name} appears!`);
@@ -57,8 +58,14 @@ export function spawnEnemy(g: Game, minDist: number): void {
     health: { hp: SLIME.hp, maxHp: SLIME.hp },
     enemy: { kind: "slime", flash: 0, face: 1 },
     slime: { timer: SLIME.firstHop + g.rng.next(), hop: 0, dx: 0, dy: 0 },
+    targetable: { hostile: true, ...SLIME_TARGET },
     renderable: { kind: "slime" },
   });
+}
+
+/** The camp's campfire. It's drawn with the camp scenery; as an entity it can be targeted. */
+export function spawnCampfire(g: Game): Entity {
+  return g.world.create({ transform: { x: CAMP.fire.x, y: CAMP.fire.y }, targetable: { hostile: false, ...CAMPFIRE_TARGET } });
 }
 
 export function spawnPotion(g: Game, x: number, y: number): Entity {

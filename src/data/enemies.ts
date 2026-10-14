@@ -1,5 +1,9 @@
 // Enemy tuning: slimes, the three mage schools and their spells, and spawn scaling.
 
+/** How enemies show up as targets: name, ring radius (px) and height (world units). */
+export const SLIME_TARGET = { name: "Slime", radius: 4.5, height: 0.6 } as const;
+export const MAGE_TARGET = { radius: 5, height: 1.15 } as const;
+
 export const SLIME = { hp: 3, hopTime: 0.3, hopSpeed: 46, sight: 72, drag: 0.002, firstHop: 0.5, hopEvery: 0.7 } as const;
 
 export const SPAWNING = { startSlimes: 12, startPotions: 8, every: 3, baseCap: 12, maxCap: 20, killsPerCap: 5 } as const;

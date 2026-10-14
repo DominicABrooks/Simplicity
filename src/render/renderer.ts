@@ -14,6 +14,7 @@ import { createHeroView } from "./hero.ts";
 import { createKoiPond } from "./koi.ts";
 import type { Projector } from "./projector.ts";
 import { createRenderSystem } from "./renderSystem.ts";
+import { createTargetRing } from "./targetRing.ts";
 import { buildTerrain } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
 
@@ -53,6 +54,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const hero = createHeroView(ctx);
   const renderEntities = createRenderSystem(ctx);
   let camp: Camp | null = null;
+  const targetRing = createTargetRing(ctx);
 
   // A new run: rebuild the scenery and jump the camera to the hero.
   g.events.on("reset", ({ map }) => {
@@ -89,6 +91,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       koi.update(dt, t, px, pz, bobber);
       ambient.update(dt, t, px, pz);
       camp?.update(t, dt);
+      targetRing.update(g, t);
 
       // World animation and camera.
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);

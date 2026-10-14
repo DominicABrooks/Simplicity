@@ -28,6 +28,9 @@ export const CAMP = {
   seat: { x: 25 * T + 3, y: 17 * T + 2 },
 } as const;
 
+/** The campfire as a target: neutral, a yellow ring. */
+export const CAMPFIRE_TARGET = { name: "Campfire", radius: 5, height: 0.6 } as const;
+
 /** What blocks movement in the camp: the tent's footprint and the fire pit. */
 export const CAMP_SOLIDS: readonly Rect[] = [
   { x: CAMP.tent.x + 1, y: CAMP.tent.y + 2, w: CAMP.tent.w - 2, h: CAMP.tent.h - 3 },

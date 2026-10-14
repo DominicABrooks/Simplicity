@@ -19,7 +19,7 @@ const DIRS: Record<string, [number, number]> = {
 const NO_SCROLL = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright"];
 
 /** Listen for input. Returns the cursor's screen position (null until the mouse moves, or after it leaves). */
-export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y: number } | null } {
+export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y: number } | null; overUi(): boolean } {
   const input = g.input;
   let lastTap: { dir: string | null; time: number } = { dir: null, time: -1 };
   let mouse: { x: number; y: number } | null = null;
@@ -61,9 +61,10 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
     input.attackPressed = true;
   });
   addEventListener("mouseup", e => { if (e.button === 0) input.attackReleased = true; });
-  addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; });
+  let overUi = false;
+  addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; overUi = hooks.inventoryOwns(e.target); });
   addEventListener("mouseleave", () => { mouse = null; });
   addEventListener("blur", () => input.keys.clear());
 
-  return { mouse: () => mouse };
+  return { mouse: () => mouse, overUi: () => overUi };
 }

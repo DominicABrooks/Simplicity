@@ -193,6 +193,17 @@ export interface Despawn {
   left: number;
 }
 
+/** Something the player can target by hovering it. */
+export interface Targetable {
+  name: string;
+  /** Hostile targets get a red ring, neutral ones yellow. */
+  hostile: boolean;
+  /** Ring radius on the ground, in game pixels. */
+  radius: number;
+  /** How tall it stands, in world units (hovering anywhere on it counts). */
+  height: number;
+}
+
 export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike";
 
 /** Drawn by the view registered for this kind. */
@@ -217,4 +228,5 @@ export interface Components {
   strike: Strike;
   renderable: Renderable;
   despawn: Despawn;
+  targetable: Targetable;
 }

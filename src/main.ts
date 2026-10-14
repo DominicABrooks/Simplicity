@@ -5,6 +5,7 @@ import { createGame, setState } from "./game/game.ts";
 import { dropItem, eatItem } from "./game/actions.ts";
 import { resetGame } from "./game/reset.ts";
 import { bindInput } from "./input/input.ts";
+import { updateTarget } from "./input/targeting.ts";
 import { createRenderer } from "./render/renderer.ts";
 import { step } from "./systems/index.ts";
 import { byId } from "./ui/dom.ts";
@@ -51,6 +52,7 @@ function frame(now: number): void {
   last = now;
   const mouse = input.mouse();
   g.input.pointer = mouse && view.screenToGame(mouse.x, mouse.y);
+  updateTarget(g, view, mouse, input.overUi());
   step(g, dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
   hud.draw();

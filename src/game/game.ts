@@ -69,6 +69,8 @@ export interface Game {
   /** Seconds R has been held, and whether R must be released before another reset. */
   resetHold: number;
   resetLatch: boolean;
+  /** What the player is targeting (the last thing hovered), if anything. */
+  target: Entity | null;
 }
 
 export function createGame(): Game {
@@ -83,7 +85,7 @@ export function createGame(): Game {
     floaters: [],
     state: "title",
     player: 0,
-    clock: 0, hitstop: 0, shake: 0, kills: 0, spawnTimer: 0, resetHold: 0, resetLatch: false,
+    clock: 0, hitstop: 0, shake: 0, kills: 0, spawnTimer: 0, resetHold: 0, resetLatch: false, target: null,
   };
   g.inventory.subscribe(stats => applyStats(g, stats));
   return g;
