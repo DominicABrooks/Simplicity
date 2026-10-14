@@ -53,8 +53,8 @@ export const TIERS: Record<TierName, TierColors> = {
     boot: "#8fb3cc", bootDark: "#4f6f86", glow: 0.4,
     fishMain: PAL.W, fishAccent: PAL.C,
   },
-  // The kingdom's livery: deep crimson (the banners' red, darker than the Ember Mage's) with gold trim,
-  // steel boots and a plain steel sword.
+  // The kingdom's livery, on its soldiers' surcoats, plumes and shields: deep crimson (the banners' red,
+  // darker than the Ember Mage's) with gold trim, and dark boots.
   guard: {
     cloth: "#7a1f2b", dark: "#4a1219", light: "#a8473a", trim: PAL.Y, accent: PAL.Y,
     metal: PAL.Y, metalDark: PAL.O, gem: PAL.Y,

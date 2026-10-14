@@ -8,7 +8,7 @@ import { T } from "../data/world.ts";
 import { SHADOW_Y, box, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { STRAW, TURN, at, centreOf } from "./market.ts";
-import { dressBody, makeBody } from "./models/body.ts";
+import { dressSoldier, makeBody } from "./models/body.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 import { CLAY, DARK_WOOD, IRON, WOOD, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
@@ -33,9 +33,9 @@ function place(parent: THREE.Group, g: THREE.Group, x: number, z: number, facing
 
 // ---------- Guard ----------
 /**
- * A guard: the same body as the hero (and the mages), in the kingdom's livery: hood, robe and boots of
- * the guard tier, a steel sword held upright. Standing watch: breathing, blinking, the sword and hands
- * bobbing as the hero's do at rest.
+ * A guard: the same body as the hero (and the mages), in a soldier's kit of the kingdom's colours (see
+ * dressSoldier): helm and plume, mail and surcoat, spear and shield. Standing watch: breathing, blinking,
+ * now and then glancing about.
  */
 export function buildGuard(ctx: RenderContext, parent: THREE.Group, p: PropOf<"guard">): PropView {
   const b = makeBody(ctx);
@@ -43,7 +43,7 @@ export function buildGuard(ctx: RenderContext, parent: THREE.Group, p: PropOf<"g
   // freed when you leave), and never swims, so it has no use for a ripple.
   ctx.scene.remove(b.group, b.shadow, b.ripple);
   disposeTree(b.ripple);
-  dressBody(ctx, b, { helm: "guard", armor: "guard", boots: "guard", weapon: "guard", weaponType: "blade", ring: null, amulet: null });
+  dressSoldier(ctx, b, "guard");
   const [x, z] = at(p), k = hash(x, z, 700) * 10;
   b.group.position.set(x, 0, z);
   b.group.rotation.y = TURN[p.facing] - Math.PI / 2;        // a body faces +x at no turn
@@ -56,11 +56,11 @@ export function buildGuard(ctx: RenderContext, parent: THREE.Group, p: PropOf<"g
       const s = t + k;
       b.body.scale.y = 1 + Math.sin(s * 2.5) * 0.025;                                  // breathing
       b.eyes.forEach(e => { e.scale.y = s % 3.4 < 0.15 ? 0.15 : 1; });                  // blinking
-      b.sword.position.set(0.12, 0.5 + Math.sin(s * 3) * 0.05, 0.46);                  // the sword held up at the side
-      b.sword.rotation.set(0, 0, 0.15 + Math.sin(s * 1.7) * 0.06);
+      b.sword.position.set(0.16, 0.45, 0.4);                                           // the spear, grounded at the side
+      b.sword.rotation.set(0, 0, 0.04 + Math.sin(s * 1.7) * 0.015);
       b.sword.updateMatrix();
-      b.hands[0]!.position.copy(grip.set(0, b.gripY, 0).applyMatrix4(b.sword.matrix));  // its hand on the grip
-      b.hands[1]!.position.set(0.12, 0.38 + Math.sin(s * 2.5 + 1) * 0.02, -0.44);      // the other at rest
+      b.hands[0]!.position.copy(grip.set(0, b.gripY + 0.05 * Math.sin(s * 2.5), 0).applyMatrix4(b.sword.matrix));   // its hand on the shaft
+      b.hands[1]!.position.set(0.14, 0.4 + Math.sin(s * 2.5 + 1) * 0.02, -0.42);       // the shield at the other side
       b.group.rotation.y = TURN[p.facing] - Math.PI / 2 + (Math.sin(s * 0.4) > 0.85 ? Math.sin(s * 2) * 0.4 : 0);   // now and then, a glance
     },
   };
