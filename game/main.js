@@ -820,12 +820,12 @@ function renderLabels() {
 const alertEl = document.getElementById("alert");
 
 // WoW-style XP bar along the bottom, and "+10 XP" floating up from kills.
-const xpFill = document.getElementById("xpFill"), xpText = document.getElementById("xpText");
+const xpFill = document.getElementById("xpFill"), xpLevel = document.getElementById("xpLevel");
 const floaterEls = new Map();
 function renderXP() {
   const p = player, max = p.level >= XP.maxLevel;
   xpFill.style.width = max ? "100%" : `${(p.xp / xpToNext(p.level)) * 100}%`;
-  xpText.textContent = max ? `Level ${p.level} (max)` : `Level ${p.level}  \u00b7  ${p.xp} / ${xpToNext(p.level)} XP`;
+  xpLevel.textContent = p.level;
   for (const [f, el] of floaterEls) if (!floaters.includes(f)) { el.remove(); floaterEls.delete(f); }
   for (const f of floaters) {
     let el = floaterEls.get(f);
