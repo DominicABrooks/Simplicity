@@ -1,6 +1,6 @@
 // Gear tiers: one source of truth for how rarity looks, shared by the 3D gear and the inventory icons,
 // so an item looks the same in the bag and when worn. The enemy tiers (ember, frost, storm) dress the
-// mages and never roll as loot.
+// mages, and the guard tier the kingdom's guards; none of them roll as loot.
 import type { ItemType, Rarity } from "./items.ts";
 import { PAL } from "./palette.ts";
 import type { School } from "./enemies.ts";
@@ -13,7 +13,7 @@ export interface TierColors {
   fishMain: string; fishAccent: string;
 }
 
-export type TierName = Rarity | School;
+export type TierName = Rarity | School | "guard";
 
 export const TIERS: Record<TierName, TierColors> = {
   normal: {
@@ -52,6 +52,15 @@ export const TIERS: Record<TierName, TierColors> = {
     blade: PAL.W, bladeDark: "#a9d6e8", guard: PAL.C, guardDark: "#5a8fb0",
     boot: "#8fb3cc", bootDark: "#4f6f86", glow: 0.4,
     fishMain: PAL.W, fishAccent: PAL.C,
+  },
+  // The kingdom's livery: deep crimson (the banners' red, darker than the Ember Mage's) with gold trim,
+  // steel boots and a plain steel sword.
+  guard: {
+    cloth: "#7a1f2b", dark: "#4a1219", light: "#a8473a", trim: PAL.Y, accent: PAL.Y,
+    metal: PAL.Y, metalDark: PAL.O, gem: PAL.Y,
+    blade: "#c8d0d8", bladeDark: "#8a929c", guard: PAL.Y, guardDark: PAL.O,
+    boot: "#5a5f6a", bootDark: "#3a3e46", glow: 0,
+    fishMain: PAL.R, fishAccent: PAL.Y,
   },
   // Storm Mage: dark indigo robes with gold trim.
   storm: {

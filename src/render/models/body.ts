@@ -1,4 +1,4 @@
-// The humanoid body shared by the hero and the mages: a little stone spirit in a bark wrap, with
+// The humanoid body shared by everyone: the hero, the mages and the kingdom's guards: a little stone spirit in a bark wrap, with
 // floating hands. Gear (dressBody) is rebuilt whenever the equipment changes, so loot visibly
 // upgrades whoever wears it.
 import * as THREE from "three";

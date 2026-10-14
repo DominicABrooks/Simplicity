@@ -1,17 +1,19 @@
-// What you'd find in a castle: guards at the gates, braziers by the keep's stair, a training yard (archery
+// What you'd find in a castle: guards at the gates (the hero's own body, in the kingdom's livery), braziers by the keep's stair, a training yard (archery
 // butts, practice dummies, a weapon rack), a smithy at its forge, a covered well, a trebuchet, and a
 // horse at a trough by the stables with a hay cart. Low-poly and hand-painted like the rest of the town,
 // at the hero's scale (about 1.1 units tall). Each is built facing south (+z) and turned to its facing.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
-import { box, type RenderContext } from "./context.ts";
+import { SHADOW_Y, box, type RenderContext } from "./context.ts";
+import { disposeTree } from "./dispose.ts";
 import { STRAW, TURN, at, centreOf } from "./market.ts";
+import { dressBody, makeBody } from "./models/body.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 import { CLAY, DARK_WOOD, IRON, WOOD, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
 
-const STEEL = "#9aa3ad", LIVERY = CLAY, BURLAP = "#b89a6a";
+const STEEL = "#9aa3ad", BURLAP = "#b89a6a";
 
 /** Add a mesh to a group at a position (and optional rotation), returning it. */
 function put(g: THREE.Object3D, geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0): THREE.Mesh {
@@ -30,36 +32,36 @@ function place(parent: THREE.Group, g: THREE.Group, x: number, z: number, facing
 }
 
 // ---------- Guard ----------
-/** A guard in the kingdom's red and gold over mail, kettle helm on, spear grounded: breathing, glancing about. */
+/**
+ * A guard: the same body as the hero (and the mages), in the kingdom's livery: hood, robe and boots of
+ * the guard tier, a steel sword held upright. Standing watch: breathing, blinking, the sword and hands
+ * bobbing as the hero's do at rest.
+ */
 export function buildGuard(ctx: RenderContext, parent: THREE.Group, p: PropOf<"guard">): PropView {
-  const { lambert, basic } = ctx, g = new THREE.Group(), body = new THREE.Group(), head = new THREE.Group();
-  const steel = lambert(STEEL), dark = lambert("#3a3440"), cloth = lambert(LIVERY), gold = basic(PAL.Y);
-  for (const s of [-1, 1]) {
-    put(g, box(0.13, 0.46, 0.15), dark, s * 0.1, 0.23, 0);                              // legs
-    put(g, box(0.15, 0.08, 0.2), lambert(DARK_WOOD), s * 0.1, 0.04, 0.03);              // boots
-  }
-  put(body, box(0.4, 0.46, 0.26), steel, 0, 0.23, 0);                                    // mail
-  put(body, box(0.36, 0.5, 0.04), cloth, 0, 0.18, 0.14);                                 // tabard
-  put(body, new THREE.OctahedronGeometry(0.07, 0), gold, 0, 0.26, 0.17).scale.z = 0.3;   // its emblem
-  put(body, box(0.42, 0.06, 0.28), lambert(DARK_WOOD), 0, 0.02, 0);                      // belt
-  for (const s of [-1, 1]) put(body, new THREE.IcosahedronGeometry(0.1, 0), steel, s * 0.24, 0.43, 0);   // shoulders
-  put(body, box(0.09, 0.38, 0.09), steel, 0.25, 0.22, 0.04, -0.15);                      // spear arm
-  put(body, box(0.09, 0.38, 0.09), steel, -0.24, 0.24, 0, 0, 0, 0.12);                  // other arm
-  body.position.y = 0.46;
-  put(head, new THREE.IcosahedronGeometry(0.13, 1), lambert("#e0b48a"), 0, 0.12, 0);     // face
-  put(head, new THREE.CylinderGeometry(0.14, 0.14, 0.12, 8), steel, 0, 0.2, 0);          // kettle helm
-  put(head, new THREE.CylinderGeometry(0.24, 0.24, 0.03, 10), steel, 0, 0.15, 0);        // and its brim
-  head.position.y = 0.92;
-  g.add(body, head);
-  // The spear, grounded beside him.
-  put(g, new THREE.CylinderGeometry(0.025, 0.025, 2.0, 5), lambert(DARK_WOOD), 0.3, 1.0, 0.12);
-  put(g, new THREE.ConeGeometry(0.05, 0.22, 4), steel, 0.3, 2.1, 0.12);
+  const b = makeBody(ctx);
+  // makeBody puts a body straight into the scene; a guard belongs to the area's scenery instead (so it's
+  // freed when you leave), and never swims, so it has no use for a ripple.
+  ctx.scene.remove(b.group, b.shadow, b.ripple);
+  disposeTree(b.ripple);
+  dressBody(ctx, b, { helm: "guard", armor: "guard", boots: "guard", weapon: "guard", weaponType: "blade", ring: null, amulet: null });
   const [x, z] = at(p), k = hash(x, z, 700) * 10;
-  place(parent, g, x, z, p.facing);
+  b.group.position.set(x, 0, z);
+  b.group.rotation.y = TURN[p.facing] - Math.PI / 2;        // a body faces +x at no turn
+  b.shadow.position.set(x, SHADOW_Y, z);
+  b.feet.forEach(f => { f.position.x = b.footX; });
+  parent.add(b.group, b.shadow);
+  const grip = new THREE.Vector3();
   return {
     update(t) {
-      body.scale.y = 1 + Math.sin(t * 2 + k) * 0.015;                                    // breathing
-      head.rotation.y = Math.sin(t * 0.4 + k) > 0.85 ? Math.sin(t * 2 + k) * 0.5 : 0;    // now and then, a glance
+      const s = t + k;
+      b.body.scale.y = 1 + Math.sin(s * 2.5) * 0.025;                                  // breathing
+      b.eyes.forEach(e => { e.scale.y = s % 3.4 < 0.15 ? 0.15 : 1; });                  // blinking
+      b.sword.position.set(0.12, 0.5 + Math.sin(s * 3) * 0.05, 0.46);                  // the sword held up at the side
+      b.sword.rotation.set(0, 0, 0.15 + Math.sin(s * 1.7) * 0.06);
+      b.sword.updateMatrix();
+      b.hands[0]!.position.copy(grip.set(0, b.gripY, 0).applyMatrix4(b.sword.matrix));  // its hand on the grip
+      b.hands[1]!.position.set(0.12, 0.38 + Math.sin(s * 2.5 + 1) * 0.02, -0.44);      // the other at rest
+      b.group.rotation.y = TURN[p.facing] - Math.PI / 2 + (Math.sin(s * 0.4) > 0.85 ? Math.sin(s * 2) * 0.4 : 0);   // now and then, a glance
     },
   };
 }

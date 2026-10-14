@@ -68,7 +68,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   world.add(scenery);
   g.events.on("area", ({ def, layout }) => {
     world.remove(scenery);
-    disposeTree(scenery);
+    disposeTree(scenery, new Set([ctx.shadowGeo, ctx.shadowMat]));   // shared with everyone's shadows
     scenery = new THREE.Group();
     world.add(scenery);
     const terrain = buildTerrain(ctx, layout.map);
