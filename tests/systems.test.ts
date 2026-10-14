@@ -117,3 +117,22 @@ describe("spells", () => {
     expect(status.sheep).toBeGreaterThan(0);
   });
 });
+
+describe("loot on the ground", () => {
+  it("blinks for its last seconds, then despawns after 20 s", async () => {
+    const { LOOT_DESPAWN } = await import("../src/data/items.ts");
+    const { blinkVisible } = await import("../src/game/despawn.ts");
+    const { dropLoot } = await import("../src/game/spawn.ts");
+    const g = playing();
+    const p = hero(g).pos;
+    const loot = dropLoot(g, p.x + 60, p.y, makeItem("ring"));
+    run(g, LOOT_DESPAWN.after - LOOT_DESPAWN.blinkFor - 0.5);
+    expect(g.world.isAlive(loot)).toBe(true);
+    expect(blinkVisible(g.world.need(loot, "despawn").left)).toBe(true);
+    const seen = new Set<boolean>();
+    for (let t = 0; t < LOOT_DESPAWN.blinkFor - 0.1; t += DT) { step(g, DT); seen.add(blinkVisible(g.world.need(loot, "despawn").left)); }
+    expect(seen).toEqual(new Set([true, false]));           // blinking
+    run(g, 0.7);                                           // past 20 s in all
+    expect(g.world.isAlive(loot)).toBe(false);
+  });
+});

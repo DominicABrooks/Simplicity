@@ -1,6 +1,7 @@
 // Entity factories: every kind of thing in the world, assembled from components.
 import type { Entity } from "../core/ecs.ts";
 import { MAGE, MAGE_MIN_KILLS, SCHOOLS, SCHOOL_ORDER, SLIME, mageCap, mageChance, mageHp, type BoltKind } from "../data/enemies.ts";
+import { LOOT_DESPAWN } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
 import { SPAWN } from "../data/world.ts";
 import type { Item } from "../items/items.ts";
@@ -66,7 +67,12 @@ export function spawnPotion(g: Game, x: number, y: number): Entity {
 
 /** An item on the ground. `ignore` makes the hero step off it before it can be picked up again. */
 export function dropLoot(g: Game, x: number, y: number, item: Item, ignore = false): Entity {
-  return g.world.create({ transform: { x, y }, pickup: { kind: "loot", item, ignore }, renderable: { kind: "loot" } });
+  return g.world.create({
+    transform: { x, y },
+    pickup: { kind: "loot", item, ignore },
+    despawn: { left: LOOT_DESPAWN.after },
+    renderable: { kind: "loot" },
+  });
 }
 
 export function spawnArrow(g: Game, x: number, y: number, vx: number, vy: number, life: number, damage: number, power: boolean): Entity {

@@ -93,3 +93,6 @@ export const CATCH_ODDS = { rare: 0.08, magic: 0.33 } as const;
 
 /** Slime drops: at most one, 30% potion, 40% item. Mages: always an item (magic+), 50% potion. */
 export const DROPS = { slimePotion: 0.3, slimeItem: 0.7, magePotion: 0.5, potionHeal: 2 } as const;
+
+/** Items left on the ground vanish after `after` seconds, blinking for the last `blinkFor`. */
+export const LOOT_DESPAWN = { after: 20, blinkFor: 5 } as const;

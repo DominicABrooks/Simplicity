@@ -9,6 +9,7 @@ import { PAL } from "../data/palette.ts";
 import { RARITY_COLOR } from "../data/tiers.ts";
 import { HALF } from "../data/world.ts";
 import type { RenderKind, Transform } from "../game/components.ts";
+import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
 import { PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { dressBody, makeBody, removeBody, type Body } from "./models/body.ts";
@@ -196,6 +197,8 @@ const loot: EntityView<LootView> = {
     v.gem.rotation.y = f.t * 2;
     v.gem.position.y = 0.3 + Math.sin(f.t * 3 + o.x) * 0.05;
     v.shadow.position.set(x, 0.01, z);
+    const despawn = g.world.get(e, "despawn");
+    v.group.visible = v.shadow.visible = !despawn || blinkVisible(despawn.left);   // blinks before it vanishes
   },
   remove: removeSimple,
 };

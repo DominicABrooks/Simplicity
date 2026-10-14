@@ -6,6 +6,14 @@ import { toast, type Game } from "../game/game.ts";
 import { heroParts } from "../game/hero.ts";
 import { overlap } from "../world/collision.ts";
 
+/** Count down despawn timers and remove whatever has run out. */
+export function despawnSystem(g: Game, dt: number): void {
+  for (const [e, { despawn }] of g.world.query("despawn")) {
+    despawn.left -= dt;
+    if (despawn.left <= 0) g.world.destroy(e);
+  }
+}
+
 export function pickupSystem(g: Game): void {
   const { pos, health } = heroParts(g), w = g.world;
   for (const [e, { transform: t, pickup }] of w.query("pickup", "transform")) {

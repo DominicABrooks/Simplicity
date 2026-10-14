@@ -188,6 +188,11 @@ export interface Strike {
   total: number;
 }
 
+/** Removed when the time runs out (items left on the ground). */
+export interface Despawn {
+  left: number;
+}
+
 export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike";
 
 /** Drawn by the view registered for this kind. */
@@ -211,4 +216,5 @@ export interface Components {
   bolt: Bolt;
   strike: Strike;
   renderable: Renderable;
+  despawn: Despawn;
 }

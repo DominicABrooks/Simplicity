@@ -8,7 +8,7 @@ import { fishingSystem, rodSystem } from "./fishing.ts";
 import { boltSystem, strikeSystem } from "./hazards.ts";
 import { clearPressesSystem, heroMoveSystem, heroStatusSystem, resetHoldSystem } from "./hero.ts";
 import { mageSystem } from "./mage.ts";
-import { pickupSystem } from "./pickups.ts";
+import { despawnSystem, pickupSystem } from "./pickups.ts";
 import { swordSystem } from "./sword.ts";
 import { thrustSystem } from "./thrust.ts";
 
@@ -26,6 +26,7 @@ export const HERO_SYSTEMS: System[] = [
   thrustSystem,
   clearPressesSystem,
   pickupSystem,
+  despawnSystem,
 ];
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
