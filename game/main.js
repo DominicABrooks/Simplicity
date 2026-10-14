@@ -132,7 +132,7 @@ function applyStats(st) {
   player.hp = Math.min(player.hp, player.maxHp);
   player.speedMul = 1 + st.speed / 100;
   player.dashMul = 1 - st.dash / 100;
-  player.hasWeapon = st.hasWeapon;
+  player.gear = st.gear;
 }
 
 function reset() {
@@ -141,7 +141,9 @@ function reset() {
   seed = Date.now() % 100000 + 1;
   player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
   slimes = []; potions = []; loot = []; effects = [];
-  inv.reset([makeItem("blade", "normal", {}, "Rusty Blade")]);
+  // Start naked, with a plain starter set in the bag to put on.
+  inv.reset([]);
+  for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"]]) inv.add(makeItem(type, "normal", {}, name));
   kills = 0; clock = 0; spawnTimer = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
   for (let i = 0; i < 5; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }

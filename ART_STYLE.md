@@ -26,8 +26,31 @@ These limits are the look. Don't remove them to make things "cleaner".
 
 - **Low poly, flat shaded.** Build from primitives: lathes and cones with 5–7 sides, level-0 icosahedrons, boxes. Budgets: characters about 300 triangles, props about 150.
 - **WoW proportions.** Heads, hoods, weapons and trims are oversized. Silhouettes are bold and readable from above.
-- **Creatures, not people.** No skin, hands or mouths. A face is a `void` opening with two glowing eyes (unlit material, so they always shine). Weapons float beside the body.
+- **Creatures, not people.** No skin tones, hands or mouths. A face is a `void` opening with two glowing eyes (unlit material, so they always shine). Weapons float beside the body.
 - Models are built facing **+X** (screen right). The hero turns to face the aim (the cursor, or the movement direction without a mouse); enemies face the way they're moving.
+
+## The hero and gear
+
+The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a round body, a `void` face with glowing eyes, stub feet and a plain `bark` wrap. Every equipped piece adds its own model, so the character's look is the sum of its gear:
+
+| Slot | Model |
+|---|---|
+| Helm | Hood with a backward-leaning tip; the eyes move forward into its opening |
+| Armor | Robe and mantle; the feet move forward to peek out from under the hem |
+| Boots | Chunky boots with a trim cuff replace the stub feet |
+| Weapon | The floating sword |
+| Amulet | A chain and a glowing pendant on the chest |
+| Ring | A small glowing ring orbiting the body |
+
+**Rarity is visible.** The gear tier sets the cloth, trim and glow:
+
+| Tier | Cloth | Trim and metal | Glow |
+|---|---|---|---|
+| Normal | `oak` / `bark` | `bark`, dull `stone` blade | none |
+| Magic | `azure` / `deep` | `stone`, `bone` blade | soft `mana` |
+| Rare | `arcane` / dark purple | `glow` gold | strong `glow` |
+
+New gear types must follow the same rule: a distinct silhouette per slot, with colour and glow from the tier.
 
 ## Textures
 

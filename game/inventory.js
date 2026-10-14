@@ -97,7 +97,8 @@ export function createInventory({ icons, onChange, onDrop }) {
       if (!item) continue;
       for (const src of [item.base, item.mods]) for (const k in src) t[k] += src[k];
     }
-    return { damage: Math.max(1, t.damage), life: t.life, speed: t.speed, dash: Math.min(60, t.dash), hasWeapon: !!equip.weapon };
+    const gear = Object.fromEntries(Object.keys(SLOTS).map(k => [k, equip[k] ? equip[k].rarity : null]));
+    return { damage: Math.max(1, t.damage), life: t.life, speed: t.speed, dash: Math.min(60, t.dash), gear };
   }
 
   function changed() { render(); onChange(stats()); }

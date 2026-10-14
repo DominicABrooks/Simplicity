@@ -79,17 +79,30 @@ export function createView(canvas, PAL, C) {
     dots(g, 0, 15, 15, PAL.w, 5, 2, 1);
     g.fillStyle = PAL.G; g.fillRect(0, 0, 16, 2);
   }, true);
-  const clothTex = paint(16, 16, (g) => {
-    g.fillStyle = PAL.B; g.fillRect(0, 0, 16, 16);
-    g.fillStyle = PAL.b; for (let x = 1; x < 16; x += 4) g.fillRect(x, 0, 1, 16);
-    g.fillStyle = "#5d8ae0"; for (let x = 3; x < 16; x += 4) g.fillRect(x, 0, 1, 16);
-    g.fillStyle = PAL.Y; g.fillRect(0, 13, 16, 2);       // gold hem trim (bottom of the lathe)
-  }, true);
-  const mantleTex = paint(16, 16, (g) => {
-    g.fillStyle = PAL.b; g.fillRect(0, 0, 16, 16);
-    g.fillStyle = PAL.Y; g.fillRect(0, 12, 16, 3);
-    g.fillStyle = PAL.O; for (let x = 1; x < 16; x += 4) g.fillRect(x, 13, 1, 1);
-  }, true);
+  // Gear tiers: rarity decides the cloth, trim and glow, so better loot visibly upgrades the hero.
+  const TIERS = {
+    normal: { cloth: PAL.N, dark: PAL.n, light: "#a8774a", trim: PAL.n, metal: PAL.w, gem: PAL.w, glow: 0 },
+    magic:  { cloth: PAL.B, dark: PAL.b, light: "#5d8ae0", trim: PAL.w, metal: PAL.W, gem: "#7fa6ff", glow: 0.35 },
+    rare:   { cloth: PAL.P, dark: "#5a2f86", light: "#a874d8", trim: PAL.Y, metal: PAL.Y, gem: PAL.Y, glow: 0.6 },
+  };
+  const texCache = {};
+  function clothTex(tier) {                               // vertical folds, trim along the hem
+    return texCache["cloth" + tier] ||= paint(16, 16, (g) => {
+      const T = TIERS[tier];
+      g.fillStyle = T.cloth; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = T.dark; for (let x = 1; x < 16; x += 4) g.fillRect(x, 0, 1, 16);
+      g.fillStyle = T.light; for (let x = 3; x < 16; x += 4) g.fillRect(x, 0, 1, 16);
+      g.fillStyle = T.trim; g.fillRect(0, 13, 16, 2);
+    }, true);
+  }
+  function mantleTex(tier) {
+    return texCache["mantle" + tier] ||= paint(16, 16, (g) => {
+      const T = TIERS[tier];
+      g.fillStyle = T.dark; g.fillRect(0, 0, 16, 16);
+      g.fillStyle = T.trim; g.fillRect(0, 12, 16, 3);
+      if (tier === "rare") { g.fillStyle = PAL.O; for (let x = 1; x < 16; x += 4) g.fillRect(x, 13, 1, 1); }
+    }, true);
+  }
   const barkTex = paint(16, 16, (g) => {
     g.fillStyle = PAL.N; g.fillRect(0, 0, 16, 16);
     g.fillStyle = PAL.n; for (let x = 2; x < 16; x += 5) g.fillRect(x, 0, 1, 16);
@@ -181,32 +194,92 @@ export function createView(canvas, PAL, C) {
   const shadowMat = basic("#000000", { transparent: true, opacity: 0.35, depthWrite: false });
   const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 
-  function makeWanderer() {
-    const group = new THREE.Group(), body = new THREE.Group(), sword = new THREE.Group();
-    group.add(body, sword);
-    const lathe = (pts, mat) => new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 7), mat);
-    body.add(lathe([[0.42, 0], [0.4, 0.1], [0.3, 0.38], [0.18, 0.56]], lambert("#ffffff", { map: clothTex })));
-    const mantle = lathe([[0.38, 0.44], [0.34, 0.52], [0.2, 0.64]], lambert("#ffffff", { map: mantleTex }));
-    body.add(mantle);
-    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.31, 7, 5), lambert("#ffffff", { map: clothTex }));
-    hood.position.set(0, 0.8, 0); hood.scale.set(1, 0.95, 1);
-    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.45, 5), lambert(PAL.B));
-    tip.position.set(-0.2, 1.04, 0); tip.rotation.z = 1.1;
-    const face = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4), basic(PAL.k));
-    face.position.set(0.21, 0.77, 0); face.scale.set(0.6, 0.85, 0.95);
-    const eyeMat = basic(PAL.Y);
-    const eyes = [-1, 1].map(s => { const e = new THREE.Mesh(box(0.05, 0.1, 0.06), eyeMat); e.position.set(0.34, 0.79, s * 0.075); return e; });
-    const feet = [-1, 1].map(s => { const f = new THREE.Mesh(box(0.18, 0.08, 0.12), lambert(PAL.n)); f.position.set(0.3, 0.04, s * 0.13); return f; });
-    body.add(hood, tip, face, ...eyes, ...feet);
+  const lathe = (pts, mat) => new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 7), mat);
 
-    const gold = lambert(PAL.Y), blade = lambert(PAL.W, { emissive: col(PAL.C), emissiveIntensity: 0.25 });
-    const parts = [[box(0.05, 0.62, 0.12), blade, 0.45], [box(0.08, 0.06, 0.32), gold, 0.12], [box(0.05, 0.16, 0.05), lambert(PAL.N), 0.02], [box(0.08, 0.08, 0.08), gold, -0.08]];
-    for (const [g, m, y] of parts) { const p = new THREE.Mesh(g, m); p.position.y = y; sword.add(p); }
+  // Base body: a little stone spirit in a bark wrap. Gear groups are rebuilt whenever equipment changes.
+  function makeHero() {
+    const group = new THREE.Group(), body = new THREE.Group(), sword = new THREE.Group(), ring = new THREE.Group();
+    group.add(body, sword, ring);
+    const skin = lambert(PAL.w);
+    body.add(lathe([[0, 0.06], [0.2, 0.06], [0.27, 0.2], [0.27, 0.4], [0.2, 0.56], [0.08, 0.64]], skin));
+    const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.29, 0.11, 7), lambert(PAL.n)); wrap.position.y = 0.19;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 7, 5), skin); head.position.y = 0.8;
+    const face = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 4), basic(PAL.k));
+    face.position.set(0.17, 0.78, 0); face.scale.set(0.55, 0.8, 0.9);
+    const eyeMat = basic(PAL.Y);
+    const eyes = [-1, 1].map(s => { const e = new THREE.Mesh(box(0.05, 0.1, 0.06), eyeMat); e.position.set(0.29, 0.8, s * 0.075); return e; });
+    // Each foot is a group so bare feet and boots share the walk animation.
+    const feet = [-1, 1].map(s => {
+      const f = new THREE.Group(); f.position.set(0.14, 0, s * 0.12);
+      const nub = new THREE.Mesh(box(0.14, 0.07, 0.11), skin); nub.position.y = 0.035;
+      f.add(nub); f.userData.nub = nub;
+      return f;
+    });
+    body.add(wrap, head, face, ...eyes, ...feet);
+    const gear = new THREE.Group(); body.add(gear);
 
     const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.position.y = 0.01;
     const ripple = new THREE.Mesh(new THREE.RingGeometry(0.38, 0.5, 10).rotateX(-Math.PI / 2), basic(PAL.C, { transparent: true, opacity: 0.6, depthWrite: false }));
     scene.add(group, shadow, ripple);
-    return { group, body, sword, eyes, feet, shadow, ripple };
+    return { group, body, gear, sword, ring, eyes, feet, shadow, ripple, footX: 0.14, key: null };
+  }
+
+  function dressHero(h, g) {
+    const key = JSON.stringify(g);
+    if (key === h.key) return;
+    h.key = key;
+    h.gear.clear(); h.sword.clear(); h.ring.clear();
+    h.feet.forEach(f => { f.clear(); f.add(f.userData.nub); f.userData.nub.visible = true; });
+
+    if (g.armor) {
+      const T = g.armor;
+      h.gear.add(lathe([[0.42, 0], [0.4, 0.1], [0.3, 0.38], [0.18, 0.56]], lambert("#ffffff", { map: clothTex(T) })));
+      h.gear.add(lathe([[0.38, 0.44], [0.34, 0.52], [0.2, 0.64]], lambert("#ffffff", { map: mantleTex(T) })));
+    }
+    if (g.helm) {
+      const T = g.helm;
+      const hood = new THREE.Mesh(new THREE.SphereGeometry(0.31, 7, 5), lambert("#ffffff", { map: clothTex(T) }));
+      hood.position.set(0, 0.8, 0); hood.scale.set(1, 0.95, 1);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.45, 5), lambert(TIERS[T].cloth));
+      tip.position.set(-0.2, 1.04, 0); tip.rotation.z = 1.1;
+      const opening = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4), basic(PAL.k));
+      opening.position.set(0.21, 0.77, 0); opening.scale.set(0.6, 0.85, 0.95);
+      h.gear.add(hood, tip, opening);
+    }
+    // Eyes sit in whatever face is in front: the hood's opening or the bare head.
+    h.eyes.forEach(e => { e.position.x = g.helm ? 0.34 : 0.29; });
+    if (g.boots) {
+      const T = TIERS[g.boots];
+      h.feet.forEach(f => {
+        f.userData.nub.visible = false;
+        const boot = new THREE.Mesh(box(0.2, 0.12, 0.14), lambert(T === TIERS.normal ? PAL.N : T.dark)); boot.position.set(0.02, 0.06, 0);
+        const cuff = new THREE.Mesh(box(0.15, 0.04, 0.16), lambert(T.trim)); cuff.position.set(-0.01, 0.14, 0);
+        f.add(boot, cuff);
+      });
+    }
+    // Feet poke out from under a robe, or sit under a bare body.
+    h.footX = g.armor ? 0.3 : 0.14;
+    if (g.amulet) {
+      const T = TIERS[g.amulet];
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.055, 0), lambert(T.gem, { emissive: col(T.gem), emissiveIntensity: 0.6 }));
+      gem.position.set(g.armor ? 0.36 : 0.28, 0.5, 0);
+      const chain = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.012, 3, 10).rotateX(Math.PI / 2), lambert(T.metal));
+      chain.position.set(g.armor ? 0.18 : 0.1, 0.6, 0); chain.scale.set(1.15, 1, 1);
+      h.gear.add(gem, chain);
+    }
+    if (g.ring) {
+      const T = TIERS[g.ring];
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.018, 4, 8), lambert(T.metal, { emissive: col(T.gem), emissiveIntensity: 0.5 }));
+      band.position.set(0.52, 0.45, 0);
+      h.ring.add(band);
+    }
+    if (g.weapon) {
+      const T = TIERS[g.weapon];
+      const blade = lambert(g.weapon === "normal" ? PAL.w : PAL.W, { emissive: col(g.weapon === "rare" ? PAL.Y : PAL.C), emissiveIntensity: T.glow });
+      const guard = lambert(g.weapon === "normal" ? PAL.n : T.metal);
+      const parts = [[box(0.05, 0.62, 0.12), blade, 0.45], [box(0.08, 0.06, 0.32), guard, 0.12], [box(0.05, 0.16, 0.05), lambert(PAL.N), 0.02], [box(0.08, 0.08, 0.08), guard, -0.08]];
+      for (const [geo, m, y] of parts) { const p = new THREE.Mesh(geo, m); p.position.y = y; h.sword.add(p); }
+    }
   }
 
   function makeSlime() {
@@ -255,7 +328,7 @@ export function createView(canvas, PAL, C) {
     return { group, shadow, gem };
   }
 
-  const hero = makeWanderer();
+  const hero = makeHero();
   const reticle = new THREE.Mesh(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0.18, 0, 0), new THREE.Vector3(-0.1, 0, -0.14), new THREE.Vector3(-0.1, 0, 0.14)]),
     basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
@@ -309,9 +382,10 @@ export function createView(canvas, PAL, C) {
     hero.group.rotation.y = yaw;
     hero.group.visible = !(p.hurt > 0 && Math.floor(t * 16) % 2);
 
+    dressHero(hero, p.gear || {});
     const b = hero.body;
     b.position.y = 0; b.rotation.z = 0; b.scale.set(1, 1, 1);
-    hero.feet.forEach((f, i) => { f.position.x = 0.3; f.visible = !p.swimming; });
+    hero.feet.forEach(f => { f.position.x = hero.footX; f.visible = !p.swimming; });
     if (p.dash > 0) {
       b.rotation.z = -0.4; b.scale.set(1.15, 0.9, 0.9);      // lean hard into the dash
     } else if (p.jump > 0) {
@@ -320,7 +394,7 @@ export function createView(canvas, PAL, C) {
     } else if (p.moving && !p.swimming) {
       b.position.y = Math.abs(Math.sin(t * 12)) * 0.07;
       b.rotation.z = -0.1;
-      hero.feet.forEach((f, i) => { f.position.x = 0.3 + Math.sin(t * 12 + i * Math.PI) * 0.1; });
+      hero.feet.forEach((f, i) => { f.position.x = hero.footX + Math.sin(t * 12 + i * Math.PI) * 0.1; });
     } else if (!p.swimming) {
       b.scale.y = 1 + Math.sin(t * 2.5) * 0.025;
     }
@@ -329,7 +403,9 @@ export function createView(canvas, PAL, C) {
 
     // Sword: floats at the side, winds up, then thrusts forward (matches the 2D hit timing).
     const sw = hero.sword;
-    sw.visible = !p.swimming && p.hasWeapon;
+    sw.visible = !p.swimming && !!(p.gear && p.gear.weapon);
+    hero.ring.rotation.y = t * 1.8;                         // the ring orbits the hero
+    hero.ring.position.y = Math.sin(t * 2.4) * 0.05;
     if (p.attack > 0) {
       const windup = p.attack > C.ATTACK_TIME * 0.66;
       if (windup) { sw.position.set(-0.05, 0.75, 0.42); sw.rotation.set(0, 0, 0.7); }
