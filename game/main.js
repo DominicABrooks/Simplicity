@@ -1,4 +1,4 @@
-"use strict";
+import { createView } from "./view.js";
 // Simplicity: a tiny top-down fantasy RPG. All art comes from sprites.js (built from art/).
 
 const T = 8;                    // tile and sprite cell size, in game pixels
@@ -116,12 +116,14 @@ let player, slimes, potions, effects, kills, state, clock, spawnTimer;
 
 function reset() {
   makeMap();
+  view.setMap(map);
   seed = Date.now() % 100000 + 1;
   player = { x: SPAWN.x, y: SPAWN.y, face: 1, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
   slimes = []; potions = []; effects = [];
   kills = 0; clock = 0; spawnTimer = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
   for (let i = 0; i < 5; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }
+  view.snapCamera(player.x, player.y);
 }
 
 function spawnSlime(minDist) {
@@ -171,6 +173,7 @@ function updatePlayer(dt) {
   if (keys.has("w") || keys.has("arrowup")) iy--;
   if (keys.has("s") || keys.has("arrowdown")) iy++;
   if (ix) p.face = ix;
+  p.iy = iy;
   const len = Math.hypot(ix, iy) || 1;
   const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1);
   p.moving = ix !== 0 || iy !== 0;
@@ -238,94 +241,27 @@ function updateSlimes(dt) {
 }
 
 // ---------- Render ----------
-const screen = document.getElementById("screen");
-const sctx = screen.getContext("2d");
-const view = document.createElement("canvas");
-const g = view.getContext("2d");
-let scale = 4;
+// The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
+const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME });
+const hudCanvas = document.getElementById("hudCanvas");
+const hg = hudCanvas.getContext("2d");
+let pixelSize = 3;
 
 function resize() {
-  scale = Math.max(2, Math.round(innerHeight / 150));
-  view.width = Math.ceil(innerWidth / scale);
-  view.height = Math.ceil(innerHeight / scale);
-  screen.width = view.width * scale;
-  screen.height = view.height * scale;
+  pixelSize = Math.max(2, Math.round(innerHeight / 300));
+  view.resize(pixelSize);
+  hudCanvas.width = Math.ceil(innerWidth / pixelSize);
+  hudCanvas.height = Math.ceil(innerHeight / pixelSize);
 }
 addEventListener("resize", resize);
 
-function frameOf(anim, t) {
-  return anim.frames[Math.floor(t * 1000 / anim.ms) % anim.frames.length];
-}
-
-// Draw a frame with its top-left 8x8 cell at (x, y). Wide frames grow forward from the body.
-function draw(anim, frame, x, y, face) {
-  const ox = face < 0 ? -(frame.w - T) : 0;
-  g.drawImage(face < 0 ? frame.l : frame.r, Math.round(x + ox - anim.pad), Math.round(y - anim.pad));
-}
-
-function playerFrame() {
-  const p = player, A = ART.wanderer;
-  if (p.attack > 0) return [A.fight, A.fight.frames[p.attack > ATTACK_TIME * 0.66 ? 0 : 1]];
-  if (p.jump > 0) return [A.jump, A.jump.frames[p.jump > JUMP_TIME * 0.8 ? 0 : 1]];
-  if (p.swimming) return [A.swim, frameOf(A.swim, clock)];
-  if (p.moving) return [A.walk, frameOf(A.walk, clock)];
-  return [A.idle, A.idle.frames[(clock % 3) < 0.15 ? 1 : 0]];
-}
-
-function render() {
-  const p = player;
-  const camX = Math.round(Math.min(Math.max(p.x + 4 - view.width / 2, 0), Math.max(0, MAP_W * T - view.width)));
-  const camY = Math.round(Math.min(Math.max(p.y + 4 - view.height / 2, 0), Math.max(0, MAP_H * T - view.height)));
-  g.fillStyle = INK; g.fillRect(0, 0, view.width, view.height);
-  g.save(); g.translate(-camX, -camY);
-
-  const tx0 = Math.max(0, Math.floor(camX / T)), ty0 = Math.max(0, Math.floor(camY / T));
-  const tx1 = Math.min(MAP_W - 1, Math.floor((camX + view.width) / T)), ty1 = Math.min(MAP_H - 1, Math.floor((camY + view.height) / T));
-  const water = frameOf(ART.water.idle, clock), grass = ART.grass.a.frames[0], flower = ART.grass.flower.frames[0];
-  const props = [];
-  for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
-    const t = map[y][x];
-    g.drawImage(t === WATER ? water.r : t === FLOWER ? flower.r : grass.r, x * T, y * T);
-    if (t === TREE) props.push({ y: y * T, fn: () => draw(ART.tree.idle, ART.tree.idle.frames[0], x * T, y * T, 1) });
-  }
-
-  for (const o of potions) props.push({ y: o.y, fn: () => draw(ART.potion.idle, ART.potion.idle.frames[0], o.x, o.y + Math.round(Math.sin(clock * 3 + o.x) * 0.6), 1) });
-  for (const s of slimes) {
-    const z = s.hop > 0 ? Math.round(Math.sin((1 - s.hop / 0.3) * Math.PI) * 3) : 0;
-    const idx = s.hop > 0 ? 0 : (Math.floor(clock * 2.5 + s.x) % 2);
-    props.push({ y: s.y, fn: () => {
-      if (s.flash > 0 && Math.floor(clock * 30) % 2) return;
-      draw(ART.slime.idle, ART.slime.idle.frames[idx], s.x, s.y - z, s.face);
-    } });
-  }
-  const [anim, frame] = playerFrame();
-  const z = p.jump > 0 ? Math.round(Math.sin((1 - p.jump / JUMP_TIME) * Math.PI) * 7) : 0;
-  props.push({ y: p.y, fn: () => {
-    if (z > 0) { g.fillStyle = "rgb(20 16 30 / 0.45)"; g.fillRect(Math.round(p.x) + 1, Math.round(p.y) + 8, 6, 1); }
-    if (p.hurt > 0 && Math.floor(clock * 16) % 2) return;
-    draw(anim, frame, p.x, p.y - z, p.face);
-  } });
-
-  props.sort((a, b) => a.y - b.y);
-  for (const o of props) o.fn();
-
-  for (const e of effects) {                              // hit sparks: a glow plus, then a ring of pixels
-    g.fillStyle = e.big ? PAL.G : PAL.Y;
-    const r = e.big ? Math.round((0.3 - e.t) * 30) + 1 : 1;
-    const cx = Math.round(e.x), cy = Math.round(e.y);
-    for (const [dx, dy] of [[0, -r], [0, r], [-r, 0], [r, 0], [r, r], [-r, -r], [r, -r], [-r, r]].slice(0, e.big ? 8 : 4))
-      g.fillRect(cx + dx, cy + dy, 1, 1);
-    if (!e.big) g.fillRect(cx, cy, 1, 1);
-  }
-  g.restore();
-
+function render(dt) {
+  view.render({ player, slimes, potions, effects, clock }, dt);
+  hg.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
   for (let i = 0; i < MAX_HP; i++) {
-    const h = i < p.hp ? ART.heart.full : ART.heart.empty;
-    g.drawImage(h.frames[0].r, 2 + i * 9, 2);
+    const h = i < player.hp ? ART.heart.full : ART.heart.empty;
+    hg.drawImage(h.frames[0].r, 3 + i * 10, 3);
   }
-
-  sctx.imageSmoothingEnabled = false;
-  sctx.drawImage(view, 0, 0, screen.width, screen.height);
   hud.textContent = `Slimes ${kills}`;
 }
 
@@ -340,9 +276,12 @@ function loop(now) {
     for (const e of effects) e.t -= dt;
     effects = effects.filter(e => e.t > 0);
   }
-  render();
+  render(dt);
   requestAnimationFrame(loop);
 }
+
+// Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; } };
 
 resize();
 reset();

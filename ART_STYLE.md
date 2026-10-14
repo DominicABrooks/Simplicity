@@ -1,79 +1,78 @@
 # Simplicity Art Style
 
-Simplicity is a fantasy RPG drawn as tiny, readable icons. Every sprite should read at a glance, at 8×8 pixels, against any background. When a detail doesn't help someone recognise the thing, leave it out.
+Simplicity is a fantasy RPG that **plays in 2D and looks like a late-90s 3D game**: chunky, saturated low-poly models in the spirit of early World of Warcraft, rendered with PlayStation 1 limitations. Every gameplay rule happens on a flat 2D grid. The 3D view only presents it.
 
-![Contact sheet](build/contact_sheet.png)
+## The rule above all
 
-## The grid
+**Gameplay is 2D; the renderer only presents it.** `game/main.js` owns positions, collision, hitboxes and timing in 8 px-per-tile units. `game/view.js` reads that state and draws it, and never changes it. Any new visual must be derivable from game state.
 
-- Every sprite is an **8×8 cell**. Characters, enemies, items and tiles all use the same cell.
-- Attack frames may extend sideways in whole cells (16×8) to fit a weapon. Nothing grows taller than 8.
-- Sprites face **right**. The game mirrors them for left. Don't draw left-facing art.
-- Leave the bottom row for feet or the base of the shape, so everything stands on the same ground line.
-- Scale only by whole numbers with nearest-neighbour filtering. Never rotate a sprite or resize it by a fraction.
+## World and camera
 
-## Outline
+- One tile = one world unit. Game `x` becomes world X, game `y` becomes world Z, and height is visual only (jumps, hops, bobbing).
+- The camera looks down at about 54° from the south and follows the player smoothly. It never rotates, so left and right on screen always match left and right in the game.
+- Ground sits at height 0. Water is sunk to −0.15 over a bed at −0.6, with earth walls along the shore, so every tile type reads as a little diorama.
 
-- Sprite files contain **no outline**. The game, and `tools/build.py` for previews, draws a 1 px `ink` outline around every solid pixel (4-neighbour).
-- Leave at least one empty pixel between a sprite and anything you don't want outlined as a separate shape.
-- Water and other effect colours marked `nooutline` in the palette stay soft-edged.
+## PlayStation rendering
 
-## Tiles
+These limits are the look. Don't remove them to make things "cleaner".
 
-- Ground tiles (`!tile` in the sprite file) fill the whole 8×8 cell and are **never outlined**.
-- Ground stays dark and quiet: a `pine` base with a few `moss` flecks. Bright colours are reserved for things you can interact with.
-- Obstacles like trees are ordinary outlined sprites drawn on top of a ground tile, and they fill their cell so collision matches the art.
+- **Low resolution:** the scene renders at about 300 lines and is scaled up with nearest-neighbour filtering. No antialiasing.
+- **Vertex wobble:** vertices snap to a coarse screen grid (the `ps1()` material wrapper). Every material goes through it.
+- **Fog** fades the world into the `void` colour at the edges of view.
+- **Dithering** is on for lit materials.
+- **No real-time shadows.** Characters and items get a soft black blob shadow that shrinks as they leave the ground.
+
+## Models
+
+- **Low poly, flat shaded.** Build from primitives: lathes and cones with 5–7 sides, level-0 icosahedrons, boxes. Budgets: characters about 300 triangles, props about 150.
+- **WoW proportions.** Heads, hoods, weapons and trims are oversized. Silhouettes are bold and readable from above.
+- **Creatures, not people.** No skin, hands or mouths. A face is a `void` opening with two glowing eyes (unlit material, so they always shine). Weapons float beside the body.
+- Models face **+X** (screen right) and turn to face the way they're moving.
+
+## Textures
+
+- **Tiny and hand-painted:** 8–32 px canvases painted in code with palette colours, nearest-filtered, no mipmaps.
+- **Texel density matches the screen.** One texel should be roughly one screen pixel. Ground textures span 4×4 tiles. A 32 px texture on a single tile aliases into moiré stripes.
+- Detail lives in the texture, not the geometry: cloth folds, gold trim along hems, bark lines, leaf clumps.
+- Ground stays dark and quiet (`pine` with `moss` blades). Bright, saturated colours are kept for things you can interact with.
+
+## Light
+
+- A warm sun from the top-left of the screen plus a cool sky-and-ground hemisphere light. Nothing else.
+- Emissive colour is for things that should glow: eyes, potions, the blade.
 
 ## Palette
 
-16 colours, defined in [`palette/simplicity.txt`](palette/simplicity.txt). Never use a colour that isn't in the palette. If a new colour seems necessary, add it to the palette first and justify it.
+All colours come from the 16-colour palette in [`palette/simplicity.txt`](palette/simplicity.txt). Textures may mix in a lighter or darker step of a palette colour for painted detail, but every base colour is from the palette.
 
 | Role | Colours |
 |---|---|
-| Outline, voids | `ink` `void` |
+| Outline, voids, fog | `ink` `void` |
 | Light and metal | `bone` `stone` |
 | Fire, danger, health | `ember` `blood` `amber` |
-| Light sources, eyes, gold | `glow` |
+| Light sources, eyes, gold trim | `glow` |
 | Nature | `moss` `pine` `oak` `bark` |
 | Water, magic | `mana` `azure` `deep` `arcane` |
 
-## Shape and character
-
-- **Creatures, not people.** No skin, noses, mouths, fingers or hair. A character is a silhouette with eyes.
-- **Faces are voids.** A face is a `void` opening with two `glow` (or other bright) eye pixels. Eyes always face the direction of travel.
-- **No hands.** Weapons and tools float beside the body.
-- **One big shape.** The body is a single bold mass (a hood, a blob, a shell). Limbs are at most single-pixel nubs, like the Wanderer's feet.
-- **Top-heavy and leaning back.** Heads or hoods take up about half the height. A tip or point trailing back gives a sense of direction.
-
-## Colour per sprite
-
-- Aim for **3 or 4 palette colours** per sprite, with **5 as the ceiling**. The outline and any held weapon don't count.
-- Shade with two tones of one hue: base on the left and top, the darker partner (`azure`/`deep`, `moss`/`pine`, `ember`/`blood`, `oak`/`bark`) on the right and bottom. Light comes from the top-left.
-- One `bone` highlight pixel on the top-left of round or shiny things (slimes, potions, gems). Don't add more than one.
-
 ## Animation
 
-- **1 to 3 frames.** Two is the default. Motion comes from shifting the whole shape by one pixel, not from redrawing it.
-- Typical frame times: idle 500 ms, walk 220 ms, swim 320 ms, jump 300 ms, attack 200 ms.
-- Standard set for every playable or humanoid creature:
+Animation is procedural in `view.js`, driven by game state and timers. Keep it snappy and readable from above.
 
-| Animation | Frames | What changes |
-|---|---|---|
-| idle | 2 | Blink: the eyes become `void` |
-| walk | 2 | Body bobs up 1 px, feet step inward |
-| swim | 2 | Only head and eyes above a `water` line; bob 1 px |
-| jump | 2 | Squash (1 px shorter, wider base), then stretch (narrow, feet tucked) |
-| fight | 2 | Weapon raised beside the body, then a 16-wide thrust |
+| State | Motion |
+|---|---|
+| idle | Slow breathing scale; eyes blink every 3 s |
+| walk | Quick bob, forward lean, feet shuffle |
+| swim | Sunk so only the hood shows, gentle bob, ripple ring |
+| jump | Squash on take-off, stretch in the air, blob shadow shrinks |
+| attack | Weapon winds up behind, then thrusts forward exactly when the hit lands in game logic |
+| hurt | Model blinks while invulnerable |
+| hit enemy | White flash plus a burst of tumbling octahedron sparks |
 
-## Authoring
+## UI and icons
 
-Sprites are plain text in `art/`, one file per entity. One character is one pixel, `.` is transparent, and letters come from the palette.
+The HUD stays as 8×8 pixel icons with a 1 px `ink` outline, drawn from `art/*.txt` by `tools/build.py` (hearts today). Pixel UI over a low-poly world is period-correct. The rules for those icons:
 
-```
-@idle 500        # animation name, ms per frame
-.BB.....
-..BBBB..
-...              # 8 rows per frame; a blank line starts the next frame
-```
+- 8×8 cells, faces right, outline added at render time, 3–4 colours (5 at most), lit from the top-left.
+- Sprite text format: `@anim ms`, then 8-row frames separated by blank lines. `!tile` marks a sprite that is never outlined.
 
-Run `python tools/build.py` (needs Pillow). It checks every frame against the grid and the palette, then writes the game sheets and previews to `build/`.
+The pixel versions of the Wanderer, slime and potion in `art/` are kept as reference designs and for icons. The 3D models in `view.js` follow the same shapes and colours.

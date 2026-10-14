@@ -6,7 +6,8 @@
 <title>Simplicity</title>
 <style>
   html, body { margin: 0; height: 100%; background: #14101e; overflow: hidden; }
-  canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+  #hudCanvas { pointer-events: none; }
   .hud { position: fixed; top: 12px; right: 16px; color: #f2ead8; font: bold 16px ui-monospace, Consolas, monospace; text-shadow: 2px 2px 0 #14101e; }
   .overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgb(20 16 30 / 0.72); color: #f2ead8; font: 16px/1.8 ui-monospace, Consolas, monospace; text-align: center; }
   .overlay[hidden] { display: none; }
@@ -17,6 +18,7 @@
 </head>
 <body>
 <canvas id="screen"></canvas>
+<canvas id="hudCanvas"></canvas>
 <div class="hud" id="hud"></div>
 <div class="overlay" id="overlay">
   <div>
@@ -25,7 +27,8 @@
     <p class="keys">WASD / arrows: move &nbsp; Space: jump &nbsp; J / click: attack</p>
   </div>
 </div>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
 <script src="sprites.js"></script>
-<script src="main.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
