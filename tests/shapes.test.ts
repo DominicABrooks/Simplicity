@@ -101,10 +101,10 @@ describe("Capital City's walls", () => {
     expect(r.escaped).toBe(false);
   });
 
-  it("keep the castle's inner ward shut off: close its gate and nothing in the outer bailey gets in", () => {
+  it("keep the castle's ward shut off: close its gate and nothing in the city gets in", () => {
     const { map } = castle.build();
-    const gate: Shape = { kind: "box", x: 44 * T, y: 31 * T, w: 9 * T, h: 5 * T };
-    const r = floodEscapes(shut(map, gate), [48 * T, 45 * T], (x, y) => y < 30 * T && x > 24 * T && x < 72 * T);
+    const gate: Shape = { kind: "box", x: 24 * T, y: 31 * T, w: 9 * T, h: 6 * T };
+    const r = floodEscapes(shut(map, gate), [28 * T, 44 * T], (x, y) => y < 30 * T && x > 10 * T && x < 47 * T);
     expect(r.seen).toBeGreaterThan(1000);
     expect(r.escaped).toBe(false);
   });

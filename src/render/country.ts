@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import { FACING_YAW } from "../world/plans.ts";
-import { WATER_Y, box, type RenderContext } from "./context.ts";
+import { onGround, GROUND, WATER_Y, box, type RenderContext } from "./context.ts";
 import { put, shield } from "./castle.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
@@ -88,7 +88,8 @@ export function buildStoneBridge(ctx: RenderContext, parent: THREE.Group, p: Pro
   const { lambert, tex } = ctx, g = new THREE.Group(), c = centre(p.rect), rich = !!p.rich;
   const stone = lambert(rich ? MARBLE : "#ffffff", { map: tex.stone }), trim = rich ? lambert(GOLD) : lambert(TRIM, { map: tex.stone }), spire = rich ? lambert(MARBLE, { map: tex.stone }) : trim;
   const w = p.rect.w / T + 0.6, len = p.rect.h / T + 1.2, arches = Math.max(2, Math.round(len / 3.2));
-  put(g, tiledBox(w, 0.08, len, 1.0), lambert(rich ? "#ece4d4" : "#a39a8c", { map: tex.cobble }), 0, 0.02, 0);
+  // The deck runs past the span onto paved ground at either end: it draws over the paving there (see GROUND), not through it.
+  put(g, tiledBox(w, 0.08, len, 1.0), lambert(rich ? "#ece4d4" : "#a39a8c", { map: tex.cobble, ...onGround(GROUND.stain) }), 0, 0.02, 0);
   for (const s of [-1, 1]) {
     const px = s * (w / 2 - 0.2);
     put(g, tiledBox(0.4, 0.9, len, 0.8), stone, px, 0.45, 0);                               // parapets

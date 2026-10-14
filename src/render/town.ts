@@ -9,7 +9,7 @@ import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
 import { FACING_YAW, TOWER_FLARE, houseBody, keepPlan, local, wallPlan } from "../world/plans.ts";
-import { box, type RenderContext } from "./context.ts";
+import { onGround, GROUND, box, type RenderContext } from "./context.ts";
 import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
@@ -467,11 +467,11 @@ export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ke
 export function buildBridge(ctx: RenderContext, parent: THREE.Group, p: PropOf<"bridge">): PropView {
   const { lambert } = ctx, g = new THREE.Group();
   const w = p.rect.w / T + 0.5, len = p.rect.h / T + 1.2, wood = lambert(WOOD), dark = lambert(DARK_WOOD);
-  const deck = new THREE.Mesh(box(w, 0.14, len), wood);
+  const deck = new THREE.Mesh(box(w, 0.14, len), lambert(WOOD, onGround(GROUND.stain)));   // over the path at its ends, not through it
   deck.position.y = 0.07;
   g.add(deck);
   for (let z = -len / 2 + 0.2; z < len / 2; z += 0.4) {
-    const gap = new THREE.Mesh(box(w + 0.01, 0.01, 0.04), dark);
+    const gap = new THREE.Mesh(box(w + 0.01, 0.01, 0.04), lambert(DARK_WOOD, onGround(GROUND.shadow)));
     gap.position.set(0, 0.145, z);
     g.add(gap);
   }

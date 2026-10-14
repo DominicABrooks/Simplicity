@@ -7,7 +7,7 @@
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
-import { box, type RenderContext } from "./context.ts";
+import { onGround, GROUND, box, type RenderContext } from "./context.ts";
 import { STRAW, TURN, at, centreOf } from "./market.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
@@ -374,8 +374,9 @@ export function shield(ctx: RenderContext, h: number): THREE.Group {
 /** A lowered drawbridge over a moat, its gate to the north: a heavy plank deck, chains running up to the gatehouse. */
 export function buildDrawbridge(ctx: RenderContext, parent: THREE.Group, p: PropOf<"drawbridge">): PropView {
   const { lambert } = ctx, g = new THREE.Group(), w = p.rect.w / T + 0.4, len = p.rect.h / T + 0.6, iron = lambert(IRON);
-  put(g, box(w, 0.22, len), lambert(WOOD), 0, -0.08, 0);
-  for (let z = -len / 2 + 0.3; z < len / 2; z += 0.55) put(g, box(w + 0.02, 0.02, 0.05), lambert(DARK_WOOD), 0, 0.035, z);
+  // Its deck lands on the road at either end: it draws over the road there (see GROUND), not through it.
+  put(g, box(w, 0.22, len), lambert(WOOD, onGround(GROUND.stain)), 0, -0.08, 0);
+  for (let z = -len / 2 + 0.3; z < len / 2; z += 0.55) put(g, box(w + 0.02, 0.02, 0.05), lambert(DARK_WOOD, onGround(GROUND.shadow)), 0, 0.035, z);
   for (const s of [-1, 1]) {
     put(g, box(0.12, 0.12, len), iron, s * (w / 2 - 0.06), 0.08, 0);
     const rise = 3.6, run = len * 0.55, chain = put(g, new THREE.CylinderGeometry(0.04, 0.04, Math.hypot(rise, run), 4), iron, s * (w / 2 - 0.06), rise / 2 + 0.1, -len / 2 + run / 2 - len * 0.1);
