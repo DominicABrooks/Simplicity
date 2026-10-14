@@ -67,7 +67,7 @@ export const INTRO: Record<Voice, readonly string[]> = {
   warm: ["I'm {name}, dear. {work}.", "Everyone round here knows me. I'm {name}! {work}.", "Call me {name}. {work}, and I love it."],
   gruff: ["Name's {name}. {work}. Busy.", "{name}. {work}. Happy?", "I'm {name}. {work}, which is why I haven't got time for this."],
   shy: ["I'm... {name}. {work}.", "Um, {name}. That's me. {work}.", "My name's {name}. {work}. It's not very interesting."],
-  chatty: ["I'm {name}! {work}, and let me tell you, it's never dull.", "{name}, that's me! {work}. Ask me anything.", "Everyone knows {name}! {work}, among other things."],
+  chatty: ["I'm {name}! {work}, and let me tell you, it's never dull.", "{name}, that's me! {work}. Ask me anything.", "Everyone knows me! I'm {name}. {work}, among other things."],
   dreamy: ["I'm {name}. {work}, mostly.", "{name}... yes, that's my name. {work}, I think.", "They call me {name}. {work}, when I remember to."],
   plain: ["I'm {name}. {work}.", "{name}. {work}.", "Name's {name}. {work}, round here."],
 };
@@ -171,7 +171,10 @@ export const RUMOUR: readonly string[] = [
 
 /** Named families talking about themselves: what the city says about them. */
 export const ABOUT_US = {
-  lead: ["People say \"{said}.\"", "You've probably heard \"{said}.\"", "Folk are always saying \"{said}.\""],
+  /** About the family: the rumour as the city says it. */
+  lead: ["People say \"{said}.\"", "You've probably heard \"{said}.\"", "Everyone's always saying \"{said}.\""],
+  /** About the speaker themself: the rumour turned round ("I'm a tattletale"), so nobody names themselves. */
+  self: ["People say {said}.", "Apparently {said}.", "You've probably heard {said}.", "Word is {said}."],
   true: ["Well. It's true.", "...I won't deny it.", "Guilty."],
   false: ["Rubbish.", "Not a word of truth in it.", "As if!"],
   half: ["Sort of.", "It's more complicated than that.", "Half of it's true. I won't say which half."],

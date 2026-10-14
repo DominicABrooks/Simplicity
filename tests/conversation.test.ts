@@ -6,7 +6,7 @@ import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { Rng } from "../src/core/rng.ts";
 import { RUMOUR } from "../src/data/voices.ts";
-import { firstPerson, folkLines, guardLines, voiceOf, workOf } from "../src/game/conversation.ts";
+import { aboutMe, firstPerson, folkLines, guardLines, voiceOf, workOf } from "../src/game/conversation.ts";
 import { residentsOf, type Resident } from "../src/world/residents.ts";
 
 const people = residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props });
@@ -17,7 +17,8 @@ const housemates = (r: Resident) => [-6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6].f
 });
 const rng = new Rng(7);
 // Everyone you could meet out walking (the under-fours stay in, and only babble anyway).
-const talks = people.filter(r => !r.prisoner && r.age >= 4).map(r => folkLines(rng, r, housemates(r)));
+const speakers = people.filter(r => !r.prisoner && r.age >= 4);
+const talks = speakers.map(r => folkLines(rng, r, housemates(r)));
 const hasRumour = (lines: string[]) => lines.some(l => RUMOUR.some(lead => l.startsWith(lead)));
 
 describe("conversations", () => {
@@ -47,6 +48,15 @@ describe("conversations", () => {
     expect(new Set(people.map(voiceOf))).toEqual(new Set(["warm", "gruff", "shy", "chatty", "dreamy", "plain"]));
   });
 
+  it("never have anyone talk about themselves by name, except to say who they are", () => {
+    const strip = (n: string) => n.replace(/^(Lord|Lady|Master|Mistress|Father|Old Mother|Old|Little|Widow|Gran)\s+/, "").replace(/"/g, "").split(" ")[0]!;
+    speakers.forEach((r, i) => {
+      const name = strip(r.name), says = new RegExp(`\\b${name}\\b`);
+      const introducing = new RegExp(`(I'm|I'm\\.\\.\\.|Name's|name's|Call me|call me) ${name}\\b|^(Um, )?${name}(\\.|,|\\.\\.\\.)`);
+      for (const l of talks[i]!) if (says.test(l)) expect(l, r.name).toMatch(introducing);
+    });
+  });
+
   it("leave no placeholders unfilled", () => {
     for (const t of talks) for (const l of t) expect(l).not.toMatch(/\{\w+\}/);
   });
@@ -56,6 +66,19 @@ describe("conversations", () => {
     expect(new Set(g.map(t => t.join(" | "))).size).toBeGreaterThan(200);
     expect(g.filter(hasRumour).length / g.length).toBeLessThan(0.2);
   });
+});
+
+describe("rumours about yourself", () => {
+  const someone = (name: string, job = "baker") => people.find(r => r.name === name) ?? ({ ...people[0]!, name, job });
+  it.each([
+    ["Gilbert Pike", "Gilbert Pike is a tattletale", "I'm a tattletale"],
+    ["Hal Stott", "Hal Stott is courting someone", "I'm courting someone"],
+    ["Cuthbert Pike", "Cuthbert Pike warns people when his father's listening", "I warn people when my father's listening"],
+    ["Elinor Hawke", "Elinor Hawke's birds talk back", "my birds talk back"],
+    ["Old Ursula Cleave", "Old Ursula started the feud over a sausage", "I started the feud over a sausage"],
+    ["Master Simon Quill", "Master Quill wrote the Edict", "I wrote the Edict"],
+    ["Roger Stott", "Gilbert Pike is a tattletale", ""],
+  ])("%s on \"%s\": \"%s\"", (name, says, mine) => expect(aboutMe(says, someone(name))).toBe(mine));
 });
 
 describe("saying it in your own words", () => {

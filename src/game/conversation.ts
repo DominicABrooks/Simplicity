@@ -69,6 +69,22 @@ function relation(me: Resident, them: Resident): string {
 const sayingOf = (f: Family) => /"([^"]+)"/.exec(f.mutter)?.[1] ?? f.mutter;
 
 /** Something they might talk about. Personal ones (who they are, their quirk, their housemates) make the conversation theirs. */
+/**
+ * A rumour as its subject would tell it: "" if it isn't about them, "I'm a tattletale" from "Gilbert Pike is a
+ * tattletale" if it starts with them, or null if it names them somewhere awkward to turn round (so it's left out).
+ */
+export function aboutMe(says: string, r: Resident): string | null {
+  const words = r.name.replace(/"/g, "").split(" "), surname = words[words.length - 1]!, first = firstName(r);
+  const title = /^(Lord|Lady|Master|Mistress|Father|Old Mother|Old|Widow|Gran)\b/.exec(r.name)?.[1];
+  const forms = [r.name, `${first} ${surname}`, title && `${title} ${first}`, title && `${title} ${surname}`, `The ${r.job}`, first]
+    .filter((f): f is string => !!f).sort((a, b) => b.length - a.length);
+  for (const f of forms) {
+    if (says.startsWith(`${f}'s `)) return `my ${says.slice(f.length + 3)}`;
+    if (says.startsWith(`${f} `)) return firstPerson(says.slice(f.length + 1)).replace(/\b(his|her)\b/g, "my");
+  }
+  return forms.some(f => new RegExp(`\b${f}\b`).test(says)) ? null : "";
+}
+
 type Topic = { weight: number; say: () => string; personal?: true };
 
 /**
@@ -88,7 +104,7 @@ export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[]
 
   // The named families' own members talk about the family; their servants and apprentices are just people.
   const family = r.family && r.role === "family" ? FAMILIES.find(f => f.id === r.family) : undefined;
-  const kin = family ? [] : housemates.filter(h => h.id !== r.id && !h.prisoner && h.role !== "family");
+  const kin = family ? [] : housemates.filter(h => h.id !== r.id && !h.prisoner && h.role !== "family" && firstName(h) !== name);
   const workLine = () => pick(rng, WORK.find(([test]) => test.test(`${r.job} ${family?.trade ?? ""}`.toLowerCase()))?.[1] ?? WORK_ANY);
   const intro = () => (family
     ? `I'm ${name}${family.name.startsWith("The ") ? `, of ${family.name.replace(/^The /, "the ")}` : ""}. ${family.trade}.`
@@ -111,9 +127,16 @@ export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[]
   }
   if (family) {
     topics.push({ weight: 3, say: () => sayingOf(family) });
-    if (family.rumours.length) topics.push({ weight: 2, say: () => {
-      const said = pick(rng, family.rumours);
-      return `${fill(pick(rng, ABOUT_US.lead), { said: said.says })} ${pick(rng, ABOUT_US[said.truth])}`;
+    // What the city says about the family. A rumour about someone else in it is quoted; one about the
+    // speaker is turned round, so they say "I", never their own name.
+    const told = family.rumours.flatMap(said => {
+      const mine = aboutMe(said.says, r);
+      return mine === null ? [] : [{ said, mine }];
+    });
+    if (told.length) topics.push({ weight: 2, say: () => {
+      const { said, mine } = pick(rng, told);
+      const line = mine ? fill(pick(rng, ABOUT_US.self), { said: mine }) : fill(pick(rng, ABOUT_US.lead), { said: said.says });
+      return `${line} ${pick(rng, ABOUT_US[said.truth])}`;
     } });
   }
 
