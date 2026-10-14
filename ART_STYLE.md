@@ -52,6 +52,8 @@ The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a roun
 
 New gear types must follow the same rule: a distinct silhouette per slot, with colour and glow from the tier.
 
+Tier colours live in one place, `game/tiers.js`, and both the 3D gear and the inventory icons read from it, so an item looks the same in the bag as it does worn. Item icons in `art/items/` are drawn in the magic (azure) colours; `ICON_SWAPS` in `tiers.js` maps each icon's pixels to tier colours. A new item type needs an entry there.
+
 ## Textures
 
 - **Tiny and hand-painted:** 8–32 px canvases painted in code with palette colours, nearest-filtered, no mipmaps.

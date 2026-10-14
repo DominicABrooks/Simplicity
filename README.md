@@ -25,6 +25,7 @@ Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inven
 - `game/main.js`: gameplay (2D, 8 px per tile)
 - `game/view.js`: the low-poly 3D renderer (three.js)
 - `game/inventory.js`: items, loot rolls, the inventory grid and equipment
+- `game/tiers.js`: rarity colours shared by worn gear and inventory icons
 - `tools/serve.py`: no-cache dev server
 
 After editing anything in `art/`, rebuild:

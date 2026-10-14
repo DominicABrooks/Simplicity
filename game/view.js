@@ -1,6 +1,7 @@
 // Simplicity 3D view: renders the 2D game state as a low-poly PS1-era scene.
 // Gameplay never reads from here. One tile = one world unit; game x -> world X, game y -> world Z.
 import * as THREE from "three";
+import { TIERS } from "./tiers.js";
 
 const PX_PER_TILE = 8;
 const WATER_Y = -0.15, BED_Y = -0.6;
@@ -79,12 +80,7 @@ export function createView(canvas, PAL, C) {
     dots(g, 0, 15, 15, PAL.w, 5, 2, 1);
     g.fillStyle = PAL.G; g.fillRect(0, 0, 16, 2);
   }, true);
-  // Gear tiers: rarity decides the cloth, trim and glow, so better loot visibly upgrades the hero.
-  const TIERS = {
-    normal: { cloth: PAL.N, dark: PAL.n, light: "#a8774a", trim: PAL.n, metal: PAL.w, gem: PAL.w, glow: 0 },
-    magic:  { cloth: PAL.B, dark: PAL.b, light: "#5d8ae0", trim: PAL.w, metal: PAL.W, gem: "#7fa6ff", glow: 0.35 },
-    rare:   { cloth: PAL.P, dark: "#5a2f86", light: "#a874d8", trim: PAL.Y, metal: PAL.Y, gem: PAL.Y, glow: 0.6 },
-  };
+  // Gear tiers (tiers.js) decide cloth, trim and glow, so better loot visibly upgrades the hero.
   const texCache = {};
   function clothTex(tier) {                               // vertical folds, trim along the hem
     return texCache["cloth" + tier] ||= paint(16, 16, (g) => {
@@ -252,7 +248,7 @@ export function createView(canvas, PAL, C) {
       const T = TIERS[g.boots];
       h.feet.forEach(f => {
         f.userData.nub.visible = false;
-        const boot = new THREE.Mesh(box(0.2, 0.12, 0.14), lambert(T === TIERS.normal ? PAL.N : T.dark)); boot.position.set(0.02, 0.06, 0);
+        const boot = new THREE.Mesh(box(0.2, 0.12, 0.14), lambert(T.boot)); boot.position.set(0.02, 0.06, 0);
         const cuff = new THREE.Mesh(box(0.15, 0.04, 0.16), lambert(T.trim)); cuff.position.set(-0.01, 0.14, 0);
         f.add(boot, cuff);
       });
@@ -275,8 +271,8 @@ export function createView(canvas, PAL, C) {
     }
     if (g.weapon) {
       const T = TIERS[g.weapon];
-      const blade = lambert(g.weapon === "normal" ? PAL.w : PAL.W, { emissive: col(g.weapon === "rare" ? PAL.Y : PAL.C), emissiveIntensity: T.glow });
-      const guard = lambert(g.weapon === "normal" ? PAL.n : T.metal);
+      const blade = lambert(T.blade, { emissive: col(g.weapon === "rare" ? PAL.Y : PAL.C), emissiveIntensity: T.glow });
+      const guard = lambert(T.guard);
       const parts = [[box(0.05, 0.62, 0.12), blade, 0.45], [box(0.08, 0.06, 0.32), guard, 0.12], [box(0.05, 0.16, 0.05), lambert(PAL.N), 0.02], [box(0.08, 0.08, 0.08), guard, -0.08]];
       for (const [geo, m, y] of parts) { const p = new THREE.Mesh(geo, m); p.position.y = y; h.sword.add(p); }
     }

@@ -1,5 +1,6 @@
 import { createView } from "./view.js";
 import { createInventory, makeItem, rollItem } from "./inventory.js";
+import { TIERS, ICON_SWAPS } from "./tiers.js";
 // Simplicity: a tiny top-down fantasy RPG. All art comes from sprites.js (built from art/).
 
 const T = 8;                    // tile and sprite cell size, in game pixels
@@ -13,7 +14,7 @@ const PAL = SPRITES.palette;
 const NO_OUTLINE = new Set(SPRITES.noOutline);
 const INK = PAL.K;
 
-function bake(rows, outline, flip) {
+function bake(rows, outline, flip, colorOf = ch => PAL[ch]) {
   const h = rows.length, w = rows[0].length, pad = outline ? 1 : 0;
   const c = document.createElement("canvas");
   c.width = w + pad * 2; c.height = h + pad * 2;
@@ -24,7 +25,7 @@ function bake(rows, outline, flip) {
     for (let x = -pad; x < w + pad; x++) {
       const ch = inside(x, y) ? rows[y][x] : ".";
       const dx = (flip ? w - 1 - x : x) + pad;
-      if (ch !== ".") { g.fillStyle = PAL[ch]; g.fillRect(dx, y + pad, 1, 1); }
+      if (ch !== ".") { g.fillStyle = colorOf(ch); g.fillRect(dx, y + pad, 1, 1); }
       else if (outline && (solid(x + 1, y) || solid(x - 1, y) || solid(x, y + 1) || solid(x, y - 1))) {
         g.fillStyle = INK; g.fillRect(dx, y + pad, 1, 1);
       }
@@ -46,8 +47,13 @@ for (const [name, spr] of Object.entries(SPRITES.sprites)) {
   }
 }
 
-// Item icons for the inventory: outlined pixel art as data URLs.
-const ICONS = Object.fromEntries(["blade", "hood", "robe", "boots", "ring", "amulet"].map(t => [t, ART[t].idle.frames[0].r.toDataURL()]));
+// Item icons for the inventory: outlined pixel art as data URLs, one per rarity,
+// recoloured with the same tier colours the gear uses when worn. ICONS[type][rarity].
+const ICONS = Object.fromEntries(Object.entries(ICON_SWAPS).map(([type, swap]) => {
+  const rows = SPRITES.sprites[type].anims.idle.frames[0];
+  return [type, Object.fromEntries(Object.entries(TIERS).map(([rarity, tier]) =>
+    [rarity, bake(rows, true, false, ch => swap[ch] ? tier[swap[ch]] : PAL[ch]).toDataURL()]))];
+}));
 
 // ---------- Seeded randomness ----------
 let seed = 7;

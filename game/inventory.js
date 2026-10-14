@@ -109,7 +109,7 @@ export function createInventory({ icons, onChange, onDrop }) {
     const el = document.createElement("div");
     el.className = `item ${rarityClass(item)}`;
     Object.assign(el.style, { left: `${x * CELL}px`, top: `${y * CELL}px`, width: `${item.w * CELL}px`, height: `${item.h * CELL}px` });
-    const img = new Image(); img.src = icons[item.type]; img.alt = item.name; img.draggable = false;
+    const img = new Image(); img.src = icons[item.type][item.rarity]; img.alt = item.name; img.draggable = false;
     el.append(img);
     el.addEventListener("mouseenter", () => showTip(item));
     el.addEventListener("mouseleave", hideTip);
@@ -132,7 +132,7 @@ export function createInventory({ icons, onChange, onDrop }) {
         const el = itemEl(equip[slot], 0, 0);
         box.append(el);
       } else {                                              // empty slot: faded silhouette of what goes there
-        const ghost = new Image(); ghost.src = icons[SLOT_ICON[slot]]; ghost.alt = s.label; ghost.className = "ghost"; ghost.draggable = false;
+        const ghost = new Image(); ghost.src = icons[SLOT_ICON[slot]].normal; ghost.alt = s.label; ghost.className = "ghost"; ghost.draggable = false;
         box.title = s.label;
         box.append(ghost);
       }
@@ -151,7 +151,7 @@ export function createInventory({ icons, onChange, onDrop }) {
     heldEl.innerHTML = "";
     heldEl.hidden = !held;
     if (!held) return;
-    const img = new Image(); img.src = icons[held.type]; img.draggable = false;
+    const img = new Image(); img.src = icons[held.type][held.rarity]; img.draggable = false;
     Object.assign(heldEl.style, { width: `${held.w * CELL}px`, height: `${held.h * CELL}px` });
     heldEl.className = `item held ${rarityClass(held)}`;
     heldEl.append(img);
