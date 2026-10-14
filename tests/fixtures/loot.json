@@ -1,0 +1,2644 @@
+[
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "rare",
+  "name": "Rune Whisper",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 12,
+   "life": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Keen Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "life": 1,
+   "dash": 15
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "normal",
+  "name": "Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Dusk Bite",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 14,
+   "speed": 9,
+   "life": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Sturdy Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "life": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Boots of Haste",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "speed": 4,
+   "dash": 10
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "normal",
+  "name": "Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Ring of Haste",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 8
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Sturdy Boots of Haste",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "speed": 5,
+   "life": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "rare",
+  "name": "Hollow Veil",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1,
+   "speed": 10,
+   "dash": 14
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of Haste",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "speed": 4,
+   "dash": 14
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Sturdy Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 1
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Sturdy Boots of the Wind",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "life": 2,
+   "dash": 12
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Gloom Whisper",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 2,
+   "dash": 17,
+   "speed": 9
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "rare",
+  "name": "Storm Whisper",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "life": 1,
+   "damage": 1,
+   "speed": 9
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "rare",
+  "name": "Grim Mark",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "normal",
+  "name": "Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "rare",
+  "name": "Rune Bite",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 6,
+   "damage": 1,
+   "life": 2
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Sturdy Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "life": 2,
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 16
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "rare",
+  "name": "Gloom Veil",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "life": 2,
+   "dash": 20,
+   "speed": 8
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "rare",
+  "name": "Moss Whisper",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1,
+   "life": 2,
+   "speed": 9
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Sturdy Robe of Haste",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "speed": 5,
+   "life": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 19,
+   "life": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "rare",
+  "name": "Rune Veil",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 8,
+   "life": 1,
+   "damage": 1
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "rare",
+  "name": "Hollow Fang",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "life": 2,
+   "dash": 15,
+   "damage": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Sturdy Ring of Haste",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 10,
+   "life": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "rare",
+  "name": "Hollow Ward",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "life": 1,
+   "dash": 17
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 13,
+   "life": 2
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Sturdy Robe of the Wind",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 1,
+   "dash": 11
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of the Wind",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 12
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "normal",
+  "name": "Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 17
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 20
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Boots of the Wind",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "dash": 20
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Keen Ring of Haste",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 7,
+   "damage": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "life": 1,
+   "dash": 14
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 13
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Sturdy Robe of Haste",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 1,
+   "speed": 5
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Boots of the Wind",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "dash": 16
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "rare",
+  "name": "Storm Whisper",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of Haste",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "speed": 7
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Amulet of Haste",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 7,
+   "dash": 12
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 12,
+   "life": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Amulet of the Wind",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "dash": 13
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 19,
+   "life": 2
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Amulet of Haste",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 8,
+   "dash": 18
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Hollow Song",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "speed": 5,
+   "dash": 12,
+   "life": 2
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Keen Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Boots of Haste",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "speed": 6
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Ring of Haste",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 8
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of Haste",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "speed": 5,
+   "dash": 15
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "normal",
+  "name": "Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 11,
+   "life": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Ring of Haste",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 10
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "life": 1,
+   "dash": 18
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Amulet of the Wind",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "dash": 19
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "life": 2
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 12,
+   "life": 2
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Ring of Haste",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 5
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Amulet of Haste",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 9,
+   "dash": 15
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "rare",
+  "name": "Grim Shroud",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "dash": 15,
+   "speed": 10,
+   "life": 1
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "normal",
+  "name": "Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Sturdy Boots of Haste",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "speed": 7,
+   "life": 2
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Sturdy Robe of Haste",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "speed": 6,
+   "life": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "rare",
+  "name": "Grim Song",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Keen Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "rare",
+  "name": "Gloom Mark",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "speed": 9,
+   "life": 2,
+   "dash": 10
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "rare",
+  "name": "Hollow Shroud",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1,
+   "speed": 10,
+   "life": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Hollow Fang",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "speed": 8,
+   "life": 1,
+   "dash": 10
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "rare",
+  "name": "Hollow Song",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "life": 1,
+   "dash": 20,
+   "speed": 5
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Sturdy Boots of the Wind",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "dash": 17,
+   "life": 2
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "rare",
+  "name": "Moss Bite",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "rare",
+  "name": "Storm Song",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "life": 1,
+   "dash": 19,
+   "speed": 8
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of the Wind",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 17
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Keen Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1,
+   "life": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Keen Ring of Haste",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1,
+   "speed": 8
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 20
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "rare",
+  "name": "Ember Veil",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "rare",
+  "name": "Ember Whisper",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 18,
+   "life": 2
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 13,
+   "life": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Ember Ward",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 2,
+   "dash": 20,
+   "speed": 9
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "normal",
+  "name": "Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 19
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 14,
+   "life": 1
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Sturdy Boots of the Wind",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "dash": 15,
+   "life": 2
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Keen Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "life": 2
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "magic",
+  "name": "Sturdy Hood of the Wind",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {
+   "dash": 18,
+   "life": 2
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Boots of the Wind",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "dash": 10
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Sturdy Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "life": 1,
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of the Wind",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 13
+  }
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Amulet of Haste",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "speed": 7
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "magic",
+  "name": "Keen Ring",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Dusk Shroud",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 2,
+   "speed": 4,
+   "dash": 14
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "hood",
+  "rarity": "normal",
+  "name": "Hood",
+  "slot": "helm",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "life": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "magic",
+  "name": "Sturdy Boots of Haste",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {
+   "life": 1,
+   "speed": 6
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Amulet of the Wind",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "dash": 16
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "normal",
+  "name": "Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Gloom Bite",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 19,
+   "life": 2,
+   "speed": 9
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of the Wind",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 18,
+   "speed": 10
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Sturdy Robe of Haste",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 2,
+   "speed": 6
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Ember Mark",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 11,
+   "speed": 7,
+   "life": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "amulet",
+  "rarity": "magic",
+  "name": "Keen Amulet of the Wind",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "damage": 1,
+   "dash": 16
+  }
+ },
+ {
+  "type": "blade",
+  "rarity": "magic",
+  "name": "Keen Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "amulet",
+  "rarity": "normal",
+  "name": "Amulet",
+  "slot": "amulet",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {}
+ },
+ {
+  "type": "blade",
+  "rarity": "normal",
+  "name": "Blade",
+  "slot": "weapon",
+  "w": 1,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {}
+ },
+ {
+  "type": "ring",
+  "rarity": "rare",
+  "name": "Hollow Whisper",
+  "slot": "ring",
+  "w": 1,
+  "h": 1,
+  "base": {},
+  "mods": {
+   "life": 1,
+   "speed": 8,
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "boots",
+  "rarity": "normal",
+  "name": "Boots",
+  "slot": "boots",
+  "w": 2,
+  "h": 2,
+  "base": {
+   "speed": 5
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "normal",
+  "name": "Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {}
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Robe of the Wind",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "dash": 10
+  }
+ },
+ {
+  "type": "bow",
+  "rarity": "magic",
+  "name": "Keen Bow",
+  "slot": "weapon",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "damage": 1
+  },
+  "mods": {
+   "damage": 1
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "rare",
+  "name": "Rune Shroud",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 1,
+   "speed": 4,
+   "dash": 16
+  }
+ },
+ {
+  "type": "robe",
+  "rarity": "magic",
+  "name": "Sturdy Robe",
+  "slot": "armor",
+  "w": 2,
+  "h": 3,
+  "base": {
+   "life": 2
+  },
+  "mods": {
+   "life": 1
+  }
+ }
+]
