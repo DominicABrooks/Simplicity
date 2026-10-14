@@ -77,27 +77,32 @@ export function makeDummy(ctx: RenderContext): { group: THREE.Group; top: THREE.
 }
 
 // ---------- Archery butt ----------
-/** A round straw butt on an A-frame, painted with rings, a few arrows stuck in it. */
-export function buildTarget(ctx: RenderContext, parent: THREE.Group, p: PropOf<"target">): PropView {
-  const { lambert, basic } = ctx, g = new THREE.Group(), wood = lambert(DARK_WOOD);
+/**
+ * A round straw butt on an A-frame, painted with rings to a gold bullseye, a few arrows stuck in it; built
+ * facing +z with its feet at y = 0. Drawn as an entity (see the training view): `top` is the face, which
+ * shakes back on the frame when it's hit, and `sack` its straw, which flashes.
+ */
+export function makeButt(ctx: RenderContext, seed: number): { group: THREE.Group; top: THREE.Group; sack: THREE.MeshLambertMaterial } {
+  const { lambert, basic } = ctx, g = new THREE.Group(), wood = lambert(DARK_WOOD), straw = lambert(STRAW);
   for (const s of [-1, 1]) put(g, box(0.07, 1.25, 0.07), wood, s * 0.38, 0.6, -0.12, 0.25, 0, s * -0.12);   // the A-frame
   put(g, box(0.07, 1.0, 0.07), wood, 0, 0.45, -0.38, -0.45);                                                // and its prop
   const face = new THREE.Group();
-  put(face, new THREE.CylinderGeometry(0.46, 0.46, 0.2, 14), lambert(STRAW), 0, 0, 0, Math.PI / 2);
+  put(face, new THREE.CylinderGeometry(0.46, 0.46, 0.2, 14), straw, 0, 0, 0, Math.PI / 2);
   for (const [r, c, i] of [[0.42, "#ffffff", 0], [0.32, PAL.K, 1], [0.23, "#3f6fd0", 2], [0.14, PAL.R, 3], [0.06, PAL.Y, 4]] as const)
     put(face, new THREE.CircleGeometry(r, 14), basic(c), 0, 0, 0.12 + i * 0.02);   // far enough apart for the depth buffer
   // Arrows in it, at a slant.
   for (let i = 0; i < 3; i++) {
-    const ax = (hash(i, p.x, 702) - 0.5) * 0.4, ay = (hash(i, p.y, 703) - 0.5) * 0.4;
+    const ax = (hash(i, seed, 702) - 0.5) * 0.4, ay = (hash(i, seed, 703) - 0.5) * 0.4;
     put(face, new THREE.CylinderGeometry(0.012, 0.012, 0.45, 4), lambert(WOOD), ax, ay, 0.3, Math.PI / 2 + 0.15, 0, 0);
     put(face, box(0.06, 0.05, 0.08), basic("#ffffff"), ax, ay - 0.03, 0.5);
   }
   face.position.set(0, 0.8, 0);
-  face.rotation.x = -0.12;
+  face.rotation.x = BUTT_TILT;
   g.add(face);
-  const [x, z] = at(p);
-  place(parent, g, x, z, p.facing);
+  return { group: g, top: face, sack: straw };
 }
+/** How far an archery butt's face leans back on its frame. */
+export const BUTT_TILT = -0.12;
 
 // ---------- Weapon rack ----------
 /** A wooden rack: spears leaning in it, swords hanging, a shield against its end. */

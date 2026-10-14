@@ -15,7 +15,7 @@ import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, 
 import { disposeTree } from "./dispose.ts";
 import { dressBody, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
-import { makeDummy } from "./castle.ts";
+import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
 
@@ -307,10 +307,11 @@ const guard: EntityView<GuardView> = {
   remove: removeBody,
 };
 
-// ---------- Training dummy ----------
+// ---------- Training dummy and archery butt ----------
 /**
- * A training dummy on its post (see spawnDummy). Each hit rocks it away from the hero on a damped spring
- * (harder for a crit) and flashes its sack; at rest it sways a little in the breeze.
+ * Something to practise on (see spawnTraining). Each hit rocks a dummy away from the hero on its post, on a
+ * damped spring (harder for a crit), or jolts an archery butt's face back on its frame; and flashes it. At
+ * rest a dummy sways a little in the breeze.
  */
 interface DummyView extends Simple {
   top: THREE.Group;
@@ -321,15 +322,17 @@ interface DummyView extends Simple {
   dir: [number, number];
   flash: number;
   k: number;
+  butt: boolean;
 }
 const DUMMY_ROCK = { kick: 9, crit: 14, stiffness: 90, damping: 7, max: 0.55 } as const;
+const BUTT_JOLT = { kick: 5, crit: 8, stiffness: 160, damping: 9, max: 0.22 } as const;
 const dummy: EntityView<DummyView> = {
   create(ctx, e, g) {
-    const { group, top, sack } = makeDummy(ctx);
+    const t = g.world.need(e, "transform"), k = (t.x * 7 + t.y * 13) % 10, butt = g.world.need(e, "dummy").kind === "butt";
+    const { group, top, sack } = butt ? makeButt(ctx, t.x + t.y) : makeDummy(ctx);
     const shadow = addShadow(ctx);
     ctx.scene.add(group, shadow);
-    const t = g.world.need(e, "transform");
-    return { group, top, sack, shadow, lean: 0, speed: 0, dir: [0, 1], flash: 0, k: ((t.x * 7 + t.y * 13) % 10) };
+    return { group, top, sack, shadow, lean: 0, speed: 0, dir: [0, 1], flash: 0, k, butt };
   },
   update(_ctx, v, e, g, f) {
     const o = g.world.need(e, "transform"), enemy = g.world.need(e, "enemy"), d = g.world.need(e, "dummy"), [x, z] = toWorld(o.x, o.y);
@@ -337,14 +340,20 @@ const dummy: EntityView<DummyView> = {
     v.group.rotation.y = Math.PI / 2 - d.facing;              // built facing +z (south, a game angle of PI/2)
     v.shadow.position.set(x, SHADOW_Y, z);
     // A new hit (its flash jumps up): kick it away from the hero.
+    const spring = v.butt ? BUTT_JOLT : DUMMY_ROCK;
     if (enemy.flash > v.flash + 0.01) {
       const dx = o.x - f.hero.x, dz = o.y - f.hero.y, len = Math.hypot(dx, dz) || 1;
       v.dir = [dx / len, dz / len];
-      v.speed += enemy.flash > 0.2 ? DUMMY_ROCK.crit : DUMMY_ROCK.kick;
+      v.speed += enemy.flash > 0.2 ? spring.crit : spring.kick;
     }
     v.flash = enemy.flash;
-    v.speed += (-DUMMY_ROCK.stiffness * v.lean - DUMMY_ROCK.damping * v.speed) * f.dt;
-    v.lean = Math.max(-DUMMY_ROCK.max, Math.min(DUMMY_ROCK.max, v.lean + v.speed * f.dt));
+    v.speed += (-spring.stiffness * v.lean - spring.damping * v.speed) * f.dt;
+    v.lean = Math.max(-spring.max, Math.min(spring.max, v.lean + v.speed * f.dt));
+    if (v.butt) {                                            // a butt's face jolts straight back on its frame
+      v.top.rotation.set(BUTT_TILT - Math.abs(v.lean), 0, 0);
+      v.sack.emissive.setScalar(enemy.flash > 0 ? 0.5 : 0);
+      return;
+    }
     // Lean toward dir, in the dummy's own frame (it's turned by its facing).
     const yaw = v.group.rotation.y, lx = v.dir[0] * Math.cos(yaw) - v.dir[1] * Math.sin(yaw), lz = v.dir[0] * Math.sin(yaw) + v.dir[1] * Math.cos(yaw);
     const sway = Math.sin(f.t * 1.3 + v.k) * 0.04;

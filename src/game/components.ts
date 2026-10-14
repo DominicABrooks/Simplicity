@@ -4,6 +4,7 @@ import type { BoltKind, School, SpellName } from "../data/enemies.ts";
 import type { Rarity } from "../data/items.ts";
 import type { Gear } from "../items/inventory.ts";
 import type { Item } from "../items/items.ts";
+import type { TrainingKind } from "../data/npcs.ts";
 
 export interface Transform {
   x: number;
@@ -225,8 +226,9 @@ export interface Sentry {
   next: number;
 }
 
-/** A training dummy on its post (see DUMMY): it rocks when hit and never goes down. */
+/** Something to practise on in a castle yard (see TRAINING): it rocks when hit and never goes down. */
 export interface Dummy {
+  kind: TrainingKind;
   /** Which way it faces (a game angle). */
   facing: number;
 }
