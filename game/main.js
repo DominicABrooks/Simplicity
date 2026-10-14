@@ -4,7 +4,7 @@ import { TIERS, ICON_SWAPS } from "./tiers.js";
 // Simplicity: a tiny top-down fantasy RPG. All art comes from sprites.js (built from art/).
 
 const T = 8;                    // tile and sprite cell size, in game pixels
-const MAP_W = 48, MAP_H = 32;
+const MAP_W = 64, MAP_H = 44;
 const GRASS = 0, FLOWER = 1, WATER = 2, TREE = 3;
 const MAX_HP = 5;
 
@@ -62,8 +62,11 @@ const rint = (a, b) => a + Math.floor(rand() * (b - a + 1));
 
 // ---------- World ----------
 let map;
-const SPAWN = { x: 8 * T, y: 8 * T };
+const SPAWN = { x: 22 * T, y: 18 * T };
 
+// The world is one big forest clearing with an organic outline: a wobbly ellipse whose radius
+// swells and pinches with angle, so the edge has bays and points instead of straight sides.
+// Inside, groves of trees grow where a smooth noise is high, leaving meadows between them.
 function makeMap() {
   seed = 7;
   map = [];
@@ -72,33 +75,53 @@ function makeMap() {
     for (let x = 0; x < MAP_W; x++) row.push(rand() < 0.06 ? FLOWER : GRASS);
     map.push(row);
   }
-  const ellipse = (cx, cy, rx, ry) => {
-    for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++)
-      if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1) map[y][x] = WATER;
-  };
-  ellipse(32, 19, 7, 5);
-  ellipse(13, 24, 4, 3);
-  for (let y = 0; y <= 15; y++) {                 // river from the lake to the north edge
-    const cx = 31 + Math.round(2 * Math.sin(y / 3));
-    map[y][cx] = map[y][cx + 1] = WATER;
-  }
+  const set = (x, y, t) => { if (x >= 0 && y >= 0 && x < MAP_W && y < MAP_H) map[y][x] = t; };
+
+  // Organic clearing: everything outside the wobbly ellipse is forest.
+  const cx = MAP_W / 2, cy = MAP_H / 2 + 1.5, rx = MAP_W / 2 - 2, ry = MAP_H / 2 - 1;
+  const wobble = a => 0.93 + 0.11 * Math.sin(3 * a + 0.7) + 0.07 * Math.sin(5 * a + 2.1) + 0.04 * Math.sin(11 * a + 4.2);
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
-    const edge = x === 0 || y === 0 || x === MAP_W - 1 || y === MAP_H - 1;
-    const nearSpawn = Math.hypot(x - SPAWN.x / T, y - SPAWN.y / T) < 5;
-    if (edge && map[y][x] !== WATER) map[y][x] = TREE;
-    else if (!nearSpawn && map[y][x] !== WATER && rand() < 0.08) map[y][x] = TREE;
+    const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
+    if (Math.hypot(dx, dy) > wobble(Math.atan2(dy, dx))) map[y][x] = TREE;
   }
-  // Ragged forest edge: depth wanders between 1 and 4 tiles along each side (water stays open).
-  const depth = (i, k) => Math.max(1, Math.min(4, Math.round(2 + 1.1 * Math.sin(i * 0.41 + k) + 0.7 * Math.sin(i * 1.13 + k * 2.3))));
-  for (let x = 0; x < MAP_W; x++) {
-    for (let y = 0; y < depth(x, 1); y++) if (map[y][x] !== WATER) map[y][x] = TREE;
-    for (let y = MAP_H - depth(x, 2); y < MAP_H; y++) if (map[y][x] !== WATER) map[y][x] = TREE;
+
+  // Groves: clumps where a smooth noise peaks, plus a few lone trees in the meadows.
+  const grove = (x, y) => Math.sin(x * 0.33 + 1.3) * Math.sin(y * 0.41 + 0.4) + 0.55 * Math.sin((x + y) * 0.19 + 2.0) + 0.35 * Math.sin(x * 0.71 - y * 0.53);
+  for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+    if (map[y][x] === TREE) continue;
+    if (grove(x, y) > 0.92 || rand() < 0.03) map[y][x] = TREE;
   }
-  for (let y = 0; y < MAP_H; y++) {
-    for (let x = 0; x < depth(y, 3); x++) if (map[y][x] !== WATER) map[y][x] = TREE;
-    for (let x = MAP_W - depth(y, 4); x < MAP_W; x++) if (map[y][x] !== WATER) map[y][x] = TREE;
+
+  // Water: a lake, a pond, and a river winding north from the lake through the forest.
+  const ellipse = (ex, ey, erx, ery) => {
+    for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++)
+      if (((x - ex) / erx) ** 2 + ((y - ey) / ery) ** 2 <= 1) map[y][x] = WATER;
+  };
+  ellipse(42, 25, 8, 5.5);
+  ellipse(17, 31, 4.5, 3);
+  for (let y = 0; y <= 21; y++) {
+    const rx2 = 41 + Math.round(2.5 * Math.sin(y / 3.2));
+    set(rx2, y, WATER); set(rx2 + 1, y, WATER);
   }
-  for (let x = 0; x < MAP_W; x++) map[0][x] = map[MAP_H - 1][x] = TREE;   // seal the river mouth
+
+  // Keep the start clear, and seal the map edge (the river mouth included).
+  for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++)
+    if (Math.hypot(x - SPAWN.x / T, y - SPAWN.y / T) < 5 && map[y][x] === TREE) map[y][x] = GRASS;
+  for (let x = 0; x < MAP_W; x++) map[0][x] = map[MAP_H - 1][x] = TREE;
+  for (let y = 0; y < MAP_H; y++) map[y][0] = map[y][MAP_W - 1] = TREE;
+
+  // Fill any meadow the groves cut off, so nothing spawns where you can't reach it.
+  const seen = new Set([`${SPAWN.x / T},${SPAWN.y / T}`]), queue = [[SPAWN.x / T, SPAWN.y / T]];
+  while (queue.length) {
+    const [x, y] = queue.pop();
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      const k = `${nx},${ny}`;
+      if (seen.has(k) || nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H || map[ny][nx] === TREE) continue;
+      seen.add(k); queue.push([nx, ny]);
+    }
+  }
+  for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++)
+    if ((map[y][x] === GRASS || map[y][x] === FLOWER) && !seen.has(`${x},${y}`)) map[y][x] = TREE;
 }
 
 const tileAt = (px, py) => {
@@ -177,8 +200,8 @@ function reset() {
   inv.reset([]);
   for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"], ["bow", "Old Short Bow"]]) inv.add(makeItem(type, "normal", {}, name));
   kills = 0; clock = 0; spawnTimer = 0; hitstop = 0; shake = 0;
-  for (let i = 0; i < 8; i++) spawnSlime(80);
-  for (let i = 0; i < 5; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }
+  for (let i = 0; i < 12; i++) spawnSlime(80);
+  for (let i = 0; i < 8; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }
   view.snapCamera(player.x, player.y);
 }
 
@@ -754,7 +777,7 @@ function updateSlimes(dt) {
       slimes.splice(i, 1);
     }
   }
-  const cap = Math.min(14, 8 + Math.floor(kills / 5));
+  const cap = Math.min(20, 12 + Math.floor(kills / 5));
   if ((spawnTimer -= dt) <= 0) { spawnTimer = 3; if (slimes.length < cap) spawnSlime(110); }
 }
 
@@ -983,7 +1006,7 @@ function loop(now) {
 }
 
 // Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
-window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, get fireballs() { return fireballs; }, get strikes() { return strikes; }, get floaters() { return floaters; }, inv, view };
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, get fireballs() { return fireballs; }, get strikes() { return strikes; }, get floaters() { return floaters; }, get map() { return map; }, inv, view };
 
 resize();
 reset();
