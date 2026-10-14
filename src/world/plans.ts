@@ -131,3 +131,16 @@ export const houseBody = (r: Rect) => ({ ...centre(r), w: r.w / T - 0.22, d: r.h
 export const hallBody = (r: Rect) => ({ ...centre(r), w: r.w / T - 0.3, d: r.h / T - 0.3 });
 /** A stall's footprint, posts to posts. */
 export const stallBody = (r: Rect) => ({ ...centre(r), w: r.w / T - 0.2, d: r.h / T - 0.15 });
+
+/**
+ * A house's front door: how far along its frontage from the middle it stands (built facing south, so along
+ * x: left of middle on a wide house, by the shop front on a shop), and where that is in the world, on the
+ * ground just out from the door (world units). The renderer draws it there; the knock target and the
+ * townsfolk going in and out use the same spot.
+ */
+export function houseDoor(p: PropOf<"house">): { along: number; at: XZ } {
+  const body = houseBody(p.rect), sideways = p.doorSide === "east" || p.doorSide === "west";
+  const w = sideways ? body.d : body.w, d = sideways ? body.w : body.d;
+  const along = w > 2.5 ? (p.shop ? w / 2 - 0.65 : -w / 2 + 0.75) : 0;
+  return { along, at: local(centre(p.rect), FACING_YAW[p.doorSide], along, d / 2 + 0.3) };
+}

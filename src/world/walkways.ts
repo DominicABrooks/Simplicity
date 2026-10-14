@@ -4,6 +4,7 @@
 import { T, Tile } from "../data/world.ts";
 import type { Facing, Prop } from "./area.ts";
 import { blocked } from "./collision.ts";
+import { houseDoor } from "./plans.ts";
 import type { TileMap } from "./map.ts";
 
 export type TileXY = readonly [number, number];
@@ -98,6 +99,7 @@ export function doorOf(w: Walkways, props: readonly Prop[], x: number, y: number
     if (!("rect" in p)) continue;
     const r = p.rect, side = doorSide(p);
     if (!side || px < r.x || py < r.y || px > r.x + r.w || py > r.y + r.h) continue;
+    if (p.kind === "house") { const at = houseDoor(p).at; return nearestWalkable(w, at.x - 0.5, at.z - 0.5, 4) ?? nearestWalkable(w, x, y); }   // right outside its door
     const cx = Math.floor((r.x + r.w / 2) / T), cy = Math.floor((r.y + r.h / 2) / T);
     const at: TileXY = side === "south" ? [cx, Math.ceil((r.y + r.h) / T)] : side === "north" ? [cx, Math.floor(r.y / T) - 1]
       : side === "east" ? [Math.ceil((r.x + r.w) / T), cy] : [Math.floor(r.x / T) - 1, cy];

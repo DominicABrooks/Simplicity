@@ -13,6 +13,7 @@ import { isCommoner, isDoor, knock, populate, residentById, setCensus, updateTow
 import { enterArea } from "../src/game/travel.ts";
 import { FAMILIES } from "../src/world/people.ts";
 import { residentsOf } from "../src/world/residents.ts";
+import { houseDoor } from "../src/world/plans.ts";
 import { doorOf, findPath, nearestWalkable, walkable, walkwaysOf } from "../src/world/walkways.ts";
 
 const people = setCensus(residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props }));
@@ -233,6 +234,19 @@ describe("knocking at doors", () => {
     expect(said).toContain("Too far away to knock");
     for (const d of doorsOf(g).slice(0, 12)) { standAt(g, d); knock(g, d); run(g, TOWNSFOLK.knock.answer + 0.1); g.world.need(g.player, "transform").y += 60; run(g, 0.1); }
     expect(said.some(s => /No answer at .*asleep/.test(s))).toBe(true);
+  });
+
+  it("rings each door right where the house is drawn with its door, just out from the front", async () => {
+    const g = await inArea("capital", 12), houses = g.area.layout.props.flatMap(p => (p.kind === "house" ? [p] : []));
+    const spots = houses.map(h => ({ h, at: houseDoor(h).at }));
+    for (const d of doorsOf(g)) {
+      const t = g.world.need(d, "transform"), x = (t.x + HALF) / T, z = (t.y + HALF) / T;
+      const mine = spots.find(({ at }) => Math.abs(at.x - x) < 1e-6 && Math.abs(at.z - z) < 1e-6);
+      expect(mine).toBeDefined();                                           // on a house's door, exactly
+      const r = mine!.h.rect, out = Math.max(r.x / T - x, x - (r.x + r.w) / T, r.y / T - z, z - (r.y + r.h) / T);
+      expect(out).toBeGreaterThan(0);                                       // outside the house...
+      expect(out).toBeLessThan(0.6);                                        // ...right against its front
+    }
   });
 
   it("isn't anything but a door", async () => {

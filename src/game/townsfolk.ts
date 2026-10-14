@@ -14,6 +14,7 @@ import { loadArea } from "../areas/index.ts";
 import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { HALF, T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
+import { houseDoor } from "../world/plans.ts";
 import { moveBy } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { FAMILIES, type Where } from "../world/people.ts";
@@ -423,7 +424,8 @@ function hangDoors(g: Game, s: Streets, people: readonly Resident[]): void {
     const tile = doorOf(s.ways, s.props, Math.floor((r.x + r.w / 2) / T), Math.floor((r.y + r.h / 2) / T));
     if (!tile) continue;
     const name = houseName(household.find(p => p.role === "head" || p.role === "family")?.home.place ?? household[0]!.home.place);
-    const e = g.world.create({ transform: { x: tile[0] * T, y: tile[1] * T }, targetable: { hostile: false, name, radius: 4, height: 1.6 } });
+    const at = houseDoor(house).at;                         // the ring goes on the door itself, as the house is drawn
+    const e = g.world.create({ transform: { x: at.x * T - HALF, y: at.z * T - HALF }, targetable: { hostile: false, name, radius: 4, height: 1.6 } });
     doors.set(e, { tile, name, household, knocked: 0, who: null });
   }
 }
@@ -463,8 +465,8 @@ export function knock(g: Game, e: Entity | null): boolean {
   const s = here, door = e !== null ? doors.get(e) : undefined;
   if (!s || !door || e === null) return false;
   g.target = e;
-  const hero = g.world.need(g.player, "transform"), [dx, dy] = centre(door.tile);
-  if (Math.hypot(hero.x + HALF - dx, hero.y + HALF - dy) > TOWNSFOLK.knock.reach) { toast(g, "Too far away to knock"); return true; }
+  const hero = g.world.need(g.player, "transform"), d = g.world.need(e, "transform"), dx = d.x + HALF, dy = d.y + HALF;
+  if (Math.hypot(hero.x - d.x, hero.y - d.y) > TOWNSFOLK.knock.reach) { toast(g, "Too far away to knock"); return true; }
   if (door.knocked > 0 || door.household.some(r => { const w = s.out.get(r.id); return w !== undefined && g.world.get(w, "walker")?.plan === "answer"; })) return true;
   combatText(g, dx - HALF, dy - HALF - 4, "Knock knock", "#e8dcc4");
   const h = hourOf(g), night = h >= TOWNSFOLK.hours.bedtime || h < 6;

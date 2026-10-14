@@ -8,7 +8,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
-import { FACING_YAW, TOWER_FLARE, houseBody, keepPlan, local, wallPlan } from "../world/plans.ts";
+import { FACING_YAW, TOWER_FLARE, houseBody, houseDoor, keepPlan, local, wallPlan } from "../world/plans.ts";
 import { onGround, GROUND, box, type RenderContext } from "./context.ts";
 import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
@@ -257,7 +257,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   };
   // Each floor above the ground is jettied out a little further over the street (and only over the street:
   // its sides are party walls, flush with its neighbours'), with a beam along the overhang.
-  const jetty = 0.12, doorX = w > 2.5 ? (p.shop ? w / 2 - 0.65 : -w / 2 + 0.75) : 0;
+  const jetty = 0.12, doorX = houseDoor(p).along;           // where the door is: see houseDoor
   let y = 0;
   for (let floor = 0; floor < storeys; floor++) {
     const out = floor * jetty, h = floor === 0 ? STOREY + 0.1 : STOREY;
