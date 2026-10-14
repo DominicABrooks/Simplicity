@@ -33,6 +33,18 @@ describe("the people of Kingsholm", () => {
     expect(new Set(FAMILIES.map(f => f.id)).size).toBe(FAMILIES.length);
   });
 
+  it("ties every family to others that exist, and gives each a rumour", () => {
+    const ids = new Set(FAMILIES.map(f => f.id));
+    for (const f of FAMILIES) {
+      expect(f.ties.length, f.id).toBeGreaterThan(0);
+      expect(f.rumours.length, f.id).toBeGreaterThan(0);
+      for (const t of f.ties) {
+        expect(ids.has(t.to), `${f.id} -> ${t.to}`).toBe(true);
+        expect(t.to, f.id).not.toBe(f.id);
+      }
+    }
+  });
+
   it("comes to about the 1,500 souls the lore gives", () => {
     const total = all.reduce((s, h) => s + h.people, 0) + BEYOND_HOUSES;
     expect(total).toBeGreaterThan(1200);

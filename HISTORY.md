@@ -121,34 +121,238 @@ little dimmer than the Vael's. They think that's just how eyes are.
 For a very long time men and Vael kept to themselves. Men told spooky stories about witches in the woods.
 The Vael told spooky stories about men, mostly about the turnips.
 
-## The ages, as far as anyone can count them
+## The Vael ages, before anyone counted
 
-Years are counted from the Founding (*AF*). Before that, everyone counted differently and argued about it.
+The Vael don't count years. They count songs, and every age has one. These are the ones the Frost order
+still sings, in order, as best anyone can tell.
 
-| When | What happened |
-|---|---|
-| Before time | The Hush, the Gloom, and Umbrall at the middle of it, snoring. |
-| The Bite | The Gloom catches Ael and bites it. Ael curls up and falls asleep, and becomes the world. |
-| The Waking | The first Pebblings blink their eyes open. |
-| The Singing | The Old Mother hatches from Ael's heart. The Vael learn her song, and the three orders form (and immediately argue about robe colours). |
-| The Jelly Night | Ul-Ael overdoes it. Everyone in the Deep Hall becomes a slime. |
-| The Sealing | The temple on the hill and the three eggs. The Old Mother goes for her nap. |
-| The Parting | The Plain Folk go down to the rivers, become men and discover turnips. |
-| ~40 before AF | The Great Turnip Blight in the south. Bands of men come north looking for somewhere new. |
-| **0 AF** | **The Founding.** Aldric, a cheerful young man with a very large hat, wanders into the valley. The Vael feed him, give him a room and show him where the gold is. |
-| 9 AF | **The Great Pinch.** Aldric throws the Vael the biggest party the valley has ever seen. While they're all dancing, he sneaks into the deep places, pinches the three eggs and the gold mines, and locks the temple door from the outside. The Vael, being very polite, leave him a strongly worded letter and move south over the Greyspines in a huff. Aldric names the forest the Witchwood and tells everyone he won a terrible battle. |
-| 9–30 AF | **The Wobbly Years.** With nobody looking after the eggs, the valley goes a bit odd: the fog runs uphill, cats walk backwards, and it snows upwards twice. |
-| 31 AF | Aldric I retires to the seaside. The letter is found framed in his bedroom. |
-| 88 AF | **Hereward the Mason** builds St Mary's on the old temple. He finds the eggs, decides they're lovely, has them gilded and puts them in the treasury as "the stones of the first altar". The valley stops being odd. Hereward takes the credit. |
-| 140–190 AF | **The Gold Kings.** The mines go deeper and deeper. In 186 AF a crew digs straight into what turns out to be the Old Mother's nostril. She sneezes, the whole shaft comes out of the mountain like a cork, and the crown seals it and pretends it was an earthquake. |
-| 211 AF | **Queen Ethelind the Wise** reads the true chronicle, goes very red, hides it behind a false shelf in St Mary's library, and writes a much more flattering one that everyone learns today. |
-| 260–274 AF | **The Salt War** with the coast kingdoms over who has the saltiest fish. The Harrows hold the old timber bridge for three days with a pushcart and a lot of shouting, and are made lords for it. |
-| ~445 AF | **The Summer the Sky Went Pink.** The Old Mother rolls over in her sleep. All summer the sky glows pink at noon, it thunders on sunny days, and the river freezes in August. Widow Crane's grandmother is a little girl that year and never stops talking about it. The crown says it was a comet. |
-| 446–550 AF | **The Long Snooze.** Nothing much happens. Founder's Night turns from a solemn service into a party with straw witches, which slowly become a children's game. |
-| 553 AF | Osric IV is crowned, and **the Gilding** begins: marble, gold leaf, lions. In 560 AF he starts building the King's Bridge out of marble, paid for on credit. |
-| 598 AF | The eggs in St Mary's start, very slightly, to get warm. Only the treasurer notices, and he assumes it's the candles. |
-| 599 AF | Wystan Fell, the King's Ranger, goes south over the Greyspines and meets the Vael. They ask after their eggs. |
-| **600 AF** | **Now.** Robed mages in the Witchwood, more slimes than anyone's ever seen, and the Edict of the Quiet Tongue. |
+- **The Song of Waking.** The first Pebblings open their eyes in the dark of Ael's body and spend a very
+  long time bumping into each other. The first word anyone ever says is *"sorry"*.
+- **The Song of the Heart.** The Old Mother hatches. Her first song is so loud it shakes the bark wraps
+  off everyone within a mile, which is why the Vael still bow to her by holding their wraps on.
+- **The Song of Three Robes.** The orders form. Ember wants red robes, Frost wants white, Storm wants
+  indigo with gold trim, and all three want the hood. The argument lasts ninety years and ends with
+  everyone getting a hood. This is called **the Hundred-Year Argument**, because Storm rounded up.
+- **The Song of the Deep Hall.** Ul-Ael is built against the heart. It has staircases made of frozen
+  lightning, ovens that never go out, and a library where the books read themselves aloud to you if you
+  look tired. Its mayor wears a hat with a bell on it so people can find him in crowds.
+- **The Song of the Jelly Night.** See above. The bell from the mayor's hat is never found, but some
+  nights you can hear it ringing very faintly from somewhere inside a slime.
+- **The Song of the Seal.** The temple on the hill. The three eggs. The Old Mother's last lullaby before
+  her nap, which goes on for a week and puts half the valley to sleep with her.
+- **The Song of Turnips.** The Plain Folk go down to the rivers. The Vael write a song about it that is
+  mostly about how strange it is to want to live in a field.
+- **The Song of the Long Wait.** For thousands of years, nothing much. The Vael tend the eggs, mind the
+  cracks, and write a great many songs about the weather. Somewhere in this age, a Vael called **Yssa of
+  the Frost** leaves a bowl of milk at the edge of the forest for a lost Plain Folk child, and the child's
+  family leaves one back. The two peoples never meet properly, but the milk goes on for generations.
+- **The Song of the Hat.** A cheerful young man wanders into the valley. You know this one.
+
+## The Chronicle of Aurenmark
+
+Years count from the Founding (*AF*). Before it, everyone counted differently and argued about it.
+
+### The Founding (0–31 AF)
+
+- **c. 40 before AF: the Great Turnip Blight.** A grey rot gets into the turnips of the south. (The Vael
+  think the Gloom was nibbling. The southerners blamed the weather.) Bands of hungry folk go north.
+- **0 AF: the Founding.** **Aldric**, a cheerful young man with a very large hat, follows the river Aurel
+  up into the valley with eleven friends, a goat, and no plan. The Vael find them half-starved by the
+  milk bowl at the forest's edge. They feed them, give them rooms in the temple's guest wing, and show
+  Aldric the gold seams under the hill, because he asks nicely and they've never met anyone who wanted
+  gold for anything except jewellery.
+- **1–8 AF: the guest years.** More hungry southerners arrive. The Vael are kind to all of them. Aldric
+  learns the Vael's three greetings, two of their songs, and exactly where the deep places are.
+- **9 AF: the Great Pinch.** Aldric throws the Vael a party to say thank you: nine days, three bonfires,
+  and a pie the size of a cart. On the ninth night, while the whole Vael people are dancing the Long Reel,
+  Aldric and his friends slip into the deep places, take the three eggs, lock the temple from outside and
+  plant his hat on the hill. In the morning the Vael find a sign reading *THIS HILL BELONGS TO ALDRIC.*
+  They hold a very long meeting. They don't fight, because fighting near the crack might open it. They
+  write him a strongly worded letter, eleven pages long, and go south over the Greyspines in a huff. The
+  last to leave is Yssa of the Frost, who leaves one more bowl of milk at the forest's edge, out of habit.
+- **9 AF: Aurenmark.** Aldric names his new kingdom the Golden March, makes himself king with a crown
+  beaten from the first gold out of the hill, names the forest the Witchwood, and tells everyone he won
+  a tremendous battle. His friends become the first lords. The goat becomes the first royal goat.
+- **9–30 AF: the Wobbly Years.** With nobody tending the eggs, the valley goes odd. Fog runs uphill. Cats
+  walk backwards. It snows upwards twice. Every well in the city plays the same three notes at midnight.
+  Aldric orders the city walls built "to keep the weather out", which does nothing.
+- **31 AF: Aldric I retires to the seaside**, saying the valley is "too noisy at night". When his rooms are
+  cleared, the Vael's letter is found framed above his bed, with one line underlined: *We will be back for
+  our eggs.*
+
+### The early kings (31–140 AF)
+
+- **31–58 AF: Aldric II the Earnest.** The Founder's son, who never once laughed. Finishes the city wall,
+  builds the first castle (a timber tower on the crag), and writes the first laws, which include *No
+  dancing the Long Reel* (nobody knows why) and *No hats bigger than the King's*.
+- **44 AF: the first Founder's Night.** A solemn service on the hill to give thanks for the "victory".
+  Nobody enjoys it.
+- **58–71 AF: Queen Matilda the Bold**, Aurenmark's first queen. She rebuilds the castle tower in stone,
+  repeals the hat law, and goes into the Witchwood alone one midwinter to find out why the wells sing. She
+  comes back three days later with frost on her eyelashes, says only *"Leave the milk out,"* and orders a
+  bowl left at the forest's edge every new moon, forever. The order is still on the books. Only the
+  Larkes still do it.
+- **71–102 AF: Hereward the Mason.** A king who'd rather have been a builder, and very nearly was.
+- **88 AF: St Mary's is built** on the old temple's foundations. Hereward finds the three eggs in the
+  temple's deep places, decides they're the loveliest stones he's ever seen, has them gilded and puts them
+  in the new treasury as "the stones of the first altar". The odd weather stops overnight. Hereward takes
+  the credit. His master mason is **Ulf Kellet**, the first of the Kellets, who carves the first mason's
+  mark into the foundation stone and is the first to notice that the oldest stones under the crypt hum.
+- **95 AF: the Fountain.** Hereward builds the great fountain in the square, with a stone king on top. It
+  is meant to be Aldric. Hereward had the sculptor give it his own nose.
+- **102–140 AF: Osric I the Thrifty**, who kept the gold in the treasury instead of on the walls and was
+  therefore very unpopular. Founds the city's first guild, the **Bakers' Guild**, after a bread riot over
+  the price of a loaf. The Hollins are founding members.
+
+### The Gold Kings (140–190 AF)
+
+- **140–166 AF: Edwin I the Delver.** Gold fever. New shafts go into the Greyspines every year, and the
+  city fills with miners, and miners' wives, and miners' wives' complaints about the dust.
+- **151 AF: the first Gilding.** Edwin has the fountain king's crown leafed in gold for his birthday. It
+  becomes a yearly custom, and later Gilding Day.
+- **166–186 AF: Edwin II the Deeper**, who wanted to dig to the gold at the very bottom of the world. The
+  miners start reporting singing in the rock, a deep, slow purr you feel in your teeth.
+- **186 AF: the Sneeze.** The deepest crew of all breaks through into a warm, round cavern, which turns out
+  to be the Old Mother's left nostril. She sneezes in her sleep. The whole shaft shoots out of the
+  mountainside like a cork from a bottle, with the crew in it, and they land in the river, unhurt, very
+  wet and very sooty. Edwin II abdicates the same afternoon to become a beekeeper. The crown seals the
+  shaft and calls it an earthquake.
+- **186–190 AF: Osric II the Corked**, Edwin's nephew, so called because his first act was to cork the
+  shaft and his second was never to mention it.
+
+### The middle kings (190–440 AF)
+
+- **190–211 AF: Aldwyn the Quiet**, who spoke so softly that the court learned to lip-read. Nothing
+  much happens. Historians are grateful.
+- **211–249 AF: Queen Ethelind the Wise.** On a rainy afternoon in 211 AF she reads the Founder's true
+  chronicle, goes very red, and spends the night hiding it behind a false shelf in St Mary's library. She
+  then writes *The Glorious Founding*, the version everyone learns today, with a battle in it, and a
+  noble charge, and a dragon slain (by Aldric, single-handed, with a spoon). She founds the **Pryce**
+  line of librarians to look after the library, and swears the first Pryce to secrecy on the fountain.
+- **226 AF: the Mercers' Charter.** The cloth merchants get a guild of their own and the right to trade on
+  the south road. The first Ashcombe signs it, with a quill borrowed from the first Quill.
+- **249–260 AF: Godric the Late**, who was late for everything, including his own coronation, and died
+  on his way to a meeting about punctuality.
+- **260–274 AF: the Salt War.** Queen **Hilda the Salty** quarrels with the coast kingdoms over whose
+  fish are the saltiest. It's mostly fought with insults and trade tariffs, except for one famous day in
+  **263 AF**, when a coast army marches on the old timber bridge. **Sergeant Gerald Harrow** holds it for
+  three days with a pushcart, four friends and a great deal of shouting. The coast army goes home,
+  confused. Hilda makes Gerald a lord on the spot and gives him the crimson door that still hangs on the
+  Harrows' house. The war ends in 274 AF when everyone agrees that all fish are salty, really.
+- **281–318 AF: the Guild Kings.** Three kings in a row who mostly let the guilds run things. The city
+  grows rich and fat and pleased with itself. The **market cross** is raised in **289 AF**, and the custom
+  of shaking on bargains there begins.
+- **318 AF: the Great Pie Fire.** A pie left in a baker's oven overnight (not the Hollins', they insist)
+  sets the high street alight. Half the timber houses burn down. The rebuilt ones are taller, with stone
+  ground floors, and the city has looked the way it does ever since.
+- **352 AF: the Crown is licensed.** **Morwen Maddox** opens an inn on the square and names it the Crown,
+  "so that everyone can say they drank under the Crown". **355 AF:** a rival opens the Bell across Castle
+  Street, "so that everyone can hear when the Crown runs dry". The Pikes buy the Bell in 412 AF.
+- **377 AF: the Fever Winter.** A cold sickness that turns its victims slightly grey. Old Mother **Rhosyn
+  Larke**, an ancestor of Ivy's, cures half the Wallside with a tea nobody else can make. She's given a
+  medal by the queen and accused of witchcraft by the Dean in the same week. The medal wins.
+- **401 AF: the Long Frost.** The river freezes for four months. The city holds a frost fair on the ice
+  with skating, chestnuts and a sheep roast. A Frost-robed stranger is seen skating among the crowds,
+  very well, and disappears before anyone can ask where she learned.
+- **421 AF: the Leafwrights arrive** from a coastal city where they beat gold leaf for church altars,
+  and set up shop on the high street.
+- **436 AF: the Grisons arrive** from over the sea with three chests of coin, and start lending.
+
+### The Summer the Sky Went Pink (440–470 AF)
+
+- **440–470 AF: Osric III the Pious**, who built four new chapels and a great many sundials.
+- **445 AF: the Summer the Sky Went Pink.** The Old Mother rolls over in her sleep. From midsummer to the
+  first frost, the sky glows pink at noon, thunder rumbles out of clear skies, the river freezes solid in
+  August, and every candle in St Mary's lights itself at once on the feast of St Mary. A little girl
+  called **Gwenna**, Widow Crane's grandmother, sees "a shadow longer than the river" pass over the
+  Greyspines at dawn, and never stops talking about it for the rest of her life. The crown declares it a
+  comet and gives the comet a name, **Osric's Wonder**, which everyone uses sarcastically.
+- **446 AF:** Osric III orders the first **straw witch** for Founder's Night, "to remind the people of the
+  Founder's victory". It's the first year anyone enjoys Founder's Night.
+
+### The Long Snooze (470–553 AF)
+
+- **470–503 AF: Edgar I the Fair**, and **503–520 AF: Edgar II the Fairer**, who was actually quite
+  plain but had excellent hair. Nothing much happens for fifty years. The straw witches turn into a
+  children's game, Founder's Night turns into a party, and the city forgets anyone ever believed in
+  witches at all.
+- **512 AF:** the **Applebys** move into the city from the south farms after a hard winter.
+- **520–553 AF: Oswin the Cheerful**, Osric IV's father, a jolly king who married **Hild of the Hills**
+  for love and threw the longest feast in history: nineteen days. He dies peacefully in his sleep on
+  the twentieth.
+
+### The Gilding (553–598 AF)
+
+- **553 AF: Osric IV is crowned**, aged fourteen. His mother Hild rules for him until he's grown. She
+  takes him into the Witchwood once, at fifteen, to see the milk bowl at the forest's edge. He refuses
+  ever to go again.
+- **558 AF: the Gilding begins.** Osric, grown, decides that Aurenmark should look as rich as it is. White
+  marble, gold leaf, lions on plinths. The Leafwrights hire forty apprentices.
+- **560 AF: the Butchers' Saw.** Old **Wilfred Stott** dies and leaves his shop "to whichever of my
+  children is the better butcher", without saying which. His son Ralf (Roger Stott's father) and his
+  daughter Ursula (who married a Cleave) both think it's them. They saw the shop in half down the middle,
+  counter and all, and the feud begins. Each half is now its own shop, three doors apart.
+- **560 AF: the King's Bridge.** The old timber bridge, the one the Harrows held, is pulled down and a
+  marble one begun. It's paid for with loans from the Grisons, secured against the trade of the southern
+  road.
+- **571 AF: Osric marries Isolde** of the eastern coast, ending the last grumbles of the Salt War for
+  good. The fish at the wedding feast are described as "adequately salty".
+- **574 AF: Prince Edmund is born.** The Hawkes fly every falcon in the mews over the castle at once.
+- **575 AF: Osric reads the true chronicle.** Father Elias Pryce, then a young librarian, finds it behind
+  the false shelf in 570 AF and, after five sleepless years, takes it to the King. Osric reads it in one
+  night, goes very red (it runs in the family), and tells Pryce he's never to speak of it again.
+- **583 AF: Princess Rosamund is born.**
+- **589 AF: the King's Bridge is finished**, twenty-nine years late and three times over budget, with
+  gold-tipped pinnacles on every post. The Grisons send the King a bill. The King sends them a medal.
+- **594 AF: Prince Aldric is born** to Prince Edmund and his late wife, **Princess Eira**, who dies of the
+  coughing fever that winter. The little prince has nightmares of a great bird from the time he can talk.
+- **597 AF: the Fever.** A hard winter sickness in the Wallside takes the Tansy children's parents, among
+  many others. The almshouse fills. Queen Isolde pays for the doctor out of her own purse.
+
+### The warming (598–600 AF)
+
+- **598 AF, spring: the eggs get warm.** Father Matthias Gale, counting the treasury coins, notices the
+  gilded altar stones are warm to the touch. He blames the candles and moves the candles. They stay warm.
+  His cats start sleeping on them.
+- **598 AF, autumn:** the first robed figure is seen in the Witchwood, by a woodcutter who drops his axe,
+  runs home and is laughed at by the whole Crown.
+- **599 AF, spring:** the King sends his Ranger, **Wystan Fell**, south to map the mountain passes, "for
+  the trade road". The real reason is that he's read the chronicle.
+- **599 AF, winter:** Wystan Fell comes home and reports to the court. The court laughs.
+- **600 AF, spring: the Edict.** Robed mages in the Witchwood. Slimes by the hundred in the forest ponds.
+  The southern road closes because nobody will drive it. Tam Appleby goes into the Witchwood after a cow
+  and a sheep comes out. Wystan goes to the King a second time and is marched into the keep that night.
+  The next morning Master Quill reads the Edict of the Quiet Tongue at the market cross for the first
+  time.
+- **600 AF, summer: Jack Linnet's song** is first sung at the Crown. A week later Jack is in the dungeon,
+  and a week after that everyone under twelve in the Wallside can sing it.
+- **600 AF, now:** Founder's Night is coming, and the Marshal wants the straw witches twice as big.
+
+## The kings and queens of Aurenmark
+
+| Reign (AF) | Monarch | Remembered for |
+|---|---|---|
+| 9–31 | Aldric I the Founder | The hat, the party, the pinch |
+| 31–58 | Aldric II the Earnest | The wall, the hat law, never laughing |
+| 58–71 | Matilda the Bold | The stone tower, the milk bowl |
+| 71–102 | Hereward the Mason | St Mary's, the fountain, his nose on Aldric's statue |
+| 102–140 | Osric I the Thrifty | Not spending the gold; the Bakers' Guild |
+| 140–166 | Edwin I the Delver | Gold fever; the first Gilding |
+| 166–186 | Edwin II the Deeper | The Sneeze; the bees |
+| 186–190 | Osric II the Corked | Corking the shaft |
+| 190–211 | Aldwyn the Quiet | Nothing at all, quietly |
+| 211–249 | Ethelind the Wise | Hiding the chronicle; *The Glorious Founding* |
+| 249–260 | Godric the Late | Being late |
+| 260–281 | Hilda the Salty | The Salt War; the Harrows' crimson door |
+| 281–318 | The Guild Kings (Alfred, Alwin and Alfred again) | The market cross; letting the guilds run things |
+| 318–354 | Osbert the Rebuilder | Rebuilding after the Pie Fire |
+| 354–401 | Queen Elfreda the Long | A forty-seven-year reign; the Fever Winter |
+| 401–440 | Cuthred the Cold | The Long Frost and the frost fair |
+| 440–470 | Osric III the Pious | Chapels, sundials, Osric's Wonder, the first straw witch |
+| 470–503 | Edgar I the Fair | The Long Snooze |
+| 503–520 | Edgar II the Fairer | Excellent hair |
+| 520–553 | Oswin the Cheerful | The nineteen-day feast |
+| 553– | **Osric IV the Gilded** | The Gilding, the King's Bridge, the Edict |
 
 ## What's really going on
 

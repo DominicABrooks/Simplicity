@@ -3,7 +3,8 @@
 What the world believes, what it's hiding and what it whispers when the King isn't listening. The people of
 the capital are in [`src/world/people.ts`](src/world/people.ts): the named families with their members,
 customs and secrets, and the ordinary households that fill every other house the town kit builds. Each one
-is tied to a real house on the map. Where the world came from, what mages really are, and the kingdom's
+is tied to a real house on the map. Their histories, loves, feuds, debts and the rumours about them are in
+[FAMILIES.md](FAMILIES.md). Where the world came from, what mages really are, and the kingdom's
 history back to the very beginning are in [HISTORY.md](HISTORY.md).
 
 ## The kingdom

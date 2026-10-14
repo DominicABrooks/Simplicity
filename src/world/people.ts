@@ -52,6 +52,20 @@ export interface Family {
   /** What they say under their breath. */
   mutter: string;
   secret?: string;
+  /** Who they love, owe, feud with or keep secrets with (other families' ids). See FAMILIES.md. */
+  ties: Tie[];
+  /** What the city says about them, and whether it's so. */
+  rumours: Rumour[];
+}
+
+export interface Tie {
+  to: string;
+  how: string;
+}
+
+export interface Rumour {
+  says: string;
+  truth: "true" | "false" | "half";
 }
 
 export const KINGDOM = {
@@ -84,6 +98,19 @@ export const FAMILIES: readonly Family[] = [
     stance: "denies",
     mutter: "\"There is nothing beyond the wood but trees and peasants' tales.\" (the King, too often and too loud)",
     secret: "Wystan Fell is in the dungeon under the keep, and the King sneaks down at night with cake to ask him about the Vael.",
+    ties: [
+      { to: "grison", how: "Owes them for the King's Bridge; Prince Edmund goes over the debts with Lucia" },
+      { to: "harrow", how: "Commands the Marshal" },
+      { to: "fitzwaren", how: "Princess Rosamund and Blanche are best friends" },
+      { to: "crane", how: "Dowager Hild plays cards with the Widow every Thursday" },
+      { to: "fell", how: "The King keeps the Ranger in the dungeon; the Prince visits Meg" },
+    ],
+    rumours: [
+      { says: "The King goes down to the dungeon at night with cake", truth: "true" },
+      { says: "The Queen is a Vael spy", truth: "false" },
+      { says: "Prince Edmund is planning to free the Ranger", truth: "half" },
+      { says: "Little Prince Aldric talks in his sleep in a language nobody knows", truth: "true" },
+    ],
   },
   {
     id: "harrow", name: "The Harrows", rank: "noble", trade: "Marshal of Aurenmark",
@@ -95,11 +122,23 @@ export const FAMILIES: readonly Family[] = [
       { name: "Bran Harrow", age: 24, role: "Sergeant of the bridge watch", note: "Saw a robed figure on the King's Bridge at midnight and reported it as a pilgrim." },
       { name: "Piers Harrow", age: 19, role: "Squire", note: "Engaged to Joan Leafwright. Thinks his father is a coward." },
     ],
-    story: "Soldiers for five generations, ennobled for holding the bridge in the Salt War. The Marshal believes the Edict keeps the city from panic, and that a panicking city is worse than any witch.",
+    story: "Soldiers since Sergeant Gerald Harrow held the old bridge in the Salt War with a pushcart and was made a lord for it. The Marshal believes the Edict keeps the city from panic, and that a panicking city is worse than any witch.",
     customs: ["Hangs a captured enemy banner in the hall each Founder's Night", "The sons stand vigil in the castle chapel the night before they take arms"],
     stance: "loyal",
     mutter: "\"A rumour is a fire in a hayloft. You don't argue with it. You put it out.\"",
     secret: "The Marshal pays Gilbert Pike of the Bell for names, and the Harrows' own steward is one of them.",
+    ties: [
+      { to: "pike", how: "Pays Gilbert Pike for names" },
+      { to: "gale", how: "Father Gale tells him things" },
+      { to: "leafwright", how: "Piers is engaged to Joan" },
+      { to: "bowyer", how: "Commands Tom; Will Bowyer serves under Bran" },
+      { to: "larke", how: "He's sure she's a witch; Lady Harrow buys her tea" },
+    ],
+    rumours: [
+      { says: "The Marshal's list has the whole Crown on it", truth: "half" },
+      { says: "The golden pushcart is cursed", truth: "false" },
+      { says: "Bran Harrow has seen a witch on the bridge", truth: "true" },
+    ],
   },
   {
     id: "fitzwaren", name: "The Fitzwarens", rank: "noble", trade: "Courtiers, holders of the southern manors",
@@ -114,6 +153,16 @@ export const FAMILIES: readonly Family[] = [
     customs: ["A supper on the first day of every month", "Wears the family's green on Gilding Day, against court custom"],
     stance: "quiet",
     mutter: "\"My reeves write that the harvest is fine. My reeves have stopped writing.\"",
+    ties: [
+      { to: "ashcombe", how: "Lady Cecily wants Hugh to marry Alys Ashcombe" },
+      { to: "grison", how: "Hugh owes them 900 crowns" },
+      { to: "aurel", how: "Blanche is Princess Rosamund's alibi" },
+      { to: "tansy", how: "Daisy sells posies at their gate" },
+    ],
+    rumours: [
+      { says: "The southern manors have been taken by witches", truth: "half" },
+      { says: "Lady Cecily has sold the family silver", truth: "true" },
+    ],
   },
   {
     id: "hammond", name: "The Hammonds", rank: "craft", trade: "Royal armourers",
@@ -129,6 +178,15 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Quenches the first blade of the year in water from the fountain", "Hangs a horseshoe over every door, iron side out"],
     stance: "quiet",
     mutter: "\"Twelve thousand arrowheads. Against the weather, I suppose.\"",
+    ties: [
+      { to: "harrow", how: "Makes the Marshal's arrowheads" },
+      { to: "aurel", how: "Nell is making Prince Edmund a cold sword" },
+      { to: "grubb", how: "Buys their charcoal" },
+    ],
+    rumours: [
+      { says: "The arrowheads are for a war with the coast", truth: "false" },
+      { says: "Nell Hammond can forge with her bare hands", truth: "half" },
+    ],
   },
   {
     id: "hawke", name: "The Hawkes", rank: "craft", trade: "Royal falconers",
@@ -143,20 +201,37 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Names every eyass after a king", "Flies a falcon over the castle for every new Hawke baby"],
     stance: "whispering",
     mutter: "\"A falcon doesn't lie and doesn't listen to edicts. Mine won't fly south.\"",
+    ties: [
+      { to: "fell", how: "Their goshawk carries notes between Meg and the Ranger's cell" },
+      { to: "aurel", how: "Flew every falcon for Prince Edmund's birth" },
+    ],
+    rumours: [
+      { says: "A Hawke falcon has seen the dragon", truth: "true" },
+      { says: "Elinor Hawke's birds talk back", truth: "false" },
+    ],
   },
   {
-    id: "garth", name: "The Garths", rank: "labouring", trade: "Grooms of the royal stable",
+    id: "garth", name: "The Garths", rank: "labouring", trade: "Keepers of the castle storehouse",
     seat: { district: "castle", storeys: 3, stone: false },
-    home: "A crowded timber house by the castle lane, smelling of horse", household: 2,
+    home: "A crowded timber house by the castle lane, sacks of flour in the hall", household: 2,
     members: [
-      { name: "Daw Garth", age: 41, role: "Head groom" },
-      { name: "Moll Garth", age: 38, role: "Laundress to the castle" },
-      { name: "Sim, Tib and Little Daw", age: 12, count: 3, role: "Their sons (12, 9 and 5)", note: "Sim mucks out the Ranger's old horse, which is kept fed on the prince's orders." },
+      { name: "Daw Garth", age: 41, role: "Storekeeper", note: "Knows exactly how much flour the castle has: enough for a siege, which is new." },
+      { name: "Moll Garth", age: 38, role: "Laundress to the castle", note: "Knows whose sheets have frost on them in the morning." },
+      { name: "Sim, Tib and Little Daw", age: 12, count: 3, role: "Their sons (12, 9 and 5)", note: "Sim looks after Biscuit, the mule the Vael lent the Ranger, kept on the Prince's orders. Biscuit eats turnips, snow and, once, a guard's hat." },
     ],
-    story: "Grooms, carters and laundresses all the way back. They see the castle from below, which is to say everything.",
-    customs: ["Plaits a rowan twig into every horse's mane since the spring"],
+    story: "Grooms and porters all the way back. The stable came down this year for a stone storehouse, so the Garths went from mucking out horses to counting sacks. They see the castle from below, which is to say everything.",
+    customs: ["Has tied a rowan twig to every sack in the storehouse since the spring"],
     stance: "whispering",
-    mutter: "\"Why would you feed a missing man's horse?\"",
+    mutter: "\"Why would you keep a missing man's mule?\"",
+    ties: [
+      { to: "aurel", how: "Sim keeps the Ranger's mule for Prince Edmund" },
+      { to: "hollin", how: "Orders the castle's flour" },
+      { to: "appleby", how: "Moll and Sarra Appleby are cousins" },
+    ],
+    rumours: [
+      { says: "The storehouse is full of weapons", truth: "false" },
+      { says: "Biscuit the mule understands Vael", truth: "true" },
+    ],
   },
 
   // ---- The Market Quarter ----
@@ -170,11 +245,22 @@ export const FAMILIES: readonly Family[] = [
       { name: "Gwen Maddox", age: 24, role: "Her daughter, the cook" },
       { name: "Lew Maddox", age: 19, role: "Her son, pot-boy", note: "Knows Jack Linnet's song by heart." },
     ],
-    story: "The Crown has been an inn as long as there's been a square. Its back room after curfew is where the city says what it thinks.",
+    story: "Morwen Maddox opened the Crown in 352 AF, and every landlord since has been a Maddox woman. Its back room after curfew is where the city says what it thinks.",
     customs: ["Closes the shutters at the curfew bell, and that's when the real talk starts", "Pours the first cider of Founder's Night onto the floor \"for the old owners\""],
     stance: "whispering",
     mutter: "\"What's said under the Crown stays under the Crown.\"",
     secret: "The Crown's cellar runs under the guildhall, and the Ranger's wife has a key.",
+    ties: [
+      { to: "pike", how: "The Crown and the Bell have feuded since 355 AF" },
+      { to: "fell", how: "Meg Fell has a key to the cellar" },
+      { to: "quill", how: "Simon Quill keeps his private record in the cellar" },
+      { to: "grubb", how: "Dick told Bethan where the Ranger is" },
+    ],
+    rumours: [
+      { says: "The Crown's cellar connects to the castle", truth: "false" },
+      { says: "Bethan Maddox knows where the Ranger is", truth: "true" },
+      { says: "The Crown's cider is watered", truth: "false" },
+    ],
   },
   {
     id: "pike", name: "The Pikes", rank: "craft", trade: "Keepers of the Bell inn",
@@ -189,6 +275,15 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Toasts the King at every hour bell", "Shows a portrait of the King over the hearth, freshly gilded"],
     stance: "informer",
     mutter: "\"Long live the King, and fair weather to him.\" (loudly)",
+    ties: [
+      { to: "harrow", how: "Gilbert tattles to the Marshal" },
+      { to: "maddox", how: "Cuthbert is sweet on Gwen Maddox" },
+      { to: "dunn", how: "The Dunns glazed the Bell's blue sign" },
+    ],
+    rumours: [
+      { says: "Gilbert Pike is a tattletale", truth: "true" },
+      { says: "Cuthbert Pike warns people when his father's listening", truth: "true" },
+    ],
   },
   {
     id: "ashcombe", name: "The Ashcombes", rank: "merchant", trade: "Mercers: cloth from the south",
@@ -205,6 +300,16 @@ export const FAMILIES: readonly Family[] = [
     stance: "loyal",
     mutter: "\"The King says the road is safe, so the road is safe. Pass the gravy.\"",
     secret: "Aldous owes the Grisons four thousand crowns and the crown owes Aldous six. Neither debt will be paid.",
+    ties: [
+      { to: "grison", how: "Owes them 4,000 crowns" },
+      { to: "aurel", how: "The crown owes them 6,000" },
+      { to: "fitzwaren", how: "Philippa wants Alys to marry Hugh Fitzwaren" },
+      { to: "quill", how: "The Quills drew up the Mercers' Charter" },
+    ],
+    rumours: [
+      { says: "The Ashcombes are ruined", truth: "half" },
+      { says: "Their southern dyes are made by witches", truth: "true" },
+    ],
   },
   {
     id: "hollin", name: "The Hollins", rank: "craft", trade: "Bakers",
@@ -215,10 +320,19 @@ export const FAMILIES: readonly Family[] = [
       { name: "Wat Hollin", age: 45, role: "Her husband, at the oven" },
       { name: "Peg, Ned and Bess", age: 14, count: 3, role: "Their children (14, 11 and 7)" },
     ],
-    story: "Bakers to the square for a hundred years, famous for the gold-flaked crown loaves on Gilding Day.",
+    story: "Bakers to the square since the Bakers' Guild was founded, famous for the gold-flaked crown loaves on Gilding Day.",
     customs: ["Three cuts in every loaf, one for each kind of weather", "The first loaf of the day goes to the almshouse"],
     stance: "whispering",
     mutter: "\"Three cuts, love. It helps it rise.\"",
+    ties: [
+      { to: "crane", how: "The first loaf of the day goes to the almshouse" },
+      { to: "linnet", how: "The Wallside's bread goes in a book marked paid" },
+      { to: "leafwright", how: "Buys the gold for crown loaves" },
+    ],
+    rumours: [
+      { says: "The three cuts are a witch-mark", truth: "half" },
+      { says: "The Hollins started the Great Pie Fire", truth: "true" },
+    ],
   },
   {
     id: "stott", name: "The Stotts", rank: "craft", trade: "Butchers",
@@ -233,6 +347,14 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Gives the Shambles' best cut to the Marshal on Founder's Night", "Never sells to a Cleave"],
     stance: "loyal",
     mutter: "\"If there's witches, it's the Cleaves' doing.\"",
+    ties: [
+      { to: "cleave", how: "Feud since 560 AF; Hal loves Marian" },
+      { to: "harrow", how: "Gives the Marshal the best cut" },
+    ],
+    rumours: [
+      { says: "Roger Stott would rather close than sell to a Cleave", truth: "true" },
+      { says: "Hal Stott is courting someone", truth: "true" },
+    ],
   },
   {
     id: "cleave", name: "The Cleaves", rank: "craft", trade: "Butchers",
@@ -247,6 +369,14 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Sells Founder's Night sausage at a loss to spite the Stotts"],
     stance: "whispering",
     mutter: "\"The drovers won't take the south road now, not for double pay.\"",
+    ties: [
+      { to: "stott", how: "Feud since 560 AF; Marian loves Hal" },
+      { to: "appleby", how: "Buy from the same south farmers" },
+    ],
+    rumours: [
+      { says: "Old Ursula started the feud over a sausage", truth: "true" },
+      { says: "The drovers won't take the south road", truth: "true" },
+    ],
   },
   {
     id: "appleby", name: "The Applebys", rank: "craft", trade: "Greengrocers",
@@ -257,11 +387,20 @@ export const FAMILIES: readonly Family[] = [
       { name: "Sarra Appleby", age: 36, role: "His wife" },
       { name: "\"Uncle\"", age: 19, role: "A sheep (once Tam Appleby, Hob's nephew?)", note: "Turned up the day Hob's nephew Tam went into the Witchwood after a strayed cow. It stares, follows Sarra to church and won't eat grass." },
     ],
-    story: "Market gardeners who came into the city two generations ago. Their wagons still go down to the farms at the Witchwood's edge.",
+    story: "Turnip farmers who came into the city after the hard winter of 512 AF. Their wagons still go down to the farms at the Witchwood's edge.",
     customs: ["Sets a place at the table for Tam", "Brings the first apples of the year to the fountain king"],
     stance: "defiant",
     mutter: "\"Tam always did like a turnip. Didn't you, Tam?\"",
     secret: "Hob is sure the sheep is Tam, turned by a red-robed one in the wood, and he's asked Old Mother Larke to turn him back.",
+    ties: [
+      { to: "larke", how: "Asked Old Mother Larke to turn Uncle back" },
+      { to: "garth", how: "Sarra and Moll Garth are cousins" },
+      { to: "grison", how: "Rent the Grisons a turnip cart" },
+    ],
+    rumours: [
+      { says: "The sheep is Tam", truth: "true" },
+      { says: "The Applebys have gone soft in the head", truth: "false" },
+    ],
   },
   {
     id: "dunn", name: "The Dunns", rank: "craft", trade: "Potters",
@@ -276,6 +415,14 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Fires a crock for every baby born on the street", "Breaks a pot at the cross for a broken bargain"],
     stance: "quiet",
     mutter: "\"The kiln wouldn't light the morning after the storm. Then it lit itself.\"",
+    ties: [
+      { to: "pike", how: "Glazed the Bell's sign" },
+      { to: "larke", how: "Sell Old Mother Larke her jars" },
+    ],
+    rumours: [
+      { says: "The Dunns' kiln is haunted", truth: "half" },
+      { says: "The blue glaze is made of sapphires", truth: "false" },
+    ],
   },
   {
     id: "leafwright", name: "The Leafwrights", rank: "merchant", trade: "Goldbeaters to the crown",
@@ -291,6 +438,15 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Gilds the fountain king's crown on Gilding Day, by royal warrant", "Wears a gold leaf pressed into the wax of every letter"],
     stance: "loyal",
     mutter: "\"Gold doesn't rust and kings don't lie.\"",
+    ties: [
+      { to: "harrow", how: "Joan is engaged to Piers" },
+      { to: "quill", how: "Joan admires Benet's handwriting" },
+      { to: "aurel", how: "The crown is their only customer, and owes them" },
+    ],
+    rumours: [
+      { says: "The Leafwrights are the richest family in the city", truth: "false" },
+      { says: "The gold leaf on the bridge is fake", truth: "half" },
+    ],
   },
   {
     id: "grison", name: "The Grisons", rank: "merchant", trade: "Moneylenders",
@@ -300,11 +456,22 @@ export const FAMILIES: readonly Family[] = [
       { name: "Benedict Grison", age: 63, role: "Moneylender", note: "Holds the Crown's notes for the bridge." },
       { name: "Lucia Grison", age: 35, role: "His daughter and partner", note: "The cleverest person on the square." },
     ],
-    story: "Came from over the sea a century ago and lent to three kings. They trust no edict.",
+    story: "Came from over the sea in 436 AF with three chests of coin, and have lent to five kings. They trust no edict.",
     customs: ["Counts the strongbox at every curfew bell", "Lends nothing on Founder's Night"],
     stance: "quiet",
     mutter: "\"We're calling in the bridge loans. For no reason at all.\"",
     secret: "They've bought a house in a northern port and are moving their coin there one cart a week.",
+    ties: [
+      { to: "aurel", how: "Hold the crown's bridge notes; Lucia meets Prince Edmund" },
+      { to: "ashcombe", how: "Owed 4,000 crowns" },
+      { to: "fitzwaren", how: "Owed 900 crowns by Hugh" },
+      { to: "appleby", how: "Move their coin north under the Applebys' turnips" },
+    ],
+    rumours: [
+      { says: "The Grisons are leaving", truth: "true" },
+      { says: "Lucia Grison is sweet on the Prince", truth: "true" },
+      { says: "The Grisons have a vault under the square", truth: "false" },
+    ],
   },
   {
     id: "quill", name: "The Quills", rank: "craft", trade: "Town clerk and scriveners",
@@ -315,10 +482,19 @@ export const FAMILIES: readonly Family[] = [
       { name: "Alice Quill", age: 40, role: "His wife, a scrivener" },
       { name: "Benet Quill", age: 16, role: "Son, apprentice scrivener", note: "Copies Jack Linnet's song by night and slips it under doors." },
     ],
-    story: "Clerks to the guildhall for a century. They've written down every law of the city, and Simon has begun to keep a second, private record.",
+    story: "Clerks to the guildhall since the first Quill lent the first Ashcombe his quill in 226 AF. They've written down every law of the city, and Simon has begun to keep a second, private record.",
     customs: ["Records every birth, wedding and arrest in the city book", "Burns the year's spoiled pages on Founder's Night"],
     stance: "quiet",
     mutter: "\"I only read it out. I didn't write it.\"",
+    ties: [
+      { to: "maddox", how: "Keeps a private record in the Crown's cellar" },
+      { to: "linnet", how: "Benet copies Jack's song" },
+      { to: "leafwright", how: "Benet and Joan Leafwright" },
+    ],
+    rumours: [
+      { says: "Someone's posting Jack Linnet's song under doors", truth: "true" },
+      { says: "Master Quill wrote the Edict", truth: "false" },
+    ],
   },
   {
     id: "fell", name: "The Fells", rank: "labouring", trade: "The Ranger's family; laundress",
@@ -334,6 +510,18 @@ export const FAMILIES: readonly Family[] = [
     customs: ["The grey cloak at the window", "Whistles the Ranger's call across the lanes at dusk"],
     stance: "defiant",
     mutter: "\"He said they were kind. He said that was the frightening part.\"",
+    ties: [
+      { to: "hawke", how: "Notes to and from Wystan by goshawk" },
+      { to: "maddox", how: "Meg has a key to the Crown's cellar" },
+      { to: "linnet", how: "Wren and Robin Linnet are best friends" },
+      { to: "rudd", how: "Hob and Jory Rudd are going south" },
+      { to: "pryce", how: "Father Pryce has hidden a copy of the chronicle for them" },
+    ],
+    rumours: [
+      { says: "The Ranger is dead", truth: "false" },
+      { says: "The Ranger is a Vael spy", truth: "false" },
+      { says: "Hob Fell is going to run off south", truth: "true" },
+    ],
   },
   {
     id: "larke", name: "The Larkes", rank: "poor", trade: "Herbwife and wise-woman",
@@ -348,6 +536,16 @@ export const FAMILIES: readonly Family[] = [
     stance: "defiant",
     mutter: "\"Sand by the fire is backwards, dearie. It's the fire you want on your side.\"",
     secret: "Ivy can light a candle without a flint, and Tamsin has seen her do it.",
+    ties: [
+      { to: "harrow", how: "Feud with the Marshal; Lady Harrow buys her tea" },
+      { to: "appleby", how: "Trying to turn Uncle back" },
+      { to: "crane", how: "Old friends" },
+      { to: "waxley", how: "Buys beeswax for salves" },
+    ],
+    rumours: [
+      { says: "Old Mother Larke is a witch", truth: "half" },
+      { says: "Tamsin talks to a robed woman at the Witchwood's edge", truth: "true" },
+    ],
   },
   {
     id: "linnet", name: "The Linnets", rank: "poor", trade: "A jailed singer's family",
@@ -355,13 +553,23 @@ export const FAMILIES: readonly Family[] = [
     home: "Two rooms in a Wallside tenement by the south wall", household: 0,
     members: [
       { name: "Jack Linnet", age: 31, gone: true, role: "Ballad singer", note: "In the castle dungeon for his song about the Ranger's orb. Still singing it. The jailer joins in on the chorus." },
-      { name: "Kat Linnet", age: 29, role: "His widow, a spinner" },
+      { name: "Kat Linnet", age: 29, role: "His wife, a spinner" },
       { name: "Robin and Wenna", age: 8, count: 2, role: "Their children (8 and 6)", note: "Taught the Wallside children the song as nonsense words." },
     ],
     story: "Players and singers who came to the city for Gilding Day and stayed. Since Jack was locked up, the whole Wallside has quietly made sure they never go hungry.",
     customs: ["Sings at the cross on Lantern Night, without the words"],
     stance: "defiant",
     mutter: "\"Hum it. They can't arrest a hum.\"",
+    ties: [
+      { to: "hollin", how: "Fed from the Hollins' paid book" },
+      { to: "quill", how: "Benet copies the song" },
+      { to: "fell", how: "Robin and Wren Fell are best friends" },
+      { to: "tansy", how: "Daisy leaves the day's last flower on their step" },
+    ],
+    rumours: [
+      { says: "Jack Linnet is in the cell next to the Ranger", truth: "true" },
+      { says: "The song has a secret verse about the eggs", truth: "false" },
+    ],
   },
   {
     id: "rudd", name: "The Rudds", rank: "labouring", trade: "River fishers",
@@ -376,6 +584,14 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Throws back the first fish of the year for the river", "Never fishes on Founder's Night"],
     stance: "whispering",
     mutter: "\"The fish know before we do. They're all swimming north.\"",
+    ties: [
+      { to: "fell", how: "Jory will row Hob Fell upriver" },
+      { to: "maddox", how: "Sell fish to the Crown's kitchen" },
+    ],
+    rumours: [
+      { says: "The Rudds have a hoard of Bridge Blessing coins", truth: "true" },
+      { says: "The blue fire on the river was a Frost mage", truth: "true" },
+    ],
   },
   {
     id: "grubb", name: "The Grubbs", rank: "labouring", trade: "Lamplighters and chimney sweeps",
@@ -390,6 +606,15 @@ export const FAMILIES: readonly Family[] = [
     stance: "whispering",
     mutter: "\"The Marshal's own cook said it. Up his own chimney.\"",
     secret: "Dick knows who Gilbert Pike reports to, and when.",
+    ties: [
+      { to: "maddox", how: "Drink free at the Crown; Dick told Bethan about the Ranger" },
+      { to: "hammond", how: "Sell charcoal" },
+      { to: "pike", how: "Know who Gilbert reports to, and when" },
+    ],
+    rumours: [
+      { says: "Dick Grubb knows everyone's secrets", truth: "true" },
+      { says: "The Grubbs may go out after curfew", truth: "true" },
+    ],
   },
   {
     id: "bowyer", name: "The Bowyers", rank: "craft", trade: "Sergeant of Southgate",
@@ -404,6 +629,14 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Locks the gate himself at the curfew bell", "Keeps a tally on the gatepost of every soul who goes south and doesn't come back"],
     stance: "quiet",
     mutter: "\"Eleven marks on the post this year. Eleven.\"",
+    ties: [
+      { to: "harrow", how: "Serve the Marshal; Will is in Bran's bridge watch" },
+      { to: "linnet", how: "Tom brings Kat a basket every week, out of guilt" },
+    ],
+    rumours: [
+      { says: "The eleven who went south are dead", truth: "false" },
+      { says: "Tom Bowyer let a witch through the gate", truth: "true" },
+    ],
   },
   {
     id: "tansy", name: "The Tansys", rank: "poor", trade: "Flower sellers",
@@ -414,10 +647,19 @@ export const FAMILIES: readonly Family[] = [
       { name: "Pip Tansy", age: 10, role: "Her brother, a link-boy at night" },
       { name: "Gran Tansy", age: 68, role: "Their grandmother" },
     ],
-    story: "Orphans of the fever two winters ago, raised by their grandmother on what the flowers bring in.",
+    story: "Orphans of the Fever of 597 AF, raised by their grandmother on what the flowers bring in.",
     customs: ["Puts the day's last flower on the Linnets' step"],
     stance: "whispering",
     mutter: "\"Rowan's dearer than roses now.\"",
+    ties: [
+      { to: "aurel", how: "Pip lights Princess Rosamund's way home" },
+      { to: "fitzwaren", how: "Daisy hears the gossip at their gate" },
+      { to: "linnet", how: "The day's last flower goes on their step" },
+    ],
+    rumours: [
+      { says: "Pip Tansy knows the Princess", truth: "true" },
+      { says: "Rowan's dearer than roses now", truth: "true" },
+    ],
   },
 
   // ---- St Mary's, on East Street ----
@@ -432,6 +674,14 @@ export const FAMILIES: readonly Family[] = [
     stance: "loyal",
     mutter: "\"Pray, and don't speculate.\"",
     secret: "The Ranger's orb is in the treasury beside the three gilded \"altar stones\". The orb is still cold and the stones have begun to grow warm.",
+    ties: [
+      { to: "gale", how: "Rival: Gale wants his job" },
+      { to: "aurel", how: "Crowned Osric; the Queen pays for his grilles" },
+    ],
+    rumours: [
+      { says: "The Dean sleeps in the treasury", truth: "true" },
+      { says: "The Dean believes in dragons", truth: "half" },
+    ],
   },
   {
     id: "pryce", name: "The Pryces", rank: "clergy", trade: "Librarian of St Mary's",
@@ -446,6 +696,16 @@ export const FAMILIES: readonly Family[] = [
     stance: "quiet",
     mutter: "\"It was their temple. We're living in their house, and they want it back.\"",
     secret: "He has copied the chronicle and hidden the copy where the Fells can find it if he dies.",
+    ties: [
+      { to: "aurel", how: "Shares the chronicle's secret with the King" },
+      { to: "kellet", how: "Told Hugh Kellet the truth in 598 AF" },
+      { to: "fell", how: "Hid a copy of the chronicle for them" },
+      { to: "crane", how: "Checks the chronicle against her grandmother's stories" },
+    ],
+    rumours: [
+      { says: "There's a forbidden book in St Mary's library", truth: "true" },
+      { says: "Father Pryce prays for the witches on Founder's Night", truth: "true" },
+    ],
   },
   {
     id: "gale", name: "The Gales", rank: "clergy", trade: "Treasurer of St Mary's",
@@ -458,6 +718,14 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Hosts the clergy's Gilding Day dinner"],
     stance: "informer",
     mutter: "\"The Dean is getting old, and the Marshal is a good friend to have.\"",
+    ties: [
+      { to: "harrow", how: "Tells the Marshal things" },
+      { to: "thorne", how: "Wants to be Dean" },
+    ],
+    rumours: [
+      { says: "Father Gale is the Marshal's man", truth: "true" },
+      { says: "The treasury cats can see ghosts", truth: "half" },
+    ],
   },
   {
     id: "kellet", name: "The Kellets", rank: "craft", trade: "Master masons of St Mary's",
@@ -469,11 +737,19 @@ export const FAMILIES: readonly Family[] = [
       { name: "Ralph Kellet", age: 31, role: "Son, carver", note: "Carves the new gargoyles as robed figures with fire in their hands." },
       { name: "Isabel Kellet", age: 8, role: "Ralph's daughter" },
     ],
-    story: "Four generations building and rebuilding St Mary's. They know its foundations better than anyone, and know the oldest stones aren't the Founder's work.",
+    story: "Masons of St Mary's since Ulf Kellet laid its first stone in 88 AF. They know its foundations better than anyone, and know the oldest stones aren't the Founder's work.",
     customs: ["Sets a mason's mark into every stone they lay", "Pours cider on the foundation stone each Founder's Night"],
     stance: "defiant",
     mutter: "\"Devils, Your Grace. Just devils.\"",
     secret: "Under the crypt there's a door older than the church, carved with three flames, a snowflake and a lightning bolt. Hugh has sealed it twice and both times it was open by morning.",
+    ties: [
+      { to: "pryce", how: "Knows the chronicle through Father Pryce" },
+      { to: "waxley", how: "Isabel and Tibby Waxley explore the crypt" },
+    ],
+    rumours: [
+      { says: "The new gargoyles are a message to the witches", truth: "true" },
+      { says: "Something lives under St Mary's", truth: "true" },
+    ],
   },
   {
     id: "waxley", name: "The Waxleys", rank: "craft", trade: "Chandlers to St Mary's",
@@ -488,6 +764,13 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Gives a candle to every pilgrim who asks for one in the Founder's name"],
     stance: "whispering",
     mutter: "\"Three times the candles. Everyone's praying about the weather.\"",
+    ties: [
+      { to: "kellet", how: "Tibby and Isabel Kellet explore the crypt" },
+      { to: "larke", how: "Sell Old Mother Larke beeswax" },
+    ],
+    rumours: [
+      { says: "The Waxleys' bees make magic honey", truth: "half" },
+    ],
   },
 
   // ---- The almshouse ----
@@ -501,6 +784,15 @@ export const FAMILIES: readonly Family[] = [
     customs: ["Sits at the almshouse door every evening, facing south"],
     stance: "defiant",
     mutter: "\"Mother sleeps a long time, dearie. But she always wakes up hungry.\"",
+    ties: [
+      { to: "aurel", how: "Plays cards with Dowager Hild every Thursday, and cheats" },
+      { to: "larke", how: "Ivy's grandmother delivered her first baby" },
+      { to: "pryce", how: "Father Pryce checks the chronicle against her stories" },
+    ],
+    rumours: [
+      { says: "Widow Crane cheats at cards", truth: "true" },
+      { says: "Widow Crane has met the Old Mother", truth: "half" },
+    ],
   },
 ];
 
