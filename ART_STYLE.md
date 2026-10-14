@@ -40,7 +40,7 @@ The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a roun
 | Helm | Hood with a backward-leaning tip; the eyes move forward into its opening |
 | Armor | Robe and mantle; the feet move forward to peek out from under the hem |
 | Boots | Chunky boots with a trim cuff replace the stub feet |
-| Weapon | A sword or a fishing pole, held by the front hand |
+| Weapon | A sword, a bow (oak limbs, tier-coloured grip wrap and tips, bone string) or a fishing pole, held by the front hand |
 | Amulet | A chain and a glowing pendant on the chest |
 | Ring | A small glowing ring orbiting the body |
 
@@ -93,6 +93,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | jump | Squash on take-off, stretch in the air, blob shadow shrinks |
 | dash | Hard forward lean and stretch, a dust puff on take-off, fading `mana` afterimages |
 | attack | Weapon winds up behind, then thrusts forward exactly when the hit lands in game logic. Unarmed: alternating punches (pull back, jab with a body twist, recover) on the same timing |
+| bow | Drawing holds the bow out toward the aim while the back hand pulls the string back to the nock with an arrow on it; a full draw makes the arrowhead pulse gold. Arrows fly as oak shafts with ember fletching and stick in trees |
 | hands | Hover at the sides and breathe; swing opposite the feet when walking; trail behind on a dash; go up on a jump; paddle while swimming |
 | hurt | Model blinks while invulnerable |
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |

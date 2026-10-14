@@ -132,7 +132,7 @@ function randomGrassSpot(minDist) {
 }
 
 // ---------- State ----------
-let player, slimes, potions, loot, effects, kills, state, clock, spawnTimer;
+let player, slimes, potions, loot, arrows, effects, kills, state, clock, spawnTimer;
 
 // ---------- Inventory ----------
 const inv = createInventory({
@@ -162,10 +162,10 @@ function reset() {
   view.setMap(map);
   seed = Date.now() % 100000 + 1;
   player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
-  slimes = []; potions = []; loot = []; effects = [];
+  slimes = []; potions = []; loot = []; arrows = []; effects = [];
   // Start naked, with a plain starter set in the bag to put on.
   inv.reset([]);
-  for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"]]) inv.add(makeItem(type, "normal", {}, name));
+  for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"], ["bow", "Old Short Bow"]]) inv.add(makeItem(type, "normal", {}, name));
   kills = 0; clock = 0; spawnTimer = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
   for (let i = 0; i < 5; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }
@@ -244,6 +244,8 @@ function setState(s) {
 const PLAYER_SPEED = 42, SWIM_SPEED = 24, JUMP_TIME = 0.45, ATTACK_TIME = 0.3;
 const DASH_TIME = 0.18, DASH_SPEED = 160, DASH_COOLDOWN = 0.6;   // ~29px, about 3.5 tiles
 const CAST_TIME = 0.4, BITE_WINDOW = 0.9, CAST_MIN = 10, CAST_MAX = 40;   // reach: about 5 tiles
+// Bow: hold to draw (full power at DRAW_TIME), release to shoot. Drawn, you move at DRAW_SLOW speed.
+const DRAW_TIME = 0.6, DRAW_SLOW = 0.45, ARROW_LIFE = 0.45, BOW_COOLDOWN = 0.25;
 
 // Where a cast would land: exactly at the cursor, pulled in to the pole's reach.
 // Without a mouse it goes 3 tiles along the aim.
@@ -296,7 +298,7 @@ function updatePlayer(dt) {
   else if (ix || iy) p.aim = Math.atan2(iy, ix);
   p.face = Math.cos(p.attack > 0 ? p.swingAim : p.aim) >= 0 ? 1 : -1;
   const len = Math.hypot(ix, iy) || 1;
-  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * p.speedMul;
+  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * p.speedMul;
   p.moving = ix !== 0 || iy !== 0;
   if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && p.attack <= 0) {
     p.dash = DASH_TIME; p.dashCooldown = DASH_COOLDOWN * p.dashMul; [p.dashX, p.dashY] = dashRequest;
@@ -332,6 +334,18 @@ function updatePlayer(dt) {
       }
     }
   }
+  // With a bow: press draws, release shoots along the aim. The bow never swings.
+  const bow = p.gear && p.gear.weaponType === "bow";
+  if (!bow) p.draw = null;
+  if (bow) {
+    if (attackPressed && !p.draw && p.cooldown <= 0 && !p.swimming) p.draw = { t: 0 };
+    attackPressed = false;
+    if (p.draw) {
+      p.draw.t += dt;
+      if (p.swimming || p.dash > 0 || p.jump > 0) p.draw = null;
+      else if (attackReleased) { shootArrow(p); p.draw = null; p.cooldown = BOW_COOLDOWN; }
+    }
+  }
   if (attackPressed && p.cooldown <= 0 && !p.swimming) { p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim; }
   if (p.attack > 0) {
     p.attack = Math.max(0, p.attack - dt);
@@ -363,6 +377,36 @@ function updatePlayer(dt) {
   }
 }
 
+// ---------- Arrows ----------
+// Speed (and so range) grows with draw time; a full draw is a power shot with +1 damage.
+function shootArrow(p) {
+  const charge = Math.min(1, p.draw.t / DRAW_TIME), power = charge >= 1;
+  const speed = 110 + 130 * charge;
+  arrows.push({
+    x: p.x + 4 + Math.cos(p.aim) * 5, y: p.y + 4 + Math.sin(p.aim) * 5,
+    vx: Math.cos(p.aim) * speed, vy: Math.sin(p.aim) * speed,
+    life: ARROW_LIFE, damage: p.damage + (power ? 1 : 0), power, stuck: 0,
+  });
+}
+
+function updateArrows(dt) {
+  for (const a of arrows) {
+    if (a.stuck > 0) { a.stuck -= dt; continue; }          // embedded in a tree for a moment
+    a.x += a.vx * dt; a.y += a.vy * dt; a.life -= dt;
+    if (tileAt(a.x, a.y) === TREE) { a.stuck = 1.5; a.vx = a.vy = 0; a.life = 1; continue; }
+    for (const s of slimes) {
+      if (Math.hypot(s.x + 4 - a.x, s.y + 4 - a.y) < 5) {
+        const d = Math.hypot(a.vx, a.vy) || 1;
+        s.hp -= a.damage; s.flash = 0.15; s.vx = (a.vx / d) * 90; s.vy = (a.vy / d) * 90; s.timer = 0.6;
+        effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
+        a.life = 0; a.hit = true;
+        break;
+      }
+    }
+  }
+  arrows = arrows.filter(a => a.stuck > 0 || (a.life > 0 && !a.hit));
+}
+
 function updateSlimes(dt) {
   const p = player;
   for (const s of slimes) {
@@ -380,7 +424,7 @@ function updateSlimes(dt) {
       s.hop = 0.3; s.timer = 0.7 + rand() * 0.7;
     }
     if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) {
-      p.hp--; p.hurt = 1; p.fishing = null; p.windup = null;
+      p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null;
       const d = Math.hypot(p.x - s.x, p.y - s.y) || 1;
       p.vx = (p.x - s.x) / d * 110; p.vy = (p.y - s.y) / d * 110;
       if (p.hp <= 0) setState("dead");
@@ -404,7 +448,7 @@ function updateSlimes(dt) {
 
 // ---------- Render ----------
 // The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
-const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME });
+const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME });
 const hudCanvas = document.getElementById("hudCanvas");
 const hg = hudCanvas.getContext("2d");
 let pixelSize = 3;
@@ -418,7 +462,7 @@ function resize() {
 addEventListener("resize", resize);
 
 function render(dt) {
-  view.render({ player, slimes, potions, loot, effects, clock }, dt);
+  view.render({ player, slimes, potions, loot, arrows, effects, clock }, dt);
   hg.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
   for (let i = 0; i < player.maxHp; i++) {
     const h = i < player.hp ? ART.heart.full : ART.heart.empty;
@@ -470,7 +514,7 @@ function loop(now) {
     clock += dt;
     updateResetHold(dt);
     updatePlayer(dt);
-    if (state === "play") updateSlimes(dt);
+    if (state === "play") { updateArrows(dt); updateSlimes(dt); }
     for (const e of effects) e.t -= dt;
     effects = effects.filter(e => e.t > 0);
   }
@@ -479,7 +523,7 @@ function loop(now) {
 }
 
 // Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
-window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, inv, view };
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, inv, view };
 
 resize();
 reset();

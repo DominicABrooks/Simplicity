@@ -11,6 +11,7 @@ const BASES = {
   boots:  { name: "Boots",  slot: "boots",  w: 2, h: 2, base: { speed: 5 } },
   ring:   { name: "Ring",   slot: "ring",   w: 1, h: 1, base: {} },
   amulet: { name: "Amulet", slot: "amulet", w: 1, h: 1, base: {} },
+  bow:    { name: "Bow",    slot: "weapon", w: 2, h: 3, base: { damage: 1 }, note: "Hold to draw, release to shoot. Full draw: +1 damage" },
   // Not in the random loot table: the pole is a starter item and fish come from fishing.
   rod:    { name: "Fishing Pole", slot: "weapon", w: 1, h: 3, base: {}, noLoot: true, note: "Aim at water and click to cast" },
   fish:   { name: "Koi", slot: null, w: 2, h: 1, base: {}, noLoot: true },

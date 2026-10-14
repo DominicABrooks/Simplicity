@@ -35,5 +35,6 @@ export const ICON_SWAPS = {
   ring:   { Y: "metal", C: "gem" },
   amulet: { Y: "metal", R: "gem", n: "metalDark" },
   rod:    {},
+  bow:    { B: "cloth", b: "dark", Y: "metal" },
   fish:   { O: "fishMain", W: "fishAccent" },
 };

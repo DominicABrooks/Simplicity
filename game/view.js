@@ -368,6 +368,12 @@ export function createView(canvas, PAL, C) {
       else if (p.jump > 0) { x = 0.05; y = 0.75; z = side * 0.42; }   // up in the air
       else if (p.moving) { x = 0.12 + Math.sin(t * 12 + i * Math.PI) * 0.12; y += Math.abs(Math.sin(t * 12)) * 0.04; }
 
+      if (i === 1 && sw.visible && h.bow && p.draw) {       // back hand pulls the bowstring
+        sw.updateMatrix();
+        grip.set(h.bow.nockX - 0.02, 0, 0).applyMatrix4(sw.matrix);
+        hand.position.copy(grip);
+        return;
+      }
       if (i === 0 && sw.visible) {                          // front hand holds the weapon's grip
         sw.updateMatrix();
         grip.set(0, h.gripY, 0).applyMatrix4(sw.matrix);
@@ -510,8 +516,24 @@ export function createView(canvas, PAL, C) {
       band.position.set(0.52, 0.45, 0);
       h.ring.add(band);
     }
-    h.rodTip = null;
-    if (g.weaponType === "rod") {
+    h.rodTip = null; h.bow = null;
+    if (g.weaponType === "bow") {
+      const T = TIERS[g.weapon];
+      const wood = lambert(PAL.N), wrap = lambert(T.cloth), tipMat = lambert(T.metal, { emissive: col(T.metal), emissiveIntensity: T.glow });
+      // Limbs curve forward (+X) away from the string; the grip sits at the group origin.
+      const limb = (s) => { const m = new THREE.Mesh(box(0.045, 0.3, 0.05), wood); m.position.set(0.06, s * 0.2, 0); m.rotation.z = s * 0.35; return m; };
+      const limb2 = (s) => { const m = new THREE.Mesh(box(0.04, 0.16, 0.045), wood); m.position.set(0.0, s * 0.4, 0); m.rotation.z = s * -0.25; return m; };
+      const gripM = new THREE.Mesh(box(0.06, 0.15, 0.07), wrap); gripM.position.x = 0.08;
+      const tips = [1, -1].map(s => { const m = new THREE.Mesh(box(0.05, 0.05, 0.06), tipMat); m.position.set(-0.03, s * 0.48, 0); return m; });
+      const stringGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.03, 0.48, 0), new THREE.Vector3(-0.03, 0, 0), new THREE.Vector3(-0.03, -0.48, 0)]);
+      const string = new THREE.Line(stringGeo, new THREE.LineBasicMaterial({ color: col(PAL.W) }));
+      // Nocked arrow, shown while drawing.
+      const arrow = makeArrowMesh();
+      arrow.visible = false;
+      h.sword.add(limb(1), limb(-1), limb2(1), limb2(-1), gripM, ...tips, string, arrow);
+      h.bow = { string, arrow };
+      h.gripY = 0;
+    } else if (g.weaponType === "rod") {
       const oak = lambert(PAL.N), dark = lambert(PAL.n);
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.035, 1.3, 4).translate(0, 0.6, 0), oak);
       const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 5).translate(0, -0.05, 0), dark);
@@ -582,7 +604,26 @@ export function createView(canvas, PAL, C) {
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0.18, 0, 0), new THREE.Vector3(-0.1, 0, -0.14), new THREE.Vector3(-0.1, 0, 0.14)]),
     basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
   scene.add(reticle);
-  const slimeViews = new Map(), potionViews = new Map(), lootViews = new Map();
+  const slimeViews = new Map(), potionViews = new Map(), lootViews = new Map(), arrowViews = new Map();
+  // Arrow: oak shaft along +X, stone head, ember fletching. The head glows on a power shot.
+  function makeArrowMesh(power = false) {
+    const g = new THREE.Group();
+    const shaft = new THREE.Mesh(box(0.42, 0.025, 0.025), lambert(PAL.N)); shaft.position.x = 0.21;
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.09, 4).rotateZ(-Math.PI / 2), lambert(PAL.w, { emissive: col(PAL.Y), emissiveIntensity: power ? 1 : 0 }));
+    tip.position.x = 0.45;
+    const fletch = new THREE.Mesh(box(0.1, 0.06, 0.01), lambert(PAL.R)); fletch.position.x = 0.04;
+    g.add(shaft, tip, fletch);
+    g.userData.tip = tip;
+    return g;
+  }
+  function makeArrowView(a) {
+    const group = new THREE.Group(), mesh = makeArrowMesh(a.power);
+    mesh.position.x = -0.24;                                // centre the arrow on its game position
+    group.add(mesh);
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.scale.set(0.5, 1, 0.15); shadow.position.y = 0.01;
+    scene.add(group, shadow);
+    return { group, shadow };
+  }
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
   const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C) };
   let sparks = [];
@@ -657,7 +698,20 @@ export function createView(canvas, PAL, C) {
     hero.ring.position.y = Math.sin(t * 2.4) * 0.05;
     const rod = p.gear && p.gear.weaponType === "rod";
     const fishing = p.fishing;
-    if (rod && p.windup) {
+    if (hero.bow) {
+      const c = p.draw ? Math.min(1, p.draw.t / C.DRAW_TIME) : 0;
+      if (p.draw) { sw.position.set(0.42, 0.5, 0.06); sw.rotation.set(0, 0, 0); }      // held out toward the aim
+      else { sw.position.set(0.08, 0.45, 0.48); sw.rotation.set(0, 0, -0.25 + Math.sin(t * 1.7) * 0.04); }
+      // Pull the string back to the nock; the nocked arrow rides on it.
+      const nockX = -0.03 - 0.3 * c;
+      hero.bow.nockX = nockX;
+      const sp = hero.bow.string.geometry.attributes.position;
+      sp.setX(1, nockX); sp.needsUpdate = true;
+      const ar = hero.bow.arrow;
+      ar.visible = !!p.draw;
+      ar.position.set(nockX + 0.02, 0, 0);
+      ar.userData.tip.material.emissiveIntensity = c >= 1 ? 0.9 + Math.sin(t * 20) * 0.3 : 0;
+    } else if (rod && p.windup) {
       const pull = Math.min(1, p.windup.t / 0.5);
       sw.position.set(0.1, 0.5, 0.3);
       sw.rotation.set(0, 0, 0.9 + pull * 0.35 + Math.sin(t * 40) * 0.02 * pull);
@@ -711,6 +765,16 @@ export function createView(canvas, PAL, C) {
       v.group.position.set(x, 0.06 + Math.sin(t * 3 + o.x) * 0.06, z);
       v.group.rotation.y = t * 1.5 + o.x;
       v.shadow.position.set(x, 0.01, z);
+    }
+
+    // Arrows in flight (and stuck in trees)
+    syncSet(s.arrows, arrowViews, makeArrowView);
+    for (const [a, v] of arrowViews) {
+      const [x, z] = toWorld(a.x - 4, a.y - 4);
+      v.group.position.set(x, a.stuck > 0 ? 0.6 : 0.5, z);
+      if (a.stuck <= 0) v.group.rotation.set(0, -Math.atan2(a.vy, a.vx), 0);
+      v.shadow.position.set(x, 0.01, z);
+      v.shadow.visible = a.stuck <= 0;
     }
 
     // Loot on the ground
