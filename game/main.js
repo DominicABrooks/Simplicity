@@ -809,8 +809,8 @@ let pixelSize = 3;
 function resize() {
   pixelSize = Math.max(2, Math.round(innerHeight / 300));
   // UI panels measure in game pixels too, so they scale in step with the world, stepping down a
-  // size when the inventory (about 254 x 176 game pixels) wouldn't fit the window.
-  const ui = Math.max(1, Math.min(pixelSize, Math.floor((innerHeight - 32) / 254), Math.floor((innerWidth - 32) / 176)));
+  // size when the inventory (about 205 x 136 game pixels) wouldn't fit the window.
+  const ui = Math.max(1, Math.min(pixelSize, Math.floor((innerHeight - 32) / 205), Math.floor((innerWidth - 32) / 136)));
   document.documentElement.style.setProperty("--u", `${ui}px`);
   inv.setScale(ui);
   view.resize(pixelSize);

@@ -2,16 +2,17 @@
 // Items live entirely here; the game asks for stat totals and hands over picked-up loot.
 
 export const COLS = 10, ROWS = 5;
-// The inventory is sized in game pixels so it scales with the world: one cell is 16 game pixels,
-// and an icon's art pixel is 2 game pixels. UI is the screen size of one game pixel (set on resize).
-const CELL_UNITS = 16, ART_UNITS = 2;
+// The inventory is sized in game pixels so it scales with the world: one cell is 12 game pixels and
+// icon art is drawn 1:1 in game pixels, like the hearts. UI is the screen size of one game pixel.
+const CELL_UNITS = 12, ART_UNITS = 1;
 let UI = 2, CELL = CELL_UNITS * UI;
 
-// Icon <img> at an exact integer scale: art is 8 px per cell plus a 1 px outline all round,
-// so the outline overhangs the box by one art pixel on each side.
+// Icon <img> at an exact integer scale, centred in its box. Art is 8 px per cell plus a 1 px outline
+// all round, so a w x h icon is (8w+2) x (8h+2) art pixels and always fits inside its 12-unit cells.
+const iconSize = (w, h) => [(8 * w + 2) * ART_UNITS * UI, (8 * h + 2) * ART_UNITS * UI];
 function sizeIcon(img, w, h) {
-  const k = ART_UNITS * UI;
-  Object.assign(img.style, { width: `${(8 * w + 2) * k}px`, height: `${(8 * h + 2) * k}px`, left: `${-k}px`, top: `${-k}px` });
+  const [iw, ih] = iconSize(w, h);
+  Object.assign(img.style, { width: `${iw}px`, height: `${ih}px`, left: `${(w * CELL - iw) / 2}px`, top: `${(h * CELL - ih) / 2}px` });
 }
 
 // Base item types. w/h are inventory cells; icons come from art/items.
@@ -153,7 +154,7 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
     equipEl.innerHTML = "";
     for (const [slot, s] of Object.entries(SLOTS)) {
       const box = document.createElement("div");
-      box.className = "slot";
+      box.className = "slot"; box.dataset.slot = slot;
       Object.assign(box.style, { left: `${s.x * CELL}px`, top: `${s.y * CELL}px`, width: `${s.w * CELL}px`, height: `${s.h * CELL}px` });
       if (equip[slot]) {
         // Centre items narrower or shorter than the slot (a 1x3 blade in the 2x3 weapon slot).
@@ -162,8 +163,8 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
         box.append(el);
       } else {                                              // empty slot: faded silhouette of what goes there
         const ghost = new Image(); ghost.src = icons[SLOT_ICON[slot]].normal; ghost.alt = s.label; ghost.className = "ghost"; ghost.draggable = false;
-        const gb = BASES[SLOT_ICON[slot]], k = ART_UNITS * UI;
-        Object.assign(ghost.style, { width: `${(8 * gb.w + 2) * k}px`, height: `${(8 * gb.h + 2) * k}px` });
+        const [gw, gh] = iconSize(BASES[SLOT_ICON[slot]].w, BASES[SLOT_ICON[slot]].h);
+        Object.assign(ghost.style, { width: `${gw}px`, height: `${gh}px` });
         box.title = s.label;
         box.append(ghost);
       }
@@ -257,22 +258,27 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
     } else {
       grid = grid.filter(e => e !== entry);
       held = entry.item;
+      dragStart = { x: ev.clientX, y: ev.clientY };
     }
     hideTip(); changed();
   }
 
   function onSlot(ev, slot) {
     ev.stopPropagation(); ev.preventDefault(); ev.simplicityHandled = true;
-    if (held) {
-      if (held.slot !== slot) return;
-      const old = equip[slot];
-      equip[slot] = held;
-      held = old || null;
-    } else if (equip[slot]) {
+    if (held) putInSlot(slot);
+    else if (equip[slot]) {
       if (ev.button === 2) { if (add(equip[slot])) { equip[slot] = null; } }
-      else { held = equip[slot]; equip[slot] = null; }
+      else { held = equip[slot]; equip[slot] = null; dragStart = { x: ev.clientX, y: ev.clientY }; }
     }
     hideTip(); changed();
+  }
+
+  // Equip the held item in a slot, picking up whatever was there.
+  function putInSlot(slot) {
+    if (!held || held.slot !== slot) return;
+    const old = equip[slot];
+    equip[slot] = held;
+    held = old || null;
   }
 
   function placeHeld(ev) {
@@ -303,8 +309,49 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
   }, true);
   addEventListener("mousemove", ev => { mouse = { x: ev.clientX, y: ev.clientY }; moveHeld(); placeTip(); });
 
+  // Drag and drop: press on an item, move, and release over a cell, a slot or the world.
+  // A press and release without moving stays click-to-pick, click-to-place.
+  let dragStart = null;
+  addEventListener("mouseup", ev => {
+    if (!held || !dragStart || ev.button !== 0) { dragStart = null; return; }
+    const moved = Math.hypot(ev.clientX - dragStart.x, ev.clientY - dragStart.y) >= 5;
+    dragStart = null;
+    if (!moved) return;
+    mouse = { x: ev.clientX, y: ev.clientY };
+    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+    const slotBox = target && target.closest(".slot");
+    if (slotBox) putInSlot(slotBox.dataset.slot);
+    else if (target && gridEl.contains(target)) { placeHeld(); return; }
+    else if (!target || !panel.contains(target)) { onDrop(held); held = null; }
+    changed();
+  });
+
+  // The panel is a window: drag it by its title bar. It stays on screen and remembers where it was.
+  const handle = panel.querySelector("h2");
+  let panelDrag = null;
+  function placePanel(x, y) {
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    x = Math.max(0, Math.min(innerWidth - w, x)); y = Math.max(0, Math.min(innerHeight - h, y));
+    Object.assign(panel.style, { left: `${x}px`, top: `${y}px`, right: "auto", transform: "none" });
+    try { localStorage.setItem("simplicity.inventoryPos", JSON.stringify([x, y])); } catch {}
+  }
+  handle.addEventListener("mousedown", ev => {
+    if (ev.button !== 0) return;
+    const r = panel.getBoundingClientRect();
+    panelDrag = { dx: ev.clientX - r.left, dy: ev.clientY - r.top };
+  });
+  addEventListener("mousemove", ev => { if (panelDrag) placePanel(ev.clientX - panelDrag.dx, ev.clientY - panelDrag.dy); });
+  addEventListener("mouseup", () => { panelDrag = null; });
+  function restorePanel() {
+    try {
+      const pos = JSON.parse(localStorage.getItem("simplicity.inventoryPos"));
+      if (Array.isArray(pos)) placePanel(pos[0], pos[1]);
+    } catch {}
+  }
+
   function setOpen(open) {
     panel.hidden = !open;
+    if (open) restorePanel();
     if (!open) {
       hideTip();
       if (held) { if (!add(held)) onDrop(held); held = null; changed(); }
@@ -322,7 +369,7 @@ export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => 
   return {
     add, reset, stats,
     refresh: changed,                                       // re-total stats (after a level-up)
-    setScale(px) { UI = px; CELL = CELL_UNITS * UI; render(); },   // px = screen size of one game pixel
+    setScale(px) { UI = px; CELL = CELL_UNITS * UI; render(); if (!panel.hidden) restorePanel(); },   // px = one game pixel on screen
     toggle: () => setOpen(panel.hidden),
     close: () => setOpen(false),
     isOpen: () => !panel.hidden,
