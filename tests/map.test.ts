@@ -35,3 +35,17 @@ describe("makeMap", () => {
     expect(makeMap().tiles).toEqual(map.tiles);
   });
 });
+
+describe("the camp", () => {
+  const map = makeMap();
+
+  it("stands on open ground near the spawn, and the spawn is free to move", async () => {
+    const { CAMP_SOLIDS } = await import("../src/data/world.ts");
+    const { blocked } = await import("../src/world/collision.ts");
+    for (const r of CAMP_SOLIDS)
+      for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++)
+        expect(isOpenGround(map.tiles[Math.floor(y / T)]![Math.floor(x / T)]!)).toBe(true);
+    expect(blocked(map, SPAWN.x, SPAWN.y, true)).toBe(false);
+    expect(blocked(map, CAMP_SOLIDS[1]!.x, CAMP_SOLIDS[1]!.y - 4, true)).toBe(true);   // walking into the fire
+  });
+});

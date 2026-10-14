@@ -1,11 +1,13 @@
 import { Rng } from "../core/rng.ts";
-import { MAP_H, MAP_SEED, MAP_W, SPAWN, T, Tile } from "../data/world.ts";
+import { CAMP_SOLIDS, MAP_H, MAP_SEED, MAP_W, SPAWN, T, Tile, type Rect } from "../data/world.ts";
 
 /** The tile grid, indexed [y][x]. */
 export interface TileMap {
   width: number;
   height: number;
   tiles: Tile[][];
+  /** Things that block movement off the tile grid (the camp's tent and fire), in game pixels. */
+  solids: readonly Rect[];
 }
 
 export const tileOf = (map: TileMap, tx: number, ty: number): Tile =>
@@ -66,11 +68,11 @@ export function makeMap(seed = MAP_SEED): TileMap {
   for (let y = 0; y < H; y++) { set(0, y, Tile.Tree); set(W - 1, y, Tile.Tree); }
 
   // Fill any meadow the groves cut off, so nothing spawns where you can't reach it.
-  const reached = reachableFrom({ width: W, height: H, tiles }, sx, sy);
+  const reached = reachableFrom({ width: W, height: H, tiles, solids: [] }, sx, sy);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
     if (isOpenGround(at(x, y)) && !reached.has(y * W + x)) set(x, y, Tile.Tree);
 
-  return { width: W, height: H, tiles };
+  return { width: W, height: H, tiles, solids: CAMP_SOLIDS };
 }
 
 /** Every non-tree tile reachable from (tx, ty) by stepping up, down, left or right. Keys are y * width + x. */

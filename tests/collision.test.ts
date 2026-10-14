@@ -9,6 +9,7 @@ const G = Tile.Grass, X = Tile.Tree, W = Tile.Water;
 const map: TileMap = {
   width: 6,
   height: 6,
+  solids: [{ x: 16, y: 32, w: 6, h: 6 }],
   tiles: [
     [X, X, X, X, X, X],
     [X, G, G, G, G, X],
@@ -41,6 +42,15 @@ describe("collision", () => {
     const p = { x: T, y: T };
     moveBy(map, p, -3, 2, false);                           // the wall stops x, y still moves
     expect(p).toEqual({ x: T, y: T + 2 });
+  });
+
+  it("blocks solids, by the feet box", () => {
+    expect(blocked(map, 16, 24, false)).toBe(false);          // standing just above: feet clear of it
+    expect(blocked(map, 16, 26, false)).toBe(true);
+    expect(blocked(map, 20, 32, false)).toBe(true);           // feet x 21..27 vs solid 16..22
+    expect(blocked(map, 21, 32, false)).toBe(false);
+    expect(blocked(map, 10, 32, false)).toBe(true);
+    expect(blocked(map, 9, 32, false)).toBe(false);
   });
 
   it("overlaps within 6 px on both axes", () => {

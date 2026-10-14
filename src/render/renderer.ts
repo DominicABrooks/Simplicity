@@ -6,6 +6,7 @@ import { PAL } from "../data/palette.ts";
 import { HALF } from "../data/world.ts";
 import type { Game } from "../game/game.ts";
 import { createAmbient } from "./ambient.ts";
+import { buildCamp, type Camp } from "./camp.ts";
 import { PX_PER_TILE, createContext, toWorld } from "./context.ts";
 import { createFishingView } from "./fishing.ts";
 import { createFxView } from "./fx.ts";
@@ -51,11 +52,13 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const fx = createFxView(ctx);
   const hero = createHeroView(ctx);
   const renderEntities = createRenderSystem(ctx);
+  let camp: Camp | null = null;
 
   // A new run: rebuild the scenery and jump the camera to the hero.
   g.events.on("reset", ({ map }) => {
     world.clear();
     world.add(buildTerrain(ctx, map));
+    camp = buildCamp(ctx, world);
     koi.setMap(map, world);
     ambient.setMap(map);
     const p = g.world.need(g.player, "transform");
@@ -85,6 +88,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       const bobber = fishing.update(hero.body, pos, g.world.need(g.player, "actions"), t);
       koi.update(dt, t, px, pz, bobber);
       ambient.update(dt, t, px, pz);
+      camp?.update(t, dt);
 
       // World animation and camera.
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
