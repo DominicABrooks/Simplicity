@@ -115,7 +115,7 @@ export function keepPlan(p: PropOf<"keep">) {
 export function barbicanPlan(p: PropOf<"barbican">) {
   const across = p.facing === "north" || p.facing === "south" ? p.rect.w / T : p.rect.h / T;
   const deep = p.facing === "north" || p.facing === "south" ? p.rect.h / T : p.rect.w / T;
-  const gap = 3, side = (across - gap) / 2, towerR = Math.min(1.8, side * 0.62);
+  const gap = p.gap ?? 3, side = (across - gap) / 2, towerR = Math.min(1.8 + (gap - 3) * 0.3, side * 0.62);   // a wider gate, bigger towers
   return { ...centre(p.rect), across, deep, gap, side, towerR, towerX: gap / 2 + towerR * 1.12, towerZ: deep / 2 - towerR * 0.7 };
 }
 

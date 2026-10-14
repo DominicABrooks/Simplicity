@@ -82,8 +82,8 @@ export type Prop =
   | { kind: "dovecote"; x: number; y: number }
   /** The castle keep on its rocky crag `plinth` high, a stair up to its door; its great hall `height` high. */
   | { kind: "keep"; rect: Rect; plinth: number; height: number }
-  /** A barbican: an outer gate in front of a main gate, two towers and a walled passage, open toward `facing`. */
-  | { kind: "barbican"; rect: Rect; facing: Facing; height: number }
+  /** A barbican or a bridge's gate tower: two towers and a walled passage `gap` wide (3 by default), open toward `facing`. */
+  | { kind: "barbican"; rect: Rect; facing: Facing; height: number; gap?: number }
   /** A drawbridge over a moat, running north-south, lowered. */
   | { kind: "drawbridge"; rect: Rect }
   /** A flight of steps up to a wall walk, against a wall, climbing toward `rises`. */

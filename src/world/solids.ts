@@ -90,7 +90,11 @@ export function propSolids(p: Prop): Shape[] {
     case "fence": return p.points.slice(1).map((q, i) => capsule({ x: p.points[i]!.x / T, z: p.points[i]!.y / T }, { x: q.x / T, z: q.y / T }, 0.12));
     case "bunting": return p.masts ? [circle(p.from.x / T, p.from.y / T, 0.08), circle(p.to.x / T, p.to.y / T, 0.08)] : [];
     // Flat, overhead, or on the water (which stops you anyway).
-    case "camp": case "cave": case "bridge": case "stoneBridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": return [];
+    case "stoneBridge": {                                    // its parapets, with their posts and pinnacles (the deck is road)
+      const c = rectCentre(p.rect), w = p.rect.w / T + 0.6, len = p.rect.h / T + 1.2;
+      return [-1, 1].map(s => box(c.x + s * (w / 2 - 0.35), c.z, 0.9, len));
+    }
+    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": return [];
   }
 }
 

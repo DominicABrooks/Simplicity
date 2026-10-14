@@ -79,20 +79,33 @@ export function buildWatermill(ctx: RenderContext, parent: THREE.Group, p: PropO
 }
 
 // ---------- Stone bridge ----------
-/** A bridge of stone arches, running north-south: a level roadway between parapets, cutwaters breaking the current. */
+/**
+ * A bridge of stone arches, running north-south: a level roadway between tall parapets with a cornice
+ * and a pinnacled post every couple of paces, a greater pair of pinnacles over each pier, and pointed
+ * cutwaters breaking the current.
+ */
 export function buildStoneBridge(ctx: RenderContext, parent: THREE.Group, p: PropOf<"stoneBridge">): PropView {
   const { lambert, tex } = ctx, g = new THREE.Group(), c = centre(p.rect), stone = lambert("#ffffff", { map: tex.stone }), trim = lambert(TRIM, { map: tex.stone });
   const w = p.rect.w / T + 0.6, len = p.rect.h / T + 1.2, arches = Math.max(2, Math.round(len / 3.2));
   put(g, tiledBox(w, 0.08, len, 1.0), lambert("#a39a8c", { map: tex.cobble }), 0, 0.02, 0);
   for (const s of [-1, 1]) {
-    put(g, tiledBox(0.35, 0.7, len, 0.8), stone, s * (w / 2 - 0.17), 0.35, 0);           // parapets
-    put(g, box(0.45, 0.1, len + 0.05), trim, s * (w / 2 - 0.17), 0.72, 0);
-    put(g, tiledBox(0.3, 0.9, len, 0.8), stone, s * (w / 2 + 0.1), -0.45, 0);              // the spandrel faces
+    const px = s * (w / 2 - 0.2);
+    put(g, tiledBox(0.4, 0.9, len, 0.8), stone, px, 0.45, 0);                               // parapets
+    put(g, box(0.52, 0.12, len + 0.05), trim, px, 0.94, 0);                                  // and their cornice
+    put(g, tiledBox(0.3, 1.1, len, 0.8), stone, s * (w / 2 + 0.1), -0.45, 0);              // the spandrel faces
+    for (let z = -len / 2 + 0.4; z <= len / 2 - 0.3; z += 1.6) {                          // posts with pinnacles
+      put(g, tiledBox(0.5, 1.15, 0.5, 0.5), stone, px, 0.58, z);
+      put(g, new THREE.ConeGeometry(0.28, 0.6, 4), trim, px, 1.45, z, 0, Math.PI / 4, 0);
+    }
   }
-  for (let i = 1; i < arches; i++) {                                                       // piers with pointed cutwaters
+  for (let i = 1; i < arches; i++) {                                                       // piers with pointed cutwaters, and pinnacles over them
     const z = -len / 2 + (i * len) / arches;
     put(g, tiledBox(w + 0.4, 1.0, 0.9, 0.8), stone, 0, -0.55, z);
-    for (const s of [-1, 1]) put(g, new THREE.ConeGeometry(0.62, 1.0, 4), trim, s * (w / 2 + 0.55), -0.55, z, 0, Math.PI / 4, s * Math.PI / 2);
+    for (const s of [-1, 1]) {
+      put(g, new THREE.ConeGeometry(0.62, 1.0, 4), trim, s * (w / 2 + 0.55), -0.55, z, 0, Math.PI / 4, s * Math.PI / 2);
+      put(g, tiledBox(0.8, 1.6, 0.8, 0.5), stone, s * (w / 2 - 0.1), 0.8, z);
+      put(g, new THREE.ConeGeometry(0.5, 1.4, 4), trim, s * (w / 2 - 0.1), 2.3, z, 0, Math.PI / 4, 0);
+    }
   }
   g.position.set(c.x, 0, c.z);
   parent.add(g);
