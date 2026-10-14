@@ -74,7 +74,7 @@ describe("travel", () => {
     expect(g.world.count("enemy")).toBeGreaterThan(0);
   });
 
-  it("walks the whole city: the King's Road, the Market Quarter, the Close and the Castle are joined both ways", async () => {
+  it("walks the whole city: the King's Bridge, the Market Quarter and the Castle are joined both ways", async () => {
     const g = playing();
     // Each hop: arrive somewhere, walk until an exit takes you, and check where it leads.
     const hop = async (from: string, entry: string, key: string, to: string) => {
@@ -90,8 +90,6 @@ describe("travel", () => {
     await hop("capital", "southgate", "s", "kingsroad");
     await hop("capital", "castle", "w", "castle");
     await hop("castle", "town", "s", "capital");
-    await hop("capital", "close", "d", "cathedral");
-    await hop("cathedral", "town", "a", "capital");
   });
 
   it("refuses an arrival point that doesn't exist", () => {

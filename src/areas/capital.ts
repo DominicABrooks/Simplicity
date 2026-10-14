@@ -3,8 +3,7 @@
 // Through Southgate in the great south wall, the high street climbs to the market square: a flagstoned
 // plaza round the great fountain, with the market cross and a well, four rows of stalls under
 // bunting, the guildhall over its open market arcade, and the Crown and the Bell facing it. Castle Street
-// runs north to the castle; East Street runs east past St Mary's and its churchyard to the Cathedral
-// Close. A road runs round inside the walls, lanes cross the quarter, and every street is lined with
+// runs north to the castle; East Street runs east past St Mary's and its churchyard. A road runs round inside the walls, lanes cross the quarter, and every street is lined with
 // tall, narrow town houses, gable end on, shops on the main streets, St Giles' chapel and the almshouse
 // among them.
 import { T, Tile } from "../data/world.ts";
@@ -35,7 +34,7 @@ function build(): AreaLayout {
   // the road round inside the walls, the rim lanes at the quarter's edges, and lanes across it.
   const streets: TileRect[] = [
     [HIGH.x0, SQUARE.y1, 5, SOUTH_WALL + 3 - SQUARE.y1], [SQUARE.x0, SQUARE.y0, SQUARE.x1 - SQUARE.x0 + 1, SQUARE.y1 - SQUARE.y0 + 1],
-    [HIGH.x0, 0, 5, SQUARE.y0], [SQUARE.x1, EAST_ST.y0, W - SQUARE.x1, 4],
+    [HIGH.x0, 0, 5, SQUARE.y0], [SQUARE.x1, EAST_ST.y0, 91 - SQUARE.x1, 4],
     [6, 4, 2, 68], [6, 70, 85, 2], [6, 4, 85, 2], [89, 4, 2, 68],
     [6, 16, 85, 2], [6, 58, 85, 2], [18, 4, 2, 68], [77, 4, 2, 68], [6, 48, SQUARE.x0 - 6, 2],
   ];
@@ -95,12 +94,11 @@ function build(): AreaLayout {
   town.yards(0.07, (x, y) => x > WEST_WALL + 2 && y < SOUTH_WALL - 3);
 
   return town.layout(
-    // In through Southgate, at the foot of the high street; down from the castle; along from the close.
-    { southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 3 * T }, close: { x: (W - 4) * T, y: (EAST_ST.y0 + 1) * T } },
+    // In through Southgate, at the foot of the high street; down from the castle.
+    { southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 3 * T } },
     [
       { rect: { x: (HIGH.x0 + 1) * T, y: (SOUTH_WALL + 2) * T, w: 3 * T, h: 2 * T }, to: { area: "kingsroad", entry: "gate" } },
       edgeExit("north", HIGH.x0, HIGH.x1, W, H, { area: "castle", entry: "town" }),
-      edgeExit("east", EAST_ST.y0, EAST_ST.y1, W, H, { area: "cathedral", entry: "town" }),
     ],
   );
 }

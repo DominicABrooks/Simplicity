@@ -36,11 +36,10 @@ WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space
 
 **Map:** press M (or the map button) for a parchment map of the area you're in, showing where you are and which way you're facing, the camp and the caves.
 
-**Areas:** you start in **Witchwood**. A dirt path leads north from the camp through the woods to a cave; walk in to come out at **the King's Bridge** below **Capital City**, the seat of the kingdom of men and the richest city in it, a city of four districts:
+**Areas:** you start in **Witchwood**. A dirt path leads north from the camp through the woods to a cave; walk in to come out at **the King's Bridge** below **Capital City**, the seat of the kingdom of men and the richest city in it, a city of three districts:
 
 - **The King's Bridge**: out of the cave, between two gilded lions on marble plinths, through a great marble gate tower under gilded roofs, and over the great river on a bridge of white marble and gold leaf (the kingdom's arms on every post, its banners hung down the sides, gilded braziers and standards along it, ships moored either side) to Southgate in the city wall.
 - **The Market Quarter**: the high street up to the market square (the great fountain, the market cross, four rows of stalls under bunting, the guildhall over its open arcade, the Crown and the Bell), St Mary's and St Giles', and lanes of tall timber-framed houses, gable end to the street, shops on the main streets.
-- **The Cathedral Close**, along East Street: the cathedral (twin west towers, flying buttresses, a crossing spire, chapels round its east end), the cloister and chapter house, the bishop's palace, the canons' houses and the churchyard.
 - **The Castle**, up Castle Street, built into the city wall: a barbican and drawbridge, the outer bailey (barracks, armoury, granary, training yard, stables, smithy, storehouse, a trebuchet, kennels, mews and a dovecote), and through the inner gatehouse the keep on its crag, the great hall and kitchen, the chapel, lodgings and bakehouse.
 
 Guards in the kingdom's colours keep the gates; nothing hostile lives in the city. Walk back into the cave to return. Your gear and level go with you; each area keeps its own creatures.
