@@ -199,3 +199,15 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 /* Travelling between areas: fade to black and back. */
 #fade { position: fixed; inset: 0; z-index: 44; background: var(--ink); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
 #fade.on { opacity: 1; }
+
+/* ---------- Dialogue (see src/ui/dialogue.ts) ---------- */
+#dialogue {
+  position: fixed; left: 50%; bottom: calc(var(--u) * 34); transform: translateX(-50%); z-index: 30; pointer-events: none;
+  width: min(calc(var(--u) * 220), calc(100vw - 32px)); box-sizing: border-box; padding: calc(var(--u) * 5) calc(var(--u) * 8) calc(var(--u) * 4);
+  background: rgb(14 11 22 / 0.94); border: 1px solid var(--oak); box-shadow: inset 0 0 0 1px var(--bark);
+  color: var(--bone); font-size: calc(var(--u) * 7); line-height: calc(var(--u) * 10);
+}
+#dialogue[hidden] { display: none; }
+#dialogue .who { color: var(--glow); text-shadow: var(--u) var(--u) 0 var(--bark); margin-bottom: calc(var(--u) * 2); }
+#dialogue .say { margin: 0; min-height: calc(var(--u) * 20); }
+#dialogue .more { color: var(--stone); text-align: right; font-size: calc(var(--u) * 5); line-height: calc(var(--u) * 7); min-height: calc(var(--u) * 7); }

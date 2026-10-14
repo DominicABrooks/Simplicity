@@ -4,6 +4,7 @@ import type { BoltKind, School, SpellName } from "../data/enemies.ts";
 import type { Rarity } from "../data/items.ts";
 import type { Gear } from "../items/inventory.ts";
 import type { Item } from "../items/items.ts";
+import type { Entity } from "../core/ecs.ts";
 import type { TrainingKind } from "../data/npcs.ts";
 
 export interface Transform {
@@ -233,6 +234,17 @@ export interface Dummy {
   facing: number;
 }
 
+/** The hero talking to someone (see src/game/talk.ts). */
+export interface Conversation {
+  with: Entity;
+  /** Who's speaking, as their target name shows. */
+  name: string;
+  lines: string[];
+  /** The line being said, and seconds since it started (it types out). */
+  line: number;
+  t: number;
+}
+
 export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "dummy";
 
 /** Drawn by the view registered for this kind. */
@@ -260,4 +272,5 @@ export interface Components {
   targetable: Targetable;
   sentry: Sentry;
   dummy: Dummy;
+  conversation: Conversation;
 }

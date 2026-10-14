@@ -5,7 +5,7 @@ import { createGame, setState, toast } from "./game/game.ts";
 import { dropItem, eatItem } from "./game/actions.ts";
 import { resetGame } from "./game/reset.ts";
 import { bindInput } from "./input/input.ts";
-import { updateTarget } from "./input/targeting.ts";
+import { pickTarget, updateTarget } from "./input/targeting.ts";
 import { createRenderer } from "./render/renderer.ts";
 import { step } from "./systems/index.ts";
 import { byId } from "./ui/dom.ts";
@@ -20,6 +20,8 @@ import { createJournal } from "./ui/journal.ts";
 import { createMenuBar } from "./ui/menuBar.ts";
 import { createMapView } from "./ui/mapView.ts";
 import { FEATURES } from "./data/features.ts";
+import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
+import { createDialogue } from "./ui/dialogue.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -30,6 +32,7 @@ const inventory = createInventoryView(g.inventory, bakeItemIcons(), {
 const hud = createHud(g, view);
 const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
+const dialogue = createDialogue(g);
 bindOverlay(g);
 bindToasts(g);
 bindFade(g);
@@ -67,7 +70,21 @@ g.events.on("state", ({ state }) => {
       toast(g, "The way is blocked");
     });
 });
-const input = bindInput(g, { toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels });
+// Talking: clicking someone friendly (or E with them targeted) talks instead of attacking; while they're
+// talking, a click or Enter, Space or E goes on, and Escape ends it.
+const SAY_ON = ["enter", " ", "e", "j"];
+const input = bindInput(g, {
+  toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels,
+  talkClick: at => { if (talking(g)) { advanceTalk(g); return true; } return startTalk(g, pickTarget(g, view, at)); },
+  talkKey: k => {
+    if (talking(g)) {
+      if (k === "escape") { endTalk(g); return true; }
+      if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
+      return false;
+    }
+    return k === "e" && startTalk(g, g.target);
+  },
+});
 
 function resize(): void {
   const pixelSize = Math.max(2, Math.round(innerHeight / 300));
@@ -89,6 +106,7 @@ function frame(now: number): void {
   g.input.pointer = mouse && view.screenToGame(mouse.x, mouse.y);
   updateTarget(g, view, mouse, input.overUi());
   step(g, dt);
+  updateTalk(g, dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
   menu.setActive(MENU.inventory, inventory.isOpen());
   menu.setActive(MENU.map, map.isOpen());
@@ -97,6 +115,7 @@ function frame(now: number): void {
   hud.draw(menu.width());
   labels.draw();
   resetBar.draw();
+  dialogue.draw();
   requestAnimationFrame(frame);
 }
 

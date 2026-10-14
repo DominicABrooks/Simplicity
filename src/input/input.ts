@@ -9,6 +9,10 @@ export interface InputHooks {
   toggleJournal(): void;
   toggleMap(): void;
   closePanels(): void;
+  /** A click in the world at a screen point: true if it was for talking (to someone, or on through what they're saying), not an attack. */
+  talkClick(at: { x: number; y: number }): boolean;
+  /** A key while playing: true if talking took it (E to talk, or Enter, Space, E or Escape in a conversation). */
+  talkKey(k: string): boolean;
 }
 
 /** Double-tap dash: WASD and arrows map to the same four directions. */
@@ -36,6 +40,7 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
       }
       return;
     }
+    if (!e.repeat && hooks.talkKey(k)) { e.preventDefault(); return; }
     if (k === "i" || k === "tab") { e.preventDefault(); if (!e.repeat) hooks.toggleInventory(); return; }
     if (k === "l") { if (!e.repeat) hooks.toggleJournal(); return; }
     if (k === "m") { if (!e.repeat) hooks.toggleMap(); return; }
@@ -60,6 +65,7 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
   });
   addEventListener("mousedown", e => {
     if (g.state !== "play" || e.button !== 0 || isHandled(e) || isUiTarget(e.target)) return;   // clicks on the UI aren't attacks
+    if (hooks.talkClick({ x: e.clientX, y: e.clientY })) return;
     input.attackPressed = true;
   });
   addEventListener("mouseup", e => { if (e.button === 0) input.attackReleased = true; });
