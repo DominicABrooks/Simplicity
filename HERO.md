@@ -1,7 +1,7 @@
 # The Foreigner
 
 Who the hero is, where he came from, why he helps, how a little stone fellow in a bark wrap becomes strong
-enough to beat the mages, the whole one-hour game from start to finish, and how it ends. The world he walks into is in [LORE.md](LORE.md),
+enough to beat the mages, and how it ends. The playable hour, beat by beat, is in [STORY.md](STORY.md). The world he walks into is in [LORE.md](LORE.md),
 [HISTORY.md](HISTORY.md) and [FAMILIES.md](FAMILIES.md).
 
 ## What the city calls him
@@ -69,11 +69,10 @@ The Foreigner can't tell anyone anything, of course. But he can carry a note.
 ### Falling, and waking again
 
 When the Foreigner falls in battle, he doesn't die the way other people do. His heart-fire goes back down
-into Ael, and Ael, still asleep, turns over again and wakes him on the same stone by the same fire, in the
-same bark wrap, with nothing. He doesn't remember much of what happened. But some of it stays in his toes.
-
-That's why every run starts at the camp with nothing, and why he keeps coming back. Ael isn't going to stop
-sending him until the seal is safe.
+into Ael, and Ael, still asleep, turns over and wakes him again on one of its **old stones**: grey, flat,
+faintly warm stones scattered through the valley, which glow a little when he touches them. He wakes on
+the last one he touched, with everything he was carrying, a little dazed. Ael isn't going to stop sending
+him until the seal is safe. (These are the story's checkpoints: see [STORY.md](STORY.md#checkpoints-the-old-stones).)
 
 ## Why he helps
 
@@ -161,74 +160,16 @@ burning church. Here's how, and how each piece of the game fits:
 
 ## The whole game, in about an hour
 
-One short, complete adventure from waking on the stone to the last lantern. Three acts, each ending in
-a fight. **The hour is the story alone:** a player who heads straight from one story beat to the next,
-taking only the fights in their way, finishes in about an hour. Exploring the Witchwood, wandering the
-city, fishing, hunting loot and taking the detours all come on top of that, as much or as little as the
-player likes. The times below are for that straight path.
+One short, complete adventure, about an hour on the straight story path, in three acts that each end in a
+fight with one of the Greyed:
 
-| Act | Where | Story path | Ends with |
-|---|---|---|---|
-| I. The Witchwood | Witchwood, the cave | 15 minutes | Beating Cinder, the Ember lieutenant, at the cave mouth |
-| II. Kingsholm | King's Bridge, Market Quarter, Castle | 25 minutes | Beating Rime, the Frost lieutenant, on the King's Bridge |
-| III. Founder's Night | The city at night, St Mary's crypt | 20 minutes | Beating Calder in the crypt; the end |
+| Act | Story path | Ends with |
+|---|---|---|
+| I. The Witchwood | 0:00 to 0:15 | Cinder, the Ember lieutenant, in the Greywood at the cave mouth |
+| II. Kingsholm | 0:15 to 0:45 | Rime, the Frost lieutenant, on the frozen King's Bridge |
+| III. Founder's Night | 0:45 to 1:00 | Calder of the Storm in St Mary's crypt |
 
-### Act I: The Witchwood (about 15 minutes)
-
-1. **Wake.** He opens his eyes on the old stone by the Ranger's fire, in a bark wrap. Under the stone:
-   the Ranger's note, a fishing pole and a crust of bread.
-2. **Learn.** Slimes come bouncing out of the pond. He learns to punch, dash and jump on them, and to fish
-   in the lake for something to eat.
-3. **The first mage.** A Greyed mage turns him into a sheep. It doesn't hold. He chases it off and takes its
-   sword. At the edge of the trees, a tall woman in frost-white robes, **Yssa of the Frost**, watches him
-   and nods.
-4. **Cinder.** At the cave mouth in the Greyspines, the Ember lieutenant blocks the way north. He's the one
-   who turned Tam Appleby into a sheep, and he explains this at length. The Foreigner beats him, and his
-   spark flies south. (Somewhere in Kingsholm, the Applebys' sheep sneezes and becomes **Tam** again.)
-
-### Act II: Kingsholm (about 25 minutes)
-
-1. **The bridge and the gate.** Out of the cave, between the gilded lions, over the King's Bridge. The
-   guards wave him through Southgate. He can't say "witch", so he's clearly not one.
-2. **The note.** He finds the house with the grey cloak at the window and gives **Meg Fell** the Ranger's
-   note. Wren gives him a crust. Meg sends him to the Crown.
-3. **The Crown's back room.** **Bethan Maddox** lets him sit in after curfew. **Princess Rosamund**, in her
-   laundress's hood, tells him where the Ranger is: the dungeon under the keep. **Old Mother Larke** looks
-   into his eyes, finds no crack at all, laughs, and gives him three bottles of her tea (his potions).
-4. **The castle.** Up Castle Street. **Prince Edmund** has been meaning to ask his father to free the Ranger
-   for three months. With the Foreigner standing silently beside him, he finally does. The King says no.
-   The Prince lets the Foreigner into the storehouse anyway, and **Nell Hammond** gives him the sword she's
-   been making, the one that stays cold.
-5. **The crypt.** Back at St Mary's, **Tibby Waxley** and **Isabel Kellet** show him the little carved door
-   under the crypt, and **Father Pryce** hands him the copy of the true chronicle. Now he knows what the
-   eggs are and what's under the door.
-6. **Rime.** That evening the Frost lieutenant comes walking up the river on her own ice and freezes the
-   King's Bridge solid, to cut the city off before Founder's Night. The Foreigner fights her on the bridge,
-   between the gilded braziers, while Bran Harrow and young Will Bowyer hold the gate tower. She falls, the
-   ice melts, and the bridge stays open.
-
-**Small detours** off the story path, each a few minutes, all optional and not counted in the hour:
-
-- **The butchers.** Carry Hal Stott's note to Marian Cleave and back. By Act III the two halves of the shop
-  are cooking for the defenders together.
-- **The falcon post.** Help Elinor Hawke find her goshawk on the castle wall. It carries his answer to the
-  Ranger's cell, and back comes the Ranger's map of the Greyed camps (it marks a few hidden chests).
-- **The fishing.** Jory Rudd shows him the best spot under the King's Bridge, where Silas once saw blue
-  fire walking on the water.
-
-### Act III: Founder's Night (about 20 minutes)
-
-1. **The straw witches** go up in the square, twice as many as usual, and the whole city is shouting
-   scary names into the smoke. Then the Greyed come over the bridge, with slimes pouring up from every pond
-   in the Witchwood behind them.
-2. **The city fights back.** The bridge watch holds the gate tower. Tom Bowyer won't shut Southgate on the
-   people still outside. The Stotts and Cleaves bring food, the Hammonds bring arrows, and Old Mother Larke
-   lights every lantern on the high street without a flint. The Foreigner fights up the high street,
-   across the square and down East Street to St Mary's, which is already burning.
-3. **Calder.** In the crypt, beside the little carved door, Calder of the Storm waits with the three eggs
-   in the fire. Behind the door, something enormous opens its one eye. The last fight is Calder blinking
-   between three places at once, lightning from a clear sky inside a church, and the door creaking wider
-   every time the Foreigner falls back.
+Every beat, area, checkpoint and detour, minute by minute, is in [STORY.md](STORY.md).
 
 ## The end
 
