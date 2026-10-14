@@ -22,7 +22,7 @@ export interface Person {
   note?: string;
   /** How many this entry stands for (brothers and sisters listed together; their age is the eldest's). */
   count?: number;
-  /** Not under the roof any more: hanged, imprisoned, or turned into a sheep. */
+  /** Not under the roof any more: locked in the dungeon, or turned into a sheep. */
   gone?: true;
 }
 
@@ -62,7 +62,7 @@ export const KINGDOM = {
   arms: "Crimson, a gold chevron and a gold crown",
   /** The folk beyond the Witchwood, and their three orders (the Ember, Frost and Storm mages). */
   enemy: { name: "the Vael", orders: ["Ember", "Frost", "Storm"] },
-  edict: "The Edict of the Quiet Tongue: whoever speaks of witches, sorcerers or dragons shall hang at Southgate.",
+  edict: "The Edict of the Quiet Tongue: whoever speaks of witches, sorcerers or dragons shall have their head chopped off (in practice, the dungeon).",
 } as const;
 
 // ---------- The named families ----------
@@ -76,21 +76,21 @@ export const FAMILIES: readonly Family[] = [
       { name: "Isolde", age: 49, role: "Queen", note: "From the eastern coast. Prays at night and secretly pays the Dean for iron grilles on St Mary's windows." },
       { name: "Edmund", age: 26, role: "Prince, heir, captain of the Royal Guard", note: "Held the Ranger's orb, felt the cold and believes every word. He hasn't told his father so." },
       { name: "Rosamund", age: 17, role: "Princess", note: "Slips out to the Crown in a laundress's hood to hear what the city really says." },
-      { name: "Hild", age: 84, role: "Dowager Queen", note: "Half blind. Says aloud at supper that \"they've come back for what we took\". No one dares hang the king's mother." },
+      { name: "Hild", age: 84, role: "Dowager Queen", note: "Half blind. Says aloud at supper that \"they've come back for what we took\". No one dares tell the King's mother to hush." },
       { name: "Aldric", age: 6, role: "Prince Edmund's son", note: "Named for the Founder. Has nightmares of a great bird." },
     ],
-    story: "Six hundred years from Aldric the Founder, who took the valley. Osric has read the true chronicle in St Mary's library. He knows the Vael are real and knows what Aldric did to them, so he made speaking of either a hanging matter.",
-    customs: ["Regilds the crown every Gilding Day", "Swears the Founder's Oath at the fountain on every royal birthday", "Lights the first straw witch on Founder's Night"],
+    story: "Six hundred years from Aldric the Founder, who took the valley. Osric has read the true chronicle in St Mary's library. He knows the Vael are real and knows Aldric pinched their eggs at a party, so he made talking about either against the law.",
+    customs: ["Regilds the crown every Gilding Day", "Swears the Founder's Oath at the fountain on every royal birthday", "Leads the straw witch parade on Founder's Night"],
     stance: "denies",
     mutter: "\"There is nothing beyond the wood but trees and peasants' tales.\" (the King, too often and too loud)",
-    secret: "Wystan Fell isn't dead. He's in the cell under the keep, and the king visits him alone at night to ask about the Vael.",
+    secret: "Wystan Fell is in the dungeon under the keep, and the King sneaks down at night with cake to ask him about the Vael.",
   },
   {
     id: "harrow", name: "The Harrows", rank: "noble", trade: "Marshal of Aurenmark",
     seat: { district: "castle", storeys: 4, stone: true },
     home: "The tallest stone house on the lane under the castle, with the crimson door", household: 9,
     members: [
-      { name: "Lord Gerard Harrow", age: 54, role: "Marshal of the Kingdom", note: "Enforces the Edict. Has hanged two men so far and keeps a list of the next." },
+      { name: "Lord Gerard Harrow", age: 54, role: "Marshal of the Kingdom", note: "Enforces the Edict. Has sent two people to the dungeon and keeps a list of who's next. The list is mostly people who were rude to him." },
       { name: "Lady Ysolde Harrow", age: 47, role: "His wife", note: "Collects gossip at the Fitzwarens' table for her husband." },
       { name: "Bran Harrow", age: 24, role: "Sergeant of the bridge watch", note: "Saw a robed figure on the King's Bridge at midnight and reported it as a pilgrim." },
       { name: "Piers Harrow", age: 19, role: "Squire", note: "Engaged to Joan Leafwright. Thinks his father is a coward." },
@@ -107,7 +107,7 @@ export const FAMILIES: readonly Family[] = [
     home: "A stone house with a walled garden by the castle ditch", household: 8,
     members: [
       { name: "Lady Cecily Fitzwaren", age: 44, role: "Widow, head of the house", note: "Keeps the best table in the city, where courtiers drink and talk too much." },
-      { name: "Hugh Fitzwaren", age: 21, role: "Her son", note: "Gambles at the Crown and owes the Grisons more than the manors bring in." },
+      { name: "Hugh Fitzwaren", age: 21, role: "Her son", note: "Plays dice at the Crown and owes the Grisons more than the manors bring in." },
       { name: "Blanche Fitzwaren", age: 16, role: "Her daughter", note: "Princess Rosamund's friend and her alibi." },
     ],
     story: "Their manors lie on the Witchwood's edge. No rents have come from them since spring, and nobody comes to explain why.",
@@ -133,14 +133,14 @@ export const FAMILIES: readonly Family[] = [
   {
     id: "hawke", name: "The Hawkes", rank: "craft", trade: "Royal falconers",
     seat: { district: "castle", storeys: 4, stone: false },
-    home: "A tall timber house by the castle mews", household: 3,
+    home: "A tall timber house under the castle wall, its loft full of falcons", household: 3,
     members: [
-      { name: "Osmund Hawke", age: 58, role: "Master of the mews" },
+      { name: "Osmund Hawke", age: 58, role: "Master falconer" },
       { name: "Elinor Hawke", age: 33, role: "His daughter, falconer", note: "Her best peregrine came back from the south with singed primaries and won't fly that way again." },
       { name: "Robin Hawke", age: 11, role: "Elinor's son" },
     ],
     story: "Their birds go out over the Witchwood to hunt, and lately they come back frightened or not at all.",
-    customs: ["Names every eyass after a king", "Releases a bird on the death of a Hawke"],
+    customs: ["Names every eyass after a king", "Flies a falcon over the castle for every new Hawke baby"],
     stance: "whispering",
     mutter: "\"A falcon doesn't lie and doesn't listen to edicts. Mine won't fly south.\"",
   },
@@ -156,7 +156,7 @@ export const FAMILIES: readonly Family[] = [
     story: "Grooms, carters and laundresses all the way back. They see the castle from below, which is to say everything.",
     customs: ["Plaits a rowan twig into every horse's mane since the spring"],
     stance: "whispering",
-    mutter: "\"Why would you feed a dead man's horse?\"",
+    mutter: "\"Why would you feed a missing man's horse?\"",
   },
 
   // ---- The Market Quarter ----
@@ -171,7 +171,7 @@ export const FAMILIES: readonly Family[] = [
       { name: "Lew Maddox", age: 19, role: "Her son, pot-boy", note: "Knows Jack Linnet's song by heart." },
     ],
     story: "The Crown has been an inn as long as there's been a square. Its back room after curfew is where the city says what it thinks.",
-    customs: ["Closes the shutters at the curfew bell, and that's when the real talk starts", "Pours the first ale of Founder's Night onto the floor \"for the old owners\""],
+    customs: ["Closes the shutters at the curfew bell, and that's when the real talk starts", "Pours the first cider of Founder's Night onto the floor \"for the old owners\""],
     stance: "whispering",
     mutter: "\"What's said under the Crown stays under the Crown.\"",
     secret: "The Crown's cellar runs under the guildhall, and the Ranger's wife has a key.",
@@ -181,7 +181,7 @@ export const FAMILIES: readonly Family[] = [
     seat: { district: "capital", tile: [51, 24] },
     home: "The Bell, on the square across Castle Street from the Crown, under its blue sign", household: 5,
     members: [
-      { name: "Gilbert Pike", age: 49, role: "Landlord", note: "Sells overheard talk to the Marshal at a shilling a name." },
+      { name: "Gilbert Pike", age: 49, role: "Landlord", note: "Tattles everything he overhears to the Marshal, at a shilling a name." },
       { name: "Maud Pike", age: 45, role: "His wife", note: "Knows, and puts the coins in the poor box at St Giles'." },
       { name: "Cuthbert Pike", age: 17, role: "Their son", note: "Drinks at the Crown, where it's warm." },
     ],
@@ -203,7 +203,7 @@ export const FAMILIES: readonly Family[] = [
     story: "Three generations of fortune on the southern trade road through the Witchwood. The road has been closed since spring, and the Ashcombes are ruined unless the king is right.",
     customs: ["Hosts the Mercers' Gilding Day feast", "Shakes every bargain at the market cross at dawn"],
     stance: "loyal",
-    mutter: "\"The King says the road is safe, so the road is safe. Pass the wine.\"",
+    mutter: "\"The King says the road is safe, so the road is safe. Pass the gravy.\"",
     secret: "Aldous owes the Grisons four thousand crowns and the crown owes Aldous six. Neither debt will be paid.",
   },
   {
@@ -227,7 +227,7 @@ export const FAMILIES: readonly Family[] = [
     members: [
       { name: "Roger Stott", age: 48, role: "Master butcher" },
       { name: "Annis Stott", age: 46, role: "His wife" },
-      { name: "Hal Stott", age: 20, role: "Son", note: "In love with Marian Cleave, which is a disaster." },
+      { name: "Hal Stott", age: 20, role: "Son", note: "In love with Marian Cleave, which is a scandal." },
     ],
     story: "The Stotts and the Cleaves were one family until a grandfather's will split the shop and the family in two. They've feuded for forty years.",
     customs: ["Gives the Shambles' best cut to the Marshal on Founder's Night", "Never sells to a Cleave"],
@@ -316,7 +316,7 @@ export const FAMILIES: readonly Family[] = [
       { name: "Benet Quill", age: 16, role: "Son, apprentice scrivener", note: "Copies Jack Linnet's song by night and slips it under doors." },
     ],
     story: "Clerks to the guildhall for a century. They've written down every law of the city, and Simon has begun to keep a second, private record.",
-    customs: ["Records every birth, death and hanging in the city book", "Burns the year's spoiled pages on Founder's Night"],
+    customs: ["Records every birth, wedding and arrest in the city book", "Burns the year's spoiled pages on Founder's Night"],
     stance: "quiet",
     mutter: "\"I only read it out. I didn't write it.\"",
   },
@@ -350,18 +350,18 @@ export const FAMILIES: readonly Family[] = [
     secret: "Ivy can light a candle without a flint, and Tamsin has seen her do it.",
   },
   {
-    id: "linnet", name: "The Linnets", rank: "poor", trade: "A hanged singer's family",
+    id: "linnet", name: "The Linnets", rank: "poor", trade: "A jailed singer's family",
     seat: { district: "capital", storeys: 3, stone: false },
     home: "Two rooms in a Wallside tenement by the south wall", household: 0,
     members: [
-      { name: "Jack Linnet", age: 31, gone: true, role: "Ballad singer", note: "Hanged at Southgate for the song about the Ranger's orb." },
+      { name: "Jack Linnet", age: 31, gone: true, role: "Ballad singer", note: "In the castle dungeon for his song about the Ranger's orb. Still singing it. The jailer joins in on the chorus." },
       { name: "Kat Linnet", age: 29, role: "His widow, a spinner" },
       { name: "Robin and Wenna", age: 8, count: 2, role: "Their children (8 and 6)", note: "Taught the Wallside children the song as nonsense words." },
     ],
-    story: "Players and singers who came to the city for Gilding Day and stayed. Since the hanging, the city has quietly fed them.",
+    story: "Players and singers who came to the city for Gilding Day and stayed. Since Jack was locked up, the whole Wallside has quietly made sure they never go hungry.",
     customs: ["Sings at the cross on Lantern Night, without the words"],
     stance: "defiant",
-    mutter: "\"Hum it. They can't hang a hum.\"",
+    mutter: "\"Hum it. They can't arrest a hum.\"",
   },
   {
     id: "rudd", name: "The Rudds", rank: "labouring", trade: "River fishers",
@@ -378,17 +378,17 @@ export const FAMILIES: readonly Family[] = [
     mutter: "\"The fish know before we do. They're all swimming north.\"",
   },
   {
-    id: "grubb", name: "The Grubbs", rank: "labouring", trade: "Gongfermors (night-soil men)",
+    id: "grubb", name: "The Grubbs", rank: "labouring", trade: "Lamplighters and chimney sweeps",
     seat: { district: "capital", storeys: 3, stone: false },
-    home: "A tenement by the west wall, which no one else will share", household: 2,
+    home: "A sooty tenement by the west wall, ladders stacked against the front", household: 2,
     members: [
-      { name: "Dick Grubb", age: 39, role: "Gongfermor", note: "Works only by night and passes under every window in the city." },
+      { name: "Dick Grubb", age: 39, role: "Lamplighter and sweep", note: "Lights the street lamps at dusk and sweeps chimneys by day, so he's been on every roof and under every window in the city." },
       { name: "Nan Grubb", age: 37, role: "His wife" },
     ],
-    story: "The night-soil trade passes father to son. The Grubbs hear everything said in every house after dark, and nobody thinks to lower their voice for them.",
+    story: "Sweeps and lamplighters, father to son. Sound carries up a chimney beautifully, and nobody ever thinks to lower their voice for the sweep.",
     customs: ["Is allowed out after curfew by ancient right", "Gets the first round free at the Crown, by custom"],
     stance: "whispering",
-    mutter: "\"The Marshal's own cook said it. In his own privy.\"",
+    mutter: "\"The Marshal's own cook said it. Up his own chimney.\"",
     secret: "Dick knows who Gilbert Pike reports to, and when.",
   },
   {
@@ -396,7 +396,7 @@ export const FAMILIES: readonly Family[] = [
     seat: { district: "capital", storeys: 4, stone: false },
     home: "A tall timber house on the high street, near enough to hear the gate", household: 2,
     members: [
-      { name: "Tom Bowyer", age: 43, role: "Sergeant of Southgate", note: "Hanged both men at Southgate on the Marshal's orders, and won't speak of it." },
+      { name: "Tom Bowyer", age: 43, role: "Sergeant of Southgate", note: "Marched both of them to the dungeon on the Marshal's orders, and felt rotten about it." },
       { name: "Elsa Bowyer", age: 41, role: "His wife" },
       { name: "Will and Ruth", age: 16, count: 2, role: "Their children (16 and 12)", note: "Will is in the bridge watch now." },
     ],
@@ -425,7 +425,7 @@ export const FAMILIES: readonly Family[] = [
     id: "thorne", name: "Dean Anselm Thorne", rank: "clergy", trade: "Dean of St Mary's",
     home: "The clergy house beside St Mary's", household: 6,
     members: [
-      { name: "Anselm Thorne", age: 66, role: "Dean", note: "Preaches the Founder's Burning every autumn, and has ordered iron grilles for every window of St Mary's." },
+      { name: "Anselm Thorne", age: 66, role: "Dean", note: "Preaches the Founder's Victory every autumn, and has ordered iron grilles for every window of St Mary's." },
     ],
     story: "Third son of a southern lord, Dean for twenty years. He crowned Osric and will not see him called a liar.",
     customs: ["Walks the King's Bridge at the spring Blessing", "Keeps the treasury key on his person"],
@@ -452,10 +452,9 @@ export const FAMILIES: readonly Family[] = [
     seat: { district: "capital", storeys: 4, stone: true },
     home: "The grandest house on East Street, facing the churchyard", household: 5,
     members: [
-      { name: "Father Matthias Gale", age: 52, role: "Priest and treasurer", note: "Keeps the treasury's books, and two \"nieces\" who are neither nieces nor discreet." },
-      { name: "Lettice and Anne", age: 23, count: 2, role: "His \"nieces\"" },
-    ],
-    story: "Worldly, rich and well connected. Gale would be Dean if the city forgot about the nieces.",
+      { name: "Father Matthias Gale", age: 52, role: "Priest and treasurer", note: "Keeps the treasury's books and counts its coins every night, twice. Has two cats, Tithe and Offering, who sleep on the gilded \"altar stones\" because they're warm." },
+          ],
+    story: "Worldly, rich and well connected. Gale would very much like to be Dean, and tells the Marshal things to help it along.",
     customs: ["Hosts the clergy's Gilding Day dinner"],
     stance: "informer",
     mutter: "\"The Dean is getting old, and the Marshal is a good friend to have.\"",
@@ -471,7 +470,7 @@ export const FAMILIES: readonly Family[] = [
       { name: "Isabel Kellet", age: 8, role: "Ralph's daughter" },
     ],
     story: "Four generations building and rebuilding St Mary's. They know its foundations better than anyone, and know the oldest stones aren't the Founder's work.",
-    customs: ["Sets a mason's mark into every stone they lay", "Pours ale on the foundation stone each Founder's Night"],
+    customs: ["Sets a mason's mark into every stone they lay", "Pours cider on the foundation stone each Founder's Night"],
     stance: "defiant",
     mutter: "\"Devils, Your Grace. Just devils.\"",
     secret: "Under the crypt there's a door older than the church, carved with three flames, a snowflake and a lightning bolt. Hugh has sealed it twice and both times it was open by morning.",
@@ -496,7 +495,7 @@ export const FAMILIES: readonly Family[] = [
     id: "crane", name: "The Widow Crane", rank: "poor", trade: "Almswoman",
     home: "The almshouse of St Giles, by the west wall", household: 0,
     members: [
-      { name: "Widow Agnes Crane", age: 91, role: "The oldest soul in Kingsholm", note: "Remembers her grandmother's stories of \"the summer the sky burned\" and tells them to anyone who brings her bread." },
+      { name: "Widow Agnes Crane", age: 91, role: "The oldest soul in Kingsholm", note: "Remembers her grandmother's stories of \"the summer the sky went pink\" and tells them to anyone who brings her bread." },
     ],
     story: "Outlived three husbands and nine children. The almshouse lets her talk because nobody believes the very old.",
     customs: ["Sits at the almshouse door every evening, facing south"],
@@ -507,9 +506,9 @@ export const FAMILIES: readonly Family[] = [
 
 /** People who live in halls, the castle and the clergy house rather than in the houses (beyond the named families). */
 export const INSTITUTIONS = [
-  { name: "The Royal Guard and the garrison", district: "castle", people: 128, home: "The barracks in the outer bailey" },
+  { name: "The Royal Guard and the garrison", district: "castle", people: 90, home: "The barracks by the castle gate" },
   { name: "The bridge watch", district: "kingsroad", people: 12, home: "The gate tower on the King's Bridge" },
-  { name: "The court and the castle servants", district: "castle", people: 70, home: "The lodgings, the great hall and the kitchens" },
+  { name: "The court and the castle servants", district: "castle", people: 50, home: "The lodgings, the great hall and the kitchens" },
   { name: "The priests and choir of St Mary's", district: "capital", people: 18, home: "The clergy house and the song school" },
   { name: "The masons' lodge", district: "capital", people: 15, home: "Journeymen and labourers on St Mary's new spire" },
   { name: "The almshouse of St Giles", district: "capital", people: 14, home: "Old widows and the sick, by the west wall" },
@@ -581,7 +580,7 @@ const MUTTERS = [
   "\"Loud weather on a clear night. Explain that.\"",
   "\"The King's right. There's nothing out there. Now pass the salt.\"",
   "\"Gone to see the Ranger, poor soul.\"",
-  "\"The bird was bigger than St Mary's. Or so they say, and they're hanged now.\"",
+  "\"The bird was bigger than St Mary's. Or so they said, and they're in the dungeon now.\"",
   "\"Hush. The Bell's ringing.\"",
   "\"Why's the King making arrows, if there's nobody to shoot?\"",
   "\"Old Widow Crane says she's seen it before. Says Mother always wakes up hungry.\"",

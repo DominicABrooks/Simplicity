@@ -33,9 +33,9 @@ describe("the people of Kingsholm", () => {
     expect(new Set(FAMILIES.map(f => f.id)).size).toBe(FAMILIES.length);
   });
 
-  it("comes to about the 1,900 souls the lore gives", () => {
+  it("comes to about the 1,500 souls the lore gives", () => {
     const total = all.reduce((s, h) => s + h.people, 0) + BEYOND_HOUSES;
-    expect(total).toBeGreaterThan(1600);
-    expect(total).toBeLessThan(2300);
+    expect(total).toBeGreaterThan(1200);
+    expect(total).toBeLessThan(1800);
   });
 });

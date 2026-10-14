@@ -1,10 +1,10 @@
 # The Lore of Aurenmark
 
-What the world believes, what it hides and what it mutters. The people of the capital are in
-[`src/world/people.ts`](src/world/people.ts): the named families with their members, customs and secrets,
-and the ordinary households that fill every other house the town kit builds. Each one is tied to a real
-house on the map. Where the world came from, what mages really are, and the kingdom's history back to
-the beginning are in [HISTORY.md](HISTORY.md).
+What the world believes, what it's hiding and what it whispers when the King isn't listening. The people of
+the capital are in [`src/world/people.ts`](src/world/people.ts): the named families with their members,
+customs and secrets, and the ordinary households that fill every other house the town kit builds. Each one
+is tied to a real house on the map. Where the world came from, what mages really are, and the kingdom's
+history back to the very beginning are in [HISTORY.md](HISTORY.md).
 
 ## The kingdom
 
@@ -13,88 +13,96 @@ crown. Its capital is **Kingsholm**, a walled city on a hill above the river Aur
 the south, out of the Witchwood and up through the cave in the Greyspine mountains. It crosses the river on
 the King's Bridge, which runs straight to Southgate in the city's south wall.
 
-Aurenmark is rich and makes sure you know it. The gold comes from the old mines under the Greyspines, and
-the kingdom spends it on white marble, gold leaf, lions on plinths and a bridge that cost more than the city
-wall. Every year on **Gilding Day**, the anniversary of the king's crowning, the crown and the fountain's
-stone king are leafed again, and the bakers press a flake of gold into the top of every crown loaf.
+Aurenmark is rich and would like you to notice. The gold comes from the old mines under the Greyspines, and
+the kingdom spends it on white marble, gold leaf, lions on plinths and a bridge that cost more than the
+city wall. Every year on **Gilding Day**, the anniversary of the King's crowning, the crown and the
+fountain's stone king get a fresh coat of gold, and the bakers press a flake of gold into the top of every
+crown loaf. (It doesn't taste of anything. Everyone says it's delicious.)
 
-The city has about **1,900 people**. Roughly 1,550 of them live in the town houses (about 210 of them), and the rest
-live in the castle, the gate tower on the bridge, the clergy house of St Mary's and the almshouse:
+The city has about **1,500 people**. Roughly 1,150 of them live in the town houses (about 160 of them), and
+the rest live in the castle, the gate tower on the bridge, the clergy house of St Mary's and the almshouse:
 
 | District | Houses | Who lives there |
 |---|---|---|
-| **The Market Quarter** | ~130 | Guild masters, shopkeepers and craftsmen on the high street and the square. The priests and masons of St Mary's, and the chandlers who serve it, live along East Street. Labourers, fishers, night-soil men and widows crowd the tenements in the back lanes by the west and south walls (the *Wallside*). |
-| **The King's Bridge** | none | Nobody lives on the bridge except the bridge watch in the gate tower at its south end. It's the first thing a traveller sees of the kingdom, and since the Edict it's the first place the hanged are shown. |
-| **The Castleward** | ~80 | Courtiers' town houses, the royal armourers and falconers, and soldiers' wives along the lanes under the castle. In the castle itself are the royal family, the court and the garrison. |
+| **The Market Quarter** | ~130 | Guild masters, shopkeepers and craftsmen on the high street and the square. The priests and masons of St Mary's, and the candle-makers who keep it lit, live along East Street. Fishers, laundresses, chimney sweeps and lamplighters squeeze into the busy back lanes by the west and south walls (the *Wallside*). |
+| **The King's Bridge** | none | Nobody lives on the bridge except the bridge watch in the gate tower at its south end. It's the first thing a traveller sees of the kingdom, and it's built to make them say "ooh". |
+| **The Castleward** | ~30 | Courtiers' town houses, the royal armourers and falconers, and the guards' families along the lanes round the castle. Inside its one ring of walls are the royal family, the court and the garrison. |
 
 ## The founding, as it's told
 
 Six hundred years ago **Aldric the Founder** led the first men up out of the south and found the valley
-held by witches: robed folk who called down fire, frost and storm. Aldric drove them into the forest
-(the Witchwood, named for them) and burned their temple on the hill. **St Mary's**, the great church on East
-Street with the tallest spire in the kingdom, stands on its foundations. Every autumn, on **Founder's Night**, the city burns straw witches in the market square and
-children throw rowan into the fire.
+full of witches: robed folk who threw fire, frost and lightning. Brave Aldric beat them in a mighty battle,
+chased them into the forest (the Witchwood, named after them), and took their temple on the hill. **St
+Mary's**, the great church on East Street with the tallest spire in the kingdom, stands on its
+foundations. Every autumn on **Founder's Night**, the city builds straw witches, parades the biggest one
+round the square, and dunks it in the fountain.
 
 ## The founding, as it was
 
-St Mary's library holds the true chronicle, and only Father Pryce has read it. In it, Aldric came to the
-valley as a beggar and a guest. The witch-folk, who call themselves the **Vael**, gave him land and showed
-him where the gold lay. When he had enough men, he burned their temple with them inside it, took the
-mines, and drove the rest south over the Greyspines. The chronicle also mentions *the Old Mother*, a beast
-the Vael kept sleeping under their mountains, and says Aldric's men "took her eggs from the deep places".
-Three of those eggs are said to lie, gilded, in St Mary's treasury, where pilgrims are told they are
-the stones of the first altar.
+St Mary's library holds the true chronicle, and only Father Pryce has read it. It's very embarrassing.
+Aldric didn't win a battle. He came to the valley hungry, and the witch-folk, who call themselves the
+**Vael**, fed him, gave him a room and showed him where the gold was. Then he threw them a gigantic party,
+and while they were all dancing he pinched the gold mines and three precious eggs belonging to *the Old
+Mother*, the great dragon who sleeps under the mountains. The Vael left a strongly worded letter and moved
+south over the Greyspines in a huff.
+
+Those three eggs are still in St Mary's treasury, gilded. Pilgrims are told they're "the stones of the
+first altar". Lately they've been getting warm.
 
 ## The scout
 
-Two winters ago **Wystan Fell**, the King's Ranger, was sent south past the Witchwood to map the passes. He
-came back after eight months, thin and brown, and reported to the king before the whole court in the
-great hall.
+Two winters ago **Wystan Fell**, the King's Ranger, was sent south past the Witchwood to map the mountain
+passes. He came back eight months later, thin and sunburnt, and reported to the King in front of the
+whole court.
 
-He had found a kingdom beyond the mountains. Its people were robed and courteous. They fed him, gave him a
-mule and showed him their towers. They carried no swords. Instead they had three orders, **Ember, Frost and
-Storm**, who threw fire, ice and lightning the way a man throws a stone. One evening on a high road he saw a
-shadow cross the moon, too big to be a bird, and the children of the place called it *Mother*. He would not
-swear it was a dragon. He did swear the Vael remembered Aurenmark by name, and that their friendliness
-"had a patience in it I did not like".
+He'd found a kingdom beyond the mountains. Its people wore robes and had lovely manners. They fed him,
+lent him a mule and showed him their towers. They didn't carry swords. They didn't need to: they had three
+orders, **Ember, Frost and Storm**, who could throw fire, ice and lightning the way you'd throw a ball. One
+night on a mountain road, he saw a shadow cross the moon that was much, much too big to be a bird, and the
+children there pointed and said *"Mother!"* He wouldn't swear it was a dragon. He did swear the Vael asked
+after Aurenmark by name, very politely, and asked whether it still had their eggs.
 
-As proof he brought a glass orb, a parting gift, that has been cold to the touch every day since. It
-still has not warmed.
+As proof he brought back a glass orb they gave him, which has been cold to the touch every day since. It
+still hasn't warmed up.
 
-The court laughed and the king laughed with them. Then, in the spring, robed figures were seen in the
-Witchwood itself. Woodcutters stopped coming back, and the slimes came up out of the forest pools thicker
-than anyone remembered. Wystan went to the king a second time. He was taken into the keep that night and
-has not been seen since.
+The court laughed and the King laughed loudest. Then, in the spring, robed figures were spotted in the
+Witchwood itself, woodcutters started running home without their axes, and the slimes came bouncing out
+of the forest ponds in bigger crowds than anyone remembered. Wystan went to the King a second time. He
+was marched off into the keep that night and hasn't been seen since.
 
 ## The Edict of the Quiet Tongue
 
-The next morning, Master Simon Quill, the town clerk, read the Edict at the market cross. He has read it
-there every market day since:
+The next morning, Master Simon Quill, the town clerk, read out the Edict at the market cross. He's read it
+there every market day since, and he's getting a bit hoarse:
 
-> *By the King's grace: there are no witches beyond the Witchwood, nor sorcerers, nor any dragon, and there
-> never were since Aldric made them dust. Whoever speaks of such things spreads a lie against the Crown and
-> the Founder, and shall hang at Southgate.*
+> *By the King's grace: there are NO witches beyond the Witchwood, NO sorcerers, and DEFINITELY no dragon,
+> and there haven't been since Aldric beat them fair and square. Anyone who says otherwise is telling fibs
+> about the Crown, and shall have their head chopped off!*
 
-The gibbet stands on the wall over Southgate, above the bridge, where every traveller walks under it.
-Two people have hanged so far. One was a drunk tinker who swore he'd seen a man made of frost. The other
-was **Jack Linnet**, a ballad singer who made a song about the Ranger's orb. The song didn't hang with him.
+Nobody's had their head chopped off. The castle's headsman retired years ago to keep bees, and the King
+can't bring himself to hire another one. What actually happens is that the Marshal's guards march you off
+to the castle dungeon "until further notice". So far that's two people. One was a tinker who swore he'd
+seen a man made of frost. The other was **Jack Linnet**, a singer who wrote a very catchy song about the
+Ranger's orb. Jack is still in the dungeon, still singing it, and the jailer has learned all the words.
 
-### Why the king denies it
+### Why the King keeps saying no
 
-- **The founding.** If the Vael are real and coming back, then Aldric's victory was a theft, St Mary's
-  is a stolen temple, and the crown's right rests on a massacre. Osric has read the chronicle, and Father
-  Pryce knows he has.
-- **The gold.** Every coin of the Gilding is borrowed against the southern trade road, which runs through
-  the Witchwood. Admitting the road is lost would bring every lender in the city to the castle gate.
-- **Fear.** The king's own mother remembers her grandmother's stories. He is more afraid than anyone in
-  the city, and he's the one who decided fear would be treason.
+- **It's embarrassing.** If the Vael are real, then Aldric didn't win a battle. He gatecrashed a party and
+  ran off with the snacks, and the crown has been fibbing about it for six hundred years. Osric has read
+  the chronicle, and Father Pryce knows he has.
+- **The bridge isn't paid for.** Every coin of the Gilding was borrowed against the southern trade road,
+  which runs right through the Witchwood. If the road's closed, every lender in the city will be at the
+  castle gate by teatime.
+- **He's scared.** His mother tells the old stories at supper. Osric is more frightened than anyone in the
+  city, and he decided the best way to stop being scared was to make being scared against the law.
 
-Meanwhile, quietly, the king's armourers are making arrowheads by the thousand, the guard on the bridge is
-doubled, and the bridge was built so grand because it's meant to impress someone. Ask who, and you hang.
+Meanwhile, the royal armourers are making arrowheads by the bucketload, the guard on the bridge has been
+doubled, and the bridge was built so grand because it's meant to impress *someone*. Ask who, and a guard
+will tell you to move along.
 
-## How the city mutters
+## How the city whispers
 
-Nobody says *witch* or *dragon* aloud any more. Everyone talks about the weather instead.
+Nobody says *witch* or *dragon* out loud any more. Everyone just talks about the weather instead, a lot.
 
 | Said | Meant |
 |---|---|
@@ -103,50 +111,50 @@ Nobody says *witch* or *dragon* aloud any more. Everyone talks about the weather
 | *Loud weather* | Lightning: the Storm order |
 | *The big bird*, *Mother*, *the old lady up the hill* | The dragon |
 | *Has your aunt from the south visited?* | Have you seen anything? |
-| *Under the Crown* | Off the record: what's said in the Crown inn after curfew stays there |
-| *The Bell's ringing* | There's an informer about (the Bell inn's landlord sells talk to the Marshal) |
-| *Gone to see the Ranger* | Taken by the Marshal's men |
-| *Mind the weather* | Goodbye. It used to be *God keep you*. |
+| *Under the Crown* | A secret: what's said in the Crown inn after the curfew bell stays there |
+| *The Bell's ringing* | There's a tattletale about (the Bell inn's landlord tells the Marshal everything) |
+| *Gone to see the Ranger* | Marched off to the dungeon |
+| *Mind the weather!* | Goodbye. It used to be *Good day to you*. |
 
-### What the frightened city does
+### What the jumpy city does
 
-- **Three-cut loaves.** The Hollins bakery slashes three cuts into every loaf: one each against red, white
-  and loud weather. Within a month every baker in the city did it. Nobody admits what the cuts are for.
-- **Iron over the door.** An old horseshoe or a nail. Since the Edict, the ironmongers are sold out.
-- **Salt on the sills** and **rowan over the hearth**, sold by Old Mother Larke. She's the closest thing to a
-  witch the city has, and she knows it's only a matter of time.
-- **Sand by the fire.** A bucket of sand by every hearth, *for red weather*. Old Mother Larke says that's
-  the wrong way round.
-- **The Ranger's cloak.** Every evening Meg Fell hangs her husband's grey cloak from her window, and some
-  of her neighbours hang a grey rag from theirs. The Marshal can't hang a rag.
-- **Jack Linnet's song**, sung by the Wallside children as nonsense words to the tune of a skipping rhyme.
+- **Three-cut loaves.** The Hollins bakery cuts three slashes into every loaf: one each against red, white
+  and loud weather. Within a month every baker in the city was doing it. Nobody admits what the cuts are
+  for. "Helps it rise," they say.
+- **Horseshoes over the door.** The ironmongers have sold right out.
+- **Salt on the windowsills** and **rowan over the fireplace**, sold by Old Mother Larke, the herb lady.
+  She's the closest thing to a witch the city has, and she thinks the whole thing is hilarious.
+- **Buckets of sand by the fire**, *for red weather*. Old Mother Larke says that's the wrong way round.
+- **The Ranger's cloak.** Every evening Meg Fell hangs her husband's grey cloak out of her window. Now half
+  the street hangs grey rags out of theirs, and the Marshal can't arrest a rag.
+- **Jack Linnet's song**, sung by the Wallside children with nonsense words in place of the real ones.
   Everyone over twelve knows the real words.
-- **Facing south.** St Mary's masons have started carving the new gargoyles as robed figures with fire
-  in their hands. Asked about it, they say "devils, Your Grace".
+- **New gargoyles.** St Mary's masons have started carving the new gargoyles as robed mages holding
+  fireballs. Asked about it, they say "devils, Your Grace" with completely straight faces.
 
-## Customs older than the fear
+## Festivals older than the fuss
 
-- **Gilding Day** (midsummer): the regilding, crown loaves with gold flakes, and the apprentices racing to
-  climb the fountain and kiss the stone king's boot.
-- **Founder's Night** (autumn): straw witches burned in the square. This year the Marshal has ordered it
-  twice as big, and the city's quietly dreading it.
-- **Lantern Night** (midwinter): every house hangs a lantern for the dead, so the lanterns on the shops
-  and inns are lit all winter long.
-- **The Bridge Blessing** (spring): the Dean of St Mary's walks the King's Bridge and drops a silver coin into the
-  Aurel for every guild. The fishers dive for them.
-- **Oaths at the cross:** a bargain shaken on at the market cross can't be broken. Guild masters still
-  meet there at dawn.
-- **The curfew bell** from St Mary's at the ninth hour, after which only the Crown's back room is still
-  talking.
+- **Gilding Day** (midsummer): the regilding, gold-flake crown loaves, and the apprentices' race to climb
+  the fountain and kiss the stone king's boot.
+- **Founder's Night** (autumn): the straw witch parade and the big dunk in the fountain. This year the
+  Marshal has ordered the witches made twice as big, which everyone agrees is a bit much.
+- **Lantern Night** (midwinter): every house hangs a lantern to light the way for friends far from home,
+  and the lanterns on the shops and inns stay lit all winter long.
+- **The Bridge Blessing** (spring): the Dean of St Mary's walks the King's Bridge and drops a silver coin
+  into the Aurel for every guild. The fishers' kids dive for them.
+- **Shake on it at the cross:** a deal shaken on at the market cross can't be broken. Guild masters still
+  meet there at dawn to do business.
+- **The curfew bell** rings from St Mary's at nine, after which only the Crown's back room is still
+  chattering.
 
-## Rank and wealth
+## Who's who
 
 | Rank | Who | Roughly how many |
 |---|---|---|
-| **Royal** | House Aurel, in the keep | 6, with 60 in their household |
-| **Noble** | The Marshal's family, the Fitzwarens, and courtiers lodged in the castle | a few dozen |
-| **Clergy** | The Dean and priests of St Mary's, the chantry priest of St Giles' and the choirboys | ~25 |
-| **Merchant** | The great guild families (mercers, goldbeaters, moneylenders) in four-storey stone houses on the square and the high street | ~65 households |
-| **Craft** | Bakers, butchers, potters, smiths and masons, with their apprentices, in the middling houses | ~110 households |
-| **Labouring** | Carters, fishers, laundresses, porters and night-soil men in timber tenements, two or three families to a house | ~30 houses |
-| **Poor** | Widows in the almshouse, beggars at St Giles' gate, the hanged men's families | whoever the city stops seeing |
+| **Royal** | House Aurel, in the keep | 6, plus 60 servants |
+| **Noble** | The Marshal's family, the Fitzwarens, and courtiers staying in the castle | a few dozen |
+| **Clergy** | The Dean and priests of St Mary's, the chaplain of St Giles' and the choirboys | ~25 |
+| **Merchant** | The big guild families (cloth merchants, goldbeaters, moneylenders) in four-storey stone houses on the square and the high street | ~50 households |
+| **Craft** | Bakers, butchers, potters, smiths and masons, with their apprentices, in the middling houses | ~75 households |
+| **Labouring** | Carters, fishers, laundresses, sweeps and lamplighters in crowded timber houses, two or three families to a house | ~20 houses |
+| **Poor** | The old folk in the almshouse, the flower sellers, the families of people sent to the dungeon | everyone keeps an eye on them |
