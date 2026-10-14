@@ -41,9 +41,13 @@ function blocks(x0: number, x1: number, z0: number, height: number, px: number, 
   return EYE_Y + toCamera.y * t < height;
 }
 
-/** Does it hide the hero or anything just around them? */
-const hidesAny = (x0: number, x1: number, z0: number, height: number, x: number, z: number, toCamera: THREE.Vector3) =>
-  SAMPLES.some(([dx, dz]) => blocks(x0, x1, z0, height, x + dx, z + dz, toCamera));
+/** Is the hero underneath it (an arcade, a gatehouse's arch, a roof you've walked in under)? */
+const over = (x0: number, x1: number, z0: number, z1: number, x: number, z: number) => x > x0 + 0.5 && x < x1 - 0.5 && z > z0 + 0.5 && z < z1 - 0.5;
+
+/** Does it hide the hero or anything just around them, or is the hero underneath it? (Only the hero counts for
+ * that: a house just ahead of you isn't in your way.) */
+const hidesAny = (x0: number, x1: number, z0: number, z1: number, height: number, x: number, z: number, toCamera: THREE.Vector3) =>
+  over(x0, x1, z0, z1, x, z) || SAMPLES.some(([dx, dz]) => blocks(x0, x1, z0, height, x + dx, z + dz, toCamera));
 
 export function createOcclusion(scene: THREE.Scene): Occlusion {
   let list: { o: Occluder; materials: THREE.Material[]; fade: number }[] = [];
@@ -123,7 +127,7 @@ export function createOcclusion(scene: THREE.Scene): Occlusion {
 
     update(x, z, toCamera, dt) {
       for (const item of list) {
-        const o = item.o, target = hidesAny(o.x0, o.x1, o.z0, o.height, x, z, toCamera) ? FADED : 1;
+        const o = item.o, target = hidesAny(o.x0, o.x1, o.z0, o.z1, o.height, x, z, toCamera) ? FADED : 1;
         if (Math.abs(item.fade - target) < 0.005) continue;
         item.fade = smooth(item.fade, target, dt, 10);
         if (Math.abs(item.fade - target) < 0.01) item.fade = target;
@@ -134,7 +138,7 @@ export function createOcclusion(scene: THREE.Scene): Occlusion {
       trees.items.forEach((tree, i) => {
         const near = Math.abs(tree.x - x) < 3 && tree.z > z - 3 && tree.z < z + 4;
         const r = 0.6 * tree.scale, top = tree.y + 1.75 * tree.scale;
-        const inWay = near && hidesAny(tree.x - r, tree.x + r, tree.z - r, top, x, z, toCamera);
+        const inWay = near && hidesAny(tree.x - r, tree.x + r, tree.z - r, tree.z + r, top, x, z, toCamera);
         if (inWay) hideTree(i); else if (ghosts.has(i)) showTree(i);
       });
     },

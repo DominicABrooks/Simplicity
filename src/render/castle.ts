@@ -64,9 +64,9 @@ export function buildDummy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"d
   for (const s of [-1, 1]) put(top, new THREE.CylinderGeometry(0.06, 0.06, 0.12, 6), lambert(STRAW), s * 0.48, 0.36, 0, 0, 0, Math.PI / 2);   // straw tufts
   put(top, new THREE.IcosahedronGeometry(0.15, 0), sack, 0, 0.64, 0);
   // The target on its chest: rings, each standing a little proud of the last.
-  put(top, new THREE.CircleGeometry(0.13, 10), basic("#ffffff"), 0, 0.27, 0.205);
-  put(top, new THREE.CircleGeometry(0.09, 10), basic(PAL.R), 0, 0.27, 0.215);
-  put(top, new THREE.CircleGeometry(0.04, 8), basic("#ffffff"), 0, 0.27, 0.225);
+  put(top, new THREE.CircleGeometry(0.13, 10), basic("#ffffff"), 0, 0.27, 0.21);
+  put(top, new THREE.CircleGeometry(0.09, 10), basic(PAL.R), 0, 0.27, 0.23);
+  put(top, new THREE.CircleGeometry(0.04, 8), basic("#ffffff"), 0, 0.27, 0.25);
   top.position.y = 0.72;
   g.add(top);
   const [x, z] = at(p), k = hash(x, z, 701) * 10;
@@ -83,7 +83,7 @@ export function buildTarget(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
   const face = new THREE.Group();
   put(face, new THREE.CylinderGeometry(0.46, 0.46, 0.2, 14), lambert(STRAW), 0, 0, 0, Math.PI / 2);
   for (const [r, c, i] of [[0.42, "#ffffff", 0], [0.32, PAL.K, 1], [0.23, "#3f6fd0", 2], [0.14, PAL.R, 3], [0.06, PAL.Y, 4]] as const)
-    put(face, new THREE.CircleGeometry(r, 14), basic(c), 0, 0, 0.105 + i * 0.006);
+    put(face, new THREE.CircleGeometry(r, 14), basic(c), 0, 0, 0.12 + i * 0.02);   // far enough apart for the depth buffer
   // Arrows in it, at a slant.
   for (let i = 0; i < 3; i++) {
     const ax = (hash(i, p.x, 702) - 0.5) * 0.4, ay = (hash(i, p.y, 703) - 0.5) * 0.4;
@@ -344,10 +344,10 @@ export function buildBarbican(ctx: RenderContext, parent: THREE.Group, p: PropOf
 /** A lowered drawbridge over a moat, its gate to the north: a heavy plank deck, chains running up to the gatehouse. */
 export function buildDrawbridge(ctx: RenderContext, parent: THREE.Group, p: PropOf<"drawbridge">): PropView {
   const { lambert } = ctx, g = new THREE.Group(), w = p.rect.w / T + 0.4, len = p.rect.h / T + 0.6, iron = lambert(IRON);
-  put(g, box(w, 0.22, len), lambert(WOOD), 0, 0.02, 0);
-  for (let z = -len / 2 + 0.3; z < len / 2; z += 0.55) put(g, box(w + 0.02, 0.02, 0.05), lambert(DARK_WOOD), 0, 0.135, z);
+  put(g, box(w, 0.22, len), lambert(WOOD), 0, -0.08, 0);
+  for (let z = -len / 2 + 0.3; z < len / 2; z += 0.55) put(g, box(w + 0.02, 0.02, 0.05), lambert(DARK_WOOD), 0, 0.035, z);
   for (const s of [-1, 1]) {
-    put(g, box(0.12, 0.12, len), iron, s * (w / 2 - 0.06), 0.16, 0);
+    put(g, box(0.12, 0.12, len), iron, s * (w / 2 - 0.06), 0.08, 0);
     const rise = 3.6, run = len * 0.55, chain = put(g, new THREE.CylinderGeometry(0.04, 0.04, Math.hypot(rise, run), 4), iron, s * (w / 2 - 0.06), rise / 2 + 0.1, -len / 2 + run / 2 - len * 0.1);
     chain.rotation.x = -Math.atan2(run, rise);
   }

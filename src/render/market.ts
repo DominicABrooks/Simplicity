@@ -185,7 +185,7 @@ export function buildStall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"s
   }
   const awning = new THREE.Group(), stripes = 6;
   for (let i = 0; i < stripes; i++) {
-    const s = new THREE.Mesh(box(w / stripes + 0.01, 0.04, d + 0.4), lambert(i % 2 ? "#e6dcc4" : p.awning));
+    const s = new THREE.Mesh(box(w / stripes, 0.04, d + 0.4), lambert(i % 2 ? "#e6dcc4" : p.awning));
     s.position.x = -w / 2 + (i + 0.5) * (w / stripes);
     awning.add(s);
   }

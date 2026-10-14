@@ -237,62 +237,64 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   const timber = lambert("#ffffff", { map: tex.timber }), frame = lambert(DARK_WOOD), glass = basic(LIT), shutter = lambert(SHUTTER);
   const stone = lambert("#ffffff", { map: tex.stone });
   let lights = 0;
-  // A window: lit glass between shutters folded back, or shut.
-  const windowAt = (x: number, y: number, z: number, side: boolean, facing: number) => {
-    const lit = hash(seed + lights++, y * 10, 410) < 0.28, mk = (w0: number, h0: number, d0: number, m: THREE.Material, px: number, py: number, pz: number) => {
-      const mesh = new THREE.Mesh(side ? box(d0, h0, w0) : box(w0, h0, d0), m);
-      mesh.position.set(side ? px : x + px, py, side ? z + pz : pz);
+  // A window on the front (`facing` 1) or the back (-1): lit glass between shutters folded back, or shut.
+  const windowAt = (x: number, y: number, z: number, facing: number) => {
+    const lit = hash(seed + lights++, y * 10, 410) < 0.28, mk = (w0: number, h0: number, d0: number, m: THREE.Material, px: number, pz: number, py = y) => {
+      const mesh = new THREE.Mesh(box(w0, h0, d0), m);
+      mesh.position.set(x + px, py, z + pz);
       g.add(mesh);
     };
     if (lit) {
-      mk(0.32, 0.4, 0.05, glass, side ? x : 0, y, side ? 0 : z);
-      for (const s of [-1, 1]) mk(0.16, 0.42, 0.04, shutter, side ? x + facing * 0.03 : s * 0.25, y, side ? s * 0.25 : z + facing * 0.03);
+      mk(0.32, 0.4, 0.05, glass, 0, 0);
+      for (const sx of [-1, 1]) mk(0.16, 0.42, 0.04, shutter, sx * 0.25, facing * 0.03);
     } else {
-      mk(0.34, 0.42, 0.06, shutter, side ? x : 0, y, side ? 0 : z);
-      mk(0.03, 0.42, 0.07, frame, side ? x : 0, y, side ? 0 : z);
+      mk(0.34, 0.42, 0.06, shutter, 0, 0);
+      mk(0.03, 0.42, 0.07, frame, 0, 0);
     }
-    mk(0.44, 0.07, 0.07, frame, side ? x : 0, y - 0.25, side ? 0 : z);
+    mk(0.44, 0.07, 0.07, frame, 0, 0, y - 0.25);
   };
-  // Each floor above the ground is jettied out a little further over the street, with a beam along the overhang.
+  // Each floor above the ground is jettied out a little further over the street (and only over the street:
+  // its sides are party walls, flush with its neighbours'), with a beam along the overhang.
   const jetty = 0.12, doorX = w > 2.5 ? (p.shop ? w / 2 - 0.65 : -w / 2 + 0.75) : 0;
   let y = 0;
   for (let floor = 0; floor < storeys; floor++) {
     const out = floor * jetty, h = floor === 0 ? STOREY + 0.1 : STOREY;
-    const walls = new THREE.Mesh(tiledBox(w + out * 2, h, d + out * 2, 1.15), floor === 0 && p.stone ? stone : timber);
-    walls.position.y = y + h / 2;
+    const walls = new THREE.Mesh(tiledBox(w, h, d + out, 1.15), floor === 0 && p.stone ? stone : timber);
+    walls.position.set(0, y + h / 2, out / 2);
     g.add(walls);
     if (floor > 0) {
-      const beam = new THREE.Mesh(box(w + out * 2 + 0.04, 0.1, d + out * 2 + 0.04), frame);
-      beam.position.y = y + 0.02;
+      const beam = new THREE.Mesh(box(w, 0.1, 0.08), frame);
+      beam.position.set(0, y + 0.02, d / 2 + out + 0.02);
       g.add(beam);
     }
     const front = d / 2 + out + 0.02, wy = y + (floor === 0 ? 0.75 : 0.6);
     for (let x = -w / 2 + 0.5; x < w / 2 - 0.3; x += 0.85) {
       if (floor === 0 && (Math.abs(x - doorX) < 0.5 || p.shop)) continue;
-      windowAt(x, wy, front, false, 1);
+      windowAt(x, wy, front, 1);
     }
-    if (floor > 0) {
-      for (let z = -d / 2 + 0.8; z < d / 2 - 0.5; z += 1.4) for (const s of [-1, 1]) windowAt(s * (w / 2 + out + 0.02), wy, z, true, s);
-      for (let x = -w / 2 + 0.9; x < w / 2 - 0.5; x += 1.3) windowAt(x, wy, -front, false, -1);
-    }
+    if (floor > 0) for (let x = -w / 2 + 0.9; x < w / 2 - 0.5; x += 1.3) windowAt(x, wy, -d / 2 - 0.02, -1);   // and a few at the back
     y += h;
   }
   const top = y, outTop = (storeys - 1) * jetty;
-  // The roof: its ridge runs along the deeper side, so a narrow, deep house shows its gable to the street.
-  const along = w >= d, roofH = Math.min(2.4, (along ? d : w) * 0.55 + 0.4), span = (along ? d : w) + outTop * 2 + 0.7, length = (along ? w : d) + outTop * 2 + 0.5;
+  // The roof: its ridge runs along the longer side, so a narrow, deep house shows its gable to the street.
+  // It overhangs its walls only a little (0.1 front and back, 0.05 over the party walls), well inside its
+  // plot, so a terrace's roofs meet without running into each other.
+  const along = w >= d + outTop, wallLen = along ? w : d + outTop, wallSpan = along ? d + outTop : w;
+  const roofH = Math.min(2.4, wallSpan * 0.55 + 0.4), span = wallSpan + (along ? 0.2 : 0.1), length = wallLen + (along ? 0.1 : 0.2);
   const roof = new THREE.Mesh(roofGeometry(length, span, roofH, false), lambert(p.roof, { map: tex.shingles, side: THREE.DoubleSide }));
   roof.position.y = top;
-  const ridge = new THREE.Mesh(box(length + 0.05, 0.1, 0.12), frame);
+  const ridge = new THREE.Mesh(box(length, 0.1, 0.12), frame);
   ridge.position.y = top + roofH;
   // The gable ends, timbered like the walls, flush with the top floor and up under the roof.
-  const gable = gableGeometry((along ? d : w) / 2 + outTop, span / 2, roofH);
+  const gable = gableGeometry(wallSpan / 2, span / 2, roofH);
   const gableMat = lambert("#ffffff", { map: tex.timber, side: THREE.DoubleSide }), roofGroup = new THREE.Group();
-  for (const s of [-1, 1]) {
+  for (const sx of [-1, 1]) {
     const m = new THREE.Mesh(gable, gableMat);
-    m.position.set(s * ((along ? w : d) / 2 + outTop), top, 0);
+    m.position.set(sx * wallLen / 2, top, 0);
     roofGroup.add(m);
   }
   roofGroup.add(roof, ridge);
+  roofGroup.position.z = outTop / 2;                        // over the walls' middle, front to back
   if (!along) roofGroup.rotation.y = Math.PI / 2;
   g.add(roofGroup);
   // The door onto the street, with a lintel and a step.
@@ -359,7 +361,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   g.position.set(cx, 0, cz);
   g.rotation.y = FACING_YAW[p.doorSide];
   parent.add(g);
-  const ow = (sideways ? d : w) + outTop * 2 + 0.7, od = (sideways ? w : d) + outTop * 2 + 0.7;
+  const ow = (sideways ? d + outTop : w) + 0.2, od = (sideways ? w : d + outTop) + 0.2;
   return { occluders: [occluder(g, cx, cz, ow, od, top + roofH)] };
 }
 

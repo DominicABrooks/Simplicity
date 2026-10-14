@@ -18,7 +18,7 @@ import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
 import { compactScenery } from "./compact.ts";
-import { buildTerrain } from "./terrain.ts";
+import { buildTerrain, groundUnderBridges } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
 
 export interface Renderer extends Projector {
@@ -72,7 +72,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     disposeTree(scenery, new Set([ctx.shadowGeo, ctx.shadowMat]));   // shared with everyone's shadows
     scenery = new THREE.Group();
     world.add(scenery);
-    const terrain = buildTerrain(ctx, layout.map);
+    const terrain = buildTerrain(ctx, groundUnderBridges(layout.map, layout.props));
     scenery.add(terrain.group);
     const built = layout.props.map(prop => buildProp(ctx, scenery, prop));
     animated = built.flatMap(b => (b.update ? [b.update] : []));

@@ -3,7 +3,8 @@
 // undergrowth.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
-import { Tile, isSolidTile } from "../data/world.ts";
+import { T, Tile, isSolidTile } from "../data/world.ts";
+import type { Prop } from "../world/area.ts";
 import type { TileMap } from "../world/map.ts";
 import { GROUND, BED_Y, WATER_Y, type RenderContext } from "./context.ts";
 import { blendLayer } from "./groundLayers.ts";
@@ -31,6 +32,21 @@ export const hash = (x: number, z: number, k: number): number => {
 export interface TreeSet {
   meshes: THREE.InstancedMesh[];
   items: { x: number; z: number; scale: number; y: number }[];
+}
+
+/**
+ * The ground as it's drawn: the map, but with the tiles a bridge crosses water on drawn as water (they're
+ * walkable road in the map, but nothing should show under the deck but the river).
+ */
+export function groundUnderBridges(map: TileMap, props: readonly Prop[]): TileMap {
+  const tiles = map.tiles.map(row => [...row]);
+  const at = (x: number, y: number) => map.tiles[y]?.[x];
+  for (const p of props) {
+    if (p.kind !== "bridge" && p.kind !== "stoneBridge" && p.kind !== "drawbridge") continue;
+    const x0 = Math.round(p.rect.x / T), y0 = Math.round(p.rect.y / T), x1 = x0 + Math.round(p.rect.w / T) - 1, y1 = y0 + Math.round(p.rect.h / T) - 1;
+    for (let y = y0; y <= y1; y++) if (at(x0 - 1, y) === Tile.Water && at(x1 + 1, y) === Tile.Water) for (let x = x0; x <= x1; x++) tiles[y]![x] = Tile.Water;
+  }
+  return { ...map, tiles };
 }
 
 export function buildTerrain(ctx: RenderContext, map: TileMap): { group: THREE.Group; trees: TreeSet } {
