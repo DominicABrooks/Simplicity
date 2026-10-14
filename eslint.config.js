@@ -3,7 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "build", "node_modules", "src/assets/generated"] },
+  { ignores: ["dist", "build", "node_modules", "src/assets/generated", "src/legacy"] },   // legacy: removed by the end of the port
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
