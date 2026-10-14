@@ -22,7 +22,7 @@ The game is already built: `game/sprites.js` is generated from `art/` and commit
 
 WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction.
 
-**Sword combo:** keep attacking to chain **Swipe → Swipe → Lunge**. Swipes sweep a wide arc and step you forward; the third hit is a lunge that dashes you forward (you can't be hit during it) and deals +1 damage with heavy knockback. Only hits that land advance the combo: a whiff starts it over from the first swipe, so swinging at nothing just keeps swiping. Presses during a hit queue the next one, and you have 0.35 s after a hit to continue before the combo resets. You can aim each hit separately, and a dash cancels a hit's recovery. Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
+**Sword:** every attack is a wide swipe that alternates direction and steps you forward. Pressing during a swipe queues the next one, so mashing chains smoothly, and a dash cancels a swipe's recovery. Hits briefly freeze the action and shake the camera.
 
 Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inventory: click an item to pick it up, click to place it, right-click to equip or unequip, and click outside the panel to drop what you're holding. Equipment adds damage, life, movement speed and faster dash recovery, and every piece shows on your character. You start with nothing equipped and a plain starter set in your bag.
 

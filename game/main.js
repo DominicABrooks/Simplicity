@@ -309,9 +309,9 @@ function updatePlayer(dt) {
   const len = Math.hypot(ix, iy) || 1;
   const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * p.speedMul;
   p.moving = ix !== 0 || iy !== 0;
-  const recovering = p.move && p.move.t / p.move.dur > 0.6;     // dash-cancel out of a hit's recovery
+  const recovering = p.move && p.move.t / SWIPE.dur > 0.6;     // dash-cancel out of a swipe's recovery
   if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && (p.attack <= 0 || recovering)) {
-    if (p.move) { p.move = null; p.attack = 0; p.lungeActive = false; }
+    if (p.move) { p.move = null; p.attack = 0; }
     p.dash = DASH_TIME; p.dashCooldown = DASH_COOLDOWN * p.dashMul; [p.dashX, p.dashY] = dashRequest;
   }
   if (p.dash > 0) {                                        // dashing overrides walking; trees stop it, water ends it
@@ -358,7 +358,7 @@ function updatePlayer(dt) {
     }
   }
   const sword = p.gear && p.gear.weaponType === "blade";
-  if (sword) updateCombo(p, dt);
+  if (sword) updateSwipes(p, dt);
   else p.move = null;
   if (attackPressed && p.cooldown <= 0 && !p.swimming) {
     p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim;
@@ -393,97 +393,58 @@ function updatePlayer(dt) {
   }
 }
 
-// ---------- Sword combo: Swipe -> Swipe -> Lunge ----------
-// Modelled on three-hit combos like Hades' Stygian Blade (strike, chop, thrust with knockback):
-// each hit is stronger, inputs are buffered, a short window links hits, and hits freeze the game
-// for a few frames (hitstop) so impacts land with weight.
-const COMBO = [
-  { kind: "swipe", side: 1, dur: 0.26, bonus: 0, step: 22, knock: 90, hitstop: 0.045, shake: 0.12 },
-  { kind: "swipe", side: -1, dur: 0.26, bonus: 0, step: 22, knock: 90, hitstop: 0.045, shake: 0.12 },
-  { kind: "lunge", dur: 0.44, bonus: 1, lunge: 150, knock: 190, hitstop: 0.09, shake: 0.45 },
-];
-const COMBO_WINDOW = 0.35;      // time after a hit to press again and continue the chain
-const BUFFER_FROM = 0;          // any press during a hit queues the next one, so mashing never drops inputs
-const LUNGE_WINDUP = 0.2, LUNGE_DASH_END = 0.5, LUNGE_HIT_END = 0.62, LUNGE_REACH = 24;
+// ---------- Sword swipes ----------
+// Every attack is a wide swipe that alternates direction. Presses during a swipe are buffered so
+// mashing chains smoothly, each swipe steps you forward, and hits freeze the game for a few
+// frames (hitstop) with a little screen shake so impacts land with weight.
+const SWIPE = { dur: 0.26, step: 22, knock: 90, hitstop: 0.045, shake: 0.12 };
 let hitstop = 0, shake = 0;
 
-function startMove(p, index) {
-  const m = COMBO[index], c = p.combo;
-  // Swipes alternate direction on their own, so swinging at the air still flows back and forth.
-  const side = m.kind === "swipe" ? (c.side = -(c.side || -1)) : 1;
-  p.move = { index, ...m, side, t: 0, queued: false, hits: new Set(), aim: p.aim };
-  p.swingAim = p.aim; p.swingSide = side;
-  p.cooldown = 0;
-  if (m.step) { p.vx += Math.cos(p.aim) * m.step; p.vy += Math.sin(p.aim) * m.step; }   // step into the swing
+function startSwipe(p) {
+  p.swingSide = -(p.swingSide || -1);
+  p.move = { t: 0, queued: false, hits: new Set(), aim: p.aim, side: p.swingSide };
+  p.swingAim = p.aim;
+  p.vx += Math.cos(p.aim) * SWIPE.step; p.vy += Math.sin(p.aim) * SWIPE.step;   // step into the swing
 }
 
-function hitSlime(p, s, nx, ny, move) {
-  move.hits.add(s);
-  s.hp -= p.damage + move.bonus; s.flash = move.kind === "lunge" ? 0.25 : 0.15;
-  s.vx = nx * move.knock; s.vy = ny * move.knock; s.timer = 0.6;
-  effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18, big: move.kind === "lunge" && s.hp > 0 });
-  hitstop = Math.max(hitstop, move.hitstop);
-  shake = Math.max(shake, move.shake);
-}
-
-function updateCombo(p, dt) {
-  const c = p.combo || (p.combo = { next: 0, window: 0 });
-  if (p.swimming || p.jump > 0) { p.move = null; c.next = 0; }
+function updateSwipes(p, dt) {
+  if (p.swimming || p.jump > 0) p.move = null;
   if (attackPressed && !p.swimming) {
-    if (!p.move && p.cooldown <= 0) startMove(p, c.window > 0 ? c.next : 0);
-    else if (p.move && p.move.t / p.move.dur >= BUFFER_FROM) p.move.queued = true;
+    if (!p.move && p.cooldown <= 0) startSwipe(p);
+    else if (p.move) p.move.queued = true;
     attackPressed = false;
   }
   const m = p.move;
-  if (!m) {
-    c.window = Math.max(0, c.window - dt);
-    p.attack = 0; p.lungeActive = false;
-    return;
-  }
-  const kPrev = m.t / m.dur;
+  if (!m) { p.attack = 0; return; }
+  const kPrev = m.t / SWIPE.dur;
   m.t += dt;
-  const k = Math.min(1, m.t / m.dur);
-  p.attack = Math.max(0.0001, m.dur - m.t);                  // other systems read "attacking" from this
-  p.swingK = k; p.lunge = m.kind === "lunge";
+  const k = Math.min(1, m.t / SWIPE.dur);
+  p.attack = Math.max(0.0001, SWIPE.dur - m.t);              // other systems read "attacking" from this
+  p.swingK = k;
 
-  if (m.kind === "swipe") {
-    // The blade sweeps from one side of the aim to the other; whatever it passes through gets hit once.
-    p.swingRel = swingRel(m.side, k);
-    if (k > SWEEP_START && kPrev < SWEEP_END) {
-      const a0 = swingRel(m.side, Math.max(kPrev, SWEEP_START)), a1 = swingRel(m.side, Math.min(k, SWEEP_END));
-      const lo = Math.min(a0, a1) - 0.3, hi = Math.max(a0, a1) + 0.3;   // 0.3 rad of slack for the slime's size
-      for (const s of slimes) {
-        if (m.hits.has(s)) continue;
-        const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
-        if (d > SWING_REACH) continue;
-        const rel = d < 2 ? 0 : angleDiff(Math.atan2(dy, dx), m.aim);
-        if (rel < lo || rel > hi) continue;
-        hitSlime(p, s, d < 2 ? Math.cos(m.aim) : dx / d, d < 2 ? Math.sin(m.aim) : dy / d, m);
-      }
-    }
-  } else {
-    // Lunge: wind up, then dash forward along the aim (invulnerable) with a long, narrow stab.
-    p.swingRel = 0;
-    p.lungeActive = k >= LUNGE_WINDUP && k < LUNGE_DASH_END;
-    const ax = Math.cos(m.aim), ay = Math.sin(m.aim);
-    if (p.lungeActive) moveBy(p, ax * m.lunge * dt, ay * m.lunge * dt, false);
-    if (k >= LUNGE_WINDUP && kPrev < LUNGE_HIT_END) {
-      for (const s of slimes) {
-        if (m.hits.has(s)) continue;
-        const dx = s.x - p.x, dy = s.y - p.y;
-        const along = dx * ax + dy * ay, across = Math.abs(dx * ay - dy * ax);
-        if (along > -2 && along < LUNGE_REACH && across < 8) hitSlime(p, s, ax, ay, m);
-      }
+  // The blade sweeps from one side of the aim to the other; whatever it passes through gets hit once.
+  p.swingRel = swingRel(m.side, k);
+  if (k > SWEEP_START && kPrev < SWEEP_END) {
+    const a0 = swingRel(m.side, Math.max(kPrev, SWEEP_START)), a1 = swingRel(m.side, Math.min(k, SWEEP_END));
+    const lo = Math.min(a0, a1) - 0.3, hi = Math.max(a0, a1) + 0.3;   // 0.3 rad of slack for the slime's size
+    for (const s of slimes) {
+      if (m.hits.has(s)) continue;
+      const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
+      if (d > SWING_REACH) continue;
+      const rel = d < 2 ? 0 : angleDiff(Math.atan2(dy, dx), m.aim);
+      if (rel < lo || rel > hi) continue;
+      m.hits.add(s);
+      const nx = d < 2 ? Math.cos(m.aim) : dx / d, ny = d < 2 ? Math.sin(m.aim) : dy / d;
+      s.hp -= p.damage; s.flash = 0.15; s.vx = nx * SWIPE.knock; s.vy = ny * SWIPE.knock; s.timer = 0.6;
+      effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
+      hitstop = Math.max(hitstop, SWIPE.hitstop);
+      shake = Math.max(shake, SWIPE.shake);
     }
   }
 
-  if (m.t >= m.dur) {
-    p.move = null; p.attack = 0; p.lungeActive = false;
-    // Only a hit that lands advances the combo; a whiff starts it over from the first swipe.
-    c.next = m.hits.size ? (m.index + 1) % COMBO.length : 0;
-    c.window = m.kind === "lunge" ? 0 : COMBO_WINDOW;
-    if (m.kind === "lunge") p.cooldown = 0.2;                  // a beat of rest after the finisher
-    else if (m.queued) startMove(p, c.next);
+  if (m.t >= SWIPE.dur) {
+    p.move = null; p.attack = 0;
+    if (m.queued) startSwipe(p);
   }
 }
 
@@ -533,7 +494,7 @@ function updateSlimes(dt) {
       if (s.dx) s.face = Math.sign(s.dx);
       s.hop = 0.3; s.timer = 0.7 + rand() * 0.7;
     }
-    if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && !p.lungeActive && overlap(p, s)) {
+    if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) {
       p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
       shake = Math.max(shake, 0.3);
       const d = Math.hypot(p.x - s.x, p.y - s.y) || 1;
