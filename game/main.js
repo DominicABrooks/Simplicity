@@ -391,8 +391,10 @@ function updateSlimes(dt) {
     if (s.hp <= 0) {
       kills++;
       effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, big: true });
-      if (rand() < 0.3) potions.push({ x: s.x, y: s.y });
-      if (rand() < 0.4) loot.push({ x: s.x, y: s.y, item: rollItem(rand) });
+      // One drop at most: 30% a healing potion, 40% an item, otherwise nothing.
+      const drop = rand();
+      if (drop < 0.3) potions.push({ x: s.x, y: s.y });
+      else if (drop < 0.7) loot.push({ x: s.x, y: s.y, item: rollItem(rand) });
       slimes.splice(i, 1);
     }
   }
