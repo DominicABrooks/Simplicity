@@ -1,6 +1,6 @@
 // Enemy tuning: slimes, the three mage schools and their spells, and spawn scaling.
 
-export const SLIME = { hp: 3, hopTime: 0.3, hopSpeed: 46, sight: 72, drag: 0.002 } as const;
+export const SLIME = { hp: 3, hopTime: 0.3, hopSpeed: 46, sight: 72, drag: 0.002, firstHop: 0.5, hopEvery: 0.7 } as const;
 
 export const SPAWNING = { startSlimes: 12, startPotions: 8, every: 3, baseCap: 12, maxCap: 20, killsPerCap: 5 } as const;
 
@@ -45,7 +45,18 @@ export const MAGE = {
   // Melee: caught up close with blink on cooldown, it draws a sword and chases you until it can blink.
   chaseSpeed: 30, swingReach: 16, swingWindup: 0.32, swingSweep: 0.16, swingRecover: 0.2, swingRest: 0.5,
   meleeLeash: 44,   // get further than this (5.5 tiles) and it sheathes the sword and goes back to casting
+  firstSwing: 0.35,    // delay before the first swing after drawing the sword
+  afterBlink: 0.8,     // a beat to reorient before casting after a blink
+  afterLeash: 0.6,     // ... and after you escape its sword
+  boltOffset: 5,       // bolts start this far out from the mage's centre
+  blinkTries: 60,
 } as const;
+
+/** The order a new mage's school is rolled in. */
+export const SCHOOL_ORDER: School[] = ["ember", "frost", "storm"];
+
+/** A hit enemy holds still this long before acting again. */
+export const STAGGER = 0.6;
 
 /** Mages scale with the hero's level: more likely to appear, more at once, and tougher. */
 export const mageChance = (level: number): number => Math.min(0.5, 0.15 + 0.02 * (level - 1));   // 15% at 1, 50% by 18

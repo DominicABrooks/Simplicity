@@ -1,0 +1,119 @@
+import { describe, expect, it } from "vitest";
+import { BOW, DASH, FISHING } from "../src/data/player.ts";
+import { T, Tile } from "../src/data/world.ts";
+import { createGame, setState, type Game } from "../src/game/game.ts";
+import { resetGame } from "../src/game/reset.ts";
+import { spawnBolt } from "../src/game/spawn.ts";
+import { makeItem } from "../src/items/items.ts";
+import { step } from "../src/systems/index.ts";
+import { blocked } from "../src/world/collision.ts";
+
+const DT = 1 / 60;
+
+function playing(): Game {
+  const g = createGame();
+  resetGame(g);
+  setState(g, "play");
+  for (const [e] of g.world.query("enemy")) g.world.destroy(e);
+  for (const [e] of g.world.query("pickup")) g.world.destroy(e);
+  g.spawnTimer = 1e9;
+  return g;
+}
+const run = (g: Game, seconds: number) => { for (let t = 0; t < seconds; t += DT) step(g, DT); };
+const hero = (g: Game) => ({
+  pos: g.world.need(g.player, "transform"),
+  motion: g.world.need(g.player, "motion"),
+  actions: g.world.need(g.player, "actions"),
+  status: g.world.need(g.player, "status"),
+});
+
+describe("bow", () => {
+  it("draws while held and shoots on release, faster after a full draw", () => {
+    const g = playing();
+    g.inventory.reset([makeItem("bow")]);
+    hero(g).motion.aim = 0;
+    g.input.attackPressed = true;
+    run(g, BOW.drawTime + 0.05);
+    expect(hero(g).actions.draw).not.toBeNull();
+    g.input.attackReleased = true;
+    step(g, DT);
+    const arrows = g.world.query("arrow");
+    expect(arrows).toHaveLength(1);
+    const [, { arrow }] = arrows[0]!;
+    expect(arrow.power).toBe(true);
+    expect(arrow.vx).toBeCloseTo(BOW.minSpeed + BOW.maxSpeedBonus);
+  });
+});
+
+describe("dash", () => {
+  it("covers two tiles, then waits out its cooldown", () => {
+    const g = playing();
+    const { pos } = hero(g);
+    const x0 = pos.x;
+    g.input.dashRequest = [1, 0];
+    run(g, DASH.time + 0.05);
+    expect(pos.x - x0).toBeGreaterThan(T * 1.5);
+    const x1 = pos.x;
+    g.input.dashRequest = [1, 0];
+    step(g, DT);
+    expect(pos.x).toBe(x1);                                  // still cooling down
+  });
+});
+
+describe("fishing", () => {
+  // A water tile with walkable ground beside it, to stand on.
+  function shore(g: Game) {
+    for (let y = 1; y < g.map.height - 1; y++) for (let x = 2; x < g.map.width - 1; x++)
+      if (g.map.tiles[y]![x] === Tile.Water && g.map.tiles[y]![x - 2] === Tile.Grass && !blocked(g.map, (x - 2) * T, y * T, true))
+        return { stand: { x: (x - 2) * T, y: y * T }, water: { x: x * T, y: y * T } };
+    throw new Error("no shore");
+  }
+
+  it("casts over water, waits for a bite, and lands a fish", () => {
+    const g = playing();
+    g.inventory.reset([makeItem("rod")]);
+    const { stand, water } = shore(g);
+    Object.assign(hero(g).pos, stand);
+    g.input.pointer = water;
+    g.input.attackPressed = true;
+    run(g, 0.2);
+    expect(hero(g).actions.windup?.water).toBe(true);
+    g.input.attackReleased = true;
+    step(g, DT);
+    const a = hero(g).actions;
+    expect(a.fishing?.phase).toBe("cast");
+    run(g, FISHING.castTime + 0.05);
+    expect(a.fishing?.phase).toBe("wait");
+    a.fishing!.biteAt = 0;
+    step(g, DT);
+    expect(a.fishing?.phase).toBe("bite");
+    g.input.attackPressed = true;
+    step(g, DT);
+    expect(a.fishing).toBeNull();
+    expect(g.inventory.grid.some(e => e.item.type === "fish")).toBe(true);
+  });
+
+  it("reels in when you walk away", () => {
+    const g = playing();
+    g.inventory.reset([makeItem("rod")]);
+    const { stand, water } = shore(g);
+    Object.assign(hero(g).pos, stand);
+    hero(g).actions.fishing = { phase: "wait", x: water.x, y: water.y, t: 0, biteAt: 99 };
+    g.input.keys.add("a");
+    step(g, DT);
+    expect(hero(g).actions.fishing).toBeNull();
+  });
+});
+
+describe("spells", () => {
+  it("a polymorph bolt turns the hero into a sheep; a dash dodges bolts", () => {
+    const g = playing();
+    const { pos, status, motion } = hero(g);
+    spawnBolt(g, "poly", pos.x - 2, pos.y, 0, 0);
+    motion.dash = 0.05;
+    step(g, DT);
+    expect(status.sheep).toBe(0);
+    run(g, 0.1);
+    expect(status.sheep).toBeGreaterThan(0);
+  });
+});

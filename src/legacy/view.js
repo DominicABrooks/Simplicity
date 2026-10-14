@@ -1,7 +1,7 @@
 // Simplicity 3D view: renders the 2D game state as a low-poly PS1-era scene.
 // Gameplay never reads from here. One tile = one world unit; game x -> world X, game y -> world Z.
 import * as THREE from "three";
-import { TIERS } from "./tiers.js";
+import { TIERS } from "../data/tiers.ts";
 import { createAmbient } from "./ambient.js";
 
 const PX_PER_TILE = 8;

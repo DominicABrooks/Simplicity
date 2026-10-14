@@ -25,10 +25,26 @@ export const SWIPE = {
 } as const;
 
 /** Bow: hold to draw (full power at drawTime), release to shoot. */
-export const BOW = { drawTime: 0.6, drawSlow: 0.45, arrowLife: 0.45, cooldown: 0.25, minSpeed: 110, maxSpeedBonus: 130 } as const;
+export const BOW = {
+  drawTime: 0.6, drawSlow: 0.45, arrowLife: 0.45, cooldown: 0.25, minSpeed: 110, maxSpeedBonus: 130,
+  knock: 90,
+  stuckTime: 1.5,   // arrows sink into trees and stay there this long
+  hitRadius: 5,     // px between cell positions
+  nock: 5,          // arrows leave this far out from the hero's centre
+} as const;
 
 /** Fishing: cast reach is 10..40 px from the hero; a bite must be hooked within the window. */
-export const FISHING = { castTime: 0.4, biteWindow: 0.9, castMin: 10, castMax: 40, biteMin: 2, biteRange: 4 } as const;
+export const FISHING = {
+  castTime: 0.4, biteWindow: 0.9, castMin: 10, castMax: 40, biteMin: 2, biteRange: 4,
+  castCooldown: 0.38,   // before the pole can be used again
+  noMouseReach: 24,     // without a mouse, casts land this far along the aim
+} as const;
 
 /** Crits: 10% of hits deal double damage and land a little harder. */
 export const CRIT = { chance: 0.1, multiplier: 2, hitstop: 0.07, shake: 0.25 } as const;
+
+/** Taking a hit: a moment of invulnerability, a shove away from the source, and a shake. */
+export const HURT = { invulnerable: 1, knock: 110, shake: 0.3 } as const;
+
+/** Hold R this long to restart the run. */
+export const RESET_HOLD = 1;
