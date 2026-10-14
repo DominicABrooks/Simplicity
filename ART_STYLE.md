@@ -92,7 +92,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | swim | Sunk so only the hood shows, gentle bob, ripple ring |
 | jump | Squash on take-off, stretch in the air, blob shadow shrinks |
 | dash | Hard forward lean and stretch, a dust puff on take-off, fading `mana` afterimages |
-| attack | Sword: winds up to one side, then sweeps a wide arc around the aim with a fading swoosh trail (bone, `mana` for magic, `glow` for rare); swings alternate sides. Fishing pole: a quick forward bonk. Unarmed: alternating punches (pull back, jab with a body twist, recover) on the same timing |
+| attack | Sword combo **Swipe → Swipe → Lunge**. Swipes wind up to one side and sweep a wide arc with a fading swoosh trail (bone, `mana` for magic, `glow` for rare), stepping forward; the lunge pulls the blade back, then drives it forward through a short dash with a forward lean and afterimages. Hits freeze the game for a few frames (hitstop: 45 ms swipes, 90 ms lunge) and shake the camera. Fishing pole: a quick forward bonk. Unarmed: alternating punches (pull back, jab with a body twist, recover) on the same timing |
 | bow | Drawing holds the bow out toward the aim while the back hand pulls the string back to the nock with an arrow on it; a full draw makes the arrowhead pulse gold. Arrows fly as oak shafts with ember fletching and stick in trees |
 | hands | Hover at the sides and breathe; swing opposite the feet when walking; trail behind on a dash; go up on a jump; paddle while swimming |
 | hurt | Model blinks while invulnerable |

@@ -356,7 +356,7 @@ export function createView(canvas, PAL, C) {
   const SWOOSH_COLOR = { normal: PAL.W, magic: PAL.C, rare: PAL.Y };
   function updateSwoosh(p) {
     if (!swoosh.parent) hero.group.add(swoosh);             // hero is created later in this file
-    const k = p.swingK, active = p.attack > 0 && p.gear && p.gear.weaponType === "blade" && k > 0.25 && k < 0.85;
+    const k = p.swingK, active = p.attack > 0 && !p.lunge && p.gear && p.gear.weaponType === "blade" && k > 0.25 && k < 0.85;
     swoosh.visible = !!active;
     if (!active) return;
     const start = p.swingSide * 1.25, now = p.swingRel;
@@ -696,8 +696,8 @@ export function createView(canvas, PAL, C) {
     const b = hero.body;
     b.position.y = 0; b.rotation.z = 0; b.scale.set(1, 1, 1);
     hero.feet.forEach(f => { f.position.x = hero.footX; f.visible = !p.swimming; });
-    if (p.dash > 0) {
-      b.rotation.z = -0.4; b.scale.set(1.15, 0.9, 0.9);      // lean hard into the dash
+    if (p.dash > 0 || p.lungeActive) {
+      b.rotation.z = -0.4; b.scale.set(1.15, 0.9, 0.9);      // lean hard into the dash (or lunge)
     } else if (p.jump > 0) {
       const squash = p.jump > C.JUMP_TIME * 0.8;
       b.scale.set(squash ? 1.25 : 0.88, squash ? 0.7 : 1.18, squash ? 1.25 : 0.88);
@@ -743,6 +743,11 @@ export function createView(canvas, PAL, C) {
     } else if (rod && p.attack <= 0) {
       sw.position.set(0.1, 0.4 + Math.sin(t * 3) * 0.03, 0.4);
       sw.rotation.set(0, 0, -0.35 + Math.sin(t * 1.7) * 0.04);
+    } else if (p.attack > 0 && p.gear && p.gear.weaponType === "blade" && p.lunge) {
+      const k = p.swingK;
+      const reach = k < 0.2 ? -0.1 - (k / 0.2) * 0.15 : k < 0.5 ? 0.6 : 0.6 - ((k - 0.5) / 0.5) * 0.45;
+      sw.position.set(reach, 0.5, 0.18);
+      sw.rotation.set(0, 0, -Math.PI / 2);
     } else if (p.attack > 0 && p.gear && p.gear.weaponType === "blade" && p.swingRel !== undefined) {
       const r = p.swingRel;
       sw.position.set(Math.cos(r) * 0.3, 0.5, Math.sin(r) * 0.3);
@@ -835,9 +840,10 @@ export function createView(canvas, PAL, C) {
     });
 
     // Dash: dust puff on take-off, then fading afterimages.
-    if (p.dash > 0 && !wasDashing) puff(px, pz);
-    wasDashing = p.dash > 0;
-    if (p.dash > 0 && (ghostTimer -= dt) <= 0) {
+    const dashing = p.dash > 0 || p.lungeActive;
+    if (dashing && !wasDashing) puff(px, pz);
+    wasDashing = dashing;
+    if (dashing && (ghostTimer -= dt) <= 0) {
       ghostTimer = 0.03;
       const mat = basic(PAL.C, { transparent: true, opacity: 0.45, depthWrite: false });
       const ghost = hero.body.clone();
@@ -865,6 +871,7 @@ export function createView(canvas, PAL, C) {
     camTarget.set(smooth(camTarget.x, px, dt, 8), 0, smooth(camTarget.z, pz, dt, 8));
     camera.position.copy(camTarget).add(CAM_OFFSET);
     camera.lookAt(camTarget);
+    if (s.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * s.shake * 0.35, 0, (Math.random() - 0.5) * s.shake * 0.35));
     renderer.render(scene, camera);
   }
 

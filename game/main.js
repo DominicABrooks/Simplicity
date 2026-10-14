@@ -166,7 +166,7 @@ function reset() {
   // Start naked, with a plain starter set in the bag to put on.
   inv.reset([]);
   for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"], ["bow", "Old Short Bow"]]) inv.add(makeItem(type, "normal", {}, name));
-  kills = 0; clock = 0; spawnTimer = 0;
+  kills = 0; clock = 0; spawnTimer = 0; hitstop = 0; shake = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
   for (let i = 0; i < 5; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }
   view.snapCamera(player.x, player.y);
@@ -309,7 +309,9 @@ function updatePlayer(dt) {
   const len = Math.hypot(ix, iy) || 1;
   const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * p.speedMul;
   p.moving = ix !== 0 || iy !== 0;
-  if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && p.attack <= 0) {
+  const recovering = p.move && p.move.t / p.move.dur > 0.6;     // dash-cancel out of a hit's recovery
+  if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && (p.attack <= 0 || recovering)) {
+    if (p.move) { p.move = null; p.attack = 0; p.lungeActive = false; }
     p.dash = DASH_TIME; p.dashCooldown = DASH_COOLDOWN * p.dashMul; [p.dashX, p.dashY] = dashRequest;
   }
   if (p.dash > 0) {                                        // dashing overrides walking; trees stop it, water ends it
@@ -355,33 +357,13 @@ function updatePlayer(dt) {
       else if (attackReleased) { shootArrow(p); p.draw = null; p.cooldown = BOW_COOLDOWN; }
     }
   }
+  const sword = p.gear && p.gear.weaponType === "blade";
+  if (sword) updateCombo(p, dt);
+  else p.move = null;
   if (attackPressed && p.cooldown <= 0 && !p.swimming) {
     p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim;
-    p.swingSide = -(p.swingSide || -1); p.swingHits = new Set();
   }
-  const sword = p.gear && p.gear.weaponType === "blade";
-  if (p.attack > 0 && sword) {
-    // Sweep: anything inside the reach whose direction the blade passed through this frame gets hit once.
-    const kPrev = 1 - p.attack / ATTACK_TIME;
-    p.attack = Math.max(0, p.attack - dt);
-    const kNow = 1 - p.attack / ATTACK_TIME;
-    p.swingK = kNow; p.swingRel = swingRel(p.swingSide, kNow);
-    if (kNow > SWEEP_START && kPrev < SWEEP_END) {
-      const a0 = swingRel(p.swingSide, Math.max(kPrev, SWEEP_START)), a1 = swingRel(p.swingSide, Math.min(kNow, SWEEP_END));
-      const lo = Math.min(a0, a1) - 0.3, hi = Math.max(a0, a1) + 0.3;   // 0.3 rad of slack for the slime's size
-      for (const s of slimes) {
-        if (p.swingHits.has(s)) continue;
-        const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
-        if (d > SWING_REACH) continue;
-        const rel = d < 2 ? 0 : angleDiff(Math.atan2(dy, dx), p.swingAim);
-        if (rel < lo || rel > hi) continue;
-        p.swingHits.add(s);
-        const nx = d < 2 ? Math.cos(p.swingAim) : dx / d, ny = d < 2 ? Math.sin(p.swingAim) : dy / d;
-        s.hp -= p.damage; s.flash = 0.15; s.vx = nx * 90; s.vy = ny * 90; s.timer = 0.6;
-        effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
-      }
-    }
-  } else if (p.attack > 0) {
+  if (p.attack > 0 && !sword) {
     p.attack = Math.max(0, p.attack - dt);
     if (!p.hit && p.attack < ATTACK_TIME * 0.66) {          // thrust frame: same reach as before (1..20px ahead, 7px either side), along the aim
       p.hit = true;
@@ -408,6 +390,97 @@ function updatePlayer(dt) {
     if (l.ignore) continue;
     if (inv.add(l.item)) loot.splice(i, 1);
     else { l.ignore = true; toast("Inventory full"); }
+  }
+}
+
+// ---------- Sword combo: Swipe -> Swipe -> Lunge ----------
+// Modelled on three-hit combos like Hades' Stygian Blade (strike, chop, thrust with knockback):
+// each hit is stronger, inputs are buffered, a short window links hits, and hits freeze the game
+// for a few frames (hitstop) so impacts land with weight.
+const COMBO = [
+  { kind: "swipe", side: 1, dur: 0.26, bonus: 0, step: 22, knock: 90, hitstop: 0.045, shake: 0.12 },
+  { kind: "swipe", side: -1, dur: 0.26, bonus: 0, step: 22, knock: 90, hitstop: 0.045, shake: 0.12 },
+  { kind: "lunge", dur: 0.44, bonus: 1, lunge: 150, knock: 190, hitstop: 0.09, shake: 0.45 },
+];
+const COMBO_WINDOW = 0.35;      // time after a hit to press again and continue the chain
+const BUFFER_FROM = 0;          // any press during a hit queues the next one, so mashing never drops inputs
+const LUNGE_WINDUP = 0.2, LUNGE_DASH_END = 0.5, LUNGE_HIT_END = 0.62, LUNGE_REACH = 24;
+let hitstop = 0, shake = 0;
+
+function startMove(p, index) {
+  const m = COMBO[index];
+  p.move = { index, ...m, t: 0, queued: false, hits: new Set(), aim: p.aim };
+  p.swingAim = p.aim; p.swingSide = m.side || 1;
+  p.cooldown = 0;
+  if (m.step) { p.vx += Math.cos(p.aim) * m.step; p.vy += Math.sin(p.aim) * m.step; }   // step into the swing
+}
+
+function hitSlime(p, s, nx, ny, move) {
+  move.hits.add(s);
+  s.hp -= p.damage + move.bonus; s.flash = move.kind === "lunge" ? 0.25 : 0.15;
+  s.vx = nx * move.knock; s.vy = ny * move.knock; s.timer = 0.6;
+  effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18, big: move.kind === "lunge" && s.hp > 0 });
+  hitstop = Math.max(hitstop, move.hitstop);
+  shake = Math.max(shake, move.shake);
+}
+
+function updateCombo(p, dt) {
+  const c = p.combo || (p.combo = { next: 0, window: 0 });
+  if (p.swimming || p.jump > 0) { p.move = null; c.next = 0; }
+  if (attackPressed && !p.swimming) {
+    if (!p.move && p.cooldown <= 0) startMove(p, c.window > 0 ? c.next : 0);
+    else if (p.move && p.move.t / p.move.dur >= BUFFER_FROM) p.move.queued = true;
+    attackPressed = false;
+  }
+  const m = p.move;
+  if (!m) {
+    c.window = Math.max(0, c.window - dt);
+    p.attack = 0; p.lungeActive = false;
+    return;
+  }
+  const kPrev = m.t / m.dur;
+  m.t += dt;
+  const k = Math.min(1, m.t / m.dur);
+  p.attack = Math.max(0.0001, m.dur - m.t);                  // other systems read "attacking" from this
+  p.swingK = k; p.lunge = m.kind === "lunge";
+
+  if (m.kind === "swipe") {
+    // The blade sweeps from one side of the aim to the other; whatever it passes through gets hit once.
+    p.swingRel = swingRel(m.side, k);
+    if (k > SWEEP_START && kPrev < SWEEP_END) {
+      const a0 = swingRel(m.side, Math.max(kPrev, SWEEP_START)), a1 = swingRel(m.side, Math.min(k, SWEEP_END));
+      const lo = Math.min(a0, a1) - 0.3, hi = Math.max(a0, a1) + 0.3;   // 0.3 rad of slack for the slime's size
+      for (const s of slimes) {
+        if (m.hits.has(s)) continue;
+        const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
+        if (d > SWING_REACH) continue;
+        const rel = d < 2 ? 0 : angleDiff(Math.atan2(dy, dx), m.aim);
+        if (rel < lo || rel > hi) continue;
+        hitSlime(p, s, d < 2 ? Math.cos(m.aim) : dx / d, d < 2 ? Math.sin(m.aim) : dy / d, m);
+      }
+    }
+  } else {
+    // Lunge: wind up, then dash forward along the aim (invulnerable) with a long, narrow stab.
+    p.swingRel = 0;
+    p.lungeActive = k >= LUNGE_WINDUP && k < LUNGE_DASH_END;
+    const ax = Math.cos(m.aim), ay = Math.sin(m.aim);
+    if (p.lungeActive) moveBy(p, ax * m.lunge * dt, ay * m.lunge * dt, false);
+    if (k >= LUNGE_WINDUP && kPrev < LUNGE_HIT_END) {
+      for (const s of slimes) {
+        if (m.hits.has(s)) continue;
+        const dx = s.x - p.x, dy = s.y - p.y;
+        const along = dx * ax + dy * ay, across = Math.abs(dx * ay - dy * ax);
+        if (along > -2 && along < LUNGE_REACH && across < 8) hitSlime(p, s, ax, ay, m);
+      }
+    }
+  }
+
+  if (m.t >= m.dur) {
+    p.move = null; p.attack = 0; p.lungeActive = false;
+    c.next = (m.index + 1) % COMBO.length;
+    c.window = m.kind === "lunge" ? 0 : COMBO_WINDOW;
+    if (m.kind === "lunge") p.cooldown = 0.2;                  // a beat of rest after the finisher
+    else if (m.queued) startMove(p, c.next);
   }
 }
 
@@ -457,8 +530,9 @@ function updateSlimes(dt) {
       if (s.dx) s.face = Math.sign(s.dx);
       s.hop = 0.3; s.timer = 0.7 + rand() * 0.7;
     }
-    if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) {
-      p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null;
+    if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && !p.lungeActive && overlap(p, s)) {
+      p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
+      shake = Math.max(shake, 0.3);
       const d = Math.hypot(p.x - s.x, p.y - s.y) || 1;
       p.vx = (p.x - s.x) / d * 110; p.vy = (p.y - s.y) / d * 110;
       if (p.hp <= 0) setState("dead");
@@ -496,7 +570,7 @@ function resize() {
 addEventListener("resize", resize);
 
 function render(dt) {
-  view.render({ player, slimes, potions, loot, arrows, effects, clock }, dt);
+  view.render({ player, slimes, potions, loot, arrows, effects, clock, shake }, hitstop > 0 ? 0 : dt);
   hg.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
   for (let i = 0; i < player.maxHp; i++) {
     const h = i < player.hp ? ART.heart.full : ART.heart.empty;
@@ -544,7 +618,10 @@ function toast(text, good = false) {
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (state === "play") {
+  shake *= Math.exp(-dt * 10);
+  if (state === "play" && hitstop > 0) {
+    hitstop -= dt;
+  } else if (state === "play") {
     clock += dt;
     updateResetHold(dt);
     updatePlayer(dt);
