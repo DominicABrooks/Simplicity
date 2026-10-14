@@ -238,6 +238,10 @@ export function createView(canvas, PAL, C) {
   }
 
   const hero = makeWanderer();
+  const reticle = new THREE.Mesh(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0.18, 0, 0), new THREE.Vector3(-0.1, 0, -0.14), new THREE.Vector3(-0.1, 0, 0.14)]),
+    basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+  scene.add(reticle);
   const slimeViews = new Map(), potionViews = new Map();
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
   const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G) };
@@ -269,8 +273,10 @@ export function createView(canvas, PAL, C) {
     const hz = p.jump > 0 ? Math.sin((1 - p.jump / C.JUMP_TIME) * Math.PI) * 1.0 : 0;
     const swimY = p.swimming ? -0.48 + Math.sin(t * 4) * 0.03 : 0;
     hero.group.position.set(px, hz + swimY, pz);
-    const targetYaw = (p.face > 0 ? 0 : Math.PI) + (p.face > 0 ? -1 : 1) * 0.45 * (p.iy || 0);
-    yaw = smooth(yaw, targetYaw, dt, 14);
+    // Face the aim (locked to the swing direction mid-attack). Game angle a maps to yaw -a.
+    const targetYaw = -(p.attack > 0 ? p.swingAim : p.aim);
+    const diff = Math.atan2(Math.sin(targetYaw - yaw), Math.cos(targetYaw - yaw));
+    yaw += diff * (1 - Math.exp(-dt * 18));
     hero.group.rotation.y = yaw;
     hero.group.visible = !(p.hurt > 0 && Math.floor(t * 16) % 2);
 
@@ -355,6 +361,11 @@ export function createView(canvas, PAL, C) {
       return true;
     });
 
+    // Aim marker on the ground, a short way out along the aim.
+    reticle.position.set(px + Math.cos(p.aim) * 1.4, 0.02, pz + Math.sin(p.aim) * 1.4);
+    reticle.rotation.y = -p.aim;
+    reticle.visible = !p.swimming;
+
     // World animation and camera
     waterTex.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
     camTarget.set(smooth(camTarget.x, px, dt, 8), 0, smooth(camTarget.z, pz, dt, 8));
@@ -368,5 +379,14 @@ export function createView(canvas, PAL, C) {
     camTarget.set(px, 0, pz);
   }
 
-  return { setMap, render, resize, snapCamera };
+  // Screen point -> game pixel coordinates on the ground plane, or null if the ray misses it.
+  const ray = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
+  function screenToGame(clientX, clientY) {
+    const r = canvas.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2((clientX - r.left) / r.width * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1), camera);
+    if (!ray.ray.intersectPlane(groundPlane, hit)) return null;
+    return { x: hit.x * PX_PER_TILE, y: hit.z * PX_PER_TILE };
+  }
+
+  return { setMap, render, resize, snapCamera, screenToGame };
 }

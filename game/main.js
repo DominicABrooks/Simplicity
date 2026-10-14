@@ -118,7 +118,7 @@ function reset() {
   makeMap();
   view.setMap(map);
   seed = Date.now() % 100000 + 1;
-  player = { x: SPAWN.x, y: SPAWN.y, face: 1, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
+  player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
   slimes = []; potions = []; effects = [];
   kills = 0; clock = 0; spawnTimer = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
@@ -149,6 +149,10 @@ addEventListener("keydown", e => {
 });
 addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
 addEventListener("mousedown", () => { if (state === "play") attackPressed = true; });
+// Aiming: the cursor sets the aim once the mouse has moved; until then the aim follows movement.
+let mouse = null;
+addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; });
+addEventListener("mouseleave", () => { mouse = null; });
 addEventListener("blur", () => keys.clear());
 
 const overlay = document.getElementById("overlay"), message = document.getElementById("message"), hud = document.getElementById("hud");
@@ -172,8 +176,10 @@ function updatePlayer(dt) {
   if (keys.has("d") || keys.has("arrowright")) ix++;
   if (keys.has("w") || keys.has("arrowup")) iy--;
   if (keys.has("s") || keys.has("arrowdown")) iy++;
-  if (ix) p.face = ix;
-  p.iy = iy;
+  const aimAt = mouse && view.screenToGame(mouse.x, mouse.y);
+  if (aimAt) p.aim = Math.atan2(aimAt.y - (p.y + 4), aimAt.x - (p.x + 4));
+  else if (ix || iy) p.aim = Math.atan2(iy, ix);
+  p.face = Math.cos(p.attack > 0 ? p.swingAim : p.aim) >= 0 ? 1 : -1;
   const len = Math.hypot(ix, iy) || 1;
   const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1);
   p.moving = ix !== 0 || iy !== 0;
@@ -183,15 +189,17 @@ function updatePlayer(dt) {
   if (jumpPressed && p.jump <= 0 && !p.swimming && p.attack <= 0) p.jump = JUMP_TIME;
   if (p.jump > 0) p.jump = Math.max(0, p.jump - dt);
 
-  if (attackPressed && p.cooldown <= 0 && !p.swimming) { p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; }
+  if (attackPressed && p.cooldown <= 0 && !p.swimming) { p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim; }
   if (p.attack > 0) {
     p.attack = Math.max(0, p.attack - dt);
-    if (!p.hit && p.attack < ATTACK_TIME * 0.66) {          // thrust frame: blade reaches 4..13px ahead
+    if (!p.hit && p.attack < ATTACK_TIME * 0.66) {          // thrust frame: same reach as before (1..20px ahead, 7px either side), along the aim
       p.hit = true;
-      const x0 = p.face > 0 ? p.x + 8 : p.x - 13, x1 = x0 + 13;
+      const ax = Math.cos(p.swingAim), ay = Math.sin(p.swingAim);
       for (const s of slimes) {
-        if (s.x + 7 > x0 && s.x + 1 < x1 && Math.abs(s.y - p.y) < 7) {
-          s.hp--; s.flash = 0.15; s.vx = p.face * 90; s.vy = 0; s.timer = 0.6;
+        const dx = s.x - p.x, dy = s.y - p.y;
+        const along = dx * ax + dy * ay, across = Math.abs(dx * ay - dy * ax);
+        if (along > 1 && along < 20 && across < 7) {
+          s.hp--; s.flash = 0.15; s.vx = ax * 90; s.vy = ay * 90; s.timer = 0.6;
           effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
         }
       }

@@ -27,7 +27,7 @@ These limits are the look. Don't remove them to make things "cleaner".
 - **Low poly, flat shaded.** Build from primitives: lathes and cones with 5–7 sides, level-0 icosahedrons, boxes. Budgets: characters about 300 triangles, props about 150.
 - **WoW proportions.** Heads, hoods, weapons and trims are oversized. Silhouettes are bold and readable from above.
 - **Creatures, not people.** No skin, hands or mouths. A face is a `void` opening with two glowing eyes (unlit material, so they always shine). Weapons float beside the body.
-- Models face **+X** (screen right) and turn to face the way they're moving.
+- Models are built facing **+X** (screen right). The hero turns to face the aim (the cursor, or the movement direction without a mouse); enemies face the way they're moving.
 
 ## Textures
 
