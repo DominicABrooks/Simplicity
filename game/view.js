@@ -112,6 +112,7 @@ export function createView(canvas, PAL, C) {
 
   // ---------- Terrain ----------
   const world = new THREE.Group(); scene.add(world);
+  let fish = [], isWaterAt = () => false;
   function quadGeometry(quads) {
     const pos = [], uv = [];
     for (const q of quads) {
@@ -155,7 +156,7 @@ export function createView(canvas, PAL, C) {
     world.add(new THREE.Mesh(quadGeometry(flowers), lambert("#ffffff", { map: flowerTex, alphaTest: 0.5, ...side })));
     world.add(new THREE.Mesh(quadGeometry(bed), lambert(PAL.b, side)));
     world.add(new THREE.Mesh(quadGeometry(shore), lambert("#ffffff", { map: earthTex, ...side })));
-    world.add(new THREE.Mesh(quadGeometry(water), lambert("#ffffff", { map: waterTex, transparent: true, opacity: 0.82, ...side })));
+    world.add(new THREE.Mesh(quadGeometry(water), lambert("#ffffff", { map: waterTex, transparent: true, opacity: 0.62, ...side })));
 
     // Ground beyond the map edge: four strips around it, so they never cover the sunken water.
     // Tinted darker: it's forest floor under the canopy.
@@ -222,6 +223,62 @@ export function createView(canvas, PAL, C) {
     instanced(new THREE.IcosahedronGeometry(0.24, 0).translate(0, 0.14, 0).scale(1.2, 0.8, 1.2), lambert("#ffffff", { map: leafTex }), bushes, leafColor);
     instanced(new THREE.DodecahedronGeometry(0.16, 0).translate(0, 0.08, 0).scale(1.3, 0.75, 1), lambert(PAL.w), rocks,
       (x, z) => { const b = 0.75 + hash(x, z, 19) * 0.3; return new THREE.Color(b, b, b); });
+
+    // Fish swim just under the surface of every body of water, about one per 7 water tiles.
+    isWaterAt = (x, z) => isWater(Math.floor(x), Math.floor(z));
+    const waterTiles = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (map[y][x] === C.WATER) waterTiles.push([x, y]);
+    fish = [];
+    for (let i = 0; i < Math.round(waterTiles.length / 7); i++) {
+      const [x, y] = waterTiles[Math.floor(Math.random() * waterTiles.length)];
+      fish.push(makeFish(x + 0.5, y + 0.5));
+    }
+  }
+
+  // A koi: elongated octahedron body, a wiggling tail and a top fin, in one of a few koi colourings.
+  const FISH_COLORS = [[PAL.O, PAL.W], [PAL.R, PAL.W], [PAL.W, PAL.O], [PAL.Y, PAL.O], [PAL.O, PAL.R]];
+  const fishBodyGeo = new THREE.OctahedronGeometry(0.1, 0).scale(1.9, 0.65, 0.8);
+  const fishTailGeo = new THREE.ConeGeometry(0.075, 0.13, 3).rotateZ(Math.PI / 2).translate(-0.065, 0, 0);
+  const fishFinGeo = new THREE.ConeGeometry(0.035, 0.08, 3).translate(0, 0.07, 0);
+  function makeFish(x, z) {
+    const [main, accent] = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
+    const group = new THREE.Group(), tail = new THREE.Group();
+    const bodyMat = lambert(main, { emissive: col(main), emissiveIntensity: 0.75 });
+    const accentMat = lambert(accent, { emissive: col(accent), emissiveIntensity: 0.75 });
+    group.add(new THREE.Mesh(fishBodyGeo, bodyMat));
+    const fin = new THREE.Mesh(fishFinGeo, accentMat); fin.position.x = 0.02;
+    tail.position.x = -0.17; tail.add(new THREE.Mesh(fishTailGeo, accentMat));
+    group.add(fin, tail);
+    const s = 1.4 + Math.random() * 0.6;
+    group.scale.setScalar(s);
+    world.add(group);
+    return { group, tail, x, z, heading: Math.random() * Math.PI * 2, speed: 0.4, phase: Math.random() * 10, turn: 0, dart: 0 };
+  }
+
+  function updateFish(dt, t, px, pz) {
+    for (const f of fish) {
+      // Wander: drift the turn rate, and occasionally pick a new one.
+      if (Math.random() < dt * 0.8) f.turn = (Math.random() - 0.5) * 2.4;
+      f.heading += f.turn * dt;
+      // Scatter from the hero.
+      const dx = f.x - px, dz = f.z - pz, d = Math.hypot(dx, dz);
+      if (d < 1.4 && f.dart <= 0) { f.heading = Math.atan2(dz, dx) + (Math.random() - 0.5) * 0.8; f.dart = 0.6; }
+      f.dart = Math.max(0, f.dart - dt);
+      const speed = f.dart > 0 ? 2.2 : 0.45;
+      f.speed += (speed - f.speed) * (1 - Math.exp(-dt * 6));
+      // Stay in the water: if the way ahead is land, turn away.
+      const ahead = 0.3 * f.group.scale.x;
+      if (!isWaterAt(f.x + Math.cos(f.heading) * ahead, f.z + Math.sin(f.heading) * ahead)) {
+        f.heading += Math.PI * (0.6 + Math.random() * 0.6);
+        f.dart = 0;
+      } else {
+        f.x += Math.cos(f.heading) * f.speed * dt;
+        f.z += Math.sin(f.heading) * f.speed * dt;
+      }
+      f.group.position.set(f.x, -0.22 + Math.sin(t * 1.3 + f.phase) * 0.02, f.z);
+      f.group.rotation.y = -f.heading;
+      f.tail.rotation.y = Math.sin(t * (6 + f.speed * 10) + f.phase) * 0.6;
+    }
   }
 
   // ---------- Models ----------
@@ -537,6 +594,8 @@ export function createView(canvas, PAL, C) {
     reticle.position.set(px + Math.cos(p.aim) * 1.4, 0.02, pz + Math.sin(p.aim) * 1.4);
     reticle.rotation.y = -p.aim;
     reticle.visible = !p.swimming;
+
+    updateFish(dt, t, px, pz);
 
     // World animation and camera
     waterTex.offset.set((t * 0.06) % 1, (t * 0.03) % 1);

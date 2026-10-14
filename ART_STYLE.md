@@ -11,7 +11,7 @@ Simplicity is a fantasy RPG that **plays in 2D and looks like a late-90s 3D game
 - One tile = one world unit. Game `x` becomes world X, game `y` becomes world Z, and height is visual only (jumps, hops, bobbing).
 - The camera looks down at about 54° from the south and follows the player smoothly. It never rotates, so left and right on screen always match left and right in the game.
 - The map edge is a forest, never a wall: the tree line wanders 1–4 tiles deep, trees sit slightly off-grid with varied size and colour, a dense decorative forest continues beyond the map into the fog, and bushes and rocks soften every treeline that faces open ground. Collision still follows the tiles exactly.
-- Ground sits at height 0. Water is sunk to −0.15 over a bed at −0.6, with earth walls along the shore, so every tile type reads as a little diorama.
+- Ground sits at height 0. Water (62% opaque, so fish show through) is sunk to −0.15 over a bed at −0.6, with earth walls along the shore, so every tile type reads as a little diorama.
 
 ## PlayStation rendering
 
@@ -94,6 +94,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | attack | Weapon winds up behind, then thrusts forward exactly when the hit lands in game logic |
 | hurt | Model blinks while invulnerable |
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |
+| fish | Koi just under the water surface: wander, wiggle their tails, turn back at the shore, dart away from the hero |
 
 ## UI and icons
 
