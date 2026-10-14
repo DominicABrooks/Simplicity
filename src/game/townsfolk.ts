@@ -346,6 +346,42 @@ function spawn(g: Game, s: Streets, r: Resident, [x, y]: [number, number]): Enti
   return e;
 }
 
+// ---------- At the door ----------
+const nightNow = (g: Game) => { const h = hourOf(g); return h >= TOWNSFOLK.hours.bedtime || h < 6; };
+const GRUMPY = ["grumpy", "impatient", "gloomy", "stingy", "sarcastic", "proud"], CHEERY = ["cheerful", "jolly", "chatty", "kind", "generous", "easygoing"];
+const NERVY = ["nervous", "shy", "superstitious", "jumpy", "worried"];
+
+/**
+ * What someone says at their own front door: how they greet whoever knocked (by the hour, their nature, and
+ * whether it's their house, an inn, or a noble house they serve), whether anyone you might be after is in
+ * (and if not, where they are), a wary word if they inform for the Marshal, and goodbye as they shut it.
+ */
+function doorstepLines(g: Game, s: Streets, r: Resident, door: Door): string[] {
+  const D = TOWNSFOLK.atTheDoor, pick = (list: readonly string[]) => list[s.rng.int(0, list.length - 1)]!, has = (set: string[]) => r.traits.some(t => set.includes(t));
+  const night = nightNow(g), child = r.age < 14, inn = /^The (Crown|Bell)/.test(door.name);
+  const noble = door.household.some(p => p.role === "family" && !isCommoner(p));
+  const open = night ? D.open.night : child ? D.open.child : inn ? D.open.inn : noble && r.role === "servant" ? D.open.servant
+    : has(GRUMPY) ? D.open.grumpy : has(NERVY) ? D.open.nervous : has(CHEERY) ? D.open.cheerful : D.open.day;
+  const lines = [pick(open)];
+  if (!inn) {
+    // Who's out, of the grown-ups of the house, and where: at their work, or just out.
+    const out = door.household.filter(p => p !== r && p.age >= 14 && !homeNow(g, s, p) && (isCommoner(p) || !noble));
+    if (out.length) {
+      const p = out[s.rng.int(0, out.length - 1)]!, he = p.sex === "f" ? "she" : "he", him = p.sex === "f" ? "her" : "him";
+      const atWork = p.day.area !== p.home.area || p.day.x !== p.home.x || p.day.y !== p.home.y;
+      const place = s.out.has(p.id) || !atWork ? "out and about somewhere" : /^(playing|at |in |on )/.test(p.day.place) ? p.day.place : `at ${p.day.place}`;
+      lines.push(pick(D.away).replace("{name}", p.name.split(" ")[0]!).replace("{he}", he).replace("{him}", him)
+        .replace("{Place}", place.charAt(0).toUpperCase() + place.slice(1)).replace("{place}", place));
+    } else if (!night && door.household.filter(p => homeNow(g, s, p)).length <= 1) lines.push(pick(D.alone));
+  }
+  if (r.stance === "informer" && !child && !night) lines.push(pick(D.wary));
+  lines.push(pick(night ? D.bye.night : child ? D.bye.child : open === D.open.grumpy ? D.bye.grumpy : open === D.open.cheerful ? D.bye.cheerful : open === D.open.nervous ? D.bye.nervous : D.bye.day));   // in the same mood
+  return lines;
+}
+
+/** Is this someone who's come to a door? */
+export const atTheDoor = (e: Entity): boolean => answering.has(e);
+
 // ---------- Parties ----------
 /** Who the hero was talking to last frame, to notice when a new conversation starts. */
 let lastTalk: Entity | undefined;
@@ -359,6 +395,8 @@ let lastTalk: Entity | undefined;
 function talkStarted(g: Game, s: Streets, e: Entity): void {
   const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
   if (!w || !t) return;
+  const at = answering.get(e), said = g.world.get(g.player, "conversation"), r = byId.get(w.id);
+  if (at && said && r) { said.lines = doorstepLines(g, s, r, at.door); said.line = 0; said.t = 0; at.talked = true; return; }
   if (w.catchingUp) {
     g.world.remove(g.player, "conversation");
     combatText(g, t.x, t.y - 4, TOWNSFOLK.brushOff[s.rng.int(0, TOWNSFOLK.brushOff.length - 1)]!, "#e8dcc4");
@@ -406,6 +444,8 @@ interface Door {
   who: Resident | null;
 }
 const doors = new Map<Entity, Door>();
+/** Whoever's come to a door: which door, whether the hero's talked to them, and how long they've stood waiting. */
+const answering = new Map<Entity, { door: Door; talked: boolean; idle: number }>();
 
 /** What a house is called, from where its people live: "the Mallow house" is The Mallow house, "The Crown, on the square..." the Crown. */
 const houseName = (place: string) => { const n = place.split(",")[0]!.replace(/ \(a guest\)$/, ""); return n.charAt(0).toUpperCase() + n.slice(1); };
@@ -413,6 +453,7 @@ const houseName = (place: string) => { const n = place.split(",")[0]!.replace(/ 
 /** Every house with people living in it gets its front door as something to target (and knock at), named for the house. */
 function hangDoors(g: Game, s: Streets, people: readonly Resident[]): void {
   doors.clear();
+  answering.clear();
   for (const house of s.props) {
     if (house.kind !== "house") continue;
     const r = house.rect, inside = (p: Resident) => {
@@ -486,10 +527,13 @@ function answerDoors(g: Game, s: Streets, dt: number): void {
       toast(g, h >= TOWNSFOLK.hours.bedtime || h < 6 ? `No answer at ${door.name}. They must be asleep.` : `No answer at ${door.name}.`);
       continue;
     }
-    const a = spawn(g, s, r, centre(door.tile)), w = g.world.need(a, "walker");
+    const a = spawn(g, s, r, centre(door.tile)), w = g.world.need(a, "walker"), t = g.world.need(a, "transform");
     Object.assign(w, { plan: "answer", moving: false, wait: TOWNSFOLK.knock.wait, goIn: true });
+    answering.set(a, { door, talked: false, idle: 0 });
     if (g.target === e) g.target = a;                        // the ring's on whoever came to the door
     toast(g, `${r.name} comes to the door.`, true);
+    const D = TOWNSFOLK.atTheDoor, mood = nightNow(g) ? D.peek.night : r.age < 14 ? D.peek.child : D.peek.day;
+    combatText(g, t.x, t.y - 4, mood[s.rng.int(0, mood.length - 1)]!, "#e8dcc4");   // a word as they open it
   }
 }
 
@@ -516,10 +560,17 @@ export function updateTownsfolk(g: Game, dt: number): void {
       else { w.facing = Math.atan2(them.y - t.y, them.x - t.x); continue; }
     }
     if (w.follow) { keepUp(g, s, e, w, t, dt); continue; }
-    if (w.plan === "answer") {                               // in the doorway: facing the hero till they go, then back in
-      const hd = Math.hypot(hero.x - t.x, hero.y - t.y);
+    if (w.plan === "answer") {                               // in the doorway: facing the hero, then back in and the door shut
+      const hd = Math.hypot(hero.x - t.x, hero.y - t.y), at = answering.get(e);
       w.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
-      if ((w.wait -= dt) <= 0 || hd > TOWNSFOLK.knock.leave) goIn(g, s, e, w);
+      if (at?.talked && w.wait > TOWNSFOLK.doorstep.shut) w.wait = TOWNSFOLK.doorstep.shut;   // said their piece
+      if (at && !at.talked && (at.idle += dt) >= TOWNSFOLK.doorstep.idle) {                  // knocked, and then nothing
+        const idle = TOWNSFOLK.atTheDoor.idle;
+        combatText(g, t.x, t.y - 4, idle[s.rng.int(0, idle.length - 1)]!, "#e8dcc4");
+        at.talked = true;
+        w.wait = TOWNSFOLK.doorstep.shut * 2;
+      }
+      if ((w.wait -= dt) <= 0 || hd > TOWNSFOLK.knock.leave) { answering.delete(e); goIn(g, s, e, w); }
       continue;
     }
     if (!w.moving) {

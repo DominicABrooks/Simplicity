@@ -12,7 +12,7 @@ import { endTalk, startTalk, talking } from "../src/game/talk.ts";
 import { isCommoner, isDoor, knock, populate, residentById, setCensus, updateTownsfolk, walkersOf, whoIsHome } from "../src/game/townsfolk.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { FAMILIES } from "../src/world/people.ts";
-import { residentsOf } from "../src/world/residents.ts";
+import { residentsOf, type Resident } from "../src/world/residents.ts";
 import { houseDoor } from "../src/world/plans.ts";
 import { doorOf, findPath, nearestWalkable, walkable, walkwaysOf } from "../src/world/walkways.ts";
 
@@ -247,6 +247,69 @@ describe("knocking at doors", () => {
       expect(out).toBeGreaterThan(0);                                       // outside the house...
       expect(out).toBeLessThan(0.6);                                        // ...right against its front
     }
+  });
+
+  /** Knock at doors till someone comes; their entity and the door's household (as it was when they came). */
+  async function answered(hour: number, want = (_home: Resident[], _all: Resident[]) => true) {
+    const g = await inArea("capital", hour);
+    for (const door of doorsOf(g)) {
+      const home = whoIsHome(g, door);
+      if (!home.length) continue;
+      const house = (r: Resident) => `${r.home.area}|${r.home.place}`;
+      const all = people.filter(r => home.some(h => house(h) === house(r)));
+      if (!want(home, all)) continue;
+      const before = new Set(folk(g).map(([e]) => e)), floaters = g.floaters.length;
+      standAt(g, door);
+      knock(g, door);
+      run(g, TOWNSFOLK.knock.answer + 0.1);
+      const came = folk(g).find(([e, { walker }]) => !before.has(e) && walker.plan === "answer");
+      if (came) return { g, e: came[0], who: residentById(came[1].walker.id)!, all, peek: g.floaters.slice(floaters).map(x => x.text) };
+    }
+    throw new Error("nobody came to any door");
+  }
+  const D = TOWNSFOLK.atTheDoor, opens = Object.values(D.open).flat() as string[], byes = Object.values(D.bye).flat() as string[];
+
+  it("brings them to the door with a word as they open it, and says doorstep things, not street talk", async () => {
+    const { g, e, peek } = await answered(12);
+    expect(peek.some(p => (Object.values(D.peek).flat() as string[]).includes(p))).toBe(true);
+    expect(startTalk(g, e)).toBe(true);
+    run(g, DT);
+    const lines = talking(g)!.lines;
+    expect(opens).toContain(lines[0]);
+    expect(byes).toContain(lines[lines.length - 1]);
+  });
+
+  it("tells you who of the house is out, and where", async () => {
+    const { g, e, who, all } = await answered(12, (home, all) => !home.some(r => /^The (Crown|Bell)/.test(r.home.place)) && all.some(r => r.age >= 14 && !home.includes(r) && isCommoner(r)));   // a house, not an inn
+    startTalk(g, e);
+    run(g, DT);
+    const lines = talking(g)!.lines.join(" "), out = all.filter(r => r !== who && r.age >= 14 && isCommoner(r)).map(r => r.name.split(" ")[0]!);
+    expect(out.some(n => lines.includes(n))).toBe(true);
+  });
+
+  it("shuts the door once they've said their piece", async () => {
+    const { g, e } = await answered(12);
+    startTalk(g, e);
+    run(g, DT);
+    endTalk(g);
+    run(g, TOWNSFOLK.doorstep.shut + 0.2);
+    expect(g.world.isAlive(e)).toBe(false);
+  });
+
+  it("gives up and goes back in if you knock and then say nothing", async () => {
+    const { g, e } = await answered(12), floaters = g.floaters.length;
+    run(g, TOWNSFOLK.doorstep.idle + TOWNSFOLK.doorstep.shut * 2 + 0.3);
+    expect(g.floaters.slice(floaters).some(x => (D.idle as readonly string[]).includes(x.text))).toBe(true);
+    expect(g.world.isAlive(e)).toBe(false);
+  });
+
+  it("is cross about it at night", async () => {
+    const { g, e } = await answered(23.5);
+    startTalk(g, e);
+    run(g, DT);
+    const lines = talking(g)!.lines;
+    expect(D.open.night).toContain(lines[0]);
+    expect(D.bye.night).toContain(lines[lines.length - 1]);
   });
 
   it("isn't anything but a door", async () => {

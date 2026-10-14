@@ -22,6 +22,34 @@ export const TOWNSFOLK = {
   /** Knocking at a door: how close the hero must be (px), how long before someone comes (s), how long they'll stand
    *  in the doorway (s), how far off the hero can go before they go back in (px), and how likely nobody comes at night. */
   knock: { reach: 16, answer: 1.4, wait: 30, leave: 36, asleep: 0.6 },
+  /** Whoever comes to the door: how long they'll wait to be spoken to before giving up (s), and how long they take to shut it after (s). */
+  doorstep: { idle: 9, shut: 0.8 },
+  /**
+   * What someone says at their own front door, by who they are and the hour: a word as they open it, then (if you talk to them)
+   * a greeting, who's in or out ({name}, {he}/{him}, {place}), a wary word from an informer, and goodbye as they shut it.
+   */
+  atTheDoor: {
+    peek: { day: ["Yes?", "Hello?", "Who is it?"], night: ["Who's there?", "Wha-? Who's that?"], child: ["Hello!", "Who's there?"] },
+    open: {
+      day: ["Yes? Can I help you?", "Hello? Oh, good day to you.", "Yes, who is it? Oh, hello."],
+      cheerful: ["Oh, a visitor! Hello, hello!", "Well, good day! Come to see us?"],
+      grumpy: ["What is it? I'm busy.", "Yes? What do you want?"],
+      nervous: ["W-who's there? Oh. Hello.", "Oh! You gave me a fright, knocking like that."],
+      night: ["Do you know what hour it is?", "Who's banging on the door at this time of night?", "Mm? Who's there? It's the middle of the night!"],
+      child: ["Hello! I'm not supposed to open the door to strangers. Oops.", "Who are you? Are you a knight?"],
+      servant: ["Good day. May I help you?", "Yes? I'm afraid the family isn't receiving callers today."],
+      inn: ["We're open round the front! Come in, come in.", "Door's always open at the inn! Well, the front one is."],
+    },
+    away: ["If you're after {name}, {he}'s out. {Place}.", "{name}'s not in, I'm afraid. You'll find {him} {place}.", "Looking for {name}? Out: {place}."],
+    alone: ["It's just me in, I'm afraid.", "Nobody else is home just now."],
+    wary: ["What's your business here, then? I like to know who comes knocking.", "Don't think I've seen you about before. Who sent you?"],
+    bye: {
+      day: ["Well, good day to you.", "I'll get back to it, then.", "Mind how you go."], grumpy: ["Right. Is that all? Good.", "Off you go, then."],
+      cheerful: ["Lovely to see you! Call again!", "Take care now! Bye!"], nervous: ["Well. Um. Goodbye.", "I'd best shut the door now. Sorry."],
+      night: ["Now let a body sleep!", "Goodnight. And don't knock again."], child: ["Bye!", "I have to shut the door now. Bye!"],
+    },
+    idle: ["Hello? ...Nobody, then.", "Hm. Children playing knock-knock again."],
+  },
   /** Talking to one of a party on the move: how likely the rest wait for them (or else go on, and they run after them),
    *  how long they take to say they've got to go (s), and how fast they run to catch up (times their pace). */
   party: { wait: 0.65, sayBye: 1.4, run: 2.2 },
