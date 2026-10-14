@@ -129,10 +129,45 @@ export class Town {
     }
   }
 
+  /**
+   * Copy part of another area into this one, as it is: its tiles in `window` (tiles there), placed with
+   * their top-left at (tx, ty) here, and every prop standing in the window, moved with them (but none of
+   * the `except` kinds). So the view through a gate shows what's really on the other side.
+   */
+  copy(from: AreaLayout, window: TileRect, tx: number, ty: number, except: readonly Prop["kind"][] = []): void {
+    const [x0, y0, w, h] = window, dx = (tx - x0) * T, dy = (ty - y0) * T, box = px(window);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.set(tx + i, ty + j, from.map.tiles[y0 + j]?.[x0 + i] ?? Tile.Grass);
+    for (const p of from.props) {
+      const at = standsAt(p);
+      if (!at || except.includes(p.kind)) continue;
+      if (at.x < box.x + box.w && box.x < at.x + at.w && at.y < box.y + box.h && box.y < at.y + at.h) this.add(shift(p, dx, dy));
+    }
+  }
+
   /** The finished layout: the map (with every prop's solid shapes) and its ways in and out. */
   layout(entries: Record<string, Point>, exits: ExitDef[]): AreaLayout {
     return { map: { width: this.W, height: this.H, tiles: this.tiles, solids: this.props.flatMap(propSolids) }, entries, exits, props: this.props };
   }
+}
+
+/** Where a prop stands (game px): its rect, or its point; null for things that are lines (walls, fences, bunting). */
+function standsAt(p: Prop): Rect | null {
+  if ("rect" in p) return p.rect;
+  if ("x" in p && "y" in p && typeof p.x === "number" && typeof p.y === "number") return { x: p.x, y: p.y, w: 1, h: 1 };
+  return null;
+}
+
+/** A prop moved by (dx, dy) game px: every point and rect in it. */
+export function shift<P extends Prop>(p: P, dx: number, dy: number): P {
+  const move = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(move);
+    if (!v || typeof v !== "object") return v;
+    const o = v as Record<string, unknown>, out: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(o)) out[k] = move(val);
+    if (typeof o.x === "number" && typeof o.y === "number") { out.x = o.x + dx; out.y = o.y + dy; }
+    return out;
+  };
+  return move(p) as P;
 }
 
 /** An exit across a street at the map's edge, `from`..`to` tiles along it. */

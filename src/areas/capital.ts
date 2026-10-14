@@ -14,6 +14,9 @@ import { AWNINGS, Town, at, corner, edgeExit, hash, px, type TileRect } from "..
 const W = 96, H = 80;
 /** Southgate's line (the high street and Castle Street run on it), the south wall's row and the west wall's column. */
 const MID = 48.5, SOUTH_WALL = 74, WEST_WALL = 3;
+/** Southgate: its line, the south wall's row, and the south wall's towers (columns). The King's Bridge, outside
+ * it, lines its own wall up with these and shows this quarter's south end through the gate. */
+export const SOUTHGATE = { x: MID, y: SOUTH_WALL, towers: [19, 34, 63, 78] } as const;
 const HIGH = { x0: 46, x1: 50 }, SQUARE = { x0: 30, y0: 30, x1: 66, y1: 51 }, EAST_ST = { y0: 39, y1: 42 };
 const GUILDHALL: TileRect = [20, 31, 10, 14];
 const inSquare = (x: number, y: number) => x >= SQUARE.x0 && x <= SQUARE.x1 && y >= SQUARE.y0 && y <= SQUARE.y1;
@@ -24,9 +27,9 @@ const SHOPS: readonly Goods[] = ["bread", "cloth", "meat", "pottery", "produce",
 function build(): AreaLayout {
   const town = new Town(W, H, Tile.Grass);
 
-  // Outside the walls, west and south: the bank, and the moat beyond Southgate.
-  town.paint((x, y) => (x < WEST_WALL - 1 || y > SOUTH_WALL + 1) && hash(x, y, 1) < 0.1, Tile.Flower);
-  town.paint((_x, y) => y >= SOUTH_WALL + 4, Tile.Water);
+  // Outside the walls: the bank to the west, and the great river beyond Southgate.
+  town.paint((x, y) => x < WEST_WALL - 1 && hash(x, y, 1) < 0.1, Tile.Flower);
+  town.paint((_x, y) => y >= SOUTH_WALL + 2, Tile.Water);
 
   // The streets: the high street up from Southgate, the square, Castle Street north, East Street east,
   // the road round inside the walls, the rim lanes at the quarter's edges, and lanes across it.
@@ -42,12 +45,15 @@ function build(): AreaLayout {
   // The walls: west and south, with Southgate on the high street's line.
   town.add({
     kind: "curtainWall", closed: false, inside: corner(MID, 37), gates: [{ at: corner(MID, SOUTH_WALL), width: 3 * T }],
-    points: [[WEST_WALL, -2], [WEST_WALL, 17], [WEST_WALL, 36], [WEST_WALL, 55], [WEST_WALL, SOUTH_WALL], [19, SOUTH_WALL], [34, SOUTH_WALL], [63, SOUTH_WALL], [78, SOUTH_WALL], [98, SOUTH_WALL]].map(([x, y]) => corner(x!, y!)),
+    points: [[WEST_WALL, -2], [WEST_WALL, 17], [WEST_WALL, 36], [WEST_WALL, 55], [WEST_WALL, SOUTH_WALL], ...SOUTHGATE.towers.map(x => [x, SOUTH_WALL]), [98, SOUTH_WALL]].map(([x, y]) => corner(x!, y!)),
     height: 6.5, thickness: 2.0, tower: { radius: 1.9, height: 10, roof: "#4a5a7a" },
   });
-  town.fill([HIGH.x0 + 1, SOUTH_WALL - 3, 3, 8], Tile.Cobble);  // through Southgate
-  town.fill([HIGH.x0 + 1, SOUTH_WALL + 4, 3, H], Tile.Path);
-  town.add({ kind: "drawbridge", rect: px([HIGH.x0 + 1, SOUTH_WALL + 3, 3, H - SOUTH_WALL - 3]) });
+  town.fill([HIGH.x0 + 1, SOUTH_WALL - 3, 3, 4], Tile.Cobble);  // through Southgate
+  // Beyond it, the King's Bridge setting out over the river (see kingsroad.ts), standards on its parapets.
+  const bridge: TileRect = [HIGH.x0 - 2, SOUTH_WALL + 1, 9, H - SOUTH_WALL - 1];
+  town.fill(bridge, Tile.Cobble);
+  town.add({ kind: "stoneBridge", rect: px(bridge), rich: true });
+  for (const x of [HIGH.x0 - 1, HIGH.x1 + 1]) town.add({ kind: "standard", ...at(x, SOUTH_WALL + 4) });
   for (const x of [HIGH.x0 + 0.7, HIGH.x1 - 0.7 + 1]) town.add({ kind: "torch", x: x * T, y: (SOUTH_WALL - 1.6) * T, facing: "north", height: 2.6 });
   for (const x of [HIGH.x0 - 1, HIGH.x1 + 1]) town.add({ kind: "guard", ...at(x, SOUTH_WALL - 5), facing: "north" });
 
@@ -90,7 +96,7 @@ function build(): AreaLayout {
 
   return town.layout(
     // In through Southgate, at the foot of the high street; down from the castle; along from the close.
-    { southgate: { x: 48 * T, y: (SOUTH_WALL - 7) * T }, castle: { x: 48 * T, y: 3 * T }, close: { x: (W - 4) * T, y: (EAST_ST.y0 + 1) * T } },
+    { southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 3 * T }, close: { x: (W - 4) * T, y: (EAST_ST.y0 + 1) * T } },
     [
       { rect: { x: (HIGH.x0 + 1) * T, y: (SOUTH_WALL + 2) * T, w: 3 * T, h: 2 * T }, to: { area: "kingsroad", entry: "gate" } },
       edgeExit("north", HIGH.x0, HIGH.x1, W, H, { area: "castle", entry: "town" }),

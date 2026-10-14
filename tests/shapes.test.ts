@@ -95,8 +95,8 @@ describe("Capital City's walls", () => {
 
   it("keep the great south wall unbroken: shut Southgate and nothing on the bridge gets in", () => {
     const { map } = kingsroad.build();
-    const gate: Shape = { kind: "box", x: 12 * T, y: 0, w: 7 * T, h: 6 * T };
-    const r = floodEscapes(shut(map, gate), [15 * T, 20 * T], (_x, y) => y < 2 * T);
+    const gate: Shape = { kind: "box", x: 12 * T, y: 11 * T, w: 7 * T, h: 7 * T };   // Southgate, at row 15
+    const r = floodEscapes(shut(map, gate), [15 * T, 30 * T], (_x, y) => y < 10 * T);
     expect(r.seen).toBeGreaterThan(1000);
     expect(r.escaped).toBe(false);
   });
