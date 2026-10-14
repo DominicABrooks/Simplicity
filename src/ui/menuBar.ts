@@ -9,6 +9,8 @@ export interface MenuButton {
   label: string;
   key: string;
   onClick(): void;
+  /** Greyed out and inert; the tooltip says this instead (e.g. "Coming Soon"). */
+  disabled?: string;
 }
 
 export interface MenuBar {
@@ -29,8 +31,9 @@ export function createMenuBar(buttons: MenuButton[]): MenuBar {
   const els = buttons.map(b => {
     const el = document.createElement("button");
     el.type = "button";
-    el.className = "bar-btn";
-    el.setAttribute("aria-label", `${b.label} (${b.key})`);
+    el.className = `bar-btn${b.disabled ? " disabled" : ""}`;
+    el.setAttribute("aria-label", b.disabled ? `${b.label}: ${b.disabled}` : `${b.label} (${b.key})`);
+    if (b.disabled) el.setAttribute("aria-disabled", "true");
     const img = new Image();
     img.src = spriteFrame(b.icon, "idle").toDataURL();
     img.alt = "";
@@ -39,9 +42,11 @@ export function createMenuBar(buttons: MenuButton[]): MenuBar {
     key.className = "key";
     key.textContent = b.key;
     el.append(img, key);
-    el.addEventListener("click", () => b.onClick());
+    // Clicking never focuses the button, or Space (jump) and Enter (attack) would press it again.
+    el.addEventListener("mousedown", ev => ev.preventDefault());
+    el.addEventListener("click", () => { if (!b.disabled) b.onClick(); });
     el.addEventListener("mouseenter", () => {
-      tip.textContent = `${b.label} (${b.key})`;
+      tip.textContent = b.disabled ?? `${b.label} (${b.key})`;
       tip.hidden = false;
       tip.style.right = `${bar.getBoundingClientRect().right - el.getBoundingClientRect().right}px`;
     });

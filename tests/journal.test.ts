@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BESTIARY, emptyJournal } from "../src/data/bestiary.ts";
+import { FEATURES } from "../src/data/features.ts";
 import { createGame, setState, type GameEvents } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { step } from "../src/systems/index.ts";
@@ -40,7 +41,9 @@ describe("journal", () => {
     kill(g, "frost");
     expect(g.journal).toEqual({ slime: 2, ember: 0, frost: 1, storm: 0 });
     expect(events).toEqual([{ id: "slime", first: true }, { id: "slime", first: false }, { id: "frost", first: true }]);
-    expect(toasts.filter(t => t.startsWith("New journal entry"))).toEqual(["New journal entry: Slime", "New journal entry: Frost Mage"]);
+    // Discoveries are announced only while the journal is switched on.
+    expect(toasts.filter(t => t.startsWith("New journal entry")))
+      .toEqual(FEATURES.journal ? ["New journal entry: Slime", "New journal entry: Frost Mage"] : []);
   });
 
   it("survives a reset (it's a record across runs)", () => {

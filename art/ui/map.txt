@@ -1,0 +1,19 @@
+# Map: the map button on the menu bar. A parchment map, rolled at the ends, with a path to an X.
+
+@idle 1000
+................
+................
+.nNWWWWWWWWWWNn.
+.nNWWWWWWWWWWNn.
+.nNWwWWWWWWWWNn.
+.nNWWwwWWWGGWNn.
+.nNWWWWwWGGGWNn.
+.nNWBBWWwWGWWNn.
+.nNWBBBWWwwWWNn.
+.nNWWBWWWWRWRNn.
+.nNWWWWWWWWRWNn.
+.nNWWWWWWWRWRNn.
+.nNWWWWWWWWWWNn.
+.nNWWWWWWWWWWNn.
+................
+................

@@ -119,7 +119,7 @@ export function createJournal(g: Game, onNew: (unread: boolean) => void): Journa
     if (first) { selected = id; if (panel.hidden) onNew(true); }
     if (!panel.hidden) render();
   });
-  panel.addEventListener("mousedown", ev => markHandled(ev));
+  panel.addEventListener("mousedown", ev => { markHandled(ev); if (ev.target instanceof HTMLButtonElement) ev.preventDefault(); });
   panel.addEventListener("contextmenu", ev => ev.preventDefault());
   panel.querySelector(".journal-close")!.addEventListener("click", () => setOpen(false));
 

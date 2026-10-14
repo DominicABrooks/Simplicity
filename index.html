@@ -28,6 +28,11 @@
   </div>
   <button class="journal-close" type="button" aria-label="Close">x</button>
 </div>
+<div id="map" data-ui hidden>
+  <h2 id="mapTitle"></h2>
+  <div class="map-frame"><canvas id="mapBase"></canvas><canvas id="mapMarks"></canvas></div>
+  <button class="map-close" type="button" aria-label="Close">x</button>
+</div>
 <div id="menuBar" data-ui></div>
 <div id="held" hidden></div>
 <div id="tooltip" hidden></div>
@@ -39,7 +44,7 @@
   <div>
     <h1>SIMPLICITY</h1>
     <p id="message">Press any key to begin</p>
-    <p class="keys">WASD / arrows: move &middot; double-tap: dash<br>Mouse: aim &middot; Click / J: attack &middot; Space: jump<br>I: inventory &middot; L: journal &middot; Hold R: reset</p>
+    <p class="keys">WASD / arrows: move &middot; double-tap: dash<br>Mouse: aim &middot; Click / J: attack &middot; Space: jump<br>I: inventory &middot; M: map &middot; Hold R: reset</p>
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

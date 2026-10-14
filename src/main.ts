@@ -16,6 +16,8 @@ import { bindOverlay, bindToasts, createResetBar } from "./ui/screens.ts";
 import { bakeItemIcons } from "./ui/sprites.ts";
 import { createJournal } from "./ui/journal.ts";
 import { createMenuBar } from "./ui/menuBar.ts";
+import { createMapView } from "./ui/mapView.ts";
+import { FEATURES } from "./data/features.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -28,15 +30,20 @@ const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
 bindOverlay(g);
 bindToasts(g);
+const MENU = { inventory: 0, map: 1, journal: 2 } as const;
 const menu = createMenuBar([
   { icon: "bag", label: "Inventory", key: "I", onClick: () => inventory.toggle() },
-  { icon: "book", label: "Journal", key: "L", onClick: () => journal.toggle() },
+  { icon: "map", label: "Map", key: "M", onClick: () => map.toggle() },
+  { icon: "book", label: "Journal", key: "L", onClick: () => journal.toggle(), ...(FEATURES.journal ? {} : { disabled: "Coming Soon" }) },
 ]);
-const journal = createJournal(g, unread => menu.setAlert(1, unread));
-const closePanels = () => { inventory.close(); journal.close(); };
+const map = createMapView(g);
+// The journal still loads and saves kill counts while it's switched off, so nothing is lost.
+const journal = createJournal(g, unread => menu.setAlert(MENU.journal, unread && FEATURES.journal));
+const toggleJournal = () => { if (FEATURES.journal) journal.toggle(); };
+const closePanels = () => { inventory.close(); journal.close(); map.close(); };
 g.events.on("reset", () => inventory.close());
 g.events.on("state", ({ state }) => { if (state === "dead") closePanels(); });
-const input = bindInput(g, { toggleInventory: inventory.toggle, toggleJournal: journal.toggle, closePanels });
+const input = bindInput(g, { toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels });
 
 function resize(): void {
   const pixelSize = Math.max(2, Math.round(innerHeight / 300));
@@ -59,8 +66,10 @@ function frame(now: number): void {
   updateTarget(g, view, mouse, input.overUi());
   step(g, dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
-  menu.setActive(0, inventory.isOpen());
-  menu.setActive(1, journal.isOpen());
+  menu.setActive(MENU.inventory, inventory.isOpen());
+  menu.setActive(MENU.map, map.isOpen());
+  menu.setActive(MENU.journal, journal.isOpen());
+  map.draw();
   hud.draw(menu.width());
   labels.draw();
   resetBar.draw();

@@ -3,6 +3,9 @@ export const T = 8;
 /** Half a cell: add to a position to get the centre of its cell. */
 export const HALF = T / 2;
 
+/** The one area so far, as named on the map. */
+export const AREA_NAME = "Greenhollow";
+
 export const MAP_W = 64;
 export const MAP_H = 44;
 export const MAP_SEED = 7;

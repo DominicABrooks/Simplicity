@@ -7,6 +7,7 @@ import { isHandled, isUiTarget } from "../ui/dom.ts";
 export interface InputHooks {
   toggleInventory(): void;
   toggleJournal(): void;
+  toggleMap(): void;
   closePanels(): void;
 }
 
@@ -37,6 +38,7 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
     }
     if (k === "i" || k === "tab") { e.preventDefault(); if (!e.repeat) hooks.toggleInventory(); return; }
     if (k === "l") { if (!e.repeat) hooks.toggleJournal(); return; }
+    if (k === "m") { if (!e.repeat) hooks.toggleMap(); return; }
     if (k === "escape") { hooks.closePanels(); return; }
     if (!e.repeat) {
       if (k === "j" || k === "enter") input.attackPressed = true;
