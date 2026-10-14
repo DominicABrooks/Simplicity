@@ -51,6 +51,26 @@ function buildTent(ctx: RenderContext): THREE.Group {
   return tent;
 }
 
+/** A white disc that fades smoothly to transparent at its edge, for soft ground decals. */
+function softDisc(): THREE.CanvasTexture {
+  const N = 64, c = document.createElement("canvas");
+  c.width = c.height = N;
+  const g = c.getContext("2d")!;
+  const grad = g.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.35, "rgba(255,255,255,0.75)");
+  grad.addColorStop(0.7, "rgba(255,255,255,0.25)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, N, N);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** Ground decals sit on the floor: pull them toward the camera in depth so they never flicker against it. */
+const DECAL = { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 } as const;
+
 export function buildCamp(ctx: RenderContext, parent: THREE.Group): Camp {
   const { lambert, basic, particles, tex } = ctx;
 
@@ -63,8 +83,10 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group): Camp {
   const [fx, fz] = toWorld(CAMP.fire.x, CAMP.fire.y);
   const fire = new THREE.Group();
   fire.position.set(fx, 0, fz);
-  const scorch = new THREE.Mesh(new THREE.CircleGeometry(0.42, 10).rotateX(-Math.PI / 2), basic("#2a1c14", { transparent: true, opacity: 0.7, depthWrite: false }));
-  scorch.position.y = 0.012;
+  const disc = softDisc(), quad = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2);
+  const scorch = new THREE.Mesh(quad, basic("#2a1c14", { ...DECAL, map: disc, opacity: 0.85 }));
+  scorch.scale.setScalar(0.5);
+  scorch.position.y = 0.01;
   fire.add(scorch);
   const stone = new THREE.DodecahedronGeometry(0.075, 0);
   for (let i = 0; i < 9; i++) {
@@ -91,9 +113,11 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group): Camp {
     return m;
   });
   // A soft pool of firelight on the ground (the grass texture is too dark to show the light alone).
-  const glow = new THREE.Mesh(new THREE.CircleGeometry(1.3, 16).rotateX(-Math.PI / 2),
-    basic(PAL.O, { transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending }));
-  glow.position.y = 0.015;
+  // It fades out smoothly from the fire, so it has no edge.
+  const glow = new THREE.Mesh(quad, basic(PAL.O, { ...DECAL, map: disc, opacity: 0.3, blending: THREE.AdditiveBlending }));
+  glow.scale.setScalar(1.6);
+  glow.position.y = 0.02;
+  glow.renderOrder = 1;
   fire.add(glow);
   const light = new THREE.PointLight(0xff8a3a, 7, 5, 1.2);
   light.position.set(0, 0.55, 0);
@@ -117,7 +141,7 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group): Camp {
         m.rotation.z = Math.sin(t * 7 + i) * 0.08;
       });
       light.intensity = 7 + Math.sin(t * 13) * 0.9 + Math.sin(t * 31) * 0.5;
-      glow.material.opacity = 0.14 + Math.sin(t * 13) * 0.02 + Math.sin(t * 31) * 0.012;
+      glow.material.opacity = 0.3 + Math.sin(t * 13) * 0.04 + Math.sin(t * 31) * 0.025;
       if (Math.random() < dt * 7) {                          // embers pop up out of the fire
         particles.spawn(Math.random() < 0.5 ? "fire" : "ember", fx + (Math.random() - 0.5) * 0.15, 0.35, fz + (Math.random() - 0.5) * 0.15,
           (Math.random() - 0.5) * 0.5, 2.6 + Math.random() * 1.2, (Math.random() - 0.5) * 0.5, 0.55);
