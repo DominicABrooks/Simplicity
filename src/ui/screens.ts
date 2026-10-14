@@ -9,7 +9,7 @@ export function bindOverlay(g: Game): void {
   const overlay = byId("overlay"), message = byId("message");
   g.events.on("state", ({ state }) => {
     overlay.hidden = state === "play";
-    if (state === "dead") message.textContent = `You fell after defeating ${g.kills} slime${g.kills === 1 ? "" : "s"}. Press R to rise again.`;
+    if (state === "dead") message.textContent = "Press R to rise again.";
   });
 }
 

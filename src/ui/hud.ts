@@ -15,7 +15,6 @@ export interface Hud {
 
 export function createHud(g: Game, view: Projector): Hud {
   const canvas = byId<HTMLCanvasElement>("hudCanvas"), ctx = canvas.getContext("2d")!;
-  const killsEl = byId("hud");
 
   function drawHearts(): void {
     const health = g.world.need(g.player, "health");
@@ -82,7 +81,6 @@ export function createHud(g: Game, view: Projector): Hud {
       drawHearts();
       drawXPBar(canvas.width, canvas.height);
       drawCombatText(canvas.width, canvas.height);
-      killsEl.textContent = `Slimes ${g.kills}`;
     },
   };
 }
