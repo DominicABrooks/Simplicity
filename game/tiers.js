@@ -32,6 +32,22 @@ export const TIERS = {
     boot: PAL.r, bootDark: "#4a1620", glow: 0.4,
     fishMain: PAL.R, fishAccent: PAL.O,
   },
+  // Frost Mage: icy white-blue robes with mana trim.
+  frost: {
+    cloth: "#dfeaf2", dark: "#8fb3cc", light: "#ffffff", trim: PAL.C, accent: PAL.W,
+    metal: PAL.C, metalDark: "#5a8fb0", gem: PAL.C,
+    blade: PAL.W, bladeDark: "#a9d6e8", guard: PAL.C, guardDark: "#5a8fb0",
+    boot: "#8fb3cc", bootDark: "#4f6f86", glow: 0.4,
+    fishMain: PAL.W, fishAccent: PAL.C,
+  },
+  // Storm Mage: dark indigo robes with gold trim.
+  storm: {
+    cloth: "#3b3f7a", dark: "#24264f", light: "#5a5fb0", trim: PAL.Y, accent: PAL.W,
+    metal: PAL.Y, metalDark: PAL.O, gem: PAL.Y,
+    blade: PAL.W, bladeDark: PAL.w, guard: PAL.Y, guardDark: PAL.O,
+    boot: "#24264f", bootDark: "#16173a", glow: 0.5,
+    fishMain: PAL.Y, fishAccent: PAL.W,
+  },
 };
 
 // Which icon pixels (palette chars in art/items/*.txt) take which tier colour.

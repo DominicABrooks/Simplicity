@@ -132,7 +132,7 @@ function randomGrassSpot(minDist) {
 }
 
 // ---------- State ----------
-let player, slimes, potions, loot, arrows, fireballs, effects, kills, state, clock, spawnTimer;
+let player, slimes, potions, loot, arrows, fireballs, strikes, effects, kills, state, clock, spawnTimer;
 
 // ---------- Inventory ----------
 const inv = createInventory({
@@ -162,7 +162,7 @@ function reset() {
   view.setMap(map);
   seed = Date.now() % 100000 + 1;
   player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
-  slimes = []; potions = []; loot = []; arrows = []; fireballs = []; effects = [];
+  slimes = []; potions = []; loot = []; arrows = []; fireballs = []; strikes = []; effects = [];
   // Start naked, with a plain starter set in the bag to put on.
   inv.reset([]);
   for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"], ["bow", "Old Short Bow"]]) inv.add(makeItem(type, "normal", {}, name));
@@ -172,28 +172,41 @@ function reset() {
   view.snapCamera(player.x, player.y);
 }
 
-// `slimes` holds every enemy: slimes, plus the occasional Ember Mage (kind: "mage").
+// `slimes` holds every enemy: slimes, plus the occasional mage (kind: "mage", school: ember/frost/storm).
 function spawnSlime(minDist) {
   const p = randomGrassSpot(minDist);
   if (!p) return;
   // Rarely, once you've proven yourself, a mage spawns instead. Never more than one at a time.
   if (kills >= 3 && !slimes.some(s => s.kind === "mage") && rand() < 0.15) {
-    slimes.push({ kind: "mage", x: p.x, y: p.y, hp: MAGE.hp, timer: 1.5, casting: false, castT: 0, castK: 0, spell: "fire",
-      strafe: 1, strafeT: 0, stuckT: 0, blinkCD: 2, polyCD: 4, face: 1, flash: 0, vx: 0, vy: 0, moving: false });
-    toast("An Ember Mage appears!");
+    const school = ["ember", "frost", "storm"][Math.floor(rand() * 3)];
+    slimes.push({ kind: "mage", school, x: p.x, y: p.y, hp: MAGE.hp, timer: 1.5, casting: false, castT: 0, castK: 0, spell: null,
+      strafe: 1, strafeT: 0, stuckT: 0, blinkCD: 2, specialCD: 4, face: 1, flash: 0, vx: 0, vy: 0, moving: false });
+    toast(`A ${SCHOOLS[school].name} appears!`);
     return;
   }
   slimes.push({ kind: "slime", x: p.x, y: p.y, hp: 3, timer: 0.5 + rand(), hop: 0, dx: 0, dy: 0, face: 1, flash: 0, vx: 0, vy: 0 });
 }
 
-// ---------- Ember Mage ----------
-// Keeps a casting distance and telegraphs every spell with a charge-up in its hands:
-// a fireball (0.7 s) or, now and then, polymorph (1 s), which turns you into a sheep.
-// Pinned against a tree or the water, it blinks to an open spot near you.
+// ---------- Mages ----------
+// Three schools share one body and one brain: keep a casting distance, telegraph every spell
+// with a charge-up, blink away when crowded or pinned, and draw a sword up close while blink
+// is on cooldown. Each school has its own bolt and a signature spell.
+const SCHOOLS = {
+  ember: { name: "Ember Mage", bolt: "fire", special: "poly" },
+  frost: { name: "Frost Mage", bolt: "frost", special: "nova" },
+  storm: { name: "Storm Mage", bolt: "spark", special: "strike" },
+};
+const SPELLS = {
+  fire:   { charge: 0.7, speed: 70 },                                   // 1 damage
+  frost:  { charge: 0.7, speed: 60, chill: 2.5 },                       // 1 damage and a slow
+  spark:  { charge: 0.45, speed: 140 },                                 // quick to cast, very fast
+  poly:   { charge: 1.0, speed: 85, cooldown: 12, chance: 0.45, sheep: 5 },
+  nova:   { charge: 0.6, cooldown: 9, radius: 30, freeze: 1.6 },        // cast when you get close
+  strike: { charge: 0.6, cooldown: 7, chance: 0.5, delay: 0.9, radius: 7, count: 3 },
+};
+const CHILL_SLOW = 0.55;
 const MAGE = {
-  hp: 6, speed: 20, near: 28, far: 64, sight: 100, every: [1.6, 2.8],
-  charge: 0.7, fireSpeed: 70, fireLife: 2.4,
-  polyCharge: 1.0, polySpeed: 85, polyCooldown: 12, polyChance: 0.45, sheepTime: 5,
+  hp: 6, speed: 20, near: 28, far: 64, sight: 100, every: [1.6, 2.8], boltLife: 2.4,
   blinkCooldown: 6, stuckBeforeBlink: 0.3, blinkMin: 40, blinkMax: 72,
   // Melee: caught up close with blink on cooldown, it draws a sword and chases you until it can blink.
   chaseSpeed: 30, swingReach: 16, swingWindup: 0.32, swingSweep: 0.16, swingRecover: 0.2, swingRest: 0.5,
@@ -254,21 +267,40 @@ function blinkMage(s) {
   }
 }
 
+function startCast(s, spell) {
+  s.casting = true; s.castT = 0; s.castK = 0; s.spell = spell;
+}
+
+// A finished cast: bolts fly at the hero, Frost Nova bursts around the mage, Lightning Strike marks the ground.
+function releaseSpell(s, dx, dy) {
+  const p = player, S = SPELLS[s.spell], a = Math.atan2(dy, dx);
+  if (s.spell === "nova") {
+    effects.push({ x: s.x + 4, y: s.y + 4, t: 0.4, nova: true, radius: S.radius });
+    if (Math.hypot(dx, dy) < S.radius && p.dash <= 0 && p.jump <= 0) { p.frozen = S.freeze; cancelActions(p); toast("Frozen!"); }
+  } else if (s.spell === "strike") {
+    for (let i = 0; i < S.count; i++) {
+      const off = i === 0 ? 0 : 8 + rand() * 8, oa = rand() * Math.PI * 2;
+      strikes.push({ x: p.x + 4 + Math.cos(oa) * off, y: p.y + 4 + Math.sin(oa) * off, t: S.delay, total: S.delay });
+    }
+  } else {
+    fireballs.push({ kind: s.spell, x: s.x + 4 + Math.cos(a) * 5, y: s.y + 4 + Math.sin(a) * 5, vx: Math.cos(a) * S.speed, vy: Math.sin(a) * S.speed, life: MAGE.boltLife });
+  }
+  if (S.cooldown) s.specialCD = S.cooldown;
+  s.casting = false; s.timer = MAGE.every[0] + rand() * (MAGE.every[1] - MAGE.every[0]);
+}
+
 function updateMage(s, dt) {
   const p = player, dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy) || 1;
+  const school = SCHOOLS[s.school];
   s.face = dx >= 0 ? 1 : -1;
-  s.blinkCD = Math.max(0, s.blinkCD - dt); s.polyCD = Math.max(0, s.polyCD - dt);
+  s.blinkCD = Math.max(0, s.blinkCD - dt); s.specialCD = Math.max(0, s.specialCD - dt);
   if (s.casting) {
-    const poly = s.spell === "poly", charge = poly ? MAGE.polyCharge : MAGE.charge;
-    s.castT += dt; s.castK = Math.min(1, s.castT / charge); s.moving = false;
-    if (s.castT >= charge) {
-      const a = Math.atan2(dy, dx), speed = poly ? MAGE.polySpeed : MAGE.fireSpeed;
-      fireballs.push({ kind: poly ? "poly" : "fire", x: s.x + 4 + Math.cos(a) * 5, y: s.y + 4 + Math.sin(a) * 5, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: MAGE.fireLife });
-      if (poly) s.polyCD = MAGE.polyCooldown;
-      s.casting = false; s.timer = MAGE.every[0] + rand() * (MAGE.every[1] - MAGE.every[0]);
-    }
+    s.castT += dt; s.castK = Math.min(1, s.castT / SPELLS[s.spell].charge); s.moving = false;
+    if (s.castT >= SPELLS[s.spell].charge) releaseSpell(s, dx, dy);
     return;
   }
+  // Frost Mage: getting close sets off Frost Nova first (then it usually blinks away).
+  if (school.special === "nova" && d < SPELLS.nova.radius && s.specialCD <= 0 && !s.melee) { startCast(s, "nova"); return; }
   // Up close: blink away if it can, otherwise draw the sword and fight until blink is ready again.
   if (!s.melee && d < MAGE.near) {
     if (s.blinkCD <= 0) { blinkMage(s); return; }
@@ -297,31 +329,49 @@ function updateMage(s, dt) {
   s.moving = !!(mx || my);
   if (s.stuckT >= MAGE.stuckBeforeBlink && s.blinkCD <= 0) { blinkMage(s); return; }
   if ((s.timer -= dt) <= 0 && d < MAGE.sight) {
-    s.casting = true; s.castT = 0; s.castK = 0;
-    s.spell = s.polyCD <= 0 && !(p.sheep > 0) && rand() < MAGE.polyChance ? "poly" : "fire";
+    const sp = school.special, S = SPELLS[sp];
+    const usable = S.chance && s.specialCD <= 0 && !(sp === "poly" && p.sheep > 0);
+    startCast(s, usable && rand() < S.chance ? sp : school.bolt);
   }
 }
 
-// Fireballs explode on trees; a dash or a jump dodges through them.
+// Spell bolts (`fireballs` holds every kind) explode on trees; a dash or a jump dodges through them.
+const BOLT_FX = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark" };
 function updateFireballs(dt) {
   const p = player;
   for (const f of fireballs) {
     f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
     if (tileAt(f.x, f.y) === TREE) f.life = 0;
     else if (p.hurt <= 0 && p.dash <= 0 && p.jump <= 0 && Math.hypot(p.x + 4 - f.x, p.y + 4 - f.y) < 5) {
-      if (f.kind === "poly") polymorph(); else damagePlayer(f.x - 4, f.y - 4);
+      if (f.kind === "poly") polymorph();
+      else {
+        damagePlayer(f.x - 4, f.y - 4);
+        if (f.kind === "frost") p.chill = SPELLS.frost.chill;
+      }
       f.life = 0;
     }
-    if (f.life <= 0) effects.push({ x: f.x, y: f.y, t: 0.3, fire: f.kind !== "poly", arcane: f.kind === "poly" });
+    if (f.life <= 0) effects.push({ x: f.x, y: f.y, t: 0.3, [BOLT_FX[f.kind]]: true });
   }
   fireballs = fireballs.filter(f => f.life > 0);
+  // Lightning strikes land after their warning circles fill; only a dash's i-frames beat them.
+  for (const s of strikes) {
+    s.t -= dt;
+    if (s.t > 0) continue;
+    effects.push({ x: s.x, y: s.y, t: 0.25, bolt: true });
+    if (p.hurt <= 0 && p.dash <= 0 && Math.hypot(p.x + 4 - s.x, p.y + 4 - s.y) < SPELLS.strike.radius) damagePlayer(s.x - 4, s.y - 4);
+  }
+  strikes = strikes.filter(s => s.t > 0);
+}
+
+function cancelActions(p) {
+  p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
 }
 
 // Polymorph: a sheep for a few seconds. Sheep can only walk; any damage breaks it early.
 function polymorph() {
   const p = player;
-  p.sheep = MAGE.sheepTime;
-  p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
+  p.sheep = SPELLS.poly.sheep;
+  cancelActions(p);
   toast("Polymorphed!");
 }
 
@@ -329,7 +379,7 @@ function polymorph() {
 function damagePlayer(sx, sy) {
   const p = player;
   p.sheep = 0;
-  p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
+  p.hp--; p.hurt = 1; cancelActions(p);
   shake = Math.max(shake, 0.3);
   const d = Math.hypot(p.x - sx, p.y - sy) || 1;
   p.vx = (p.x - sx) / d * 110; p.vy = (p.y - sy) / d * 110;
@@ -455,6 +505,11 @@ function updatePlayer(dt) {
     p.sheep = Math.max(0, p.sheep - dt);
     attackPressed = attackReleased = jumpPressed = false; dashRequest = null;
   }
+  if (p.frozen > 0) {                                       // frozen solid: no moving, no acting
+    p.frozen = Math.max(0, p.frozen - dt);
+    attackPressed = attackReleased = jumpPressed = false; dashRequest = null;
+  }
+  p.chill = Math.max(0, (p.chill || 0) - dt);
   p.cooldown = Math.max(0, p.cooldown - dt);
   p.hurt = Math.max(0, p.hurt - dt);
   p.dashCooldown = Math.max(0, p.dashCooldown - dt);
@@ -465,12 +520,13 @@ function updatePlayer(dt) {
   if (keys.has("d") || keys.has("arrowright")) ix++;
   if (keys.has("w") || keys.has("arrowup")) iy--;
   if (keys.has("s") || keys.has("arrowdown")) iy++;
+  if (p.frozen > 0) ix = iy = 0;
   const aimAt = mouse && view.screenToGame(mouse.x, mouse.y);
   if (aimAt) p.aim = Math.atan2(aimAt.y - (p.y + 4), aimAt.x - (p.x + 4));
   else if (ix || iy) p.aim = Math.atan2(iy, ix);
   p.face = Math.cos(p.attack > 0 ? p.swingAim : p.aim) >= 0 ? 1 : -1;
   const len = Math.hypot(ix, iy) || 1;
-  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * (p.sheep > 0 ? 0.8 : 1) * p.speedMul;
+  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * (p.sheep > 0 ? 0.8 : 1) * (p.chill > 0 ? CHILL_SLOW : 1) * p.speedMul;
   p.moving = ix !== 0 || iy !== 0;
   const recovering = p.move && p.move.t / SWIPE.dur > 0.6;     // dash-cancel out of a swipe's recovery
   if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && (p.attack <= 0 || recovering)) {
@@ -685,7 +741,7 @@ function updateSlimes(dt) {
 
 // ---------- Render ----------
 // The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
-const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME });
+const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME, NOVA_RADIUS: SPELLS.nova.radius, STRIKE_RADIUS: SPELLS.strike.radius });
 const hudCanvas = document.getElementById("hudCanvas");
 const hg = hudCanvas.getContext("2d");
 let pixelSize = 3;
@@ -699,7 +755,7 @@ function resize() {
 addEventListener("resize", resize);
 
 function render(dt) {
-  view.render({ player, slimes, potions, loot, arrows, fireballs, effects, clock, shake }, hitstop > 0 ? 0 : dt);
+  view.render({ player, slimes, potions, loot, arrows, fireballs, strikes, effects, clock, shake }, hitstop > 0 ? 0 : dt);
   hg.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
   for (let i = 0; i < player.maxHp; i++) {
     const h = i < player.hp ? ART.heart.full : ART.heart.empty;
@@ -764,7 +820,7 @@ function loop(now) {
 }
 
 // Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
-window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, get fireballs() { return fireballs; }, inv, view };
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, get fireballs() { return fireballs; }, get strikes() { return strikes; }, inv, view };
 
 resize();
 reset();

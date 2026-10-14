@@ -351,22 +351,30 @@ export function createView(canvas, PAL, C) {
   // ---------- Ember Mage ----------
   // The same body as the hero, dressed in the red ember tier, with orange eyes.
   const mageViews = new Map(), fireballViews = new Map();
-  const mageEyes = basic(PAL.O);
+  const mageEyeCache = {};
+  const mageEyeMat = school => (mageEyeCache[school] ||= basic(MAGE_EYES[school]));
+  const ORB_COLORS = { fire: [PAL.Y, PAL.R], poly: ["#e6d2ff", PAL.P], frost: [PAL.W, PAL.C], spark: ["#ffffff", PAL.Y] };
+  // Which orb a mage holds while charging each spell.
+  const CAST_ORB = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark" };
+  const MAGE_EYES = { ember: PAL.O, frost: PAL.C, storm: "#fff6c8" };
   function makeFireballMesh(kind = "fire") {
     const g = new THREE.Group();
-    const [core, shell] = kind === "poly" ? ["#e6d2ff", PAL.P] : [PAL.Y, PAL.R];
+    const [core, shell] = ORB_COLORS[kind];
     g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), basic(core)));
     g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 0), basic(shell, { transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })));
     return g;
   }
-  function makeMageView() {
+  function makeMageView(o) {
     const m = makeHero();
-    dressHero(m, { helm: "ember", armor: "ember", boots: "ember", weapon: null, ring: null, amulet: null, weaponType: null });
-    m.eyes.forEach(e => { e.material = mageEyes; });
+    m.eyes.forEach(e => { e.material = mageEyeMat(o.school); });
     m.ripple.visible = false;
-    m.orb = makeFireballMesh(); m.orb.visible = false;
-    m.polyOrb = makeFireballMesh("poly"); m.polyOrb.visible = false;
-    m.group.add(m.orb, m.polyOrb);
+    m.orbs = Object.fromEntries(Object.keys(ORB_COLORS).map(k => { const orb = makeFireballMesh(k); orb.visible = false; m.group.add(orb); return [k, orb]; }));
+    // Frost Nova telegraph: the blast radius outlined on the ground, filling as the spell charges.
+    const R = C.NOVA_RADIUS / PX_PER_TILE;
+    m.novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), basic(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false }));
+    m.novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), basic(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false }));
+    m.novaEdge.position.y = m.novaFill.position.y = 0.03;
+    m.group.add(m.novaEdge, m.novaFill);
     return m;
   }
   function updateMages(list, p, t, dt) {
@@ -374,10 +382,11 @@ export function createView(canvas, PAL, C) {
     for (const [o, v] of mageViews) {
       const [x, z] = toWorld(o.x, o.y);
       v.group.position.set(x, 0, z);
-      dressHero(v, { helm: "ember", armor: "ember", boots: "ember", weapon: o.melee ? "ember" : null, ring: null, amulet: null, weaponType: o.melee ? "blade" : null });
+      dressHero(v, { helm: o.school, armor: o.school, boots: o.school, weapon: o.melee ? o.school : null, ring: null, amulet: null, weaponType: o.melee ? "blade" : null });
       if (!!o.melee !== !!v.wasMelee) {                     // a puff of embers as the sword is drawn or put away
         for (let i = 0; i < 8; i++) {
-          const m = new THREE.Mesh(sparkGeo, i % 2 ? sparkMats.fire : sparkMats.ember), a = Math.random() * Math.PI * 2;
+          const pair = FX_MATS[{ ember: "fire", frost: "frost", storm: "spark" }[o.school]];
+          const m = new THREE.Mesh(sparkGeo, sparkMats[pair[i % 2]]), a = Math.random() * Math.PI * 2;
           m.position.set(x, 0.5, z);
           m.userData = { vx: Math.cos(a) * 1.6, vz: Math.sin(a) * 1.6, vy: 1.2 + Math.random(), life: 0.35 };
           scene.add(m); sparks.push(m);
@@ -400,18 +409,82 @@ export function createView(canvas, PAL, C) {
       v.hands.forEach((h, i) => {
         const side = i === 0 ? 1 : -1;
         if (o.melee && i === 0) { sw.updateMatrix(); h.position.set(0, v.gripY, 0).applyMatrix4(sw.matrix); }   // front hand on the grip
+        else if (o.casting && (o.spell === "nova" || o.spell === "strike")) h.position.set(0.05, 0.75 + k * 0.25, side * 0.3);   // arms raised
         else if (o.casting) h.position.set(0.32 + k * 0.08, 0.5 + k * 0.1, side * (0.22 - k * 0.08));
         else h.position.set(0.12 + (o.moving ? Math.sin(t * 12 + i * Math.PI) * 0.1 : 0), 0.38 + Math.sin(t * 2.5 + i) * 0.02, side * 0.44);
       });
-      for (const [orb, spell] of [[v.orb, "fire"], [v.polyOrb, "poly"]]) {
-        orb.visible = o.casting && o.spell === spell;
-        orb.position.set(0.5, 0.58 + k * 0.08, 0);
+      const overhead = o.spell === "nova" || o.spell === "strike";
+      for (const [kind, orb] of Object.entries(v.orbs)) {
+        orb.visible = o.casting && CAST_ORB[o.spell] === kind;
+        if (overhead) orb.position.set(0.05, 1.25 + k * 0.15, 0); else orb.position.set(0.5, 0.58 + k * 0.08, 0);
         orb.scale.setScalar(0.3 + k * 0.9 + Math.sin(t * 30) * 0.05 * k);
         orb.rotation.set(t * 4, t * 5, 0);
       }
+      const nova = o.casting && o.spell === "nova";
+      v.novaEdge.visible = v.novaFill.visible = nova;
+      if (nova) { v.novaFill.scale.setScalar(Math.max(0.01, k)); v.novaEdge.material.opacity = 0.5 + Math.sin(t * 25) * 0.3; }
       v.shadow.position.set(x, 0.01, z);
     }
   }
+  // ---------- Frost and lightning effects ----------
+  const strikeViews = new Map(), transients = [];
+  function makeStrikeMarker() {
+    const R = C.STRIKE_RADIUS / PX_PER_TILE, group = new THREE.Group();
+    const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.08, R, 16).rotateX(-Math.PI / 2), basic(PAL.Y, { transparent: true, opacity: 0.85, depthWrite: false }));
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 16).rotateX(-Math.PI / 2), basic(PAL.Y, { transparent: true, opacity: 0.3, depthWrite: false }));
+    group.add(edge, fill); group.userData = { edge, fill };
+    const shadow = new THREE.Object3D();
+    scene.add(group);
+    return { group, shadow };
+  }
+  function updateStrikes(list, t) {
+    syncSet(list, strikeViews, makeStrikeMarker);
+    for (const [s, v] of strikeViews) {
+      const [x, z] = toWorld(s.x - 4, s.y - 4), k = 1 - s.t / s.total;
+      v.group.position.set(x, 0.03, z);
+      v.group.userData.fill.scale.setScalar(Math.max(0.01, k));
+      v.group.userData.edge.material.opacity = 0.55 + Math.sin(t * 30) * 0.3;
+    }
+  }
+  function spawnNovaRing(x, z, radius) {
+    const R = radius / PX_PER_TILE;
+    const m = new THREE.Mesh(new THREE.RingGeometry(R * 0.8, R, 24).rotateX(-Math.PI / 2), basic(PAL.W, { transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+    m.position.set(x, 0.05, z); m.userData = { life: 0.35, total: 0.35, grow: true };
+    scene.add(m); transients.push(m);
+  }
+  function spawnBoltColumn(x, z) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.14, 5, 5).translate(0, 2.5, 0), basic("#fff6c8", { transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending }));
+    m.position.set(x, 0, z); m.userData = { life: 0.18, total: 0.18 };
+    scene.add(m); transients.push(m);
+  }
+  function updateTransients(dt) {
+    for (let i = transients.length - 1; i >= 0; i--) {
+      const m = transients[i], u = m.userData;
+      u.life -= dt;
+      const k = Math.max(0, u.life / u.total);
+      m.material.opacity = k * 0.9;
+      if (u.grow) m.scale.setScalar(0.4 + (1 - k) * 0.6);
+      if (u.life <= 0) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); transients.splice(i, 1); }
+    }
+  }
+  // Frozen: the hero sits inside a translucent block of ice. Chilled: snowflakes drift off them.
+  let iceBlock = null;
+  function updateFrozen(p, px, pz, t, dt) {
+    if (!iceBlock) {
+      iceBlock = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55, 0).scale(1, 1.35, 1), lambert(PAL.C, { transparent: true, opacity: 0.45, emissive: col(PAL.C), emissiveIntensity: 0.3, depthWrite: false }));
+      scene.add(iceBlock);
+    }
+    iceBlock.visible = p.frozen > 0;
+    iceBlock.position.set(px, 0.55, pz);
+    iceBlock.rotation.y = 0.4;
+    if (p.chill > 0 && Math.random() < dt * 12) {
+      const m = new THREE.Mesh(sparkGeo, Math.random() < 0.5 ? sparkMats.ice : sparkMats.snow);
+      m.position.set(px + (Math.random() - 0.5) * 0.6, 0.3 + Math.random() * 0.6, pz + (Math.random() - 0.5) * 0.6);
+      m.userData = { vx: 0, vz: 0, vy: 0.6, life: 0.4 };
+      scene.add(m); sparks.push(m);
+    }
+  }
+
   function updateFireballViews(list, t, dt) {
     syncSet(list, fireballViews, (f) => {
       const group = makeFireballMesh(f.kind);
@@ -425,8 +498,8 @@ export function createView(canvas, PAL, C) {
       v.group.rotation.set(t * 6, t * 7, 0);
       v.shadow.position.set(x, 0.01, z);
       if (Math.random() < dt * 30) {                        // ember trail
-        const poly = f.kind === "poly";
-        const m = new THREE.Mesh(sparkGeo, Math.random() < 0.5 ? (poly ? sparkMats.arcane : sparkMats.fire) : (poly ? sparkMats.arcaneLight : sparkMats.ember));
+        const pair = FX_MATS[{ fire: "fire", poly: "arcane", frost: "frost", spark: "spark" }[f.kind]];
+        const m = new THREE.Mesh(sparkGeo, sparkMats[pair[Math.random() < 0.5 ? 0 : 1]]);
         m.position.set(x, 0.55, z);
         m.userData = { vx: (Math.random() - 0.5) * 0.6, vz: (Math.random() - 0.5) * 0.6, vy: 0.8 + Math.random() * 0.6, life: 0.25 };
         scene.add(m); sparks.push(m);
@@ -780,7 +853,10 @@ export function createView(canvas, PAL, C) {
     return { group, shadow };
   }
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
-  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C), fire: basic(PAL.O), ember: basic(PAL.R), arcane: basic(PAL.P), arcaneLight: basic("#c79cf0") };
+  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C), fire: basic(PAL.O), ember: basic(PAL.R), arcane: basic(PAL.P), arcaneLight: basic("#c79cf0"),
+    ice: basic(PAL.C), snow: basic(PAL.W), spark: basic(PAL.Y), sparkLight: basic("#fff6c8") };
+  // Two-tone spark colours for each kind of burst.
+  const FX_MATS = { fire: ["fire", "ember"], arcane: ["arcane", "arcaneLight"], frost: ["ice", "snow"], spark: ["spark", "sparkLight"] };
   let sparks = [];
   let ghosts = [], ghostTimer = 0, wasDashing = false;
   const dustMat = basic(PAL.w);
@@ -906,6 +982,9 @@ export function createView(canvas, PAL, C) {
     // Slimes
     updateMages(s.slimes.filter(o => o.kind === "mage"), p, t, dt);
     updateFireballViews(s.fireballs, t, dt);
+    updateStrikes(s.strikes, t);
+    updateTransients(dt);
+    updateFrozen(p, px, pz, t, dt);
     syncSet(s.slimes.filter(o => o.kind !== "mage"), slimeViews, makeSlime);
     for (const [o, v] of slimeViews) {
       const [x, z] = toWorld(o.x, o.y);
@@ -955,9 +1034,12 @@ export function createView(canvas, PAL, C) {
       if (seenEffects.has(e)) continue;
       seenEffects.add(e);
       const [x, z] = toWorld(e.x - 4, e.y - 4);
-      for (let i = 0; i < (e.big || e.fire || e.arcane ? 10 : 5); i++) {
-        const m = new THREE.Mesh(sparkGeo, e.arcane ? (i % 2 ? sparkMats.arcane : sparkMats.arcaneLight) : e.fire ? (i % 2 ? sparkMats.fire : sparkMats.ember) : e.big ? sparkMats.big : sparkMats.hit);
-        const a = Math.random() * Math.PI * 2, sp = e.big || e.fire || e.arcane ? 2.5 : 3.5;
+      if (e.nova) spawnNovaRing(x, z, e.radius);
+      if (e.bolt) spawnBoltColumn(x, z);
+      for (let i = 0; i < (e.big || e.fire || e.arcane || e.frost || e.spark || e.nova || e.bolt ? 10 : 5); i++) {
+        const fx = Object.keys(FX_MATS).find(k => e[k]) || (e.nova && "frost") || (e.bolt && "spark");
+        const m = new THREE.Mesh(sparkGeo, fx ? sparkMats[FX_MATS[fx][i % 2]] : e.big ? sparkMats.big : sparkMats.hit);
+        const a = Math.random() * Math.PI * 2, sp = e.big || fx ? 2.5 : 3.5;
         m.position.set(x, 0.4, z);
         m.userData = { vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: 2 + Math.random() * 2, life: e.big ? 0.45 : 0.25 };
         scene.add(m); sparks.push(m);

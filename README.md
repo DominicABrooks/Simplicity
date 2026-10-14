@@ -22,7 +22,13 @@ The game is already built: `game/sprites.js` is generated from `art/` and commit
 
 WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
 
-**Ember Mage:** once you've killed a few slimes, a rare red-robed twin of you may appear. It keeps its distance and throws fireballs: watch for the fireball growing in its hands, then dash or jump through the shot. Get close and it blinks away (6 s cooldown), including when you pin it against trees or water. If you catch it up close while blink is on cooldown, it draws a sword and chases you, swinging (watch for the raised blade), until blink is ready and it escapes. Outrun it (more than about 5.5 tiles) and it puts the sword away and goes back to casting. Every so often it charges a purple orb instead: that's **polymorph**, which turns you into a sheep for 5 seconds. A sheep can only walk, but taking any damage breaks the spell. It has twice a slime's health and always drops a magic or better item.
+**Mages:** once you've killed a few slimes, a rare mage may appear: a robed twin of you that keeps its distance, telegraphs every spell with a charge-up in its hands, and casts. There are three schools:
+
+- **Ember Mage** (red robes): fireballs, and sometimes a purple orb, **polymorph**, which turns you into a sheep for 5 seconds (a sheep can only walk; any damage breaks it).
+- **Frost Mage** (icy white robes): frostbolts that **chill** you to about half speed for 2.5 s. Get close and it casts **Frost Nova**: a frost ring grows on the ground around it, and if you're still inside when it goes off you're **frozen** in ice for 1.6 s.
+- **Storm Mage** (indigo and gold robes): fast **spark** bolts with a short wind-up, and **Lightning Strike**: three glowing circles appear on and around you, and lightning hits each one 0.9 s later. Keep moving.
+
+Dash or jump through bolts and the nova; only a dash's invulnerability beats lightning. Get close and a mage blinks away (6 s cooldown), including when you pin it against trees or water. Catch it up close while blink is on cooldown and it draws a sword and chases you, swinging (watch for the raised blade), until blink is ready and it escapes. Outrun it (more than about 5.5 tiles) and it goes back to casting. Mages have twice a slime's health and always drop a magic or better item.
 
 **Sword:** every attack is a wide swipe that alternates direction and steps you forward. Pressing during a swipe queues the next one, so mashing chains smoothly, and a dash cancels a swipe's recovery. Hits briefly freeze the action and shake the camera.
 

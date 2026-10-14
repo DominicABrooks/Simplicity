@@ -52,7 +52,7 @@ The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a roun
 | Magic | `azure` / `deep` | `stone`, `bone` blade | soft `mana` |
 | Rare | `arcane` / dark purple | `glow` gold | strong `glow` |
 
-**Enemy tiers.** `ember` is an enemy-only tier (red cloth, amber trim, `blood` boots). The Ember Mage is the hero's own body dressed in it, with `amber` eyes instead of `glow`, so it reads instantly as a dark twin. Enemy tiers never roll as loot.
+**Enemy tiers.** Mages are the hero's own body dressed in an enemy-only tier, so they read instantly as dark twins: `ember` (red cloth, amber trim, `amber` eyes), `frost` (icy white-blue cloth, `mana` trim and eyes) and `storm` (dark indigo cloth, `glow` gold trim, pale gold eyes). Each school's sparks, bolts and charge orbs use its own colour pair: fire `amber`/`ember`, frost `mana`/`bone`, storm `glow`/pale gold, arcane `arcane`/lilac. Enemy tiers never roll as loot.
 
 New gear types must follow the same rule: a distinct silhouette per slot, with colour and glow from the tier.
 
@@ -101,6 +101,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |
 | fish | Koi just under the water surface: wander, wiggle their tails, turn back at the shore, dart away from the hero |
 | mage | Faces the hero; bobs as it walks. Casting: both hands come forward and a fireball grows between them for the whole 0.7 s charge (the telegraph), then flies as a spinning `glow` core in an additive `ember` shell, trailing embers, and bursts into `amber`/`ember` sparks. Polymorph is the same shapes in `arcane` purple with a pale core and a longer 1 s charge. Blink: a burst of `arcane` sparks where it leaves and where it lands. Melee: draws an ember-tier sword (a puff of embers), holds it at its side while chasing, and swings on the hero's swipe curve with a long raised-blade wind-up as the telegraph |
+| frost & storm | Frost Nova: arms raised with a frost orb overhead while the blast radius is outlined on the ground and fills in; the burst is an expanding white ring. Frozen hero: a translucent `mana` ice block. Chilled hero: snowflakes drift off. Lightning Strike: arms raised with a spark overhead; gold circles on the ground fill in, then a white-gold column flashes down |
 | sheep | Polymorphed hero: a fluffy `bone` wool body and tufts, `void` head, ears and legs; trots with swinging legs and faces the way it walks; `arcane` puffs on transforming in and out |
 | fishing | Holding the button draws the pole back behind the head (trembling as it's held) and a spinning ring marks the landing spot, `mana` over water and faded `stone` over land; releasing swings it forward; the bobber arcs out on a sagging line; koi drift toward it; on a bite the bobber dips with a splash ring and a gold **!** pops over the hero; the catch leaps out of the water to the hero |
 
