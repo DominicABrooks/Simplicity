@@ -10,13 +10,18 @@ export interface Point {
 /** The tile under a game-pixel position. Outside the map counts as forest. */
 export const tileAt = (map: TileMap, px: number, py: number): Tile => tileOf(map, Math.floor(px / T), Math.floor(py / T));
 
+/** The collision box inside the 8x8 cell at (x, y): centred on the cell, where the body is drawn,
+ * 6 px wide and 4 deep, so you stand as close to a wall coming from the south as from the north. */
+export const FEET = { x: 1, y: 2, w: 6, h: 4 } as const;
+
 /** Does the feet box of the cell at (x, y) touch a solid (the camp's tent or fire)? */
 export const hitsSolid = (map: TileMap, x: number, y: number): boolean =>
-  map.solids.some(r => x + 1 < r.x + r.w && r.x < x + 7 && y + 4 < r.y + r.h && r.y < y + 8);
+  map.solids.some(r => x + FEET.x < r.x + r.w && r.x < x + FEET.x + FEET.w && y + FEET.y < r.y + r.h && r.y < y + FEET.y + FEET.h);
 
-/** Feet-level collision box: x+1..x+7, y+4..y+8 inside the 8x8 cell at (x, y). */
+/** Does the feet box of the cell at (x, y) touch anything solid (or water, if `blocksWater`)? */
 export function blocked(map: TileMap, x: number, y: number, blocksWater: boolean): boolean {
-  for (const [px, py] of [[x + 1, y + 4], [x + 6.99, y + 4], [x + 1, y + 7.99], [x + 6.99, y + 7.99]] as const) {
+  const x0 = x + FEET.x, x1 = x + FEET.x + FEET.w - 0.01, y0 = y + FEET.y, y1 = y + FEET.y + FEET.h - 0.01;
+  for (const [px, py] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]] as const) {
     const t = tileAt(map, px, py);
     if (isSolidTile(t) || (blocksWater && t === Tile.Water)) return true;
   }

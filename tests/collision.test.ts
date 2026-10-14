@@ -33,9 +33,11 @@ describe("collision", () => {
     expect(blocked(map, 2 * T, 3 * T, true)).toBe(true);
   });
 
-  it("checks only the feet, so a sprite's top half can overlap a tree above it", () => {
-    expect(blocked(map, 3 * T, 3 * T - 3, false)).toBe(false);
-    expect(blocked(map, 3 * T, 3 * T - 5, false)).toBe(true);
+  it("centres the feet box in the cell, so you stop as close to a tree above as to one below", () => {
+    expect(blocked(map, 3 * T, 3 * T - 1, false)).toBe(false);  // feet top 2 px below the tree
+    expect(blocked(map, 3 * T, 3 * T - 3, false)).toBe(true);
+    expect(blocked(map, 3 * T, T + 1, false)).toBe(false);      // feet bottom 1 px above it
+    expect(blocked(map, 3 * T, T + 3, false)).toBe(true);
   });
 
   it("slides along walls one axis at a time", () => {
@@ -45,8 +47,8 @@ describe("collision", () => {
   });
 
   it("blocks solids, by the feet box", () => {
-    expect(blocked(map, 16, 24, false)).toBe(false);          // standing just above: feet clear of it
-    expect(blocked(map, 16, 26, false)).toBe(true);
+    expect(blocked(map, 16, 26, false)).toBe(false);          // standing just above: feet clear of it
+    expect(blocked(map, 16, 28, false)).toBe(true);
     expect(blocked(map, 20, 32, false)).toBe(true);           // feet x 21..27 vs solid 16..22
     expect(blocked(map, 21, 32, false)).toBe(false);
     expect(blocked(map, 10, 32, false)).toBe(true);

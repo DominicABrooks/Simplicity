@@ -2,7 +2,7 @@
 // entities (the hero carries on, gear and all) and builds the new one from its definition.
 import { SPAWNING } from "../data/enemies.ts";
 import type { AreaDef } from "../world/area.ts";
-import { randomGroundSpot } from "../world/collision.ts";
+import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
@@ -45,7 +45,7 @@ export function travelSystem(g: Game): void {
   if (g.travel) return;
   const p = g.world.need(g.player, "transform");
   // The hero's feet box, as everywhere else.
-  const fx = p.x + 1, fy = p.y + 4, fw = 6, fh = 4;
+  const fx = p.x + FEET.x, fy = p.y + FEET.y, fw = FEET.w, fh = FEET.h;
   for (const exit of g.area.layout.exits) {
     const r = exit.rect;
     if (fx < r.x + r.w && r.x < fx + fw && fy < r.y + r.h && r.y < fy + fh) {

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { AREA_IDS, HOME, loadArea } from "../src/areas/index.ts";
 import { T } from "../src/data/world.ts";
 import type { AreaDef } from "../src/world/area.ts";
-import { blocked } from "../src/world/collision.ts";
+import { FEET, blocked } from "../src/world/collision.ts";
 import { reachableFrom } from "../src/world/map.ts";
 
 const modules = import.meta.glob<{ area: AreaDef }>(["../src/areas/*.ts", "!../src/areas/index.ts"], { eager: true });
@@ -14,7 +14,7 @@ const byId = new Map(AREAS.map(a => [a.def.id, a.def]));
 const overlaps = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 /** The hero's feet box at a cell position. */
-const feet = (p: { x: number; y: number }) => ({ x: p.x + 1, y: p.y + 4, w: 6, h: 4 });
+const feet = (p: { x: number; y: number }) => ({ x: p.x + FEET.x, y: p.y + FEET.y, w: FEET.w, h: FEET.h });
 
 describe("the area registry", () => {
   it("lists every area module, with the home area first", () => {

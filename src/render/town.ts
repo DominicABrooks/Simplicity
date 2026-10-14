@@ -387,7 +387,7 @@ export function buildCathedral(ctx: RenderContext, parent: THREE.Group, p: PropO
   const { lambert, basic, tex } = ctx, g = new THREE.Group();
   const stone = lambert("#e0d8c8", { map: tex.stone }), lead = lambert("#5a6470", { map: tex.shingles, side: THREE.DoubleSide });
   const W = p.rect.w / T, D = p.rect.h / T, naveD = Math.min(4.4, D - 2.6), naveH = 4.6, roofH = 2.8;
-  const towerS = 3.0, west = -W / 2 + towerS, east = W / 2 - 1.6, naveL = east - west, naveX = (west + east) / 2;
+  const towerS = 3.0, west = -W / 2 + towerS, east = W / 2 - 2.4, naveL = east - west, naveX = (west + east) / 2;
   // The nave.
   const nave = new THREE.Mesh(tiledBox(naveL, naveH, naveD, 0.8), stone);
   nave.position.set(naveX, naveH / 2, 0);
@@ -428,28 +428,30 @@ export function buildCathedral(ctx: RenderContext, parent: THREE.Group, p: PropO
   gable.geometry.computeVertexNormals();
   gable.position.set(crossX, naveH, transD / 2 + 0.01);
   g.add(trans, transRoof, gable);
-  const roseY = naveH - 0.6, roseZ = transD / 2 + 0.03;
+  // The window's layers stand clear of each other: any closer and the depth buffer can't tell them apart
+  // from up at the camera, and the colours flicker through one another.
+  const roseY = naveH - 0.6, roseZ = transD / 2 + 0.04, layer = 0.03;
   const rose = new THREE.Mesh(new THREE.CircleGeometry(0.95, 16), basic("#2b3a7a"));
   rose.position.set(crossX, roseY, roseZ);
   const roseRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.78, 16), basic(GLASS[1]));
-  roseRing.position.set(crossX, roseY, roseZ + 0.005);
+  roseRing.position.set(crossX, roseY, roseZ + layer);
   const roseHeart = new THREE.Mesh(new THREE.CircleGeometry(0.25, 10), basic(GLASS[2]));
-  roseHeart.position.set(crossX, roseY, roseZ + 0.01);
+  roseHeart.position.set(crossX, roseY, roseZ + layer * 2);
   const roseFrame = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.1, 16), lambert("#8a8378"));
-  roseFrame.position.set(crossX, roseY, roseZ + 0.005);
+  roseFrame.position.set(crossX, roseY, roseZ + layer);
   g.add(rose, roseRing, roseHeart, roseFrame);
   for (let i = 0; i < 8; i++) {
     const spoke = new THREE.Mesh(box(0.05, 1.8, 0.02), lambert("#8a8378"));
-    spoke.position.set(crossX, roseY, roseZ + 0.015);
+    spoke.position.set(crossX, roseY, roseZ + layer * 3);
     spoke.rotation.z = (i / 8) * Math.PI;
     g.add(spoke);
   }
   const portal = new THREE.Mesh(box(1.1, 1.9, 0.06), basic(DOORWAY));
   portal.position.set(crossX, 0.95, roseZ);
   const portalArch = new THREE.Mesh(new THREE.CircleGeometry(0.55, 10, 0, Math.PI), basic(DOORWAY));
-  portalArch.position.set(crossX, 1.9, roseZ + 0.005);
+  portalArch.position.set(crossX, 1.9, roseZ + layer);
   const portalFrame = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 10, 1, 0, Math.PI), lambert("#8a8378"));
-  portalFrame.position.set(crossX, 1.9, roseZ + 0.01);
+  portalFrame.position.set(crossX, 1.9, roseZ + layer * 2);
   g.add(portal, portalArch, portalFrame);
   // The apse: a rounded east end under a half-cone roof.
   const apse = new THREE.Mesh(new THREE.CylinderGeometry(naveD / 2, naveD / 2, naveH, 10, 1, false, 0, Math.PI), stone);

@@ -114,14 +114,17 @@ function buildTown(): Town {
 
   // The town wall, with a tower at every corner, and the gate in its south edge.
   const outer = wallPoints();
-  outer.forEach((p, i) => band(p, outer[(i + 1) % outer.length]!, 0.75, Tile.Wall));
-  for (const p of outer) disc(p.x, p.y, 1.45, Tile.Wall);
+  // As thick as the wall is drawn: any tile it crosses the middle of. (Still unbroken: a line has a tile
+  // centre within half a tile of it in every column or row it crosses.)
+  outer.forEach((p, i) => band(p, outer[(i + 1) % outer.length]!, 0.55, Tile.Wall));
+  for (const p of outer) disc(p.x, p.y, 1.3, Tile.Wall);
   const gateY = outer[0]!.y;
   for (let y = Math.floor(gateY) - 2; y <= Math.floor(gateY) + 2; y++) for (const x of [MID - 1, MID]) {
     if (at(x, y) === Tile.Wall) set(x, y, ovalDistance(x + 0.5, y + 0.5) < 1 ? Tile.Cobble : Tile.Path);
   }
-  disc(MID - 2, gateY, 1.3, Tile.Wall);
-  disc(MID + 2, gateY, 1.3, Tile.Wall);
+  // The gatehouse's towers stand half a tile out from the wall line.
+  disc(MID - 2, gateY + 0.5, 1.1, Tile.Wall);
+  disc(MID + 2, gateY + 0.5, 1.1, Tile.Wall);
   // The bridge over the moat, and the road from it down to the cave.
   let bridgeTop = H, bridgeBottom = 0;
   for (let y = Math.floor(gateY); y < H; y++) for (const x of [MID - 1, MID]) {
@@ -139,9 +142,11 @@ function buildTown(): Town {
   ward.forEach((p, i) => band(p, ward[(i + 1) % ward.length]!, 0.6, Tile.Wall));
   for (const p of ward) disc(p.x, p.y, 1.5, Tile.Wall);
   fill([MID - 1, WARD.y1 - 1, 2, 3], Tile.Path);
-  disc(MID - 2, WARD.y1 + 0.5, 1.3, Tile.Wall);
-  disc(MID + 2, WARD.y1 + 0.5, 1.3, Tile.Wall);
-  fill(KEEP, Tile.Wall);
+  disc(MID - 2, WARD.y1 + 1, 1.2, Tile.Wall);
+  disc(MID + 2, WARD.y1 + 1, 1.2, Tile.Wall);
+  // The keep's crag fills its footprint but the front row, where only the stair comes down.
+  fill([KEEP[0], KEEP[1], KEEP[2], KEEP[3] - 1], Tile.Wall);
+  fill([MID - 1, KEEP[1] + KEEP[3] - 1, 2, 1], Tile.Wall);
   fill(BARRACKS, Tile.Wall);
   fill(STABLES, Tile.Wall);
   for (const [x, y] of [[34, 14], [54, 14], [35, 19], [53, 19]]) set(x!, y!, Tile.Tree);
@@ -150,7 +155,12 @@ function buildTown(): Town {
   fill([CATHEDRAL[0] - 1, CATHEDRAL[1] + CATHEDRAL[3], CATHEDRAL[2] + 2, 2], Tile.Cobble);
   fill([GUILDHALL[0] - 1, GUILDHALL[1] + GUILDHALL[3], GUILDHALL[2] + 2, 2], Tile.Cobble);
   fill(FOUNTAIN, Tile.Wall);
-  fill(CATHEDRAL, Tile.Wall);
+  // The cathedral's shape: the nave (with its buttresses) and apse down the middle, the transept
+  // crossing it full depth, and the bell tower at the west end, narrower than the nave.
+  const [cx0, cy0, cw, ch] = CATHEDRAL;
+  fill([cx0 + 3, cy0 + 1, cw - 3, ch - 2], Tile.Wall);
+  fill([cx0 + 6, cy0, 3, ch], Tile.Wall);
+  fill([cx0, cy0 + 2, 3, ch - 4], Tile.Wall);
   fill(GUILDHALL, Tile.Wall);
   const stalls: Town["stalls"] = [[38, 40], [48, 40], [38, 46], [48, 46], [41, 40], [45, 46]].map(([x, y], i) => ({ rect: [x!, y!, 2, 1] as TileRect, awning: AWNINGS[i]! }));
   for (const s of stalls) fill(s.rect, Tile.Wall);
