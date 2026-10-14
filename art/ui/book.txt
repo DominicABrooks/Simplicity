@@ -1,0 +1,19 @@
+# Book: the journal (bestiary) button on the menu bar. An arcane tome with gold corners and a gem.
+
+@idle 1000
+................
+..nPPPPPPPPPP...
+..nPYYPPPPYYPW..
+..nPYPPPPPPYPW..
+..nPPPPYYPPPPW..
+..nPPPYCCYPPPW..
+..nPPPYCCYPPPW..
+..nPPPPYYPPPPW..
+..nPPPPPPPPPPW..
+..nPYPPPPPPYPW..
+..nPYYPPPPYYPW..
+..nPPPPPPPPPPW..
+..nnWWWWWWWWWW..
+...nnnnnnnnnn...
+................
+................

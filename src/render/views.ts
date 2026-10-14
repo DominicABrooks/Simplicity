@@ -12,7 +12,8 @@ import type { RenderKind, Transform } from "../game/components.ts";
 import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
 import { PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
-import { dressBody, makeBody, removeBody, type Body } from "./models/body.ts";
+import { dressBody, removeBody, type Body } from "./models/body.ts";
+import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
 
@@ -38,16 +39,7 @@ const facing = (from: Transform, to: Transform) => -Math.atan2(to.y - from.y, to
 interface SlimeView extends Simple { body: THREE.Group; mat: THREE.MeshLambertMaterial; yaw: number | null }
 const slime: EntityView<SlimeView> = {
   create(ctx) {
-    const { lambert, basic } = ctx;
-    const group = new THREE.Group(), body = new THREE.Group();
-    const mat = lambert(PAL.G, { transparent: true, opacity: 0.9, emissive: col("#000000") });
-    const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(0.36, 0), mat);
-    blob.scale.set(1, 0.72, 1); blob.position.y = 0.26;
-    const eyeMat = basic(PAL.k);
-    const eyes = [-1, 1].map(s => { const e = new THREE.Mesh(box(0.06, 0.1, 0.06), eyeMat); e.position.set(0.3, 0.32, s * 0.11); return e; });
-    const shine = new THREE.Mesh(box(0.08, 0.05, 0.08), basic(PAL.W)); shine.position.set(-0.08, 0.5, -0.12);
-    body.add(blob, ...eyes, shine);
-    group.add(body);
+    const { group, body, mat } = makeSlimeModel(ctx);
     const shadow = addShadow(ctx);
     ctx.scene.add(group, shadow);
     return { group, body, mat, shadow, yaw: null };
@@ -71,7 +63,6 @@ const slime: EntityView<SlimeView> = {
 
 // ---------- Mage ----------
 // The same body as the hero, dressed in its school's tier, with glowing eyes.
-const MAGE_EYES: Record<School, string> = { ember: PAL.O, frost: PAL.C, storm: "#fff6c8" };
 const SCHOOL_SPARKS: Record<School, SparkPair> = { ember: "fire", frost: "frost", storm: "spark" };
 /** Which orb a mage holds while charging each spell. */
 const CAST_ORB: Record<SpellName, BoltKind> = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark" };
@@ -85,11 +76,7 @@ interface MageView extends Body {
 }
 const mage: EntityView<MageView> = {
   create(ctx, e, g) {
-    const school = g.world.need(e, "mage").school;
-    const m = makeBody(ctx);
-    const eyeMat = ctx.basic(MAGE_EYES[school]);
-    m.eyes.forEach(eye => { eye.material = eyeMat; });
-    m.ripple.visible = false;
+    const m = makeMageBody(ctx, g.world.need(e, "mage").school);
     const orbs = Object.fromEntries((Object.keys(ORB_COLORS) as BoltKind[]).map(k => {
       const orb = makeOrbMesh(ctx, k);
       orb.visible = false;

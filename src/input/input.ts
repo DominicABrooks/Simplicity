@@ -2,13 +2,12 @@
 import { DASH } from "../data/player.ts";
 import { setState, type Game } from "../game/game.ts";
 import { resetGame } from "../game/reset.ts";
-import { isHandled } from "../ui/dom.ts";
+import { isHandled, isUiTarget } from "../ui/dom.ts";
 
 export interface InputHooks {
   toggleInventory(): void;
-  closeInventory(): void;
-  /** Clicks on the inventory panel aren't attacks. */
-  inventoryOwns(target: EventTarget | null): boolean;
+  toggleJournal(): void;
+  closePanels(): void;
 }
 
 /** Double-tap dash: WASD and arrows map to the same four directions. */
@@ -37,7 +36,8 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
       return;
     }
     if (k === "i" || k === "tab") { e.preventDefault(); if (!e.repeat) hooks.toggleInventory(); return; }
-    if (k === "escape") { hooks.closeInventory(); return; }
+    if (k === "l") { if (!e.repeat) hooks.toggleJournal(); return; }
+    if (k === "escape") { hooks.closePanels(); return; }
     if (!e.repeat) {
       if (k === "j" || k === "enter") input.attackPressed = true;
       if (k === " ") input.jumpPressed = true;
@@ -57,12 +57,12 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
     if (k === "j" || k === "enter") input.attackReleased = true;
   });
   addEventListener("mousedown", e => {
-    if (g.state !== "play" || e.button !== 0 || isHandled(e) || hooks.inventoryOwns(e.target)) return;
+    if (g.state !== "play" || e.button !== 0 || isHandled(e) || isUiTarget(e.target)) return;   // clicks on the UI aren't attacks
     input.attackPressed = true;
   });
   addEventListener("mouseup", e => { if (e.button === 0) input.attackReleased = true; });
   let overUi = false;
-  addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; overUi = hooks.inventoryOwns(e.target); });
+  addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; overUi = isUiTarget(e.target); });
   addEventListener("mouseleave", () => { mouse = null; });
   addEventListener("blur", () => input.keys.clear());
 

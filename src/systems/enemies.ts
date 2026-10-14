@@ -3,7 +3,8 @@ import { DROPS } from "../data/items.ts";
 import { SLIME, SPAWNING } from "../data/enemies.ts";
 import { XP } from "../data/progression.ts";
 import { damagePlayer, grantXP } from "../game/combat.ts";
-import type { Game } from "../game/game.ts";
+import { BESTIARY, type BestiaryId } from "../data/bestiary.ts";
+import { toast, type Game } from "../game/game.ts";
 import { heroParts } from "../game/hero.ts";
 import { dropLoot, spawnEnemy, spawnPotion } from "../game/spawn.ts";
 import { rollItem } from "../items/items.ts";
@@ -44,6 +45,7 @@ export function deathSystem(g: Game): void {
   for (const [e, { transform: s, health, enemy }] of w.query("enemy", "transform", "health")) {
     if (health.hp > 0) continue;
     g.kills++;
+    recordKill(g, enemy.kind === "mage" ? w.need(e, "mage").school : "slime");
     grantXP(g, enemy.kind === "mage" ? XP.mage : XP.slime, s.x, s.y);
     if (enemy.kind === "mage") {
       g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "fire" });
@@ -65,4 +67,12 @@ export function spawnerSystem(g: Game, dt: number): void {
   if ((g.spawnTimer -= dt) > 0) return;
   g.spawnTimer = SPAWNING.every;
   if (g.world.count("enemy") < cap) spawnEnemy(g, 110);
+}
+
+/** Count a kill in the journal; the first of a kind discovers its page. */
+function recordKill(g: Game, id: BestiaryId): void {
+  const first = g.journal[id] === 0;
+  g.journal[id]++;
+  if (first) toast(g, `New journal entry: ${BESTIARY.find(b => b.id === id)!.name}`, true);
+  g.events.emit("journal", { id, first });
 }

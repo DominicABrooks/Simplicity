@@ -3,6 +3,7 @@
 import { World, type Entity } from "../core/ecs.ts";
 import { EventBus } from "../core/events.ts";
 import { Rng } from "../core/rng.ts";
+import { emptyJournal, type BestiaryId, type Journal } from "../data/bestiary.ts";
 import { BASE_HP } from "../data/player.ts";
 import { levelBonus } from "../data/progression.ts";
 import { Inventory, type InventoryStats } from "../items/inventory.ts";
@@ -44,6 +45,8 @@ export interface GameEvents {
   state: { state: GameState };
   /** A new run started: the map was rebuilt and the hero is back at the spawn. */
   reset: { map: TileMap };
+  /** An enemy was killed: its journal count went up. `first` when that kind was just discovered. */
+  journal: { id: BestiaryId; first: boolean };
 }
 
 export interface Game {
@@ -71,6 +74,8 @@ export interface Game {
   resetLatch: boolean;
   /** What the player is targeting (the last thing hovered), if anything. */
   target: Entity | null;
+  /** Kills per kind of enemy, for the journal. Kept across runs (the UI saves it). */
+  journal: Journal;
 }
 
 export function createGame(): Game {
@@ -86,6 +91,7 @@ export function createGame(): Game {
     state: "title",
     player: 0,
     clock: 0, hitstop: 0, shake: 0, kills: 0, spawnTimer: 0, resetHold: 0, resetLatch: false, target: null,
+    journal: emptyJournal(),
   };
   g.inventory.subscribe(stats => applyStats(g, stats));
   return g;

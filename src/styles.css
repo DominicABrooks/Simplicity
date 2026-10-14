@@ -78,3 +78,90 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 #resetHold .bar { width: 180px; height: 6px; margin-top: 6px; background: rgb(14 11 22 / 0.8); border: 1px solid var(--oak); }
 #resetHold i { display: block; height: 100%; width: 0; background: var(--ember); }
 #toast { position: fixed; top: 18%; left: 50%; transform: translateX(-50%); z-index: 45; color: var(--ember); font-size: 18px; line-height: 24px; text-shadow: 3px 3px 0 var(--ink); white-space: nowrap; }
+
+/* ---------- Menu bar (bottom right, WoW style) ---------- */
+#menuBar {
+  position: fixed; right: calc(var(--u) * 4); bottom: calc(var(--u) * 4); z-index: 15;
+  display: flex; gap: calc(var(--u) * 2); padding: calc(var(--u) * 2);
+  background: linear-gradient(#231b30, #15111f);
+  border: 2px solid var(--bark);
+  box-shadow: inset 0 0 0 1px var(--oak), 0 6px 16px rgb(0 0 0 / 0.5);
+}
+.bar-btn {
+  position: relative; width: calc(var(--u) * 22); height: calc(var(--u) * 22); padding: 0; margin: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(circle at 50% 40%, #3a2f4e, #15111f 75%);
+  border: 1px solid var(--ink); box-shadow: inset 0 0 0 1px var(--oak);
+}
+.bar-btn img { width: calc(var(--u) * 18); height: calc(var(--u) * 18); image-rendering: pixelated; pointer-events: none; }
+.bar-btn .key {
+  position: absolute; top: 0; right: var(--u); font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 7);
+  color: var(--stone); text-shadow: var(--u) var(--u) 0 var(--ink); pointer-events: none;
+}
+.bar-btn:hover { box-shadow: inset 0 0 0 1px var(--glow); }
+.bar-btn:hover img { filter: brightness(1.2); }
+.bar-btn:active img { transform: translateY(var(--u)); }
+.bar-btn.active { box-shadow: inset 0 0 0 1px var(--glow), inset 0 0 calc(var(--u) * 6) rgb(245 213 98 / 0.45); }
+.bar-btn.alert { animation: bar-alert 1s ease-in-out infinite; }
+@keyframes bar-alert {
+  50% { box-shadow: inset 0 0 0 1px var(--glow), inset 0 0 calc(var(--u) * 8) rgb(245 213 98 / 0.8), 0 0 calc(var(--u) * 6) rgb(245 213 98 / 0.7); }
+}
+.bar-tip {
+  position: absolute; bottom: calc(100% + var(--u) * 3); white-space: nowrap; pointer-events: none;
+  padding: var(--u) calc(var(--u) * 4); background: rgb(14 11 22 / 0.96); border: 1px solid var(--oak);
+  color: var(--bone); font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9);
+}
+.bar-tip[hidden] { display: none; }
+
+/* ---------- Journal (bestiary) ---------- */
+#journal {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20; cursor: default;
+  padding: calc(var(--u) * 5);
+  background: linear-gradient(#5a3826, #3a2418);                 /* leather cover */
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 1px var(--oak), inset 0 0 0 3px #2a1810, 0 12px 32px rgb(0 0 0 / 0.6);
+}
+#journal[hidden] { display: none; }
+#journal .book { display: flex; }
+#journal .page {
+  position: relative; width: calc(var(--u) * 132); min-height: calc(var(--u) * 196); box-sizing: border-box;
+  padding: calc(var(--u) * 6) calc(var(--u) * 7);
+  background: #e8dcc0; color: #2b2438;                              /* parchment, void ink */
+  font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9);
+}
+#journal .page.left { border-right: 1px solid #b9a682; background: linear-gradient(90deg, #e8dcc0 85%, #d6c6a2); }   /* shaded toward the spine */
+#journal .page.right { background: linear-gradient(90deg, #d6c6a2, #e8dcc0 15%); }
+#journal h2 { margin: 0 0 calc(var(--u) * 4); font-size: calc(var(--u) * 12); line-height: calc(var(--u) * 15); text-align: center; color: #5a3826; }
+#journal h3 { margin: 0 0 calc(var(--u) * 2); font-size: calc(var(--u) * 12); line-height: calc(var(--u) * 15); color: #5a3826; }
+#journal .head { display: flex; gap: calc(var(--u) * 5); align-items: center; margin-bottom: calc(var(--u) * 3); }
+#journal .head.unknown { flex-direction: column; text-align: center; }
+#journal h4 { margin: calc(var(--u) * 3) 0 var(--u); font-size: calc(var(--u) * 6); color: #7a2433; }
+#journal p, #journal ul, #journal dl { margin: 0; }
+#journalList { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(var(--u) * 2); }
+#journal .entry {
+  display: flex; align-items: center; gap: calc(var(--u) * 4); width: 100%; padding: var(--u) calc(var(--u) * 2);
+  background: transparent; border: 1px solid transparent; color: inherit; text-align: left; cursor: pointer;
+  font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9);
+}
+#journal .entry:hover { border-color: #b9a682; background: rgb(255 255 255 / 0.25); }
+#journal .entry.selected { border-color: #8b5a34; background: rgb(245 213 98 / 0.3); }
+#journal .thumb, #journal .portrait { display: grid; place-items: center; flex: none; background: radial-gradient(#f4ecd6, #d6c6a2 70%); border: 1px solid #b9a682; }
+#journal .thumb { width: calc(var(--u) * 24); height: calc(var(--u) * 24); }
+#journal .thumb img { width: calc(var(--u) * 24); height: calc(var(--u) * 24); image-rendering: pixelated; }
+#journal .portrait { width: calc(var(--u) * 48); height: calc(var(--u) * 48); }
+#journal .portrait img { width: calc(var(--u) * 48); height: calc(var(--u) * 48); image-rendering: pixelated; }
+#journal .locked img { filter: brightness(0); }                     /* undiscovered: a black silhouette */
+#journal .locked { background: radial-gradient(#d6c6a2, #c2b08a 70%); }
+#journalProgress { position: absolute; bottom: calc(var(--u) * 9); margin: 0; color: #6b5f78; }
+#journal .lore { color: #4f3222; }
+#journal .stats { display: grid; grid-template-columns: auto 1fr; gap: 0 calc(var(--u) * 4); margin-bottom: calc(var(--u) * 3); }
+#journal .stats dt { color: #6b5f78; }
+#journal .stats dd { margin: 0; color: #2b2438; }
+#journal .abilities { padding-left: calc(var(--u) * 6); }
+#journal .abilities li::marker { color: #8b5a34; }
+.journal-close {
+  position: absolute; top: calc(var(--u) * 1); right: calc(var(--u) * 2); padding: 0 calc(var(--u) * 2);
+  background: none; border: none; color: var(--glow); font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9); cursor: pointer;
+  text-shadow: var(--u) var(--u) 0 var(--ink);
+}
+.journal-close:hover { color: var(--bone); }

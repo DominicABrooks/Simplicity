@@ -5,7 +5,7 @@ import { BASES, SLOTS, SLOT_ICON, type Slot } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
 import { COLS, ROWS, type GridEntry, type Inventory } from "../items/inventory.ts";
 import type { Item } from "../items/items.ts";
-import { byId, isHandled, markHandled } from "./dom.ts";
+import { byId, isHandled, isUiTarget, markHandled } from "./dom.ts";
 import type { ItemIcons } from "./sprites.ts";
 import { createTooltip } from "./tooltip.ts";
 
@@ -187,7 +187,7 @@ export function createInventoryView(model: Inventory, icons: ItemIcons, hooks: I
   addEventListener("mousedown", ev => { mouse = { x: ev.clientX, y: ev.clientY }; }, true);
   // Clicking the world while holding an item drops it at the hero's feet.
   addEventListener("mousedown", ev => {
-    if (!model.held || isHandled(ev) || panel.contains(ev.target as Node)) return;
+    if (!model.held || isHandled(ev) || isUiTarget(ev.target)) return;
     markHandled(ev);
     dropHeld();
   }, true);

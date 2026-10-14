@@ -10,7 +10,8 @@ import { spriteFrame } from "./sprites.ts";
 export interface Hud {
   /** Match the 3D view's pixel size. */
   resize(pixelSize: number): void;
-  draw(): void;
+  /** `reserveRight`: CSS pixels on the right of the bottom edge to keep clear (the menu bar). */
+  draw(reserveRight?: number): void;
 }
 
 export function createHud(g: Game, view: Projector): Hud {
@@ -26,10 +27,11 @@ export function createHud(g: Game, view: Projector): Hud {
 
   // WoW-style XP bar along the bottom, as pixel art like the hearts: palette colours, a 1px ink
   // outline, a bark-and-oak frame, 20 notched segments, and the level in a gold-rimmed badge.
-  function drawXPBar(W: number, H: number): void {
+  function drawXPBar(W: number, H: number, reserve: number): void {
     const hero = g.world.need(g.player, "hero"), max = hero.level >= XP.maxLevel;
     const frac = max ? 1 : hero.xp / xpToNext(hero.level);
-    const bw = Math.min(200, W - 40), x0 = Math.round((W - bw) / 2) + 6, y0 = H - 9, inner = 4;
+    // Centred along the bottom, narrowing if needed to stay clear of the menu bar on the right.
+    const bw = Math.max(40, Math.min(200, W - 40, W - 2 * (reserve + 10))), x0 = Math.round((W - bw) / 2) + 6, y0 = H - 9, inner = 4;
     // Frame: ink outline, bark body, oak highlight on the top edge.
     ctx.fillStyle = PAL.K; ctx.fillRect(x0 - 2, y0 - 2, bw + 4, inner + 4);
     ctx.fillStyle = PAL.n; ctx.fillRect(x0 - 1, y0 - 1, bw + 2, inner + 2);
@@ -76,10 +78,10 @@ export function createHud(g: Game, view: Projector): Hud {
       canvas.width = Math.ceil(innerWidth / pixelSize);
       canvas.height = Math.ceil(innerHeight / pixelSize);
     },
-    draw() {
+    draw(reserveRight = 0) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawHearts();
-      drawXPBar(canvas.width, canvas.height);
+      drawXPBar(canvas.width, canvas.height, (reserveRight * canvas.width) / innerWidth);
       drawCombatText(canvas.width, canvas.height);
     },
   };

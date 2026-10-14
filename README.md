@@ -32,7 +32,9 @@ CI runs lint, typecheck, tests and the build on every push and pull request; a p
 
 ## Play
 
-WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
+WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. The buttons in the bottom-right open your inventory (I) and journal (L). Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
+
+**Journal:** a bestiary of every enemy. Each starts as a black silhouette; kill one and its page fills in with its portrait, a little about it, its health, experience, abilities and drops, and how many you've defeated. Your discoveries are saved in the browser and kept across runs. The book button glows when there's a new entry.
 
 **Combat text and crits:** WoW-style numbers float up as pixel text: white for your hits, red for damage you take, green for healing, lilac for XP. Every hit (sword, punch, arrow) has a 10% chance to **crit** for double damage, shown as a big gold number with a "!", with a little extra hitstop, shake and gold sparks.
 

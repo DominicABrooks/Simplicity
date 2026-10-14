@@ -9,14 +9,26 @@
 <canvas id="screen"></canvas>
 <canvas id="hudCanvas"></canvas>
 <div id="labels"></div>
-<div class="hud"><small>I: inventory &middot; hold R: reset</small></div>
+<div class="hud"><small>hold R: reset</small></div>
 
-<div id="inventory" hidden>
+<div id="inventory" data-ui hidden>
   <h2>INVENTORY</h2>
   <div id="invEquip"></div>
   <div id="invStats"></div>
   <div id="invGrid"></div>
 </div>
+<div id="journal" data-ui hidden>
+  <div class="book">
+    <section class="page left">
+      <h2>BESTIARY</h2>
+      <ol id="journalList"></ol>
+      <p id="journalProgress"></p>
+    </section>
+    <section class="page right" id="journalPage"></section>
+  </div>
+  <button class="journal-close" type="button" aria-label="Close">x</button>
+</div>
+<div id="menuBar" data-ui></div>
 <div id="held" hidden></div>
 <div id="tooltip" hidden></div>
 <div id="toast" hidden></div>
@@ -27,7 +39,7 @@
   <div>
     <h1>SIMPLICITY</h1>
     <p id="message">Press any key to begin</p>
-    <p class="keys">WASD / arrows: move &middot; double-tap: dash<br>Mouse: aim &middot; Click / J: attack &middot; Space: jump<br>I: inventory &middot; Hold R: reset</p>
+    <p class="keys">WASD / arrows: move &middot; double-tap: dash<br>Mouse: aim &middot; Click / J: attack &middot; Space: jump<br>I: inventory &middot; L: journal &middot; Hold R: reset</p>
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

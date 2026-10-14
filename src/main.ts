@@ -14,6 +14,8 @@ import { createInventoryView } from "./ui/inventory.ts";
 import { createLabels } from "./ui/labels.ts";
 import { bindOverlay, bindToasts, createResetBar } from "./ui/screens.ts";
 import { bakeItemIcons } from "./ui/sprites.ts";
+import { createJournal } from "./ui/journal.ts";
+import { createMenuBar } from "./ui/menuBar.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -26,19 +28,21 @@ const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
 bindOverlay(g);
 bindToasts(g);
+const menu = createMenuBar([
+  { icon: "bag", label: "Inventory", key: "I", onClick: () => inventory.toggle() },
+  { icon: "book", label: "Journal", key: "L", onClick: () => journal.toggle() },
+]);
+const journal = createJournal(g, unread => menu.setAlert(1, unread));
+const closePanels = () => { inventory.close(); journal.close(); };
 g.events.on("reset", () => inventory.close());
-g.events.on("state", ({ state }) => { if (state === "dead") inventory.close(); });
-const input = bindInput(g, {
-  toggleInventory: inventory.toggle,
-  closeInventory: inventory.close,
-  inventoryOwns: inventory.owns,
-});
+g.events.on("state", ({ state }) => { if (state === "dead") closePanels(); });
+const input = bindInput(g, { toggleInventory: inventory.toggle, toggleJournal: journal.toggle, closePanels });
 
 function resize(): void {
   const pixelSize = Math.max(2, Math.round(innerHeight / 300));
   // UI panels measure in game pixels too, so they scale in step with the world, stepping down a
-  // size when the inventory (about 205 x 136 game pixels) wouldn't fit the window.
-  const ui = Math.max(1, Math.min(pixelSize, Math.floor((innerHeight - 32) / 205), Math.floor((innerWidth - 32) / 136)));
+  // size when the inventory (about 205 x 136 game pixels) or the journal (about 290 x 220) wouldn't fit.
+  const ui = Math.max(1, Math.min(pixelSize, Math.floor((innerHeight - 32) / 220), Math.floor((innerWidth - 32) / 290)));
   document.documentElement.style.setProperty("--u", `${ui}px`);
   inventory.setScale(ui);
   view.resize(pixelSize);
@@ -55,7 +59,9 @@ function frame(now: number): void {
   updateTarget(g, view, mouse, input.overUi());
   step(g, dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
-  hud.draw();
+  menu.setActive(0, inventory.isOpen());
+  menu.setActive(1, journal.isOpen());
+  hud.draw(menu.width());
   labels.draw();
   resetBar.draw();
   requestAnimationFrame(frame);

@@ -118,7 +118,7 @@ system that drives it (see `slimeSystem` or `mageSystem`), and put the system in
 from `spawnEnemy()` in `src/game/spawn.ts` with `enemy` (add the kind to `EnemyKind`), `health`, `knockback`, your brain and
 `renderable: { kind: "yourKind" }`. Add `"yourKind"` to `RenderKind` and a view to `VIEWS`. Weapons,
 knockback, hit flashes and deaths already work on anything with an `enemy` component; give it its own XP
-and drops in `deathSystem` (it gets the slime's otherwise).
+and drops in `deathSystem` (it gets the slime's otherwise). Give it a journal page: an entry in `BESTIARY` (`src/data/bestiary.ts`) and a portrait pose in `src/render/portraits.ts`.
 
 **Add an item.** Add a base type to `BASES` in `src/data/items.ts`, an icon in `art/items/`, and its colour
 mapping in `ICON_SWAPS` (`src/data/tiers.ts`). If it's worn, dress it in `dressBody()`
