@@ -14,7 +14,7 @@ export function createView(canvas, PAL, C) {
   const scene = new THREE.Scene();
   const SKY = new THREE.Color(PAL.k);
   scene.background = SKY;
-  scene.fog = new THREE.Fog(SKY, 14, 24);
+  scene.fog = new THREE.Fog(SKY, 22, 52);
 
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 80);
   const CAM_OFFSET = new THREE.Vector3(0, 11.5, 8.5);
@@ -158,29 +158,61 @@ export function createView(canvas, PAL, C) {
     world.add(new THREE.Mesh(quadGeometry(shore), lambert("#ffffff", { map: earthTex, ...side })));
     world.add(new THREE.Mesh(quadGeometry(water), lambert("#ffffff", { map: waterTex, transparent: true, opacity: 0.62, ...side })));
 
-    // Ground beyond the map edge: four strips around it, so they never cover the sunken water.
-    // Tinted darker: it's forest floor under the canopy.
-    const R = 60, outerMat = lambert("#9db29d", { map: grassTex, ...side });
-    const strip = (x0, z0, x1, z1) => ({ p: [[x0, 0, z0], [x0, 0, z1], [x1, 0, z1], [x1, 0, z0]], uv: [[x0 / 4, z0 / 4], [x0 / 4, z1 / 4], [x1 / 4, z1 / 4], [x1 / 4, z0 / 4]] });
-    world.add(new THREE.Mesh(quadGeometry([
-      strip(-R, -R, W + R, 0), strip(-R, H, W + R, H + R), strip(-R, 0, 0, H), strip(W, 0, W + R, H),
-    ]), outerMat));
-
-    // Deterministic per-position noise so the forest looks the same every run.
+    // Deterministic per-position noise so the world looks the same every run.
     const hash = (x, z, k) => { const s = Math.sin(x * 127.1 + z * 311.7 + k * 74.7) * 43758.5453; return s - Math.floor(s); };
     const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && map[y][x] !== C.TREE;
 
-    // Trees: map trees (nudged off the grid) plus a dense decorative forest around the map, fading into fog.
-    const placed = [];                                      // [x, z, scale]
-    for (const [x, z] of trees) {
-      placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45]);
+    // Mountains ring the world beyond the map edge: flat at the edge (meeting the ground), rising
+    // gently through foothills and then into faceted ridges and snowy peaks. Kept low for the first
+    // few tiles so they never hide the hero from the camera.
+    const outside = (x, z) => Math.hypot(Math.max(-x, 0, x - W), Math.max(-z, 0, z - H));
+    // Broad ridges plus finer crags so slopes break into rugged facets instead of smooth walls.
+    const ridge = (x, z) => 0.5 + 0.26 * Math.sin(x * 0.29 + 1.7) * Math.sin(z * 0.33 + 0.3) + 0.2 * Math.sin(x * 0.11 - z * 0.15 + 2.2)
+      + 0.14 * Math.sin(x * 0.83 + z * 0.21) + 0.1 * Math.sin(z * 0.97 - x * 0.4);
+    const mountainHeight = (x, z) => {
+      const d = outside(x, z);
+      if (d <= 0) return 0;
+      const rise = Math.min(1, d / 6);
+      return Math.max(0, Math.pow(rise, 1.3) * (3.5 + 11 * ridge(x, z)) + (hash(x, z, 40) - 0.5) * 1.8 * rise);
+    };
+    {
+      const STEP = 2, MR = 34, pos = [], colors = [], c = new THREE.Color();
+      const vtx = (x, z) => [x, mountainHeight(x, z), z];
+      // Colour each facet by its height: mossy foothills, grey stone, snow on the peaks.
+      const facetColor = (hAvg, x, z) => {
+        const n = hash(x, z, 41);
+        if (hAvg < 0.7) return c.set(PAL.v).multiplyScalar(0.85 + n * 0.2);
+        if (hAvg < 2.2) return c.set(n < 0.5 ? "#4f6b46" : "#5f6f52");
+        if (hAvg < 8.5) return c.set(["#8a8378", "#9d968a", "#77706a", "#6b655f"][Math.floor(n * 4)]);
+        return c.set(n < 0.6 ? PAL.W : "#d9d4c8");
+      };
+      for (let z = -MR; z < H + MR; z += STEP) for (let x = -MR; x < W + MR; x += STEP) {
+        if (x >= 0 && z >= 0 && x + STEP <= W && z + STEP <= H) continue;     // the map itself
+        const a = vtx(x, z), b = vtx(x, z + STEP), cc = vtx(x + STEP, z + STEP), d = vtx(x + STEP, z);
+        for (const tri of [[a, b, cc], [a, cc, d]]) {
+          const hAvg = (tri[0][1] + tri[1][1] + tri[2][1]) / 3;
+          facetColor(hAvg, x + tri[1][0], z + tri[2][2]);
+          for (const pt of tri) { pos.push(...pt); colors.push(c.r, c.g, c.b); }
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+      geo.computeVertexNormals();
+      world.add(new THREE.Mesh(geo, lambert("#ffffff", { vertexColors: true, side: THREE.DoubleSide })));
     }
-    const RING = 9;
-    for (let y = -RING; y < H + RING; y++) for (let x = -RING; x < W + RING; x++) {
+
+    // Trees: map trees (nudged off the grid) plus a band of trees climbing the foothills.
+    const placed = [];                                      // [x, z, scale, y]
+    for (const [x, z] of trees) {
+      placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45, 0]);
+    }
+    for (let y = -4; y < H + 4; y++) for (let x = -4; x < W + 4; x++) {
       if (x >= 0 && y >= 0 && x < W && y < H) continue;
-      if (hash(x, y, 4) > 0.72) continue;                   // a few gaps so it isn't a solid carpet
-      const big = 0.95 + hash(x, y, 5) * 0.6;              // outer forest grows taller than the treeline
-      placed.push([x + 0.5 + (hash(x, y, 6) - 0.5) * 0.7, y + 0.5 + (hash(x, y, 7) - 0.5) * 0.7, big]);
+      const tx = x + 0.5 + (hash(x, y, 6) - 0.5) * 0.7, tz = y + 0.5 + (hash(x, y, 7) - 0.5) * 0.7;
+      const d = outside(tx, tz);
+      if (d > 3 || hash(x, y, 4) > 0.65 - d * 0.18) continue;   // thinning out as the slope climbs
+      placed.push([tx, tz, 0.9 + hash(x, y, 5) * 0.5, mountainHeight(tx, tz) - 0.05]);
     }
     const treeParts = [
       [new THREE.CylinderGeometry(0.11, 0.17, 0.62, 5).translate(0, 0.31, 0), lambert("#ffffff", { map: barkTex })],
@@ -190,17 +222,17 @@ export function createView(canvas, PAL, C) {
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
     const instanced = (geo, mat, list, colorFor) => {
       const inst = new THREE.InstancedMesh(geo, mat, list.length);
-      list.forEach(([x, z, k], i) => {
+      list.forEach(([x, z, k, y = 0], i) => {
         q.setFromAxisAngle(up, hash(x, z, 8) * Math.PI * 2);
-        m.compose(new THREE.Vector3(x, 0, z), q, sc.set(k, k * (0.9 + hash(x, z, 9) * 0.25), k));
+        m.compose(new THREE.Vector3(x, y, z), q, sc.set(k, k * (0.9 + hash(x, z, 9) * 0.25), k));
         inst.setMatrixAt(i, m);
         inst.setColorAt(i, colorFor(x, z));
       });
       world.add(inst);
     };
-    // Leaves vary a little in hue and brightness; outer trees are darker, like deeper woods.
+    // Leaves vary a little in hue and brightness; trees on the foothills are a little darker.
     const leafColor = (x, z) => {
-      const deep = x < 0 || z < 0 || x > W || z > H ? 0.78 : 1;
+      const deep = x < 0 || z < 0 || x > W || z > H ? 0.85 : 1;
       const b = (0.78 + hash(x, z, 10) * 0.35) * deep;
       return new THREE.Color(b * (0.92 + hash(x, z, 11) * 0.12), b, b * (0.9 + hash(x, z, 12) * 0.1));
     };

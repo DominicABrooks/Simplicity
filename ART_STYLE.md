@@ -11,7 +11,7 @@ Simplicity is a fantasy RPG that **plays in 2D and looks like a late-90s 3D game
 - One tile = one world unit. Game `x` becomes world X, game `y` becomes world Z, and height is visual only (jumps, hops, bobbing).
 - The camera looks down at about 54° from the south and follows the player smoothly. It never rotates, so left and right on screen always match left and right in the game.
 - The world is a forest clearing with an organic outline (a wobbly ellipse that swells and pinches into bays and points), never a box. Inside, groves of trees grow in clumps with meadows between them, and any meadow the groves cut off is filled in so everything is reachable.
-- The map edge is a forest, never a wall: trees sit slightly off-grid with varied size and colour, a dense decorative forest continues beyond the map into the fog, and bushes and rocks soften every treeline that faces open ground. Collision still follows the tiles exactly.
+- Mountains ring the world beyond the map edge: flat where they meet the ground, rising through foothills (with a thin band of trees climbing them) into craggy, flat-shaded ridges. Facets are coloured by height: mossy `pine` and green-grey at the base, grey stone up the slopes, `bone` snow on the peaks. They stay low for the first few tiles so they never hide the hero from the camera. Inside the map, trees sit slightly off-grid with varied size and colour, and bushes and rocks soften every treeline that faces open ground. Collision still follows the tiles exactly.
 - Ground sits at height 0. Water (62% opaque, so fish show through) is sunk to −0.15 over a bed at −0.6, with earth walls along the shore, so every tile type reads as a little diorama.
 
 ## PlayStation rendering
@@ -20,7 +20,7 @@ These limits are the look. Don't remove them to make things "cleaner".
 
 - **Low resolution:** the scene renders at about 300 lines and is scaled up with nearest-neighbour filtering. No antialiasing.
 - **Vertex wobble:** vertices snap to a coarse screen grid (the `ps1()` material wrapper). Every material goes through it.
-- **Fog** fades the world into the `void` colour at the edges of view.
+- **Fog** fades distant terrain into the `void` colour, starting far enough out that the mountains read clearly.
 - **Dithering** is on for lit materials.
 - **No real-time shadows.** Characters and items get a soft black blob shadow that shrinks as they leave the ground.
 
