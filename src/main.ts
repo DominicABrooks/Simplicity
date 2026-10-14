@@ -5,7 +5,7 @@ import { createGame, setState } from "./game/game.ts";
 import { dropItem, eatItem } from "./game/actions.ts";
 import { resetGame } from "./game/reset.ts";
 import { bindInput } from "./input/input.ts";
-import { createLegacyRenderer } from "./render/legacyBridge.ts";
+import { createRenderer } from "./render/renderer.ts";
 import { step } from "./systems/index.ts";
 import { byId } from "./ui/dom.ts";
 import { createHud } from "./ui/hud.ts";
@@ -15,7 +15,7 @@ import { bindOverlay, bindToasts, createResetBar } from "./ui/screens.ts";
 import { bakeItemIcons } from "./ui/sprites.ts";
 
 const g = createGame();
-const view = createLegacyRenderer(byId<HTMLCanvasElement>("screen"), g);
+const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
 const inventory = createInventoryView(g.inventory, bakeItemIcons(), {
   onDrop: item => dropItem(g, item),
   onUse: item => eatItem(g, item),
