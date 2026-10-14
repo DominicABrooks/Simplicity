@@ -162,10 +162,12 @@ burning church. Here's how, and how each piece of the game fits:
 ## The whole game, in about an hour
 
 One short, complete adventure from waking on the stone to the last lantern. Three acts, each ending in
-a fight, with a few small detours in the city for anyone who wants them. The times are rough targets for
-a first play.
+a fight. **The hour is the story alone:** a player who heads straight from one story beat to the next,
+taking only the fights in their way, finishes in about an hour. Exploring the Witchwood, wandering the
+city, fishing, hunting loot and taking the detours all come on top of that, as much or as little as the
+player likes. The times below are for that straight path.
 
-| Act | Where | About | Ends with |
+| Act | Where | Story path | Ends with |
 |---|---|---|---|
 | I. The Witchwood | Witchwood, the cave | 15 minutes | Beating Cinder, the Ember lieutenant, at the cave mouth |
 | II. Kingsholm | King's Bridge, Market Quarter, Castle | 25 minutes | Beating Rime, the Frost lieutenant, on the King's Bridge |
@@ -205,7 +207,7 @@ a first play.
    between the gilded braziers, while Bran Harrow and young Will Bowyer hold the gate tower. She falls, the
    ice melts, and the bridge stays open.
 
-**Small detours** on the way, each a few minutes and all optional:
+**Small detours** off the story path, each a few minutes, all optional and not counted in the hour:
 
 - **The butchers.** Carry Hal Stott's note to Marian Cleave and back. By Act III the two halves of the shop
   are cooking for the defenders together.
