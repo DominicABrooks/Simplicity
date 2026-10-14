@@ -118,7 +118,7 @@ function reset() {
   makeMap();
   view.setMap(map);
   seed = Date.now() % 100000 + 1;
-  player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
+  player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
   slimes = []; potions = []; effects = [];
   kills = 0; clock = 0; spawnTimer = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
@@ -133,7 +133,11 @@ function spawnSlime(minDist) {
 
 // ---------- Input ----------
 const keys = new Set();
-let attackPressed = false, jumpPressed = false;
+let attackPressed = false, jumpPressed = false, dashRequest = null;
+// Double-tap dash: WASD and arrows map to the same four directions.
+const DIRS = { a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0], w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1] };
+const DOUBLE_TAP = 0.25;
+let lastTap = { dir: null, time: -1 };
 addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
@@ -144,6 +148,11 @@ addEventListener("keydown", e => {
   if (!e.repeat) {
     if (k === "j" || k === "enter") attackPressed = true;
     if (k === " ") jumpPressed = true;
+    if (DIRS[k]) {
+      const dir = DIRS[k].join(), now = performance.now() / 1000;
+      if (lastTap.dir === dir && now - lastTap.time < DOUBLE_TAP) { dashRequest = DIRS[k]; lastTap = { dir: null, time: -1 }; }
+      else lastTap = { dir, time: now };
+    }
   }
   keys.add(k);
 });
@@ -164,11 +173,13 @@ function setState(s) {
 
 // ---------- Update ----------
 const PLAYER_SPEED = 42, SWIM_SPEED = 24, JUMP_TIME = 0.45, ATTACK_TIME = 0.3;
+const DASH_TIME = 0.18, DASH_SPEED = 160, DASH_COOLDOWN = 0.6;   // ~29px, about 3.5 tiles
 
 function updatePlayer(dt) {
   const p = player;
   p.cooldown = Math.max(0, p.cooldown - dt);
   p.hurt = Math.max(0, p.hurt - dt);
+  p.dashCooldown = Math.max(0, p.dashCooldown - dt);
   p.swimming = p.jump <= 0 && tileAt(p.x + 4, p.y + 6) === WATER;
 
   let ix = 0, iy = 0;
@@ -183,7 +194,16 @@ function updatePlayer(dt) {
   const len = Math.hypot(ix, iy) || 1;
   const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1);
   p.moving = ix !== 0 || iy !== 0;
-  moveBy(p, (ix / len) * speed * dt + p.vx * dt, (iy / len) * speed * dt + p.vy * dt, false);
+  if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && p.attack <= 0) {
+    p.dash = DASH_TIME; p.dashCooldown = DASH_COOLDOWN; [p.dashX, p.dashY] = dashRequest;
+  }
+  if (p.dash > 0) {                                        // dashing overrides walking; trees stop it, water ends it
+    p.dash = Math.max(0, p.dash - dt);
+    moveBy(p, p.dashX * DASH_SPEED * dt, p.dashY * DASH_SPEED * dt, false);
+    if (tileAt(p.x + 4, p.y + 6) === WATER) p.dash = 0;
+  } else {
+    moveBy(p, (ix / len) * speed * dt + p.vx * dt, (iy / len) * speed * dt + p.vy * dt, false);
+  }
   p.vx *= Math.pow(0.001, dt); p.vy *= Math.pow(0.001, dt);
 
   if (jumpPressed && p.jump <= 0 && !p.swimming && p.attack <= 0) p.jump = JUMP_TIME;
@@ -205,7 +225,7 @@ function updatePlayer(dt) {
       }
     }
   }
-  attackPressed = jumpPressed = false;
+  attackPressed = jumpPressed = false; dashRequest = null;
 
   for (let i = potions.length - 1; i >= 0; i--) {
     if (overlap(p, potions[i]) && p.hp < MAX_HP) { p.hp = Math.min(MAX_HP, p.hp + 2); potions.splice(i, 1); }
@@ -228,7 +248,7 @@ function updateSlimes(dt) {
       if (s.dx) s.face = Math.sign(s.dx);
       s.hop = 0.3; s.timer = 0.7 + rand() * 0.7;
     }
-    if (p.hurt <= 0 && p.jump <= 0 && overlap(p, s)) {
+    if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) {
       p.hp--; p.hurt = 1;
       const d = Math.hypot(p.x - s.x, p.y - s.y) || 1;
       p.vx = (p.x - s.x) / d * 110; p.vy = (p.y - s.y) / d * 110;
@@ -250,7 +270,7 @@ function updateSlimes(dt) {
 
 // ---------- Render ----------
 // The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
-const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME });
+const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME });
 const hudCanvas = document.getElementById("hudCanvas");
 const hg = hudCanvas.getContext("2d");
 let pixelSize = 3;

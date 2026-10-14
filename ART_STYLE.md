@@ -64,6 +64,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | walk | Quick bob, forward lean, feet shuffle |
 | swim | Sunk so only the hood shows, gentle bob, ripple ring |
 | jump | Squash on take-off, stretch in the air, blob shadow shrinks |
+| dash | Hard forward lean and stretch, a dust puff on take-off, fading `mana` afterimages |
 | attack | Weapon winds up behind, then thrusts forward exactly when the hit lands in game logic |
 | hurt | Model blinks while invulnerable |
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |

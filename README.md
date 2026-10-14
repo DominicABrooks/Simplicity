@@ -10,7 +10,7 @@ Serve the `game` folder (ES modules need a local server; three.js loads from a C
 python -m http.server 8123 -d game
 ```
 
-WASD or arrows to move, the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Slimes chase you, and potions restore two hearts.
+WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Slimes chase you, and potions restore two hearts.
 
 ## Layout
 

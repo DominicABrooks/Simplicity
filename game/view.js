@@ -246,6 +246,16 @@ export function createView(canvas, PAL, C) {
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
   const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G) };
   let sparks = [];
+  let ghosts = [], ghostTimer = 0, wasDashing = false;
+  const dustMat = basic(PAL.w);
+  function puff(x, z) {
+    for (let i = 0; i < 6; i++) {
+      const m = new THREE.Mesh(sparkGeo, dustMat), a = Math.random() * Math.PI * 2;
+      m.position.set(x, 0.08, z);
+      m.userData = { vx: Math.cos(a) * 1.5, vz: Math.sin(a) * 1.5, vy: 1 + Math.random(), life: 0.3 };
+      scene.add(m); sparks.push(m);
+    }
+  }
   const seenEffects = new WeakSet();
 
   function syncSet(list, views, make) {
@@ -284,7 +294,9 @@ export function createView(canvas, PAL, C) {
     const b = hero.body;
     b.position.y = 0; b.rotation.z = 0; b.scale.set(1, 1, 1);
     hero.feet.forEach((f, i) => { f.position.x = 0.3; f.visible = !p.swimming; });
-    if (p.jump > 0) {
+    if (p.dash > 0) {
+      b.rotation.z = -0.4; b.scale.set(1.15, 0.9, 0.9);      // lean hard into the dash
+    } else if (p.jump > 0) {
       const squash = p.jump > C.JUMP_TIME * 0.8;
       b.scale.set(squash ? 1.25 : 0.88, squash ? 0.7 : 1.18, squash ? 1.25 : 0.88);
     } else if (p.moving && !p.swimming) {
@@ -361,6 +373,24 @@ export function createView(canvas, PAL, C) {
       m.position.x += u.vx * dt; m.position.y += u.vy * dt; m.position.z += u.vz * dt;
       m.rotation.x += dt * 10; m.rotation.y += dt * 8;
       if (u.life <= 0) { scene.remove(m); return false; }
+      return true;
+    });
+
+    // Dash: dust puff on take-off, then fading afterimages.
+    if (p.dash > 0 && !wasDashing) puff(px, pz);
+    wasDashing = p.dash > 0;
+    if (p.dash > 0 && (ghostTimer -= dt) <= 0) {
+      ghostTimer = 0.03;
+      const mat = basic(PAL.C, { transparent: true, opacity: 0.45, depthWrite: false });
+      const ghost = hero.body.clone();
+      ghost.traverse(o => { if (o.isMesh) o.material = mat; });
+      const holder = new THREE.Group(); holder.add(ghost);
+      holder.position.copy(hero.group.position); holder.rotation.copy(hero.group.rotation);
+      scene.add(holder); ghosts.push({ holder, mat, life: 0.2 });
+    }
+    ghosts = ghosts.filter(g => {
+      g.life -= dt; g.mat.opacity = 0.45 * Math.max(0, g.life / 0.2);
+      if (g.life <= 0) { scene.remove(g.holder); g.mat.dispose(); return false; }
       return true;
     });
 
