@@ -9,7 +9,8 @@ house on the map.
 
 **Aurenmark**, the Golden March, is the kingdom of men. Its arms are crimson with a gold chevron and a gold
 crown. Its capital is **Kingsholm**, a walled city on a hill above the river Aurel. The road reaches it from
-the south, out of the Witchwood, up through the cave in the Greyspine mountains and over the King's Bridge.
+the south, out of the Witchwood and up through the cave in the Greyspine mountains. It crosses the river on
+the King's Bridge, which runs straight to Southgate in the city's south wall.
 
 Aurenmark is rich and makes sure you know it. The gold comes from the old mines under the Greyspines, and
 the kingdom spends it on white marble, gold leaf, lions on plinths and a bridge that cost more than the city
@@ -17,11 +18,12 @@ wall. Every year on **Gilding Day**, the anniversary of the king's crowning, the
 stone king are leafed again, and the bakers press a flake of gold into the top of every crown loaf.
 
 The city has about **1,900 people**. Roughly 1,550 of them live in the town houses (about 210 of them), and the rest
-live in the castle, the clergy house of St Mary's and the almshouse:
+live in the castle, the gate tower on the bridge, the clergy house of St Mary's and the almshouse:
 
 | District | Houses | Who lives there |
 |---|---|---|
 | **The Market Quarter** | ~130 | Guild masters, shopkeepers and craftsmen on the high street and the square. The priests and masons of St Mary's, and the chandlers who serve it, live along East Street. Labourers, fishers, night-soil men and widows crowd the tenements in the back lanes by the west and south walls (the *Wallside*). |
+| **The King's Bridge** | none | Nobody lives on the bridge except the bridge watch in the gate tower at its south end. It's the first thing a traveller sees of the kingdom, and since the Edict it's the first place the hanged are shown. |
 | **The Castleward** | ~80 | Courtiers' town houses, the royal armourers and falconers, and soldiers' wives along the lanes under the castle. In the castle itself are the royal family, the court and the garrison. |
 
 ## The founding, as it's told
@@ -72,6 +74,7 @@ there every market day since:
 > never were since Aldric made them dust. Whoever speaks of such things spreads a lie against the Crown and
 > the Founder, and shall hang at Southgate.*
 
+The gibbet stands on the wall over Southgate, above the bridge, where every traveller walks under it.
 Two people have hanged so far. One was a drunk tinker who swore he'd seen a man made of frost. The other
 was **Jack Linnet**, a ballad singer who made a song about the Ranger's orb. The song didn't hang with him.
 
@@ -143,6 +146,6 @@ Nobody says *witch* or *dragon* aloud any more. Everyone talks about the weather
 | **Noble** | The Marshal's family, the Fitzwarens, and courtiers lodged in the castle | a few dozen |
 | **Clergy** | The Dean and priests of St Mary's, the chantry priest of St Giles' and the choirboys | ~25 |
 | **Merchant** | The great guild families (mercers, goldbeaters, moneylenders) in four-storey stone houses on the square and the high street | ~65 households |
-| **Craft** | Bakers, butchers, potters, smiths and masons, with their apprentices, in the middling houses | ~120 households |
-| **Labouring** | Carters, fishers, laundresses, porters and night-soil men in timber tenements, two or three families to a house | ~45 houses |
+| **Craft** | Bakers, butchers, potters, smiths and masons, with their apprentices, in the middling houses | ~110 households |
+| **Labouring** | Carters, fishers, laundresses, porters and night-soil men in timber tenements, two or three families to a house | ~30 houses |
 | **Poor** | Widows in the almshouse, beggars at St Giles' gate, the hanged men's families | whoever the city stops seeing |

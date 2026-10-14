@@ -8,6 +8,8 @@ import type { Goods, Prop } from "./area.ts";
 import { hash } from "./townkit.ts";
 
 export type District = "capital" | "castle";
+/** Where an institution is: a district with houses, or the King's Bridge, which has none. */
+export type Where = District | "kingsroad";
 export type Rank = "royal" | "noble" | "clergy" | "merchant" | "craft" | "labouring" | "poor";
 /** Where a family stands on the Edict of the Quiet Tongue. */
 export type Stance = "denies" | "loyal" | "quiet" | "whispering" | "defiant" | "informer";
@@ -477,7 +479,7 @@ export const FAMILIES: readonly Family[] = [
   {
     id: "waxley", name: "The Waxleys", rank: "craft", trade: "Chandlers to St Mary's",
     seat: { district: "capital", storeys: 3, stone: false },
-    home: "A chandlery on Minster Lane, smelling of tallow and beeswax", household: 3,
+    home: "A chandlery on East Street by St Mary's, smelling of tallow and beeswax", household: 3,
     members: [
       { name: "Agatha Waxley", age: 48, role: "Chandler" },
       { name: "Piers Waxley", age: 50, role: "Her husband, keeps bees outside the walls" },
@@ -505,13 +507,14 @@ export const FAMILIES: readonly Family[] = [
 
 /** People who live in halls, the castle and the clergy house rather than in the houses (beyond the named families). */
 export const INSTITUTIONS = [
-  { name: "The Royal Guard and the garrison", district: "castle", people: 140, home: "The barracks in the outer bailey" },
+  { name: "The Royal Guard and the garrison", district: "castle", people: 128, home: "The barracks in the outer bailey" },
+  { name: "The bridge watch", district: "kingsroad", people: 12, home: "The gate tower on the King's Bridge" },
   { name: "The court and the castle servants", district: "castle", people: 70, home: "The lodgings, the great hall and the kitchens" },
   { name: "The priests and choir of St Mary's", district: "capital", people: 18, home: "The clergy house and the song school" },
   { name: "The masons' lodge", district: "capital", people: 15, home: "Journeymen and labourers on St Mary's new spire" },
   { name: "The almshouse of St Giles", district: "capital", people: 14, home: "Old widows and the sick, by the west wall" },
   { name: "Guests at the Crown and the Bell", district: "capital", people: 25, home: "Pilgrims, carters and petitioners" },
-] as const satisfies readonly { name: string; district: District; people: number; home: string }[];
+] as const satisfies readonly { name: string; district: Where; people: number; home: string }[];
 
 // ---------- Everyone else ----------
 /** A family under a roof: one per house, or two or three in a poor tenement. */
