@@ -188,6 +188,8 @@ export interface Bolt {
   vx: number;
   vy: number;
   life: number;
+  /** It overshot the hero and flies on straight. */
+  lost: boolean;
 }
 
 /** A lightning strike marked on the ground; it lands when t reaches 0. */

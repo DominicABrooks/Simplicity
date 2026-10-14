@@ -30,13 +30,15 @@ export interface Spell {
   freeze?: number;
   delay?: number;
   count?: number;
+  /** Bolts curve toward the hero at up to this many radians per second (low enough to sidestep). */
+  homing?: number;
 }
 
 export const SPELLS: Record<SpellName, Spell> = {
-  fire:   { charge: 0.7, speed: 70 },                                   // 1 damage
-  frost:  { charge: 0.7, speed: 60, chill: 2.5 },                       // 1 damage and a slow
-  spark:  { charge: 0.45, speed: 140 },                                 // quick to cast, very fast
-  poly:   { charge: 1.0, speed: 85, cooldown: 12, chance: 0.45, sheep: 5 },
+  fire:   { charge: 0.7, speed: 70, homing: 1.5 },                      // 1 damage
+  frost:  { charge: 0.7, speed: 60, homing: 1.3, chill: 2.5 },          // 1 damage and a slow
+  spark:  { charge: 0.45, speed: 140, homing: 0.7 },                    // quick to cast, very fast, barely bends
+  poly:   { charge: 1.0, speed: 85, homing: 1.8, cooldown: 12, chance: 0.45, sheep: 5 },
   nova:   { charge: 0.6, cooldown: 9, radius: 30, freeze: 1.6 },        // cast when you get close
   strike: { charge: 0.6, cooldown: 7, chance: 0.5, delay: 0.9, radius: 7, count: 3 },
 };

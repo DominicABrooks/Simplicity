@@ -91,7 +91,7 @@ export function spawnArrow(g: Game, x: number, y: number, vx: number, vy: number
 }
 
 export function spawnBolt(g: Game, kind: BoltKind, x: number, y: number, vx: number, vy: number): Entity {
-  return g.world.create({ transform: { x, y }, bolt: { kind, vx, vy, life: MAGE.boltLife }, renderable: { kind: "bolt" } });
+  return g.world.create({ transform: { x, y }, bolt: { kind, vx, vy, life: MAGE.boltLife, lost: false }, renderable: { kind: "bolt" } });
 }
 
 export function spawnStrike(g: Game, x: number, y: number, delay: number): Entity {

@@ -38,7 +38,7 @@ export const BESTIARY: readonly BestiaryEntry[] = [
     lore: "A robed twin of the wanderer, in red. It keeps its distance and throws fire, and its purple orb has turned many a hero into a sheep.",
     health: mageHealth,
     xp: XP.mage,
-    abilities: ["Fireball", `Polymorph: a sheep for ${SPELLS.poly.sheep} s`, blink, sword],
+    abilities: ["Fireball: curves after you", `Polymorph: a sheep for ${SPELLS.poly.sheep} s`, blink, sword],
     drops: mageDrops,
   },
   {

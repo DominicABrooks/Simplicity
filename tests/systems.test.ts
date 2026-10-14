@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BOW, DASH, FISHING } from "../src/data/player.ts";
+import { SPELLS } from "../src/data/enemies.ts";
 import { T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -181,6 +182,40 @@ describe("fishing", () => {
     g.input.keys.add("a");
     step(g, DT);
     expect(hero(g).actions.fishing).toBeNull();
+  });
+});
+
+describe("homing bolts", () => {
+  const boltAt = (g: Game, dx: number, dy: number, angle: number, kind: "fire" | "spark" = "fire") => {
+    const p = hero(g).pos, speed = SPELLS[kind].speed!;
+    spawnBolt(g, kind, p.x + dx, p.y + dy, Math.cos(angle) * speed, Math.sin(angle) * speed);
+    return g.world.query("bolt")[0]![1].bolt;
+  };
+
+  it("curves onto a hero who stands still", () => {
+    const g = playing();
+    const hp = g.world.need(g.player, "health").hp;
+    boltAt(g, 50, 0, Math.PI + 0.45);                         // from the open ground east, aimed well off to one side
+    run(g, 1.5);
+    expect(g.world.need(g.player, "health").hp).toBe(hp - 1);
+  });
+
+  it("can be outrun sideways, then flies on straight", () => {
+    const g = playing();
+    const hp = g.world.need(g.player, "health").hp;
+    const bolt = boltAt(g, 40, 0, Math.PI);
+    g.input.keys.add("s");                                    // run off at right angles to it
+    run(g, 1.2);
+    g.input.keys.clear();
+    expect(g.world.need(g.player, "health").hp).toBe(hp);
+    expect(bolt.lost).toBe(true);
+    const heading = Math.atan2(bolt.vy, bolt.vx);
+    run(g, 0.2);
+    expect(Math.atan2(bolt.vy, bolt.vx)).toBeCloseTo(heading);   // no more turning
+  });
+
+  it("sparks barely bend", () => {
+    expect(SPELLS.spark.homing!).toBeLessThan(SPELLS.fire.homing!);
   });
 });
 
