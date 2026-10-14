@@ -1,7 +1,7 @@
 # The Foreigner
 
 Who the hero is, where he came from, why he helps, how a little stone fellow in a bark wrap becomes strong
-enough to beat the mages, and how the story ends. The world he walks into is in [LORE.md](LORE.md),
+enough to beat the mages, the whole one-hour game from start to finish, and how it ends. The world he walks into is in [LORE.md](LORE.md),
 [HISTORY.md](HISTORY.md) and [FAMILIES.md](FAMILIES.md).
 
 ## What the city calls him
@@ -111,7 +111,7 @@ valley, because a hatching would break the seal wide open and let the Gloom stra
 
 When the Foreigner beats one, the mage doesn't bleed. The grey goes out of them all at once. Their robes
 fall empty, and a little spark of real fire, the last of the person they used to be, flies off south toward
-home. The Vael say those sparks go back into Ael, and wake up again somewhere, someday.
+home, back into Ael, to rest.
 
 The **slimes** are the same story, smaller. Each one is a scrap of the people of Ul-Ael, stirred up by the
 Gloom coming close. When he pops one, its little bit of somebody goes peacefully back to sleep.
@@ -144,8 +144,8 @@ burning church. Here's how, and how each piece of the game fits:
 - **Levels are his heart-fire growing.** Every time he frees a greyed mage, some of the stolen fire passes
   through him on its way home, and a little of it stays. Every slime he pops is a bit of warmth returned.
   That's experience. Each level makes him a bit faster, every second level gives him another heart, and
-  every fourth makes him hit harder, as the fire in him burns brighter. Up to **level 20**, where his eyes
-  shine like a lantern.
+  every fourth makes him hit harder, as the fire in him burns brighter, until his eyes shine like a
+  lantern.
 - **Gear is the city arming him.** He gets swords, bows and armour from the Greyed he beats, from the
   Hammonds' forge (and in the end, Nell Hammond's cold sword), and from the Garths' storehouse when the
   Prince starts leaving doors unlocked. Every piece he wears shows on him, and the city can see the
@@ -159,88 +159,133 @@ burning church. Here's how, and how each piece of the game fits:
   stronger than he is for most of the game, but every one of them is fighting something its own eyes can't
   properly see.
 
-## The road through the game
+## The whole game, in about an hour
 
-A suggested shape for the story, from the first step to the last.
+One short, complete adventure from waking on the stone to the last lantern. Three acts, each ending in
+a fight, with a few small detours in the city for anyone who wants them. The times are rough targets for
+a first play.
 
-### Act I: The Witchwood
+| Act | Where | About | Ends with |
+|---|---|---|---|
+| I. The Witchwood | Witchwood, the cave | 15 minutes | Beating Cinder, the Ember lieutenant, at the cave mouth |
+| II. Kingsholm | King's Bridge, Market Quarter, Castle | 25 minutes | Beating Rime, the Frost lieutenant, on the King's Bridge |
+| III. Founder's Night | The city at night, St Mary's crypt | 20 minutes | Beating Calder in the crypt; the end |
 
-He wakes on the old stone by the Ranger's fire. He finds the note, a fishing pole and a little bread. He
-learns to punch on slimes and to fish in the lake. The first Greyed mage turns him into a sheep, he turns
-back, and he chases it off. Somewhere at the edge of the trees, a tall woman in frost-white robes, with
-eyes the right colour, watches him and doesn't come closer: **Yssa of the Frost**, who has been waiting
-six hundred years for someone like him. The path north leads to the cave in the Greyspines.
+### Act I: The Witchwood (about 15 minutes)
 
-### Act II: Kingsholm
+1. **Wake.** He opens his eyes on the old stone by the Ranger's fire, in a bark wrap. Under the stone:
+   the Ranger's note, a fishing pole and a crust of bread.
+2. **Learn.** Slimes come bouncing out of the pond. He learns to punch, dash and jump on them, and to fish
+   in the lake for something to eat.
+3. **The first mage.** A Greyed mage turns him into a sheep. It doesn't hold. He chases it off and takes its
+   sword. At the edge of the trees, a tall woman in frost-white robes, **Yssa of the Frost**, watches him
+   and nods.
+4. **Cinder.** At the cave mouth in the Greyspines, the Ember lieutenant blocks the way north. He's the one
+   who turned Tam Appleby into a sheep, and he explains this at length. The Foreigner beats him, and his
+   spark flies south. (Somewhere in Kingsholm, the Applebys' sheep sneezes and becomes **Tam** again.)
 
-Out of the cave, between the gilded lions, over the King's Bridge, through Southgate. The guards wave him
-in, since he's clearly not a witch: he can't even say "witch". The city is gold and marble and frightened.
+### Act II: Kingsholm (about 25 minutes)
 
-He delivers the Ranger's note to **Meg Fell**. After that, side stories open up across the city:
+1. **The bridge and the gate.** Out of the cave, between the gilded lions, over the King's Bridge. The
+   guards wave him through Southgate. He can't say "witch", so he's clearly not one.
+2. **The note.** He finds the house with the grey cloak at the window and gives **Meg Fell** the Ranger's
+   note. Wren gives him a crust. Meg sends him to the Crown.
+3. **The Crown's back room.** **Bethan Maddox** lets him sit in after curfew. **Princess Rosamund**, in her
+   laundress's hood, tells him where the Ranger is: the dungeon under the keep. **Old Mother Larke** looks
+   into his eyes, finds no crack at all, laughs, and gives him three bottles of her tea (his potions).
+4. **The castle.** Up Castle Street. **Prince Edmund** has been meaning to ask his father to free the Ranger
+   for three months. With the Foreigner standing silently beside him, he finally does. The King says no.
+   The Prince lets the Foreigner into the storehouse anyway, and **Nell Hammond** gives him the sword she's
+   been making, the one that stays cold.
+5. **The crypt.** Back at St Mary's, **Tibby Waxley** and **Isabel Kellet** show him the little carved door
+   under the crypt, and **Father Pryce** hands him the copy of the true chronicle. Now he knows what the
+   eggs are and what's under the door.
+6. **Rime.** That evening the Frost lieutenant comes walking up the river on her own ice and freezes the
+   King's Bridge solid, to cut the city off before Founder's Night. The Foreigner fights her on the bridge,
+   between the gilded braziers, while Bran Harrow and young Will Bowyer hold the gate tower. She falls, the
+   ice melts, and the bridge stays open.
 
-- **The falcon post.** Elinor Hawke's goshawk carries his answer to the Ranger's cell, and back comes
-  Wystan's map of the Greyed camps.
-- **Old Mother Larke** looks into his eyes and finds no crack at all. She laughs until she has to sit
-  down, then teaches him about the cracks.
-- **The sheep.** Beat Cinder, and Uncle turns back into **Tam Appleby**, who mostly wants a turnip.
-- **The Crown's back room**, where Bethan Maddox decides he can sit in after curfew, and Princess
-  Rosamund, in her laundress's hood, decides he's the most interesting person she's ever met.
-- **The butchers' feud.** Help Hal Stott and Marian Cleave get their families to talk. The Stotts and the
-  Cleaves then send the best of both halves of the shop to feed the defence.
-- **The crypt.** Tibby Waxley and Isabel Kellet show him the little carved door under St Mary's, and
-  Father Pryce gives him the copy of the true chronicle.
-- **Prince Edmund**, who has been planning to ask his father for three months, finally does, with the
-  Foreigner standing silently beside him.
+**Small detours** on the way, each a few minutes and all optional:
 
-### Act III: Founder's Night
+- **The butchers.** Carry Hal Stott's note to Marian Cleave and back. By Act III the two halves of the shop
+  are cooking for the defenders together.
+- **The falcon post.** Help Elinor Hawke find her goshawk on the castle wall. It carries his answer to the
+  Ranger's cell, and back comes the Ranger's map of the Greyed camps (it marks a few hidden chests).
+- **The fishing.** Jory Rudd shows him the best spot under the King's Bridge, where Silas once saw blue
+  fire walking on the water.
 
-The straw witches go up in the square. The Greyed come over the King's Bridge in the smoke, and the slimes
-come up out of every pond in the Witchwood behind them. The bridge watch (Bran Harrow and young Will
-Bowyer) holds the gate tower, Tom Bowyer won't shut Southgate on the people outside it, and the city, for
-the first time in a year, shouts the true names of what's coming.
+### Act III: Founder's Night (about 20 minutes)
 
-The Foreigner fights up the high street, across the square past the fountain king, and down East Street
-to St Mary's, which is already burning. In the crypt, by the little carved door, he fights Cinder, then
-Rime, then **Calder**, while the door behind them opens a crack and something enormous on the other side
-opens its one eye.
+1. **The straw witches** go up in the square, twice as many as usual, and the whole city is shouting
+   scary names into the smoke. Then the Greyed come over the bridge, with slimes pouring up from every pond
+   in the Witchwood behind them.
+2. **The city fights back.** The bridge watch holds the gate tower. Tom Bowyer won't shut Southgate on the
+   people still outside. The Stotts and Cleaves bring food, the Hammonds bring arrows, and Old Mother Larke
+   lights every lantern on the high street without a flint. The Foreigner fights up the high street,
+   across the square and down East Street to St Mary's, which is already burning.
+3. **Calder.** In the crypt, beside the little carved door, Calder of the Storm waits with the three eggs
+   in the fire. Behind the door, something enormous opens its one eye. The last fight is Calder blinking
+   between three places at once, lightning from a clear sky inside a church, and the door creaking wider
+   every time the Foreigner falls back.
 
 ## The end
 
-When Calder falls, the grey goes out of him last of all. For a moment he's just a tired old Storm mage,
-who looks at the Foreigner and says, in Vael, *"Oh. He sent you. Good."* Then his spark goes south, and
-his robes fall empty on the crypt floor.
+When Calder falls, the grey goes out of him last of all. For a moment he's just a tired old Storm mage. He
+looks at the Foreigner and says, in Vael, *"Oh. He sent you. Good."* Then his spark goes home, and his
+robes fall empty on the crypt floor.
 
 The eggs hatch anyway. They've been warm too long to stop. Three baby dragons tumble out, one red, one
 white and one indigo, and the first thing they see is the Foreigner. They imprint on him on the spot.
 
-Then the song changes. The three hatchlings start to sing, very small and very off-key, and the Old
-Mother, arriving over Kingsholm at that moment, bigger than St Mary's and blotting out the moon, sings
-with them. The whole city hears her, Edict or no Edict. The door under the crypt swings shut, and stays
-shut, because now the seal is three living dragons who have decided they like it here.
+Then the song changes. The hatchlings start to sing, very small and very off-key, and the **Old Mother**,
+arriving over Kingsholm at that moment, bigger than St Mary's and blotting out the moon, sings with them.
+The whole city hears her, Edict or no Edict. The little carved door swings shut. The eye behind it closes,
+and the seal under the valley is whole again, for good this time. It isn't a stone or an egg any more but
+three living dragons who have decided they like it here. Far above the city, the star that had been
+getting bigger blinks once and goes back to being an ordinary star.
 
-**Afterwards:**
+### Where everyone ends up
 
-- **King Osric** stands at the market cross the next morning and reads out the true chronicle, all
-  eleven pages of the Founder's letter included. He goes very red. The city decides to forgive him,
-  mostly because the Old Mother is sitting on the city wall watching to see if they will.
-- **The Edict is torn up.** Wystan Fell and Jack Linnet walk out of the dungeon. Jack sings the song with
-  the real words at the cross, and Wystan goes home to the house with the grey cloak at the window.
-- **The Vael come north**, openly, for the first time in six hundred years. Yssa of the Frost walks over
-  the King's Bridge, sets a bowl of milk at the foot of the fountain, and sits down with Widow Crane and
-  the Dowager Queen for a game of cards. Widow Crane cheats. Yssa lets her.
-- **Founder's Night** becomes **the Night of the Return**. The straw witches go, and everyone puts out a
-  bowl of milk instead.
-- **The three hatchlings** stay in the valley as its new wardens, singing the seal shut. They follow the
-  Foreigner everywhere they're allowed to, and several places they aren't.
-- **The Foreigner** walks back down through the cave to the old stone in the Witchwood clearing, sits by
-  the Ranger's fire, and looks up. Most of the stars are just stars again. One of them, very high up, is
-  still getting bigger.
+**The kingdom.**
 
-## Questions the story leaves for later
+- **King Osric** stands at the market cross the next morning and reads out the true chronicle, the
+  Founder's eleven-page letter included. He goes very red. The city forgives him, mostly because the Old
+  Mother is sitting on the city wall watching to see if they will.
+- **The Edict is torn up.** Wystan Fell and Jack Linnet walk out of the dungeon. Jack sings his song at
+  the cross with the real words. Wystan goes home to the house with the grey cloak at the window, and Meg
+  takes the cloak in for good.
+- **The Vael come north**, openly, for the first time in six hundred years. The southern road reopens, the
+  Ashcombes' cloth comes up it again, the Fitzwaren manors pay their rents (in Vael silver), and the
+  Grisons decide to stay after all. So does Lucia's interest in the Prince.
+- **Founder's Night** becomes **the Night of the Return**. No more straw witches. Everyone puts out a bowl
+  of milk instead.
 
-- **Is he Ael's only chip?** Ael turned over once in 598 AF. Who's to say nothing else rolled loose?
-- **What does the heart-fire do at level 20 and beyond?** He has all three fires in him. One day he might
-  cast.
-- **Yssa's six hundred years.** She was there at the Founding. How is she still alive, and what has she
-  been waiting for?
-- **The star.** Umbrall lost a door. It will be looking for another.
+**The magic.**
+
+- **Yssa of the Frost** kept herself frozen for six hundred years so she could see the eggs home. She lets
+  the frost go at last. She walks over the King's Bridge, sets a bowl of milk at the foot of the fountain,
+  and grows old very happily in Kingsholm, playing cards every Thursday with Widow Crane and the Dowager
+  Queen. Widow Crane cheats. Yssa lets her.
+- **The slimes** stop bouncing. With the seal whole, the Frost order can finally unscramble Ul-Ael. Over
+  the following year, the slimes of the Witchwood turn back into the people of the Deep Hall, and the first
+  thing anyone hears is the little bell on the mayor's hat.
+- **Ael** sleeps soundly. The hatchlings' song is a lullaby, and it never needs to turn over again.
+
+**The city.**
+
+- **Hal Stott and Marian Cleave** get married at St Mary's. The two halves of the butcher's shop are nailed
+  back together, counter and all.
+- **The Marshal** sleeps with one candle instead of three. Father Gale doesn't become Dean. Gilbert Pike
+  retires from tattling, there being nothing left to tattle about.
+- **Little Prince Aldric**'s dreams of a great bird turn into dreams of a great bird singing to him, which
+  is exactly what they were all along.
+- **Widow Crane** finally meets the Old Mother, awake this time. The Old Mother tells her she was right
+  about everything, and to eat her greens.
+
+**The Foreigner.** Ael doesn't need to send him back to the stone again. He stays awake, for good. Meg Fell
+gives him the room at the top of the house with the grey cloak, and the three hatchlings sleep on the
+roof. On Lantern Night every house in Kingsholm hangs a lantern, and for the first time one of them is his.
+The Vael call him Aelin. The city goes on calling him the Foreigner for a while, and then, without anyone
+deciding to, just calls him one of theirs.
+
+**The End.**

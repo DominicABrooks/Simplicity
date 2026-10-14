@@ -393,15 +393,9 @@ The little door under St Mary's crypt that the Kellets keep sealing, the one car
 snowflake and a lightning bolt, isn't the Vael's door. It's the Vael's lock on somebody else's door, and
 lately it keeps coming unlocked.
 
-## Loose threads
+## How it all ends
 
-Things the story leaves open for later:
-
-- **The wanderer.** A little Pebbling who wakes up in the Witchwood with nothing but a bark wrap, and who
-  the mages look an awful lot like. Something Ael sent on purpose, it turns out: see [HERO.md](HERO.md).
-- **The sheep.** An Ember mage's orb turns you into a sheep. Does Tam Appleby remember being Tam? (He
-  certainly remembers liking turnips.)
-- **Three baby dragons.** Who looks after them when they hatch? They'll imprint on the first thing they see.
-- **The slime mayor.** If the Frost order ever unscrambles Ul-Ael, it'll want its city back.
-- **The stars.** Some of them blink. One of them has been getting bigger.
-- **Ael.** It's asleep, not gone. What happens to the world when it wakes up?
+Every thread here is tied up by the end of the Foreigner's story in [HERO.md](HERO.md#the-end): the eggs
+hatch into three dragons who sing the seal shut for good, Umbrall's eye closes and its star goes back to
+being an ordinary star, Tam Appleby stops being a sheep, the slimes turn back into the people of Ul-Ael,
+the Vael come home to the valley, and Ael sleeps soundly ever after.
