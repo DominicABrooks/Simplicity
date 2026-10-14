@@ -32,7 +32,7 @@ WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space
 
 Dash or jump through bolts and the nova; only a dash's invulnerability beats lightning. Get close and a mage blinks away (6 s cooldown), including when you pin it against trees or water. Catch it up close while blink is on cooldown and it draws a sword and chases you, swinging (watch for the raised blade), until blink is ready and it escapes. Outrun it (more than about 5.5 tiles) and it goes back to casting. Mages have twice a slime's health and always drop a magic or better item.
 
-**Sword:** every attack is a wide swipe that alternates direction and steps you forward. Pressing during a swipe queues the next one, so mashing chains smoothly, and a dash cancels a swipe's recovery. Hits briefly freeze the action and shake the camera.
+**Sword:** every attack is a wide swipe that alternates direction and steps you forward. Pressing during a swipe queues the next one, so mashing chains smoothly, and swipes and dashes feed each other: a dash cancels a swipe at any point and readies your next swipe, and every swipe resets your dash cooldown, so you can weave swipe, dash, swipe, dash. Hits briefly freeze the action and shake the camera.
 
 Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inventory: click an item to pick it up, click to place it, right-click to equip or unequip, and click outside the panel to drop what you're holding. Equipment adds damage, life, movement speed and faster dash recovery, and every piece shows on your character. You start with nothing equipped and a plain starter set in your bag.
 

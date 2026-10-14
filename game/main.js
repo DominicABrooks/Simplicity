@@ -538,10 +538,12 @@ function updatePlayer(dt) {
   const len = Math.hypot(ix, iy) || 1;
   const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * (p.sheep > 0 ? 0.8 : 1) * (p.chill > 0 ? CHILL_SLOW : 1) * p.speedMul;
   p.moving = ix !== 0 || iy !== 0;
-  const recovering = p.move && p.move.t / SWIPE.dur > 0.6;     // dash-cancel out of a swipe's recovery
-  if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && (p.attack <= 0 || recovering)) {
+  // Swings and dashes feed each other: a dash can cancel a sword swing at any point and readies
+  // the next swing; starting a swing readies the next dash (see startSwipe).
+  if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && (p.attack <= 0 || p.move)) {
     if (p.move) { p.move = null; p.attack = 0; }
     p.dash = DASH_TIME; p.dashCooldown = DASH_COOLDOWN * p.dashMul; [p.dashX, p.dashY] = dashRequest;
+    p.cooldown = 0;                                          // a dash resets the swing cooldown
   }
   if (p.dash > 0) {                                        // dashing overrides walking; trees stop it, water ends it
     p.dash = Math.max(0, p.dash - dt);
@@ -630,6 +632,7 @@ const SWIPE = { dur: 0.26, step: 22, knock: 90, hitstop: 0.045, shake: 0.12 };
 let hitstop = 0, shake = 0;
 
 function startSwipe(p) {
+  p.dashCooldown = 0;                                        // a swing resets the dash cooldown
   p.swingSide = -(p.swingSide || -1);
   p.move = { t: 0, queued: false, hits: new Set(), aim: p.aim, side: p.swingSide };
   p.swingAim = p.aim;
