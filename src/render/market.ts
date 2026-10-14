@@ -12,13 +12,13 @@ import { benchLength, stallBody } from "../world/plans.ts";
 import { DARK_WOOD, IRON, WOOD, banner, occluder, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
 
 /** Turn a group built facing south (+z) to face `facing`. */
-const TURN: Record<Facing, number> = { south: 0, north: Math.PI, east: Math.PI / 2, west: -Math.PI / 2 };
+export const TURN: Record<Facing, number> = { south: 0, north: Math.PI, east: Math.PI / 2, west: -Math.PI / 2 };
 
-const STATUE_STONE = "#d6cfc0", BRONZE = "#5f8a78", STRAW = "#d9b46a";
+export const STATUE_STONE = "#d6cfc0", BRONZE = "#5f8a78", STRAW = "#d9b46a";
 
 /** Where a prop given at a point (game px) stands, in world units. */
-const at = (p: { x: number; y: number }) => [p.x / T, p.y / T] as const;
-const centreOf = (r: { x: number; y: number; w: number; h: number }) => [(r.x + r.w / 2) / T, (r.y + r.h / 2) / T] as const;
+export const at = (p: { x: number; y: number }) => [p.x / T, p.y / T] as const;
+export const centreOf = (r: { x: number; y: number; w: number; h: number }) => [(r.x + r.w / 2) / T, (r.y + r.h / 2) / T] as const;
 
 // ---------- Figures ----------
 /**
@@ -90,45 +90,106 @@ export function buildStatue(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
 }
 
 // ---------- Fountain ----------
-/** The square's centrepiece: an octagonal basin, two tiers of bowls spilling into it, and a king on top. */
+/**
+ * The square's centrepiece. A stepped octagonal basin with a thick coping, coins glinting on the pool's
+ * floor; a pedestal in the middle with four lions' heads, each arcing a jet into the pool; two curved
+ * bowls above it, each pouring a sheet of water from its rim into the one below; and a king on top.
+ * The column stops at each bowl (nothing pokes through a water surface), the sheets land inside the
+ * bowl or pool below them, and the splashes rise from where water lands.
+ */
 export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf<"fountain">): PropView {
-  const { lambert, tex, particles } = ctx, g = new THREE.Group(), stone = lambert("#ffffff", { map: tex.stone });
-  const water = lambert("#ffffff", { map: tex.water, transparent: true, opacity: 0.85 }), R = p.radius;
-  // An open stone ring (a closed one would put a lid over the pool), lit inside too.
-  const rim = new THREE.Mesh(tiledCylinder(R, 0.55, 8, 0.6, true), lambert("#ffffff", { map: tex.stone, side: THREE.DoubleSide }));
-  rim.position.y = 0.275;
-  const inner = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R + 0.1, 8).rotateX(-Math.PI / 2), lambert("#8a8378"));
-  inner.position.y = 0.6;
-  const pool = new THREE.Mesh(new THREE.CircleGeometry(R - 0.12, 16).rotateX(-Math.PI / 2), water);
-  pool.position.y = 0.46;
-  g.add(rim, inner, pool);
-  // Two bowls on a column, each spilling into the one below.
-  const tiers = [{ y: 1.25, r: R * 0.48 }, { y: 2.0, r: R * 0.24 }];
-  const column = new THREE.Mesh(tiledCylinder(0.2, 2.1, 8, 0.4), stone);
-  column.position.y = 1.05;
-  g.add(column);
-  for (const { y, r } of tiers) {
-    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.4, 0.22, 10), stone);
-    bowl.position.y = y;
-    const top = new THREE.Mesh(new THREE.CircleGeometry(r - 0.06, 12).rotateX(-Math.PI / 2), lambert("#ffffff", { map: tex.water }));
-    top.position.y = y + 0.115;
-    g.add(bowl, top);
+  const { lambert, basic, tex, particles } = ctx, g = new THREE.Group(), R = p.radius;
+  const stone = lambert("#ffffff", { map: tex.stone }), trim = lambert("#8a8378", { map: tex.stone });
+  const flowing = (opacity: number) => lambert("#ffffff", { map: tex.flow, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide });
+  const add = (mesh: THREE.Mesh, y: number) => { mesh.position.y = y; g.add(mesh); return mesh; };
+  const POOL = 0.5;                                          // the pool's surface
+
+  // The basin: a low step, an open stone wall with an inner face, a coping on top, the floor and the water.
+  add(new THREE.Mesh(new THREE.CylinderGeometry(R + 0.32, R + 0.38, 0.12, 8), trim), 0.06);
+  add(new THREE.Mesh(tiledCylinder(R, 0.52, 8, 0.6, true), lambert("#ffffff", { map: tex.stone, side: THREE.DoubleSide })), 0.38);
+  add(new THREE.Mesh(tiledCylinder(R - 0.18, 0.5, 8, 0.6, true), lambert("#ffffff", { map: tex.stone, side: THREE.BackSide })), 0.37);
+  add(new THREE.Mesh(new THREE.RingGeometry(R - 0.2, R + 0.1, 8).rotateX(-Math.PI / 2), trim), 0.645);
+  add(new THREE.Mesh(new THREE.CircleGeometry(R - 0.18, 8).rotateX(-Math.PI / 2), lambert("#2f6f8a")), 0.14);
+  const gold = basic(PAL.Y);
+  for (let i = 0; i < 12; i++) {                             // wishes
+    const a = hash(i, 1, 620) * Math.PI * 2, d = 0.7 + hash(i, 2, 621) * (R - 1.0);
+    const coin = add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.015, 6), gold), 0.15);
+    coin.position.x = Math.cos(a) * d;
+    coin.position.z = Math.sin(a) * d;
   }
+  add(new THREE.Mesh(new THREE.CircleGeometry(R - 0.18, 16).rotateX(-Math.PI / 2), lambert("#ffffff", { map: tex.water, transparent: true, opacity: 0.7 })), POOL);
+
+  // The pedestal, and its lions: each a head on the pedestal's face with a jet arcing out of its mouth.
+  add(new THREE.Mesh(tiledCylinder(0.42, 0.95, 8, 0.5), stone), 0.14 + 0.475);
+  const jets = flowing(0.85), jetEnds: { x: number; z: number }[] = [];
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4, cos = Math.cos(a), sin = Math.sin(a);
+    const head = new THREE.Group();
+    const face = new THREE.Mesh(box(0.24, 0.24, 0.12), trim);
+    const mane = new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 0), trim);
+    mane.position.z = -0.06;
+    const snout = new THREE.Mesh(box(0.12, 0.09, 0.1), trim);
+    snout.position.set(0, -0.04, 0.09);
+    head.add(mane, face, snout);
+    head.position.set(cos * 0.44, 0.9, sin * 0.44);
+    head.rotation.y = Math.PI / 2 - a;
+    g.add(head);
+    const from = new THREE.Vector3(cos * 0.6, 0.86, sin * 0.6), land = R * 0.68;
+    const to = new THREE.Vector3(cos * land, POOL, sin * land);
+    const mid = new THREE.Vector3(cos * (0.6 + land) * 0.5, 1.15, sin * (0.6 + land) * 0.5);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(from, mid, to), 10, 0.035, 5), jets));
+    jetEnds.push({ x: to.x, z: to.z });
+  }
+
+  // Two bowls, each a turned dish whose water sits just inside its lip; a column between them.
+  const bowl = (r: number) => new THREE.LatheGeometry([
+    new THREE.Vector2(0.1, -0.3), new THREE.Vector2(0.28, -0.26), new THREE.Vector2(r * 0.72, -0.15),
+    new THREE.Vector2(r * 0.96, -0.02), new THREE.Vector2(r, 0.08), new THREE.Vector2(r - 0.07, 0.1), new THREE.Vector2(r - 0.07, 0.03), new THREE.Vector2(0, 0.03),
+  ], 12);
+  const tiers = [{ y: 1.55, r: R * 0.52 }, { y: 2.3, r: R * 0.28 }];
+  let below = 0.14 + 0.95;                                   // top of the pedestal
+  for (const { y, r } of tiers) {
+    add(new THREE.Mesh(tiledCylinder(0.14, y - 0.28 - below, 8, 0.4), stone), (below + y - 0.28) / 2);
+    add(new THREE.Mesh(bowl(r), stone), y);
+    add(new THREE.Mesh(new THREE.CircleGeometry(r - 0.07, 12).rotateX(-Math.PI / 2), lambert("#ffffff", { map: tex.water })), y + 0.05);
+    below = y + 0.03;
+  }
+  // Streams of water pouring from notches round each bowl's lip into the water below it (gaps between
+  // them, so you see the column and lions through them).
+  const sheets = flowing(0.7);
+  tiers.forEach(({ y, r }, i) => {
+    const lands = i === 0 ? POOL : tiers[0]!.y + 0.05, drop = y + 0.08 - lands, n = i === 0 ? 8 : 6, arc = (Math.PI * 2) / n;
+    for (let k = 0; k < n; k++)
+      add(new THREE.Mesh(new THREE.CylinderGeometry(r + 0.02, r + 0.08, drop, 3, 1, true, k * arc + arc * 0.3, arc * 0.32), sheets), lands + drop / 2);
+  });
+  // The king on a little plinth in the top bowl.
+  const top = tiers[1]!;
+  add(new THREE.Mesh(tiledCylinder(0.12, 0.22, 8, 0.4), stone), top.y + 0.14);
   const king = figure(ctx, "king", lambert(STATUE_STONE));
-  king.scale.setScalar(0.62);
-  king.position.y = 2.12;
+  king.scale.setScalar(0.6);
+  king.position.y = top.y + 0.25;
   g.add(king);
+
   const [cx, cz] = at(p);
   g.position.set(cx, 0, cz);
   parent.add(g);
+  const splash = (x: number, y: number, z: number) => {
+    const a = Math.random() * Math.PI * 2;
+    particles.spawn("water", cx + x, y + 0.02, cz + z, Math.cos(a) * 0.35, 0.5 + Math.random() * 0.4, Math.sin(a) * 0.35, 0.3);
+  };
   return {
-    update(_t, dt) {
-      for (const { y, r } of tiers) if (Math.random() < dt * 16) {   // water spilling over each bowl's rim
-        const a = Math.random() * Math.PI * 2;
-        particles.spawn("water", cx + Math.cos(a) * r, y + 0.1, cz + Math.sin(a) * r, Math.cos(a) * 0.5, 0.6, Math.sin(a) * 0.5, 0.55);
-      }
+    update(t, dt) {
+      tex.flow.offset.set((-t * 1.4) % 1, (t * 1.1) % 1);   // water running along the jets and down the sheets
+      // Where the streams land: in the pool, and in the lower bowl. (A stream's middle is at angle θ
+      // round the bowl, at (sin θ, cos θ), as three.js lays out a cylinder.)
+      tiers.forEach(({ r }, i) => {
+        if (Math.random() > dt * (i === 0 ? 14 : 6)) return;
+        const n = i === 0 ? 8 : 6, arc = (Math.PI * 2) / n, a = Math.floor(Math.random() * n) * arc + arc * 0.46;
+        splash(Math.sin(a) * (r + 0.08), i === 0 ? POOL : tiers[0]!.y + 0.05, Math.cos(a) * (r + 0.08));
+      });
+      if (Math.random() < dt * 10) { const e = jetEnds[Math.floor(Math.random() * 4)]!; splash(e.x, POOL, e.z); }
     },
-    occluders: [occluder(g, cx, cz, R * 1.2, R * 1.2, 2.6)],
+    occluders: [occluder(g, cx, cz, R * 1.2, R * 1.2, 2.8)],
   };
 }
 
@@ -275,9 +336,20 @@ export function buildStock(ctx: RenderContext, parent: THREE.Group, p: PropOf<"s
 // ---------- Bunting ----------
 const FLAGS = ["#c8423a", "#f5d562", "#3f6fd0", "#5fb04a", "#ffffff"] as const;
 
-/** Little triangular flags on a sagging string between two points; they flutter. */
+/**
+ * Little triangular flags on a sagging string between two points; they flutter. With `masts`, each end
+ * is tied to a tall pole (the string runs high, clear of stalls and trees); without, it's tied to
+ * something already there, like a lamp post.
+ */
 export function buildBunting(ctx: RenderContext, parent: THREE.Group, p: PropOf<"bunting">): PropView {
-  const [x0, z0] = at(p.from), [x1, z1] = at(p.to), len = Math.hypot(x1 - x0, z1 - z0), sag = Math.min(0.6, len * 0.05);
+  const [x0, z0] = at(p.from), [x1, z1] = at(p.to), len = Math.hypot(x1 - x0, z1 - z0), sag = Math.min(p.masts ? 0.3 : 0.5, len * 0.04);
+  if (p.masts) for (const [x, z] of [[x0, z0], [x1, z1]] as const) {
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, p.height + 0.15, 6), ctx.lambert(DARK_WOOD));
+    mast.position.set(x, (p.height + 0.15) / 2, z);
+    const knob = new THREE.Mesh(new THREE.OctahedronGeometry(0.08, 0), ctx.basic(PAL.Y));
+    knob.position.set(x, p.height + 0.22, z);
+    parent.add(mast, knob);
+  }
   const along = (t: number) => new THREE.Vector3(x0 + (x1 - x0) * t, p.height - sag * 4 * t * (1 - t), z0 + (z1 - z0) * t);
   const n = Math.max(2, Math.floor(len / 0.45)), angle = -Math.atan2(z1 - z0, x1 - x0);
   const string = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 17 }, (_, i) => along(i / 16))), new THREE.LineBasicMaterial({ color: "#3a2a20" }));

@@ -4,6 +4,7 @@
 import type * as THREE from "three";
 import type { Prop } from "../world/area.ts";
 import { buildCamp } from "./camp.ts";
+import { buildBrazier, buildCart, buildDummy, buildGuard, buildHorse, buildRack, buildSmithy, buildTarget, buildTrebuchet, buildTrough, buildWell } from "./castle.ts";
 import { buildCave } from "./cave.ts";
 import type { RenderContext } from "./context.ts";
 import type { Occluder } from "./occlusion.ts";
@@ -33,6 +34,17 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   bunting: buildBunting,
   standard: buildStandard,
   plaza: buildPlaza,
+  guard: buildGuard,
+  brazier: buildBrazier,
+  dummy: buildDummy,
+  target: buildTarget,
+  rack: buildRack,
+  well: buildWell,
+  smithy: buildSmithy,
+  trebuchet: buildTrebuchet,
+  cart: buildCart,
+  horse: buildHorse,
+  trough: buildTrough,
 };
 
 /** Build one prop; returns its per-frame update (if it animates) and occluders (if it's tall). */

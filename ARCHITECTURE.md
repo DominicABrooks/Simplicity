@@ -104,7 +104,8 @@ The world is a graph of **areas** joined by **exits** (caves, for now). Each are
 
 Props are data too: each kind (a camp, a cave, a curtain wall around any polygon, a house, a keep,
 a cathedral, a bridge, a lamp in `town.ts`; a plaza, fountain, stall, statue, planter, bench, stock, bunting
-and standard in `market.ts`) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built is solid by
+and standard in `market.ts`; a guard, brazier, dummy, archery butt, weapon rack, well, smithy, trebuchet, cart,
+horse and trough in `castle.ts`) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built is solid by
 its shape: `propSolids()` (`src/world/solids.ts`) turns each prop into boxes, circles and capsules (thick
 lines, for wall runs at any angle), which go in the area's `map.solids`; `src/world/shapes.ts` buckets them
 into a grid, so a collision test only looks at the few nearby. The bigger buildings have ground plans

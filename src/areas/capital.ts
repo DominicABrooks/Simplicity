@@ -125,10 +125,12 @@ function furnish(): { solid: TileRect[]; props: Prop[]; lamps: Point[] } {
     solid.push(rect);
     props.push({ kind: "bench", rect: px(rect), facing });
   }
-  // Lamps on the square's corners, with bunting strung between them round its edge.
+  // Lamps on the square's corners; bunting round its edge on masts just outside them, high over the
+  // awnings, planters and stock.
   const corners = [[SQUARE.x0, SQUARE.y0], [SQUARE.x1, SQUARE.y0], [SQUARE.x1, SQUARE.y1], [SQUARE.x0, SQUARE.y1]] as const;
   const lamps: Point[] = corners.map(([x, y]) => tileCentre(x, y));
-  lamps.forEach((a, i) => props.push({ kind: "bunting", from: a, to: lamps[(i + 1) % lamps.length]!, height: 1.85 }));
+  const masts = [[SQUARE.x0 - 1, SQUARE.y0 - 1], [SQUARE.x1 + 1, SQUARE.y0 - 1], [SQUARE.x1 + 1, SQUARE.y1 + 1], [SQUARE.x0 - 1, SQUARE.y1 + 1]].map(([x, y]) => tileCentre(x!, y!));
+  masts.forEach((a, i) => props.push({ kind: "bunting", from: a, to: masts[(i + 1) % masts.length]!, height: 2.7, masts: true }));
   // The King's Way: planters and kings down both sides, lamps with bunting across, and at the top the
   // knights and standards either side of the castle gate.
   for (const [x, facing] of [[AVENUE.x0, "east"], [AVENUE.x1, "west"]] as const) {
@@ -142,7 +144,42 @@ function furnish(): { solid: TileRect[]; props: Prop[]; lamps: Point[] } {
     lamps.push(a, b);
     props.push({ kind: "bunting", from: a, to: b, height: 1.85 });
   }
-  return { solid, props, lamps };
+  // The castle: its courtyard and its gates.
+  const ward = garrison();
+  return { solid: [...solid, ...ward.solid], props: [...props, ...ward.props], lamps };
+}
+
+/**
+ * Inside the castle's ward and at its gates. The west side is the training yard (archery butts, dummies,
+ * a weapon rack); braziers burn either side of the keep's stair; the smithy works by the stables, where a
+ * horse waits at a trough beside a hay cart; the east side has the well and a trebuchet; and guards stand
+ * either side of both gates.
+ */
+function garrison(): { solid: TileRect[]; props: Prop[] } {
+  const solid: TileRect[] = [], props: Prop[] = [];
+  const one = (x: number, y: number, prop: Prop) => { solid.push([x, y, 1, 1]); props.push(prop); };
+  const rect = (r: TileRect, prop: (px: Rect) => Prop) => { solid.push(r); props.push(prop(px(r))); };
+  // The training yard.
+  for (const x of [34, 36]) one(x, 13, { kind: "target", ...tileCentre(x, 13), facing: "south" });
+  rect([33, 15, 1, 2], r => ({ kind: "rack", rect: r, facing: "east" }));
+  for (const [x, y] of [[35, 16], [36, 18], [35, 21]] as const) one(x, y, { kind: "dummy", ...tileCentre(x, y), facing: "south" });
+  rect([38, 22, 2, 1], r => ({ kind: "rack", rect: r, facing: "south" }));
+  // Fire either side of the keep's stair.
+  for (const x of [MID - 3, MID + 2]) one(x, KEEP[1] + KEEP[3] - 1, { kind: "brazier", ...tileCentre(x, KEEP[1] + KEEP[3] - 1) });
+  // The smithy, the stables' horse, its trough and a hay cart, and stock about the yard.
+  rect([47, 23, 3, 2], r => ({ kind: "smithy", rect: r }));
+  rect([52, 25, 2, 1], r => ({ kind: "horse", rect: r, facing: "west" }));
+  rect([54, 25, 1, 1], r => ({ kind: "trough", rect: r }));
+  rect([38, 25, 1, 2], r => ({ kind: "cart", rect: r, facing: "south" }));
+  for (const [x, y, what] of [[37, 23, "barrels"], [51, 23, "crates"], [55, 23, "hay"]] as const) one(x, y, { kind: "stock", ...tileCentre(x, y), what });
+  // The well and the trebuchet.
+  one(52, 16, { kind: "well", x: 53 * T, y: 17 * T });
+  solid.push([52, 16, 2, 2]);
+  rect([52, 19, 3, 2], r => ({ kind: "trebuchet", rect: r, facing: "west" }));
+  // Guards either side of the castle's gate, inside, and of the town gate, inside.
+  for (const x of [MID - 2, MID + 1]) one(x, WARD.y1 - 1, { kind: "guard", ...tileCentre(x, WARD.y1 - 1), facing: "south" });
+  for (const x of [MID - 3, MID + 2]) one(x, 62, { kind: "guard", ...tileCentre(x, 62), facing: "south" });
+  return { solid, props };
 }
 
 function buildTown(): Town {
@@ -206,7 +243,7 @@ function buildTown(): Town {
   fill([MID - 1, KEEP[1] + KEEP[3] - 1, 2, 1], Tile.Wall);
   fill(BARRACKS, Tile.Wall);
   fill(STABLES, Tile.Wall);
-  for (const [x, y] of [[34, 14], [54, 14], [35, 19], [53, 19]]) set(x!, y!, Tile.Tree);
+  set(54, 13, Tile.Tree);
 
   // The market square and its buildings, with paving in front of their doors.
   fill([CATHEDRAL[0] - 1, CATHEDRAL[1] + CATHEDRAL[3], CATHEDRAL[2] + 2, 2], Tile.Cobble);

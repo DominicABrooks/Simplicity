@@ -66,12 +66,35 @@ export type Prop =
   | { kind: "bench"; rect: Rect; facing: Facing }
   /** A heap of market stock. */
   | { kind: "stock"; x: number; y: number; what: "barrels" | "crates" | "sacks" | "hay" }
-  /** A string of little flags between two points, `height` up at each end (not solid). */
-  | { kind: "bunting"; from: Point; to: Point; height: number }
+  /** A string of little flags between two points, `height` up at each end, on its own `masts` or tied to something there. */
+  | { kind: "bunting"; from: Point; to: Point; height: number; masts?: boolean }
   /** A tall pole flying a banner (not solid). */
   | { kind: "standard"; x: number; y: number }
   /** Flagstones over a rect, with a kerb round the edge and rings of paving round `centre` (not solid). */
   | { kind: "plaza"; rect: Rect; centre: Point }
+  // What you'd find in a castle (src/render/castle.ts). Long things lie along their rect's long side.
+  /** A guard with a spear, standing watch toward `facing`. */
+  | { kind: "guard"; x: number; y: number; facing: Facing }
+  /** A fire bowl on a tripod. */
+  | { kind: "brazier"; x: number; y: number }
+  /** A practice dummy, its target toward `facing`. */
+  | { kind: "dummy"; x: number; y: number; facing: Facing }
+  /** An archery butt, its face toward `facing`. */
+  | { kind: "target"; x: number; y: number; facing: Facing }
+  /** A weapon rack along the rect, its front toward `facing`. */
+  | { kind: "rack"; rect: Rect; facing: Facing }
+  /** A covered well. */
+  | { kind: "well"; x: number; y: number }
+  /** A lean-to forge with an anvil, a grindstone and a quench barrel, open to the south. */
+  | { kind: "smithy"; rect: Rect }
+  /** A trebuchet, its arm throwing toward `facing`. */
+  | { kind: "trebuchet"; rect: Rect; facing: Facing }
+  /** A hay cart, its shafts toward `facing`. */
+  | { kind: "cart"; rect: Rect; facing: Facing }
+  /** A saddled horse, its head toward `facing`. */
+  | { kind: "horse"; rect: Rect; facing: Facing }
+  /** A water trough. */
+  | { kind: "trough"; rect: Rect }
   /** A street lamp (not solid: you walk past it). */
   | { kind: "lamp"; x: number; y: number };
 

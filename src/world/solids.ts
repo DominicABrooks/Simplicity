@@ -12,6 +12,10 @@ const box = (x: number, z: number, w: number, d: number): Shape => ({ kind: "box
 const circle = (x: number, z: number, r: number): Shape => ({ kind: "circle", x: x * T, y: z * T, r: r * T });
 const capsule = (a: XZ, b: XZ, r: number): Shape => ({ kind: "capsule", ax: a.x * T, ay: a.z * T, bx: b.x * T, by: b.z * T, r: r * T });
 
+const rectCentre = (r: { x: number; y: number; w: number; h: number }) => [(r.x + r.w / 2) / T, (r.y + r.h / 2) / T] as const;
+/** A rect shrunk by `by` world units on every side. */
+const inset = (r: { x: number; y: number; w: number; h: number }, by: number): Shape => ({ kind: "box", x: r.x + by * T, y: r.y + by * T, w: r.w - 2 * by * T, h: r.h - 2 * by * T });
+
 export function propSolids(p: Prop): Shape[] {
   switch (p.kind) {
     case "curtainWall": {
@@ -48,6 +52,12 @@ export function propSolids(p: Prop): Shape[] {
     case "lamp": return [circle(p.x / T, p.y / T, 0.12)];
     case "standard": return [box(p.x / T, p.y / T, 0.4, 0.4)];
     // The camp's tent and fire are in its area's map already; the rest are flat or overhead.
-    case "camp": case "cave": case "bridge": case "bunting": case "plaza": return [];
+    case "guard": case "brazier": case "dummy": return [circle(p.x / T, p.y / T, 0.3)];
+    case "target": return [box(p.x / T, p.y / T, 0.95, 0.95)];
+    case "well": return [circle(p.x / T, p.y / T, 0.72)];
+    case "rack": case "smithy": case "trebuchet": case "cart": case "trough": return [inset(p.rect, 0.15)];
+    case "horse": return [p.rect.w >= p.rect.h ? box(...rectCentre(p.rect), 1.3, 0.5) : box(...rectCentre(p.rect), 0.5, 1.3)];
+    case "bunting": return p.masts ? [circle(p.from.x / T, p.from.y / T, 0.08), circle(p.to.x / T, p.to.y / T, 0.08)] : [];
+    case "camp": case "cave": case "bridge": case "plaza": return [];
   }
 }

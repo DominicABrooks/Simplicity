@@ -21,6 +21,8 @@ export interface Textures {
   timber: THREE.CanvasTexture;
   /** Rows of overlapping shingles, light grey: a roof's material colour tints it. */
   shingles: THREE.CanvasTexture;
+  /** Falling water: streaks running down (along v) and along (u). Shared, so a fountain scrolls it to make it flow. */
+  flow: THREE.CanvasTexture;
   /** Gear cloth: vertical folds, trim along the hem. Tiers decide the colours. */
   cloth(tier: TierName): THREE.CanvasTexture;
   mantle(tier: TierName): THREE.CanvasTexture;
@@ -120,6 +122,14 @@ export function createTextures(): Textures {
     }
   }, true);
 
+  // Falling water (no random dots, so nothing above changes).
+  const flow = paint(16, 16, g => {
+    g.fillStyle = "#4f9fe0"; g.fillRect(0, 0, 16, 16);
+    g.fillStyle = "#8cc8f4"; for (const [x, y, h] of [[1, 0, 6], [5, 4, 9], [9, 1, 5], [12, 7, 7], [3, 11, 4], [14, 0, 3]]) g.fillRect(x!, y!, 1, h!);
+    g.fillStyle = "#e8f6ff"; for (const [x, y] of [[1, 2], [5, 8], [9, 3], [12, 10], [3, 13]]) g.fillRect(x!, y!, 1, 2);
+    g.fillStyle = "#3a7cc0"; for (const [x, y, h] of [[7, 0, 4], [10, 9, 6], [0, 8, 5]]) g.fillRect(x!, y!, 1, h!);
+  }, true);
+
   const cache = new Map<string, THREE.CanvasTexture>();
   const cached = (key: string, make: () => THREE.CanvasTexture) => {
     let t = cache.get(key);
@@ -128,7 +138,7 @@ export function createTextures(): Textures {
   };
 
   return {
-    grass, flower, water, earth, bark, leaf, path, cobble, stone, timber, shingles,
+    grass, flower, water, earth, bark, leaf, path, cobble, stone, timber, shingles, flow,
     cloth: tier => cached(`cloth/${tier}`, () => paint(16, 16, g => {
       const T = TIERS[tier];
       g.fillStyle = T.cloth; g.fillRect(0, 0, 16, 16);

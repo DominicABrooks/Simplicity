@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
-import { WALL_D, cathedralPlan, houseBody, keepPlan, wallPlan } from "../world/plans.ts";
+import { TOWER_FLARE, WALL_D, cathedralPlan, houseBody, keepPlan, wallPlan } from "../world/plans.ts";
 import { box, type RenderContext } from "./context.ts";
 import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
@@ -43,7 +43,7 @@ export function tiledCylinder(r: number, h: number, segments = 8, unit = 1, open
  * A gabled roof: ridge along X, `w` long and `d` deep, `h` high, sitting on y = 0. Its UVs run along
  * the ridge and down the slopes, so shingle rows lie parallel to the eaves.
  */
-function roofGeometry(w: number, d: number, h: number): THREE.BufferGeometry {
+export function roofGeometry(w: number, d: number, h: number): THREE.BufferGeometry {
   const a = [-w / 2, 0, d / 2], b = [w / 2, 0, d / 2], c = [w / 2, 0, -d / 2], e = [-w / 2, 0, -d / 2];
   const r1 = [-w / 2, h, 0], r2 = [w / 2, h, 0];
   const tris = [a, b, r2, a, r2, r1, c, e, r1, c, r1, r2, e, a, r1, b, c, r2];
@@ -62,7 +62,7 @@ export function banner(ctx: RenderContext, w: number, h: number): THREE.Group {
   const cloth = new THREE.Mesh(new THREE.PlaneGeometry(w, h), ctx.lambert(CLAY, { side: THREE.DoubleSide }));
   cloth.position.y = -h / 2;
   const trim = new THREE.Mesh(new THREE.PlaneGeometry(w, h * 0.06), ctx.basic(PAL.Y, { side: THREE.DoubleSide }));
-  trim.position.set(0, -h + h * 0.03, 0.005);
+  trim.position.set(0, -h + h * 0.03, 0.012);
   const emblem = new THREE.Mesh(new THREE.OctahedronGeometry(w * 0.26, 0), ctx.basic(PAL.Y));
   emblem.scale.z = 0.3;
   emblem.position.set(0, -h * 0.4, 0.02);
@@ -146,7 +146,7 @@ export function buildCurtainWall(ctx: RenderContext, parent: THREE.Group, p: Pro
     const t = tower(ctx, r, th, p.tower.roof);
     t.position.set((s * gapW) / 2, 0, 0.5);
     const b2 = banner(ctx, r * 0.66, th * 0.4);
-    b2.position.set(0, th * 0.82, r + 0.02);
+    b2.position.set(0, th * 0.82, r * TOWER_FLARE + 0.04);          // clear of the flared foot
     const flag = pennant(ctx, 1.1, 0.7);
     flag.group.position.y = th + p.tower.radius * 1.4 * 1.05;
     flags.push(flag.cloth);
@@ -358,7 +358,7 @@ export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ke
   g.add(door, arch, surround);
   for (const x of [-2.4, 2.4]) {
     const b = banner(ctx, 0.9, 3.2);
-    b.position.set(x, H - 0.4, front + 0.01);
+    b.position.set(x, H - 0.4, front + 0.05);
     g.add(b);
   }
   // Two rows of lit windows along the front, clear of the door, the banners and the towers.
