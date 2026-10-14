@@ -4,7 +4,7 @@ Simplicity is a fantasy RPG that **plays in 2D and looks like a late-90s 3D game
 
 ## The rule above all
 
-**Gameplay is 2D; the renderer only presents it.** `game/main.js` owns positions, collision, hitboxes and timing in 8 px-per-tile units. `game/view.js` reads that state and draws it, and never changes it. Any new visual must be derivable from game state.
+**Gameplay is 2D; the renderer only presents it.** The game systems (`src/systems/`) own positions, collision, hitboxes and timing in 8 px-per-tile units. The renderer (`src/render/`) reads that state and draws it, and never changes it. Any new visual must be derivable from game state.
 
 ## World and camera
 
@@ -57,7 +57,7 @@ The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a roun
 
 New gear types must follow the same rule: a distinct silhouette per slot, with colour and glow from the tier.
 
-Tier colours live in one place, `game/tiers.js`, and both the 3D gear and the inventory icons read from it, so an item looks the same in the bag as it does worn. Item icons in `art/items/` are drawn in the magic (azure) colours; `ICON_SWAPS` in `tiers.js` maps each icon's pixels to tier colours. A new item type needs an entry there.
+Tier colours live in one place, `src/data/tiers.ts`, and both the 3D gear and the inventory icons read from it, so an item looks the same in the bag as it does worn. Item icons in `art/items/` are drawn in the magic (azure) colours; `ICON_SWAPS` in `tiers.ts` maps each icon's pixels to tier colours. A new item type needs an entry there.
 
 ## Textures
 
@@ -110,12 +110,12 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 
 ## Typography
 
-There is one font: **Simplicity Pixel**, defined glyph by glyph in [`font/pixel.txt`](font/pixel.txt) and built by `tools/build_font.py` into a TrueType file (for page text) and `game/font.js` (for canvas text), so every letter in the game is the same pixels.
+There is one font: **Simplicity Pixel**, defined glyph by glyph in [`font/pixel.txt`](font/pixel.txt) and built by `tools/build-font.ts` into a TrueType file (for page text) and `src/assets/generated/font.ts` (for canvas text), so every letter in the game is the same pixels.
 
 - Glyphs are 5 pixels tall and usually 3 wide; letters that need it (M, N, W, %) are wider. All caps: lowercase uses the capitals.
 - One glyph pixel is 1/6 of the font size. Only use sizes that are multiples of 6 (12 body, 18 headings and messages, 36 to 48 for the title) so pixels land on whole screen pixels. Line heights are multiples of 6 too.
 - No bold, italic or letter-spacing: weight and emphasis come from colour and drop shadows (`ink` for small text, `bark` for titles).
-- Adding a character: add a line to `font/pixel.txt` and rerun `python tools/build_font.py`.
+- Adding a character: add a line to `font/pixel.txt` and run `npm run assets`.
 
 ## UI and icons
 
@@ -124,7 +124,7 @@ UI panels (inventory, tooltips, ground labels) are dark `void`/`ink` panels with
 Item icons are pixel art in `art/items/`, 8 px per inventory cell (a 1×3 blade is 8×24), outlined like every other icon. The inventory and tooltips are measured in game pixels (the `--u` CSS variable, the screen size of one game pixel), so they scale with the world: a cell is 12 game pixels and icon art draws 1:1 in game pixels (the same scale as the hearts and the world), centred in its box with room to spare, never at a fractional scale. The UI steps down a size if the panel wouldn't fit the window. Empty equipment slots show the slot's icon as a faded grey silhouette.
 
 
-The HUD stays as 8×8 pixel icons with a 1 px `ink` outline, drawn from `art/*.txt` by `tools/build.py` (hearts today). Pixel UI over a low-poly world is period-correct. The rules for those icons:
+The HUD stays as 8×8 pixel icons with a 1 px `ink` outline, drawn from `art/*.txt` via `tools/build-sprites.ts` (hearts today). Pixel UI over a low-poly world is period-correct. The rules for those icons:
 
 - 8×8 cells, faces right, outline added at render time, 3–4 colours (5 at most), lit from the top-left.
 - Sprite text format: `@anim ms`, then 8-row frames separated by blank lines. `!tile` marks a sprite that is never outlined.

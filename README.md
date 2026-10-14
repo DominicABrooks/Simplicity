@@ -8,19 +8,27 @@ Every push to `main` republishes the game there (see `.github/workflows/pages.ym
 
 ## Run it locally
 
-You need **Python 3**. Nothing else to install, and no internet connection: three.js is bundled in `game/vendor`.
+You need [Node.js](https://nodejs.org) 20 or newer.
 
-1. Open a terminal in this folder (the one with this README).
-2. Run the dev server:
+```
+npm ci
+npm run dev
+```
 
-   ```
-   python tools/serve.py
-   ```
+Then open http://localhost:8123/Simplicity/. The dev server reloads as you edit.
 
-   On macOS or Linux, use `python3` if `python` isn't found.
-3. Open http://localhost:8123 in a browser.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server with hot reload |
+| `npm run build` | Type-check, then build the site into `dist/` |
+| `npm run preview` | Serve the built `dist/` locally |
+| `npm test` | Run the tests (Vitest) |
+| `npm run typecheck` | TypeScript, strict |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
+| `npm run assets` | Rebuild sprites and the font from `art/`, `palette/` and `font/` (runs automatically before `dev`, `build` and `test`) |
 
-The game is already built: `game/sprites.js` is generated from `art/` and committed. Rebuild only after changing the art (see the end of this file). The server disables browser caching, so a reload always picks up your edits. Opening `game/index.html` directly as a file won't work, because browsers block ES modules from `file://`.
+CI runs lint, typecheck, tests and the build on every push and pull request; a push to `main` deploys only if they all pass.
 
 ## Play
 
@@ -48,28 +56,19 @@ Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inven
 
 ## Layout
 
-- [ART_STYLE.md](ART_STYLE.md): the rules every sprite follows
-- `palette/simplicity.txt`: the 16-colour palette
-- `art/`: pixel sprites as text, used for HUD icons and as reference designs
-- `tools/build.py`: turns `art/` into PNG sheets and previews in `build/`, and `game/sprites.js` for the game
-- `game/main.js`: gameplay (2D, 8 px per tile)
-- `game/view.js`: the low-poly 3D renderer (three.js)
-- `game/inventory.js`: items, loot rolls, the inventory grid and equipment
-- `game/tiers.js`: rarity colours shared by worn gear and inventory icons
-- `game/ambient.js`: critters (bunnies, birds, butterflies, frogs) and environmental detail (grass, reeds, lily pads, mushrooms, logs, cloud shadows, falling leaves)
-- `tools/serve.py`: no-cache dev server
-- `game/vendor/three.module.js`: three.js r160 (MIT), bundled so the game has no outside dependencies
-- `font/pixel.txt` and `tools/build_font.py`: the game's pixel font (builds `game/fonts/simplicity-pixel.ttf` and `game/font.js`)
+The game is TypeScript with an entity-component-system design; see [ARCHITECTURE.md](ARCHITECTURE.md) for how it fits together and how to add enemies, items, spells and systems.
 
-After editing anything in `art/`, rebuild:
-
-```
-pip install pillow
-python tools/build.py
-```
-
-After editing `font/pixel.txt`, rebuild the font (no extra packages needed):
-
-```
-python tools/build_font.py
-```
+- `src/main.ts`: wires everything together and runs the loop
+- `src/core/`: the ECS (`World`), a typed event bus, the seeded RNG and math helpers
+- `src/data/`: tuning and content as typed tables: player, enemies and spells, items and affixes, tiers, progression
+- `src/world/`: map generation and collision
+- `src/items/`: items, loot rolls and the inventory model
+- `src/game/`: components, entity factories and shared combat rules
+- `src/systems/`: gameplay systems (hero, weapons, enemies, mages, spells), run in order by `step()`
+- `src/input/`: keyboard and mouse
+- `src/render/`: the low-poly three.js view, from terrain to critters, with one view per kind of entity
+- `src/ui/`: HUD, inventory panel, tooltip, labels, toasts and overlay
+- `tests/`: Vitest specs, with fixtures captured from the original game
+- `tools/`: asset builders (`build-sprites.ts`, `build-font.ts`), run with `npm run assets`
+- `art/`, `palette/`, `font/`: sprite, palette and font sources as text; [ART_STYLE.md](ART_STYLE.md) has the rules
+- `docs/contact-sheet.png`: every sprite, built from `art/`
