@@ -3,7 +3,7 @@ import type { Entity } from "../core/ecs.ts";
 import { MAGE, MAGE_TARGET, MAGE_MIN_KILLS, SLIME_TARGET, SCHOOLS, SCHOOL_ORDER, SLIME, mageCap, mageChance, mageHp, type BoltKind } from "../data/enemies.ts";
 import { LOOT_DESPAWN } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
-import { GUARD } from "../data/npcs.ts";
+import { DUMMY, GUARD } from "../data/npcs.ts";
 import { CAMPFIRE_TARGET } from "../data/world.ts";
 import type { Item } from "../items/items.ts";
 import { randomGroundSpot } from "../world/collision.ts";
@@ -81,6 +81,19 @@ export function spawnGuard(g: Game, x: number, y: number, post: number): Entity 
 
 export function spawnPotion(g: Game, x: number, y: number): Entity {
   return g.world.create({ transform: { x, y }, pickup: { kind: "potion" }, renderable: { kind: "potion" } });
+}
+
+/** A training dummy on its post, facing `facing` (a game angle): hit it all you like, it won't go down. */
+export function spawnDummy(g: Game, x: number, y: number, facing: number): Entity {
+  return g.world.create({
+    transform: { x, y },
+    knockback: { vx: 0, vy: 0 },                             // never moves it: the view rocks it on its post instead
+    health: { hp: DUMMY.hp, maxHp: DUMMY.hp },
+    enemy: { kind: "dummy", flash: 0, face: 1 },
+    targetable: { hostile: true, name: DUMMY.name, radius: DUMMY.radius, height: DUMMY.height },
+    dummy: { facing },
+    renderable: { kind: "dummy" },
+  });
 }
 
 /** An item on the ground. `ignore` makes the hero step off it before it can be picked up again. */

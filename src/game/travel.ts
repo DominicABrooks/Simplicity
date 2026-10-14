@@ -7,7 +7,7 @@ import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
-import { spawnCampfire, spawnEnemy, spawnGuard, spawnPotion } from "./spawn.ts";
+import { spawnCampfire, spawnDummy, spawnEnemy, spawnGuard, spawnPotion } from "./spawn.ts";
 
 /** Put the hero at an arrival point in an area, and fill the area with what lives there. */
 export function enterArea(g: Game, def: AreaDef, entry: string): void {
@@ -32,6 +32,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   for (const prop of layout.props) {
     if (prop.kind === "camp") spawnCampfire(g, prop.fire.x, prop.fire.y);
     if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
+    if (prop.kind === "dummy") spawnDummy(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
   }
   const life = def.life;
   if (life?.enemies) for (let i = 0; i < SPAWNING.startSlimes; i++) spawnEnemy(g, 80);

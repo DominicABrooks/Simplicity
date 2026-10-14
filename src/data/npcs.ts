@@ -1,5 +1,17 @@
 // People who aren't enemies. Their look is the hero's body (src/render/models/body.ts) in their own gear.
 
+/**
+ * A training dummy in a castle yard: a hostile target you can hit as much as you like. It takes every hit
+ * (the numbers, the crits) but never falls: its health just fills up again. No XP, no drops.
+ */
+export const DUMMY = {
+  name: "Training Dummy",
+  radius: 4.5,
+  height: 1.3,
+  /** Health it's shown with, filled up again after every hit. */
+  hp: 100,
+} as const;
+
 /** A guard at their post: a friendly target, and how they keep watch (see src/systems/sentry.ts). */
 export const GUARD = {
   /** As a target: named, never hostile (a yellow ring, like the campfire's). */

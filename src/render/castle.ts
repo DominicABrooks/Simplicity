@@ -54,8 +54,12 @@ export function buildBrazier(ctx: RenderContext, parent: THREE.Group, p: PropOf<
 }
 
 // ---------- Training dummy ----------
-/** A straw-stuffed sack on a post with a crossbar for arms, a target painted on its chest. It wobbles. */
-export function buildDummy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"dummy">): PropView {
+/**
+ * A straw-stuffed sack on a post with a crossbar for arms, a target painted on its chest, built facing +z
+ * with its feet at y = 0. Drawn as an entity (see the dummy view): `top` is what rocks on the post when
+ * it's hit, and `sack` is the burlap, which flashes.
+ */
+export function makeDummy(ctx: RenderContext): { group: THREE.Group; top: THREE.Group; sack: THREE.MeshLambertMaterial } {
   const { lambert, basic } = ctx, g = new THREE.Group(), top = new THREE.Group(), wood = lambert(WOOD), sack = lambert(BURLAP);
   put(g, box(0.36, 0.08, 0.36), lambert(DARK_WOOD), 0, 0.04, 0);
   put(g, box(0.09, 0.7, 0.09), wood, 0, 0.4, 0);
@@ -69,9 +73,7 @@ export function buildDummy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"d
   put(top, new THREE.CircleGeometry(0.04, 8), basic("#ffffff"), 0, 0.27, 0.25);
   top.position.y = 0.72;
   g.add(top);
-  const [x, z] = at(p), k = hash(x, z, 701) * 10;
-  place(parent, g, x, z, p.facing);
-  return { update(t) { top.rotation.z = Math.sin(t * 1.3 + k) * 0.04; } };
+  return { group: g, top, sack };
 }
 
 // ---------- Archery butt ----------

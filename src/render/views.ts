@@ -15,6 +15,7 @@ import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, 
 import { disposeTree } from "./dispose.ts";
 import { dressBody, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
+import { makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
 
@@ -306,7 +307,54 @@ const guard: EntityView<GuardView> = {
   remove: removeBody,
 };
 
+// ---------- Training dummy ----------
+/**
+ * A training dummy on its post (see spawnDummy). Each hit rocks it away from the hero on a damped spring
+ * (harder for a crit) and flashes its sack; at rest it sways a little in the breeze.
+ */
+interface DummyView extends Simple {
+  top: THREE.Group;
+  sack: THREE.MeshLambertMaterial;
+  /** How far it's rocked over (radians), how fast, and which way (world x, z). */
+  lean: number;
+  speed: number;
+  dir: [number, number];
+  flash: number;
+  k: number;
+}
+const DUMMY_ROCK = { kick: 9, crit: 14, stiffness: 90, damping: 7, max: 0.55 } as const;
+const dummy: EntityView<DummyView> = {
+  create(ctx, e, g) {
+    const { group, top, sack } = makeDummy(ctx);
+    const shadow = addShadow(ctx);
+    ctx.scene.add(group, shadow);
+    const t = g.world.need(e, "transform");
+    return { group, top, sack, shadow, lean: 0, speed: 0, dir: [0, 1], flash: 0, k: ((t.x * 7 + t.y * 13) % 10) };
+  },
+  update(_ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), enemy = g.world.need(e, "enemy"), d = g.world.need(e, "dummy"), [x, z] = toWorld(o.x, o.y);
+    v.group.position.set(x, 0, z);
+    v.group.rotation.y = Math.PI / 2 - d.facing;              // built facing +z (south, a game angle of PI/2)
+    v.shadow.position.set(x, SHADOW_Y, z);
+    // A new hit (its flash jumps up): kick it away from the hero.
+    if (enemy.flash > v.flash + 0.01) {
+      const dx = o.x - f.hero.x, dz = o.y - f.hero.y, len = Math.hypot(dx, dz) || 1;
+      v.dir = [dx / len, dz / len];
+      v.speed += enemy.flash > 0.2 ? DUMMY_ROCK.crit : DUMMY_ROCK.kick;
+    }
+    v.flash = enemy.flash;
+    v.speed += (-DUMMY_ROCK.stiffness * v.lean - DUMMY_ROCK.damping * v.speed) * f.dt;
+    v.lean = Math.max(-DUMMY_ROCK.max, Math.min(DUMMY_ROCK.max, v.lean + v.speed * f.dt));
+    // Lean toward dir, in the dummy's own frame (it's turned by its facing).
+    const yaw = v.group.rotation.y, lx = v.dir[0] * Math.cos(yaw) - v.dir[1] * Math.sin(yaw), lz = v.dir[0] * Math.sin(yaw) + v.dir[1] * Math.cos(yaw);
+    const sway = Math.sin(f.t * 1.3 + v.k) * 0.04;
+    v.top.rotation.set(lz * v.lean, 0, -lx * v.lean + sway);
+    v.sack.emissive.setScalar(enemy.flash > 0 ? 0.6 : 0);
+  },
+  remove: removeSimple,
+};
+
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard, dummy } satisfies { [K in ViewKind]: EntityView<object> };

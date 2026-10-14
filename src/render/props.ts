@@ -5,7 +5,7 @@ import type * as THREE from "three";
 import type { Prop } from "../world/area.ts";
 import { buildCamp } from "./camp.ts";
 import {
-  buildBarbican, buildBrazier, buildCart, buildDrawbridge, buildDummy, buildHorse, buildRack, buildSmithy, buildStable, buildStairs, buildTarget,
+  buildBarbican, buildBrazier, buildCart, buildDrawbridge, buildHorse, buildRack, buildSmithy, buildStable, buildStairs, buildTarget,
   buildTorch, buildTrebuchet, buildTrough, buildWell,
 } from "./castle.ts";
 import { buildCave } from "./cave.ts";
@@ -46,7 +46,7 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   stable: buildStable,
   guard: () => undefined,                                   // a game entity (see spawnGuard), drawn by its view
   brazier: buildBrazier,
-  dummy: buildDummy,
+  dummy: () => undefined,                                   // a game entity (see spawnDummy), drawn by its view
   target: buildTarget,
   rack: buildRack,
   well: buildWell,

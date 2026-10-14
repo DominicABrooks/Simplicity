@@ -11,11 +11,11 @@ import { dropLoot, spawnEnemy, spawnPotion } from "../game/spawn.ts";
 import { rollItem } from "../items/items.ts";
 import { moveBy, overlap } from "../world/collision.ts";
 
-/** Hit flashes fade, and knockback slides enemies along (they can't be knocked into water). */
+/** Hit flashes fade, and knockback slides enemies along (they can't be knocked into water). A dummy stays on its post. */
 export function enemyPhysicsSystem(g: Game, dt: number): void {
   for (const [, { transform: t, knockback: kb, enemy }] of g.world.query("enemy", "transform", "knockback")) {
     enemy.flash = Math.max(0, enemy.flash - dt);
-    moveBy(g.map, t, kb.vx * dt, kb.vy * dt, true);
+    if (enemy.kind !== "dummy") moveBy(g.map, t, kb.vx * dt, kb.vy * dt, true);
     kb.vx *= Math.pow(SLIME.drag, dt);
     kb.vy *= Math.pow(SLIME.drag, dt);
   }
@@ -44,6 +44,7 @@ export function slimeSystem(g: Game, dt: number): void {
 export function deathSystem(g: Game): void {
   const w = g.world;
   for (const [e, { transform: s, health, enemy }] of w.query("enemy", "transform", "health")) {
+    if (enemy.kind === "dummy") { health.hp = health.maxHp; continue; }   // takes every hit, never goes down
     if (health.hp > 0) continue;
     g.kills++;
     recordKill(g, enemy.kind === "mage" ? w.need(e, "mage").school : "slime");
@@ -68,7 +69,7 @@ export function spawnerSystem(g: Game, dt: number): void {
   const cap = Math.min(SPAWNING.maxCap, SPAWNING.baseCap + Math.floor(g.kills / SPAWNING.killsPerCap));
   if ((g.spawnTimer -= dt) > 0) return;
   g.spawnTimer = SPAWNING.every;
-  if (g.world.count("enemy") < cap) spawnEnemy(g, 110);
+  if (g.world.count("enemy") - g.world.count("dummy") < cap) spawnEnemy(g, 110);
 }
 
 /** Count a kill in the journal; the first of a kind discovers its page. */

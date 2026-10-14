@@ -110,7 +110,7 @@ export interface Actions {
   catchAnim: CatchAnim | null;
 }
 
-export type EnemyKind = "slime" | "mage";
+export type EnemyKind = "slime" | "mage" | "dummy";
 
 export interface Enemy {
   kind: EnemyKind;
@@ -225,7 +225,13 @@ export interface Sentry {
   next: number;
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard";
+/** A training dummy on its post (see DUMMY): it rocks when hit and never goes down. */
+export interface Dummy {
+  /** Which way it faces (a game angle). */
+  facing: number;
+}
+
+export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "dummy";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -251,4 +257,5 @@ export interface Components {
   despawn: Despawn;
   targetable: Targetable;
   sentry: Sentry;
+  dummy: Dummy;
 }
