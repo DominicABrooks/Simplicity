@@ -20,8 +20,6 @@ export interface Person {
   age: number;
   role: string;
   note?: string;
-  /** How many this entry stands for (brothers and sisters listed together; their age is the eldest's). */
-  count?: number;
   /** Not under the roof any more: locked in the dungeon, or turned into a sheep. */
   gone?: true;
 }
@@ -217,7 +215,9 @@ export const FAMILIES: readonly Family[] = [
     members: [
       { name: "Daw Garth", age: 41, role: "Storekeeper", note: "Knows exactly how much flour the castle has: enough for a siege, which is new." },
       { name: "Moll Garth", age: 38, role: "Laundress to the castle", note: "Knows whose sheets have frost on them in the morning." },
-      { name: "Sim, Tib and Little Daw", age: 12, count: 3, role: "Their sons (12, 9 and 5)", note: "Sim looks after Biscuit, the mule the Vael lent the Ranger, kept on the Prince's orders. Biscuit eats turnips, snow and, once, a guard's hat." },
+      { name: "Tib Garth", age: 9, role: "Their son, runs errands" },
+      { name: "Little Daw Garth", age: 5, role: "Their youngest son" },
+      { name: "Sim Garth", age: 12, role: "Their eldest son, runs errands", note: "Sim looks after Biscuit, the mule the Vael lent the Ranger, kept on the Prince's orders. Biscuit eats turnips, snow and, once, a guard's hat." },
     ],
     story: "Grooms and porters all the way back. The stable came down this year for a stone storehouse, so the Garths went from mucking out horses to counting sacks. They see the castle from below, which is to say everything.",
     customs: ["Has tied a rowan twig to every sack in the storehouse since the spring"],
@@ -293,7 +293,9 @@ export const FAMILIES: readonly Family[] = [
       { name: "Aldous Ashcombe", age: 55, role: "Master of the Mercers' Guild", note: "The richest commoner in the city, on paper." },
       { name: "Philippa Ashcombe", age: 50, role: "His wife", note: "Has quietly sewn the family's rings into the hems of her winter cloaks." },
       { name: "Thomas Ashcombe", age: 27, role: "Eldest son", note: "Sent \"to the cousins in the north\" with the family silver in spring." },
-      { name: "Alys, Margery and Kate", age: 20, count: 3, role: "Daughters (20, 17 and 13)" },
+      { name: "Alys Ashcombe", age: 20, role: "Eldest daughter", note: "Being steered toward Hugh Fitzwaren." },
+      { name: "Margery Ashcombe", age: 17, role: "Daughter", note: "Writes poetry about it." },
+      { name: "Kate Ashcombe", age: 13, role: "Youngest daughter", note: "Thinks the whole thing is hilarious." },
     ],
     story: "Three generations of fortune on the southern trade road through the Witchwood. The road has been closed since spring, and the Ashcombes are ruined unless the king is right.",
     customs: ["Hosts the Mercers' Gilding Day feast", "Shakes every bargain at the market cross at dawn"],
@@ -318,7 +320,9 @@ export const FAMILIES: readonly Family[] = [
     members: [
       { name: "Joan Hollin", age: 43, role: "Mistress baker", note: "Cut the first three-cut loaf. Swears it's only a pattern." },
       { name: "Wat Hollin", age: 45, role: "Her husband, at the oven" },
-      { name: "Peg, Ned and Bess", age: 14, count: 3, role: "Their children (14, 11 and 7)" },
+      { name: "Peg Hollin", age: 14, role: "Their daughter, delivers bread before dawn" },
+      { name: "Ned Hollin", age: 11, role: "Their son, delivers bread before dawn" },
+      { name: "Bess Hollin", age: 7, role: "Their youngest, mostly eats the bread" },
     ],
     story: "Bakers to the square since the Bakers' Guild was founded, famous for the gold-flaked crown loaves on Gilding Day.",
     customs: ["Three cuts in every loaf, one for each kind of weather", "The first loaf of the day goes to the almshouse"],
@@ -554,7 +558,8 @@ export const FAMILIES: readonly Family[] = [
     members: [
       { name: "Jack Linnet", age: 31, gone: true, role: "Ballad singer", note: "In the castle dungeon for his song about the Ranger's orb. Still singing it. The jailer joins in on the chorus." },
       { name: "Kat Linnet", age: 29, role: "His wife, a spinner" },
-      { name: "Robin and Wenna", age: 8, count: 2, role: "Their children (8 and 6)", note: "Taught the Wallside children the song as nonsense words." },
+      { name: "Robin Linnet", age: 8, role: "Their son", note: "Taught the Wallside children the song as nonsense words. Best friends with Wren Fell." },
+      { name: "Wenna Linnet", age: 6, role: "Their daughter", note: "Sings the nonsense words loudest." },
     ],
     story: "Players and singers who came to the city for Gilding Day and stayed. Since Jack was locked up, the whole Wallside has quietly made sure they never go hungry.",
     customs: ["Sings at the cross on Lantern Night, without the words"],
@@ -623,7 +628,8 @@ export const FAMILIES: readonly Family[] = [
     members: [
       { name: "Tom Bowyer", age: 43, role: "Sergeant of Southgate", note: "Marched both of them to the dungeon on the Marshal's orders, and felt rotten about it." },
       { name: "Elsa Bowyer", age: 41, role: "His wife" },
-      { name: "Will and Ruth", age: 16, count: 2, role: "Their children (16 and 12)", note: "Will is in the bridge watch now." },
+      { name: "Will Bowyer", age: 16, role: "Their son, in the bridge watch under Bran Harrow" },
+      { name: "Ruth Bowyer", age: 12, role: "Their daughter", note: "Wants to join the bridge watch too." },
     ],
     story: "Bowyers who became gate guards. Tom has kept the gate for twenty years and has never had so many people ask to be let out.",
     customs: ["Locks the gate himself at the curfew bell", "Keeps a tally on the gatepost of every soul who goes south and doesn't come back"],
@@ -827,10 +833,16 @@ export interface Household {
   people: number;
 }
 
-const SURNAMES = [
+export const SURNAMES = [
   "Ashby", "Barrow", "Brook", "Carver", "Cooper", "Crow", "Draper", "Dyer", "Fenn", "Fletcher", "Glover", "Haddon", "Hayward", "Holt",
   "Kemp", "Lyle", "Marsh", "Mercer", "Morrow", "Nash", "Oakes", "Pell", "Quarles", "Reeve", "Riggs", "Rook", "Sallow", "Sawyer",
   "Sparrow", "Tanner", "Thatcher", "Tull", "Turner", "Underhill", "Vane", "Ward", "Webb", "Wick", "Wold", "Yates", "Brewer", "Cordner",
+  "Abbot", "Alder", "Baxter", "Bell", "Birch", "Blyth", "Bramble", "Bunce", "Chalk", "Chandler", "Cobb", "Coombe", "Croft", "Dale",
+  "Dewhurst", "Dobbin", "Eames", "Elm", "Farrow", "Finch", "Fisher", "Flint", "Forde", "Gibb", "Goodwin", "Gorse", "Hale", "Hart",
+  "Heath", "Hedge", "Hobb", "Hood", "Ingle", "Ivy", "Jolly", "Kettle", "Knapp", "Lamb", "Lark", "Loft", "Mabb", "Mallow", "Meadows",
+  "Miller", "Moss", "Nettle", "Noakes", "Orchard", "Parsley", "Perkin", "Plum", "Potter", "Puddle", "Quince", "Reed", "Robin", "Rush",
+  "Sable", "Salt", "Shaw", "Skipper", "Snow", "Sorrel", "Stubbs", "Swift", "Thistle", "Thorn", "Tidy", "Tuck", "Upton", "Vetch",
+  "Wainwright", "Warren", "Wells", "Whittle", "Willow", "Wren", "Yarrow", "Young",
 ] as const;
 
 /** Trades by district and by how well the house says they live. */
@@ -843,7 +855,7 @@ const TRADES: Record<District, Record<"merchant" | "craft" | "labouring", readon
   castle: {
     merchant: ["courtier's steward", "royal clerk", "knight of the household", "royal physician", "keeper of the wardrobe"],
     craft: ["fletcher", "bowyer", "farrier", "royal cook", "saddler", "harness-maker", "kennelman", "huntsman", "castle carpenter"],
-    labouring: ["soldier's wife", "groom", "scullion", "washerwoman", "wood-carrier", "dung-carter"],
+    labouring: ["garrison washerwoman", "groom", "scullion", "washerwoman", "wood-carrier", "dung-carter"],
   },
 };
 
@@ -907,7 +919,7 @@ function fit(seat: Seat, h: HouseProp): number {
 }
 
 /** How many live under a family's roof: its members still there, and its household. */
-export const sizeOf = (f: Family): number => f.members.reduce((s, m) => s + (m.gone ? 0 : m.count ?? 1), 0) + f.household;
+export const sizeOf = (f: Family): number => f.members.filter(m => !m.gone).length + f.household;
 
 const folkOf = (f: Family): Folk => ({
   surname: f.name, trade: f.trade, rank: f.rank, size: sizeOf(f), custom: f.customs[0] ?? "", mutter: f.mutter,
