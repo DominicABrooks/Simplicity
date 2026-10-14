@@ -152,6 +152,34 @@ export function createHeroView(ctx: RenderContext): HeroView {
 
   // ---------- Dash ----------
   let ghosts: { holder: THREE.Group; mat: THREE.MeshBasicMaterial; life: number }[] = [], ghostTimer = 0, wasDashing = false;
+
+  // ---------- Bow: ready to shoot ----------
+  // When a draw reaches full power, a little star twinkles on the arrowhead with a pop of sparks.
+  const TWINKLE_TIME = 0.3;
+  const twinkle = new THREE.Sprite(new THREE.SpriteMaterial({ map: starTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  twinkle.visible = false;
+  scene.add(twinkle);
+  let twinkleLife = 0, wasReady = false;
+  const tipPos = new THREE.Vector3();
+  function bowTip(): THREE.Vector3 {
+    hero.group.updateMatrixWorld(true);
+    return hero.bow!.arrow.userData.tip.getWorldPosition(tipPos);
+  }
+  function updateBowReady(ready: boolean, dt: number): void {
+    if (ready && !wasReady && hero.bow) {
+      const p = bowTip();
+      particles.burst(["sparkLight", "spark"], 7, p.x, p.y, p.z, 1.3, () => 0.6 + Math.random() * 1.2, 0.28);
+      twinkleLife = TWINKLE_TIME;
+    }
+    wasReady = ready;
+    twinkleLife = Math.max(0, twinkleLife - dt);
+    twinkle.visible = twinkleLife > 0 && !!hero.bow && ready;
+    if (!twinkle.visible) return;
+    const k = 1 - twinkleLife / TWINKLE_TIME;               // 0 -> 1: pop open, then shrink away
+    twinkle.position.copy(bowTip());
+    twinkle.scale.setScalar(0.45 * Math.sin(k * Math.PI));
+    twinkle.material.rotation = k * 1.5;
+  }
   const reticle = new THREE.Mesh(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0.18, 0, 0), new THREE.Vector3(-0.1, 0, -0.14), new THREE.Vector3(-0.1, 0, 0.14)]),
     basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
@@ -234,6 +262,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
         sw.rotation.set(0, 0, 0.15 + Math.sin(t * 1.7) * 0.06);
       }
 
+      updateBowReady(!!hero.bow && sw.visible && !!a.draw && a.draw.t >= BOW.drawTime, dt);
       animateHands(h, t, dt);
       updateSwoosh(h);
 
@@ -279,4 +308,22 @@ export function createHeroView(ctx: RenderContext): HeroView {
       reticle.visible = !m.swimming && !(status.sheep > 0);
     },
   };
+}
+
+/** A small four-pointed star: bright core, thin rays, soft falloff. */
+function starTexture(): THREE.CanvasTexture {
+  const N = 32, c = document.createElement("canvas");
+  c.width = c.height = N;
+  const g = c.getContext("2d")!, img = g.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const dx = Math.abs((x + 0.5) / N * 2 - 1), dy = Math.abs((y + 0.5) / N * 2 - 1);
+    const rays = Math.max(0, 1 - dx * 6) * Math.max(0, 1 - dy) + Math.max(0, 1 - dy * 6) * Math.max(0, 1 - dx);
+    const core = Math.max(0, 1 - Math.hypot(dx, dy) * 3);
+    const v = Math.min(1, rays + core), i = (y * N + x) * 4;
+    img.data[i] = 255; img.data[i + 1] = 246; img.data[i + 2] = 200; img.data[i + 3] = Math.round(255 * v);
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
