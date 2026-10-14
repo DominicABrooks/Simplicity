@@ -95,7 +95,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | hurt | Model blinks while invulnerable |
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |
 | fish | Koi just under the water surface: wander, wiggle their tails, turn back at the shore, dart away from the hero |
-| fishing | Pole swings from behind the head on a cast; the bobber arcs out on a sagging line; koi drift toward it; on a bite the bobber dips with a splash ring and a gold **!** pops over the hero; the catch leaps out of the water to the hero |
+| fishing | Holding the button draws the pole back behind the head (trembling as it's held) and a spinning ring marks the landing spot, `mana` over water and faded `stone` over land; releasing swings it forward; the bobber arcs out on a sagging line; koi drift toward it; on a bite the bobber dips with a splash ring and a gold **!** pops over the hero; the catch leaps out of the water to the hero |
 
 ## UI and icons
 

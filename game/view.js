@@ -268,7 +268,10 @@ export function createView(canvas, PAL, C) {
   const bobBottom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), lambert(PAL.W));
   bobber.add(bobTop, bobBottom);
   const splash = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.2, 10).rotateX(-Math.PI / 2), basic(PAL.W, { transparent: true, opacity: 0.7, depthWrite: false }));
-  scene.add(line, bobber, splash);
+  const castMarker = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.24, 8).rotateX(-Math.PI / 2),
+    basic(PAL.C, { transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
+  castMarker.visible = false;
+  scene.add(line, bobber, splash, castMarker);
   line.visible = bobber.visible = splash.visible = false;
   let bobberAt = null;
   // The caught koi leaps from the water to the hero.
@@ -276,6 +279,16 @@ export function createView(canvas, PAL, C) {
   const tipPos = new THREE.Vector3(), bobPos = new THREE.Vector3(), mid = new THREE.Vector3();
 
   function updateFishing(p, t, dt) {
+    const w = p.windup;
+    castMarker.visible = !!w;
+    if (w) {
+      const [mx, mz] = toWorld(w.x - 4, w.y - 4);
+      castMarker.position.set(mx, (w.water ? WATER_Y : 0) + 0.02, mz);
+      castMarker.material.color.set(w.water ? PAL.C : PAL.w);
+      castMarker.material.opacity = w.water ? 0.9 : 0.45;
+      castMarker.rotation.y = t * 2;
+      castMarker.scale.setScalar(1 + Math.sin(t * 8) * 0.08);
+    }
     const f = p.fishing;
     const show = !!(f && hero.rodTip && hero.sword.visible);
     line.visible = bobber.visible = show;
@@ -595,7 +608,11 @@ export function createView(canvas, PAL, C) {
     hero.ring.position.y = Math.sin(t * 2.4) * 0.05;
     const rod = p.gear && p.gear.weaponType === "rod";
     const fishing = p.fishing;
-    if (rod && fishing) {
+    if (rod && p.windup) {
+      const pull = Math.min(1, p.windup.t / 0.5);
+      sw.position.set(0.1, 0.5, 0.3);
+      sw.rotation.set(0, 0, 0.9 + pull * 0.35 + Math.sin(t * 40) * 0.02 * pull);
+    } else if (rod && fishing) {
       const k = fishing.phase === "cast" ? Math.min(1, fishing.t / C.CAST_TIME) : 1;
       const shake = fishing.phase === "bite" ? Math.sin(t * 60) * 0.06 : 0;
       sw.position.set(0.15, 0.45, 0.3);

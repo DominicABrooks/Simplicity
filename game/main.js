@@ -179,7 +179,7 @@ function spawnSlime(minDist) {
 
 // ---------- Input ----------
 const keys = new Set();
-let attackPressed = false, jumpPressed = false, dashRequest = null;
+let attackPressed = false, attackReleased = false, jumpPressed = false, dashRequest = null;
 // Double-tap dash: WASD and arrows map to the same four directions.
 const DIRS = { a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0], w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1] };
 const DOUBLE_TAP = 0.25;
@@ -208,6 +208,7 @@ addEventListener("keyup", e => {
   const k = e.key.toLowerCase();
   keys.delete(k);
   if (k === "r") resetLatch = false;
+  if (k === "j" || k === "enter") attackReleased = true;
 });
 
 // Hold R to restart the run. A reset needs R released before another can start.
@@ -224,6 +225,7 @@ addEventListener("mousedown", e => {
   if (state !== "play" || e.button !== 0 || e.simplicityHandled || inv.owns(e.target)) return;
   attackPressed = true;
 });
+addEventListener("mouseup", e => { if (e.button === 0) attackReleased = true; });
 // Aiming: the cursor sets the aim once the mouse has moved; until then the aim follows movement.
 let mouse = null;
 addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; });
@@ -241,15 +243,16 @@ function setState(s) {
 // ---------- Update ----------
 const PLAYER_SPEED = 42, SWIM_SPEED = 24, JUMP_TIME = 0.45, ATTACK_TIME = 0.3;
 const DASH_TIME = 0.18, DASH_SPEED = 160, DASH_COOLDOWN = 0.6;   // ~29px, about 3.5 tiles
-const CAST_TIME = 0.4, BITE_WINDOW = 0.9, CAST_MIN = 12, CAST_MAX = 30;
+const CAST_TIME = 0.4, BITE_WINDOW = 0.9, CAST_MIN = 10, CAST_MAX = 40;   // reach: about 5 tiles
 
-// Where a cast would land: toward the cursor (clamped to the pole's reach), along the aim.
+// Where a cast would land: exactly at the cursor, pulled in to the pole's reach.
+// Without a mouse it goes 3 tiles along the aim.
 function castTarget(p) {
-  let d = 24;
+  const cx = p.x + 4, cy = p.y + 4;
   const m = mouse && view.screenToGame(mouse.x, mouse.y);
-  if (m) d = Math.hypot(m.x - (p.x + 4), m.y - (p.y + 4));
-  d = Math.max(CAST_MIN, Math.min(CAST_MAX, d));
-  return { x: p.x + 4 + Math.cos(p.aim) * d, y: p.y + 4 + Math.sin(p.aim) * d };
+  let dx = m ? m.x - cx : Math.cos(p.aim) * 24, dy = m ? m.y - cy : Math.sin(p.aim) * 24;
+  const d = Math.hypot(dx, dy) || 1, k = Math.max(CAST_MIN, Math.min(CAST_MAX, d)) / d;
+  return { x: cx + dx * k, y: cy + dy * k };
 }
 
 // Fishing: cast -> wait for a bite -> click during the bite to catch. Moving reels in.
@@ -311,10 +314,23 @@ function updatePlayer(dt) {
   if (p.jump > 0) p.jump = Math.max(0, p.jump - dt);
 
   updateFishing(p, dt);
-  // With a pole equipped, clicking water casts; clicking land still does a weak bonk.
-  if (attackPressed && !p.fishing && p.cooldown <= 0 && !p.swimming && p.gear && p.gear.weaponType === "rod") {
-    const tgt = castTarget(p);
-    if (tileAt(tgt.x, tgt.y) === WATER) { p.fishing = { phase: "cast", x: tgt.x, y: tgt.y, t: 0 }; p.cooldown = 0.38; attackPressed = false; }
+  // With a pole: press winds up the cast, release throws it at the cursor.
+  // Releasing over land does a weak bonk instead.
+  const rod = p.gear && p.gear.weaponType === "rod";
+  if (!rod) p.windup = null;
+  if (rod && !p.fishing) {
+    if (attackPressed && !p.windup && p.cooldown <= 0 && !p.swimming) { p.windup = { t: 0 }; attackPressed = false; }
+    if (p.windup) {
+      p.windup.t += dt;
+      const tgt = castTarget(p);
+      p.windup.x = tgt.x; p.windup.y = tgt.y; p.windup.water = tileAt(tgt.x, tgt.y) === WATER;
+      if (p.swimming || p.dash > 0 || p.jump > 0) p.windup = null;
+      else if (attackReleased) {
+        if (p.windup.water) { p.fishing = { phase: "cast", x: tgt.x, y: tgt.y, t: 0 }; p.cooldown = 0.38; }
+        else attackPressed = true;
+        p.windup = null;
+      }
+    }
   }
   if (attackPressed && p.cooldown <= 0 && !p.swimming) { p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim; }
   if (p.attack > 0) {
@@ -332,7 +348,7 @@ function updatePlayer(dt) {
       }
     }
   }
-  attackPressed = jumpPressed = false; dashRequest = null;
+  attackPressed = attackReleased = jumpPressed = false; dashRequest = null;
 
   for (let i = potions.length - 1; i >= 0; i--) {
     if (overlap(p, potions[i]) && p.hp < p.maxHp) { p.hp = Math.min(p.maxHp, p.hp + 2); potions.splice(i, 1); }
@@ -364,7 +380,7 @@ function updateSlimes(dt) {
       s.hop = 0.3; s.timer = 0.7 + rand() * 0.7;
     }
     if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) {
-      p.hp--; p.hurt = 1; p.fishing = null;
+      p.hp--; p.hurt = 1; p.fishing = null; p.windup = null;
       const d = Math.hypot(p.x - s.x, p.y - s.y) || 1;
       p.vx = (p.x - s.x) / d * 110; p.vy = (p.y - s.y) / d * 110;
       if (p.hp <= 0) setState("dead");
@@ -461,7 +477,7 @@ function loop(now) {
 }
 
 // Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
-window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, inv };
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, inv, view };
 
 resize();
 reset();
