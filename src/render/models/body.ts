@@ -229,6 +229,85 @@ export function dressSoldier(ctx: RenderContext, h: Body, tier: TierName): void 
   h.hands[1]!.add(shield);
 }
 
+/** What one of the townsfolk wears (see dressCommoner). */
+export interface CommonLook {
+  cloth: string;
+  /** Belt, hem and hat band. */
+  trim: string;
+  /** Apron, coif and cap linen. */
+  linen: string;
+  /** A gown to the ground, or a tunic to the knee. */
+  long: boolean;
+  apron: boolean;
+  hat: "none" | "coif" | "cap" | "hood" | "straw";
+  /** A basket on the arm. */
+  basket: boolean;
+}
+
+/** Dress a body as one of the townsfolk: a tunic or gown in their cloth, a belt, maybe an apron, a hat and a basket. Bare hands. */
+export function dressCommoner(ctx: RenderContext, h: Body, look: CommonLook): void {
+  const key = `common/${JSON.stringify(look)}`;
+  if (key === h.key) return;
+  for (const part of [h.gear, h.sword, h.ring]) { disposeTree(part); part.clear(); }
+  h.key = key;
+  const { lambert, lathe } = ctx, cloth = lambert(look.cloth), trim = lambert(look.trim), linen = lambert(look.linen);
+  // The gown or tunic, belted, its hem a shade darker.
+  h.gear.add(look.long
+    ? lathe([[0.38, 0], [0.36, 0.1], [0.3, 0.32], [0.28, 0.44], [0.2, 0.6]], cloth)
+    : lathe([[0.33, 0.1], [0.32, 0.16], [0.3, 0.34], [0.28, 0.46], [0.2, 0.6]], cloth));
+  const hemY = look.long ? 0.02 : 0.12, hemR = look.long ? 0.385 : 0.335;
+  const hem = new THREE.Mesh(new THREE.CylinderGeometry(hemR, hemR + 0.005, 0.04, 8), trim); hem.position.y = hemY;
+  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.05, 8), trim); belt.position.y = 0.32;
+  h.gear.add(hem, belt);
+  if (look.apron) {                                          // down the front (+x), from the belt
+    const apron = new THREE.Mesh(box(0.04, look.long ? 0.3 : 0.24, 0.32), linen);
+    apron.position.set(look.long ? 0.33 : 0.3, look.long ? 0.17 : 0.2, 0); apron.rotation.z = 0.12;
+    h.gear.add(apron);
+  }
+  // Headwear: a linen coif over the head, a felt cap, a hood, or a broad straw hat.
+  if (look.hat === "coif") {
+    const coif = new THREE.Mesh(new THREE.SphereGeometry(0.29, 7, 5, 0, Math.PI * 2, 0, Math.PI * 0.55), linen);
+    coif.position.set(-0.03, 0.8, 0); coif.rotation.z = 0.35;
+    h.gear.add(coif);
+  } else if (look.hat === "cap") {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.28, 7, 4, 0, Math.PI * 2, 0, Math.PI * 0.45), cloth);
+    cap.position.set(-0.02, 0.9, 0); cap.scale.set(1, 0.7, 1);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8), trim); band.position.set(-0.02, 0.92, 0);
+    h.gear.add(cap, band);
+  } else if (look.hat === "hood") {
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.31, 7, 5, Math.PI * 0.15, Math.PI * 1.7), cloth);
+    hood.position.set(-0.02, 0.8, 0); hood.rotation.y = Math.PI / 2;
+    const cowl = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 0.12, 8), cloth); cowl.position.y = 0.6;
+    h.gear.add(hood, cowl);
+  } else if (look.hat === "straw") {
+    const straw = lambert("#d9b46a");
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.44, 0.03, 10), straw); brim.position.y = 0.98;
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.21, 0.14, 8), straw); crown.position.y = 1.05;
+    h.gear.add(brim, crown);
+  }
+  if (look.basket) {                                         // on the back hand's arm
+    const basket = new THREE.Group(), wicker = lambert("#a8794a");
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.14, 8, 1, true), wicker);
+    const base = new THREE.Mesh(new THREE.CircleGeometry(0.12, 8).rotateX(-Math.PI / 2), wicker); base.position.y = -0.07;
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.015, 3, 8, Math.PI), wicker); handle.position.y = 0.05;
+    const goods = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), lambert(["#c8423a", "#5fb04a", "#e8963a"][look.cloth.length % 3]!)); goods.position.y = 0.04; goods.scale.y = 0.6;
+    basket.add(body, base, handle, goods);
+    basket.position.set(0.02, -0.12, -0.02);
+    h.hands[1]!.add(basket);
+  }
+  // Feet in plain shoes, under the hem.
+  h.feet.forEach(f => {
+    const nub = f.userData.nub as THREE.Mesh;
+    for (const c of f.children) if (c !== nub) disposeTree(c);
+    f.clear(); f.add(nub); nub.visible = false;
+    const shoe = new THREE.Mesh(box(0.17, 0.07, 0.12), lambert("#4f3a2a")); shoe.position.set(0.02, 0.035, 0);
+    f.add(shoe);
+  });
+  h.footX = look.long ? 0.26 : 0.18;
+  h.eyes.forEach(e => { e.position.x = 0.29; });
+  h.rodTip = null; h.bow = null;
+}
+
 /** Take a body out of the scene. */
 export function removeBody(ctx: RenderContext, h: Body): void {
   ctx.scene.remove(h.group, h.shadow, h.ripple);

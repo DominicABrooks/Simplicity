@@ -234,6 +234,25 @@ export interface Dummy {
   facing: number;
 }
 
+/** One of the census's people out in the streets (see src/game/townsfolk.ts). Paths are in tiles. */
+export interface Walker {
+  /** Who they are: their id in the census (src/world/residents.ts). */
+  id: number;
+  /** The tiles still to walk through, the next one first. */
+  path: (readonly [number, number])[];
+  /** Their own line along a street: a small offset from the middle of each tile, px. */
+  lane: [number, number];
+  speed: number;
+  moving: boolean;
+  /** Seconds left standing about, or waiting for the hero to get out of the way. */
+  wait: number;
+  blockedFor: number;
+  /** What they do on getting there: go in (home, or on out of the area), stand at their work, or stop a while. */
+  then: "in" | "work" | "stop";
+  /** Which way they face (a game angle). */
+  facing: number;
+}
+
 /** The hero talking to someone (see src/game/talk.ts). */
 export interface Conversation {
   with: Entity;
@@ -245,7 +264,7 @@ export interface Conversation {
   t: number;
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "dummy";
+export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "dummy" | "townsfolk";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -273,4 +292,5 @@ export interface Components {
   sentry: Sentry;
   dummy: Dummy;
   conversation: Conversation;
+  walker: Walker;
 }

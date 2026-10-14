@@ -13,7 +13,10 @@ import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
 import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
-import { dressBody, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
+import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body, type CommonLook } from "./models/body.ts";
+import { CLOTH } from "../data/townsfolk.ts";
+import { residentById } from "../game/townsfolk.ts";
+import { FAMILIES } from "../world/people.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
@@ -363,7 +366,69 @@ const dummy: EntityView<DummyView> = {
   remove: removeSimple,
 };
 
+// ---------- Townsfolk ----------
+/**
+ * One of the census's people out in the streets (see src/game/townsfolk.ts): the hero's body in clothes
+ * that suit who they are (a merchant's rich cloth, a priest's black, an apron for a maid or a cook, a coif,
+ * a cap or a straw hat, a basket for the market), children smaller and the old a little stooped. They walk
+ * like the hero, stand breathing when they stop, and face whoever they're talking to.
+ */
+interface FolkView extends Body { k: number; size: number; stoop: number }
+const pickBy = <V>(list: readonly V[], n: number): V => list[Math.floor(n * list.length) % list.length]!;
+function lookOf(id: number): { look: CommonLook; size: number; stoop: number } {
+  const r = residentById(id), n = (k: number) => { const s = Math.sin(id * 12.9898 + k * 78.233) * 43758.5453; return s - Math.floor(s); };
+  const job = r?.job.toLowerCase() ?? "", female = r?.sex === "f", age = r?.age ?? 30;
+  const rank = r?.family ? FAMILIES.find(f => f.id === r.family)?.rank : undefined;
+  const clergy = /priest|deacon|chaplain|choir|warden/.test(job), rich = rank === "merchant" && r?.role === "family";
+  const serving = /maid|cook|scullion|laundress|nurse|kitchen|baker|brewer|washing|wash/.test(job);
+  const market = /stall|egg|flower|greengrocer|fish|sells|peddler/.test(job);
+  const look: CommonLook = {
+    cloth: pickBy(clergy ? CLOTH.clergy : rich ? CLOTH.rich : CLOTH.common, n(1)),
+    trim: rich ? "#d9a83a" : pickBy(["#4f3222", "#3a2e24", "#6b4f3a"], n(2)),
+    linen: pickBy(CLOTH.linen, n(3)),
+    long: female || clergy || age >= 70,
+    apron: serving || /smith|apprentice|journeyman|butcher|cobbler|weaver/.test(job) || (female && n(4) < 0.3),
+    hat: clergy ? "hood" : female ? (n(5) < 0.65 ? "coif" : n(5) < 0.8 ? "straw" : "none") : pickBy(["cap", "cap", "hood", "straw", "none", "none"], n(6)),
+    basket: market || (n(7) < 0.2 && age >= 12),
+  };
+  return { look, size: age < 14 ? 0.62 + (age / 14) * 0.25 : 1, stoop: age >= 70 ? 0.22 : age >= 60 ? 0.1 : 0 };
+}
+const townsfolk: EntityView<FolkView> = {
+  create(ctx, e, g) {
+    const b = makeBody(ctx), w = g.world.need(e, "walker"), { look, size, stoop } = lookOf(w.id);
+    dressCommoner(ctx, b, look);
+    b.ripple.visible = false;
+    b.sword.visible = false;
+    b.group.scale.setScalar(size);
+    b.shadow.scale.setScalar(size);
+    return Object.assign(b, { k: (w.id * 0.37) % 10, size, stoop });
+  },
+  update(_ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), w = g.world.need(e, "walker"), [x, z] = toWorld(o.x, o.y), t = f.t + v.k;
+    v.group.position.set(x, 0, z);
+    v.group.rotation.y = turn(v.group.rotation.y, -w.facing, f.dt, 8);
+    v.shadow.position.set(x, SHADOW_Y, z);
+    const b = v.body;
+    b.rotation.z = -v.stoop;
+    if (w.moving && w.blockedFor === 0) {                    // walking: bob and step, like the hero, at their own pace
+      const pace = w.speed * 0.3;
+      b.position.y = Math.abs(Math.sin(t * pace)) * 0.05;
+      b.rotation.z -= 0.06;
+      b.scale.y = 1;
+      v.feet.forEach((foot, i) => { foot.position.x = v.footX + Math.sin(t * pace + i * Math.PI) * 0.09; });
+      v.hands.forEach((hand, i) => { hand.position.set(0.12 + Math.sin(t * pace + i * Math.PI + Math.PI) * 0.06, 0.38, (i ? -1 : 1) * 0.42); });
+    } else {                                                 // standing: breathing
+      b.position.y = 0;
+      b.scale.y = 1 + Math.sin(t * 2.3) * 0.02;
+      v.feet.forEach(foot => { foot.position.x = v.footX; });
+      v.hands.forEach((hand, i) => { hand.position.set(0.14, 0.36 + Math.sin(t * 2.3 + i) * 0.015, (i ? -1 : 1) * 0.4); });
+    }
+    v.eyes.forEach(eye => { eye.scale.y = t % 4.1 < 0.15 ? 0.15 : 1; });
+  },
+  remove: removeBody,
+};
+
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard, dummy } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard, dummy, townsfolk } satisfies { [K in ViewKind]: EntityView<object> };

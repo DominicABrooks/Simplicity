@@ -22,6 +22,7 @@ import { createMapView } from "./ui/mapView.ts";
 import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
+import { enterTownsfolk, updateTownsfolk } from "./game/townsfolk.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -48,6 +49,7 @@ const journal = createJournal(g, unread => menu.setAlert(MENU.journal, unread &&
 const toggleJournal = () => { if (FEATURES.journal) journal.toggle(); };
 const closePanels = () => { inventory.close(); journal.close(); map.close(); };
 g.events.on("reset", () => inventory.close());
+g.events.on("area", () => enterTownsfolk(g));             // the townsfolk come out onto the streets
 g.events.on("state", ({ state }) => { if (state === "dead") closePanels(); });
 
 // Walking into a cave: fade out, load the next area (its module is downloaded on the first visit),
@@ -107,6 +109,7 @@ function frame(now: number): void {
   updateTarget(g, view, mouse, input.overUi());
   step(g, dt);
   updateTalk(g, dt);
+  updateTownsfolk(g, g.hitstop > 0 ? 0 : dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
   menu.setActive(MENU.inventory, inventory.isOpen());
   menu.setActive(MENU.map, map.isOpen());

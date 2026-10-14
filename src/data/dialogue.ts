@@ -50,3 +50,22 @@ export const GUARD_TALK = {
     "Back to it.",
   ],
 } as const;
+
+/** The townsfolk's lines: a greeting (they say who they are and what they do), their quirk, and the Edict. */
+export const FOLK_TALK = {
+  greet: ["Morning!", "Hello there.", "Oh! You gave me a start.", "Good day to you.", "Mind the puddles.", "Can't stop long, but hello."],
+  child: ["Mum says I'm not to talk to strangers.", "Are you a knight? You look like a knight.", "I can run faster than you. Probably."],
+  /** Before their quirk, said about themselves by name. */
+  quirk: ["Ask anyone round here:", "My neighbours will tell you", "Everyone knows"],
+  quirkAfter: ["It's true.", "Can't help it.", "Don't laugh.", "There are worse things."],
+  /** What they'll say about the Edict of the Quiet Tongue (no talk of witches, sorcerers or dragons), by where they stand on it. */
+  edict: {
+    denies: ["Witches? Dragons? Old wives' tales, the lot of it."],
+    loyal: ["The King knows best. Long may he reign.", "The Edict keeps folk calm. Good thing too."],
+    quiet: ["I keep my head down and my mouth shut. Safest that way.", "Best not to talk about... you know. The Edict."],
+    whispering: [],
+    defiant: ["The Edict? Nonsense. Folk should be able to say what they've seen.", "They can't lock up the whole city for talking."],
+    informer: ["Heard anything interesting lately? You can tell me. I won't tell a soul.", "Funny, the things people say when they think nobody's listening."],
+  } as Record<string, readonly string[]>,
+  bye: ["Well, I'd best be off.", "Mind how you go.", "Nice talking to you.", "Back to it, then."],
+} as const;
