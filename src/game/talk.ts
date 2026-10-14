@@ -3,10 +3,11 @@
 // bottom of the screen. A click, Enter, Space or E shows the rest of a line or goes on to the next;
 // Escape, or walking away, ends it. It lives on the hero (see Conversation), so it's gone with the area.
 import type { Entity } from "../core/ecs.ts";
-import { FOLK_TALK, GUARD_TALK, TALK } from "../data/dialogue.ts";
-import type { Rng } from "../core/rng.ts";
-import { FAMILIES } from "../world/people.ts";
+import { TALK } from "../data/dialogue.ts";
 import type { Resident } from "../world/residents.ts";
+import { folkLines, guardLines } from "./conversation.ts";
+
+export { jobLine } from "./conversation.ts";
 import { residentById } from "./townsfolk.ts";
 import { toast, type Game } from "./game.ts";
 
@@ -25,7 +26,7 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   if (Math.hypot(hero.x - them.x, hero.y - them.y) > TALK.reach) { toast(g, "Too far away to talk"); return true; }
   const name = g.world.need(e, "targetable").name;
   const who = g.world.get(e, "walker"), resident = who && residentById(who.id);
-  const lines = resident ? folkLines(g.rng, resident) : guardLines(g.rng, g.area.def.id);
+  const lines = resident ? folkLines(g.rng, resident, housematesOf(resident)) : guardLines(g.rng, g.area.def.id);
   g.world.add(g.player, "conversation", { with: e, name, lines, line: 0, t: 0 });
   return true;
 }
@@ -53,56 +54,12 @@ export function updateTalk(g: Game, dt: number): void {
   c.t += dt;
 }
 
-/** A guard's conversation: a greeting, a word about their post, a rumour from the city, and goodbye. */
-function guardLines(rng: Rng, area: string): string[] {
-  const pick = <T>(list: readonly T[]): T => list[Math.floor(rng.next() * list.length)]!;
-  const rumours = FAMILIES.flatMap(f => f.rumours);
-  return [
-    pick(GUARD_TALK.greet),
-    pick(GUARD_TALK.post[area] ?? GUARD_TALK.post.any!),
-    `${pick(GUARD_TALK.rumour)} "${pick(rumours).says}."`,
-    pick(GUARD_TALK.bye),
-  ];
-}
-
-/**
- * One of the townsfolk's conversation, in their own words: hello, who they are and what they do, what the
- * neighbours say about them (their quirk), where they stand on the Edict (or, if they whisper, a rumour),
- * and goodbye.
- */
-function folkLines(rng: Rng, r: Resident): string[] {
-  const pick = <T>(list: readonly T[]): T => list[Math.floor(rng.next() * list.length)]!;
-  const first = r.name.split(" ")[0]!;
-  if (r.age < 12) return [`Hello! I'm ${first}. I'm ${r.age}.`, pick(FOLK_TALK.child), `${pick(FOLK_TALK.quirk)} ${first} ${r.quirk}.`];
-  const edict = FOLK_TALK.edict[r.stance] ?? [];
-  const rumours = FAMILIES.flatMap(f => f.rumours);
-  return [
-    `${pick(FOLK_TALK.greet)} I'm ${first}. ${jobLine(r.job)}`,
-    `${pick(FOLK_TALK.quirk)} ${first} ${r.quirk}. ${pick(FOLK_TALK.quirkAfter)}`,
-    edict.length ? pick(edict) : `${pick(GUARD_TALK.rumour)} "${pick(rumours).says}."`,
-    pick(FOLK_TALK.bye),
-  ];
-}
-
-/** The census's jobs that are something someone does ("helps with the lawyer's work"), not something they are. */
-const DOES = /^(keeps|helps|minds|brews|trades|works|goes|sews|sits|spins|runs|takes|scrubs|sells|carries|mends|cleans|cooks|bakes|washes|tends|watches|feeds|fetches|guards|makes|plays)\b/;
-/** Who someone is in a family ("Eldest son", "His wife"): they'd say "the". */
-const KIN = /^(son|daughter|wife|husband|mother|father|eldest|youngest|middle|twin|grand)/;
-
-/**
- * What someone does, as they'd say it, from the census's job: "I keep the accounts.", "I help with the
- * lawyer's work.", "I'm a master goldbeater.", "I'm Ralph's daughter.", "I'm the eldest son.", "I'm too
- * little to work.", "I'm almsfolk, once a weaver."
- */
-export function jobLine(job: string): string {
-  const verb = DOES.exec(job)?.[1];
-  if (verb) {
-    const base = verb === "goes" ? "go" : verb.endsWith("ies") ? `${verb.slice(0, -3)}y` : /(ch|sh|ss|x)es$/.test(verb) ? verb.slice(0, -2) : verb.slice(0, -1);
-    return `I ${base}${job.slice(verb.length)}.`;
+/** The others under someone's roof: the census lists a household together, so they're the near ids at the same home. */
+function housematesOf(r: Resident): Resident[] {
+  const out: Resident[] = [];
+  for (let d = -12; d <= 12; d++) {
+    const o = d === 0 ? undefined : residentById(r.id + d);
+    if (o && o.home.area === r.home.area && o.home.place === r.home.place && Math.abs(o.home.x - r.home.x) <= 6 && Math.abs(o.home.y - r.home.y) <= 6) out.push(o);
   }
-  if (/^too /.test(job) || /^[A-Z][a-z]+'s /.test(job)) return `I'm ${job}.`;
-  const said = job.replace(/^(Her|His|Their) /, "the "), lower = said.charAt(0).toLowerCase() + said.slice(1);
-  if (/^(the |a |an |almsfolk)/.test(lower)) return `I'm ${lower}.`;
-  if (KIN.test(lower)) return `I'm the ${lower}.`;
-  return `I'm ${/^[aeiou]/.test(lower) ? "an" : "a"} ${lower}.`;
+  return out;
 }

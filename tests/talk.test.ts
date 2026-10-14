@@ -6,7 +6,7 @@ import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { advanceTalk, jobLine, startTalk, talking, updateTalk } from "../src/game/talk.ts";
 import { enterArea } from "../src/game/travel.ts";
-import { FAMILIES } from "../src/world/people.ts";
+import { GUARD } from "../src/data/voices.ts";
 
 /** At the castle, by a guard. */
 async function byGuard(): Promise<{ g: Game; guard: Entity }> {
@@ -20,14 +20,15 @@ async function byGuard(): Promise<{ g: Game; guard: Entity }> {
 }
 
 describe("talking", () => {
-  it("to a guard close by: a greeting, their post, a rumour from the city, and goodbye", async () => {
+  it("to a guard close by: a greeting, a word about their post, sometimes more", async () => {
     const { g, guard } = await byGuard();
     expect(startTalk(g, guard)).toBe(true);
     const c = talking(g)!;
     expect(c.name).toBe("Royal Guard");
-    expect(c.lines).toHaveLength(4);
-    const rumours = FAMILIES.flatMap(f => f.rumours.map(r => r.says));
-    expect(rumours.some(r => c.lines[2]!.includes(`"${r}."`))).toBe(true);
+    expect(c.lines.length).toBeGreaterThanOrEqual(2);
+    expect(c.lines.length).toBeLessThanOrEqual(4);
+    expect(GUARD.greet).toContain(c.lines[0]);
+    expect(GUARD.post.castle).toContain(c.lines[1]);
   });
 
   it("types each line out; going on first shows the rest, then the next line, and ends after the last", async () => {
