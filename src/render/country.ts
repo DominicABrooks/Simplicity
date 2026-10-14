@@ -6,10 +6,10 @@ import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import { FACING_YAW } from "../world/plans.ts";
 import { WATER_Y, box, type RenderContext } from "./context.ts";
-import { put } from "./castle.ts";
+import { put, shield } from "./castle.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
-import { CLAY, DARK_WOOD, DOORWAY, WOOD, occluder, pennant, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
+import { CLAY, DARK_WOOD, DOORWAY, GOLD, MARBLE, WOOD, banner, occluder, pennant, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
 
 const TRIM = "#8a8378", CANVAS = "#e6dcc4";
 const centre = (r: { x: number; y: number; w: number; h: number }) => ({ x: (r.x + r.w / 2) / T, z: (r.y + r.h / 2) / T });
@@ -85,17 +85,30 @@ export function buildWatermill(ctx: RenderContext, parent: THREE.Group, p: PropO
  * cutwaters breaking the current.
  */
 export function buildStoneBridge(ctx: RenderContext, parent: THREE.Group, p: PropOf<"stoneBridge">): PropView {
-  const { lambert, tex } = ctx, g = new THREE.Group(), c = centre(p.rect), stone = lambert("#ffffff", { map: tex.stone }), trim = lambert(TRIM, { map: tex.stone });
+  const { lambert, tex } = ctx, g = new THREE.Group(), c = centre(p.rect), rich = !!p.rich;
+  const stone = lambert(rich ? MARBLE : "#ffffff", { map: tex.stone }), trim = rich ? lambert(GOLD) : lambert(TRIM, { map: tex.stone }), spire = rich ? lambert(MARBLE, { map: tex.stone }) : trim;
   const w = p.rect.w / T + 0.6, len = p.rect.h / T + 1.2, arches = Math.max(2, Math.round(len / 3.2));
-  put(g, tiledBox(w, 0.08, len, 1.0), lambert("#a39a8c", { map: tex.cobble }), 0, 0.02, 0);
+  put(g, tiledBox(w, 0.08, len, 1.0), lambert(rich ? "#ece4d4" : "#a39a8c", { map: tex.cobble }), 0, 0.02, 0);
   for (const s of [-1, 1]) {
     const px = s * (w / 2 - 0.2);
     put(g, tiledBox(0.4, 0.9, len, 0.8), stone, px, 0.45, 0);                               // parapets
     put(g, box(0.52, 0.12, len + 0.05), trim, px, 0.94, 0);                                  // and their cornice
     put(g, tiledBox(0.3, 1.1, len, 0.8), stone, s * (w / 2 + 0.1), -0.45, 0);              // the spandrel faces
-    for (let z = -len / 2 + 0.4; z <= len / 2 - 0.3; z += 1.6) {                          // posts with pinnacles
+    for (let z = -len / 2 + 0.4, i = 0; z <= len / 2 - 0.3; z += 1.6, i++) {              // posts with pinnacles
       put(g, tiledBox(0.5, 1.15, 0.5, 0.5), stone, px, 0.58, z);
-      put(g, new THREE.ConeGeometry(0.28, 0.6, 4), trim, px, 1.45, z, 0, Math.PI / 4, 0);
+      put(g, new THREE.ConeGeometry(0.28, 0.6, 4), spire, px, 1.45, z, 0, Math.PI / 4, 0);
+      if (!rich) continue;
+      put(g, new THREE.OctahedronGeometry(0.1, 0), trim, px, 1.82, z);                     // gold on every pinnacle
+      const arms = shield(ctx, 0.5);                                                       // a shield on every post, outward
+      arms.position.set(s * (w / 2 + 0.26), 0.15, z);
+      arms.rotation.y = s * Math.PI / 2;
+      g.add(arms);
+      if (i % 2) {                                                                          // and banners hung down the sides
+        const flag = banner(ctx, 0.6, 1.3);
+        flag.position.set(s * (w / 2 + 0.27), 0.85, z - 0.8);
+        flag.rotation.y = s * Math.PI / 2;
+        g.add(flag);
+      }
     }
   }
   for (let i = 1; i < arches; i++) {                                                       // piers with pointed cutwaters, and pinnacles over them
@@ -104,7 +117,8 @@ export function buildStoneBridge(ctx: RenderContext, parent: THREE.Group, p: Pro
     for (const s of [-1, 1]) {
       put(g, new THREE.ConeGeometry(0.62, 1.0, 4), trim, s * (w / 2 + 0.55), -0.55, z, 0, Math.PI / 4, s * Math.PI / 2);
       put(g, tiledBox(0.8, 1.6, 0.8, 0.5), stone, s * (w / 2 - 0.1), 0.8, z);
-      put(g, new THREE.ConeGeometry(0.5, 1.4, 4), trim, s * (w / 2 - 0.1), 2.3, z, 0, Math.PI / 4, 0);
+      put(g, new THREE.ConeGeometry(0.5, 1.4, 4), spire, s * (w / 2 - 0.1), 2.3, z, 0, Math.PI / 4, 0);
+      if (rich) put(g, new THREE.OctahedronGeometry(0.18, 0), trim, s * (w / 2 - 0.1), 3.1, z);
     }
   }
   g.position.set(c.x, 0, c.z);

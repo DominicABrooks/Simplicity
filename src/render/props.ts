@@ -9,7 +9,7 @@ import {
   buildTorch, buildTrebuchet, buildTrough, buildWell,
 } from "./castle.ts";
 import { buildCave } from "./cave.ts";
-import { buildCathedral, buildChapterHouse, buildChurch, buildCloister, buildCross, buildDovecote, buildGraves, buildHall } from "./civic.ts";
+import { buildCathedral, buildChapterHouse, buildChurch, buildCloister, buildCross, buildDovecote, buildGraves, buildHall, buildLion } from "./civic.ts";
 import type { RenderContext } from "./context.ts";
 import { buildBoat, buildCrane, buildFence, buildField, buildGrandstand, buildPavilion, buildStoneBridge, buildWatermill, buildWindmill } from "./country.ts";
 import { buildBunting, buildFountain, buildPlaza, buildStall, buildStandard, buildStock } from "./market.ts";
@@ -37,6 +37,7 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   graves: buildGraves,
   cross: buildCross,
   dovecote: buildDovecote,
+  lion: buildLion,
   // Gates, walls and the castle (castle.ts).
   barbican: buildBarbican,
   drawbridge: buildDrawbridge,

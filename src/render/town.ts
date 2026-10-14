@@ -18,7 +18,9 @@ import { WARES } from "./wares.ts";
 export type PropOf<K extends Prop["kind"]> = Extract<Prop, { kind: K }>;
 
 export const SLATE = "#4a5a7a", CLAY = "#a8473a", WOOD = "#8b5a34", DARK_WOOD = "#4f3222", IRON = "#2b2438";
-export const LIT = "#f5d562";                                       // lamplight in windows and lanterns
+export const LIT = "#f5d562";
+/** For what the kingdom spends most on: white marble, and gold leaf. */
+export const MARBLE = "#f3eee4", GOLD = "#d9a83a";                                       // lamplight in windows and lanterns
 export const DOORWAY = "#1a120d";
 
 /** A box whose texture repeats once per `unit` world units on every face, instead of stretching. */
@@ -104,9 +106,9 @@ export function pennant(ctx: RenderContext, pole: number, size: number): { group
 }
 
 /** A round stone tower with a cone roof and arrow slits, standing on y = 0. Its own materials, so it can fade alone. */
-export function tower(ctx: RenderContext, r: number, h: number, roof: string, roofHeight = r * 1.4): THREE.Group {
+export function tower(ctx: RenderContext, r: number, h: number, roof: string, roofHeight = r * 1.4, wall = "#ffffff"): THREE.Group {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(tiledCylinder(r, h, 10, 0.8), ctx.lambert("#ffffff", { map: ctx.tex.stone }));
+  const body = new THREE.Mesh(tiledCylinder(r, h, 10, 0.8), ctx.lambert(wall, { map: ctx.tex.stone }));
   body.position.y = h / 2;
   const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 1.2, roofHeight, 10), ctx.lambert(roof, { map: ctx.tex.shingles }));
   cap.position.y = h + roofHeight / 2;

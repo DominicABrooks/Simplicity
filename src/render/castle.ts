@@ -12,7 +12,7 @@ import { STRAW, TURN, at, centreOf } from "./market.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 import { barbicanPlan } from "../world/plans.ts";
-import { CLAY, DARK_WOOD, DOORWAY, IRON, SLATE, WOOD, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, tower, type PropOf } from "./town.ts";
+import { CLAY, DARK_WOOD, DOORWAY, GOLD, IRON, MARBLE, SLATE, WOOD, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, tower, type PropOf } from "./town.ts";
 
 const STEEL = "#9aa3ad", BURLAP = "#b89a6a";
 
@@ -317,7 +317,7 @@ export function buildStable(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
  * front corner and a crenellated arch over its mouth, open toward its facing.
  */
 export function buildBarbican(ctx: RenderContext, parent: THREE.Group, p: PropOf<"barbican">): PropView {
-  const { lambert, basic, tex } = ctx, g = new THREE.Group(), b = barbicanPlan(p), H = p.height, stone = lambert("#ffffff", { map: tex.stone });
+  const { lambert, basic, tex } = ctx, g = new THREE.Group(), b = barbicanPlan(p), H = p.height, stone = lambert(p.rich ? MARBLE : "#ffffff", { map: tex.stone });
   for (const s of [-1, 1]) {
     const len = b.deep - b.towerR * 0.7, x = s * (b.gap / 2 + b.side / 2), z = -b.towerR * 0.35;
     put(g, tiledBox(b.side, H, len, 0.8), stone, x, H / 2, z);
@@ -325,7 +325,7 @@ export function buildBarbican(ctx: RenderContext, parent: THREE.Group, p: PropOf
     m.rotation.y = Math.PI / 2;
     m.position.set(s * (b.gap / 2 + b.side - 0.2), 0, z);
     g.add(m);
-    const t = tower(ctx, b.towerR, H + 2.6, SLATE);
+    const t = p.rich ? tower(ctx, b.towerR, H + 2.6, GOLD, b.towerR * 1.8, MARBLE) : tower(ctx, b.towerR, H + 2.6, SLATE);
     t.position.set(s * b.towerX, 0, b.towerZ);
     g.add(t);
   }
@@ -335,9 +335,39 @@ export function buildBarbican(ctx: RenderContext, parent: THREE.Group, p: PropOf
   top.position.z = b.towerZ;
   g.add(top);
   put(g, new THREE.PlaneGeometry(b.gap, 0.3), basic(DOORWAY, { side: THREE.DoubleSide }), 0, archY - 0.15, b.towerZ + 0.61);
+  if (p.rich) {
+    // A gold band along the tops of the walls and the arch, and the kingdom's arms over the arch, both ways.
+    const gold = lambert(GOLD);
+    put(g, box(b.gap + 0.7, 0.14, 1.3), gold, 0, H + 0.95, b.towerZ);
+    for (const s of [-1, 1]) put(g, box(b.side + 0.05, 0.14, b.deep - b.towerR * 0.7 + 0.05), gold, s * (b.gap / 2 + b.side / 2), H + 0.07, -b.towerR * 0.35);
+    for (const s of [-1, 1]) {
+      const arms = shield(ctx, 0.9);
+      arms.position.set(0, archY + (H + 0.9 - archY) / 2, b.towerZ + s * 0.63);
+      arms.rotation.y = s > 0 ? 0 : Math.PI;
+      g.add(arms);
+    }
+  }
   const at = centreOf(p.rect);
   place(parent, g, at[0], at[1], p.facing);
   return { occluders: [occluder(g, at[0], at[1], p.rect.w / T + 1, p.rect.h / T + 1, H + 4)] };
+}
+
+/** The kingdom's arms on a shield, `h` tall, facing +z: crimson, a gold chevron and a gold crown, a gold rim. */
+export function shield(ctx: RenderContext, h: number): THREE.Group {
+  const g = new THREE.Group(), w = h * 0.8, gold = ctx.lambert(GOLD);
+  const shape = new THREE.Shape();
+  shape.moveTo(-w / 2, h / 2);
+  shape.lineTo(w / 2, h / 2);
+  shape.lineTo(w / 2, 0);
+  shape.quadraticCurveTo(w / 2, -h * 0.35, 0, -h / 2);
+  shape.quadraticCurveTo(-w / 2, -h * 0.35, -w / 2, 0);
+  shape.closePath();
+  put(g, new THREE.ExtrudeGeometry(shape, { depth: 0.06, bevelEnabled: false, curveSegments: 4 }).scale(1.12, 1.08, 1).translate(0, 0, -0.04), gold, 0, 0, 0);
+  put(g, new THREE.ExtrudeGeometry(shape, { depth: 0.06, bevelEnabled: false, curveSegments: 4 }), ctx.lambert(CLAY), 0, 0, 0);
+  for (const s of [-1, 1]) put(g, box(w * 0.62, h * 0.09, 0.03), gold, s * w * 0.2, -h * 0.02, 0.075, 0, 0, s * 0.62);   // the chevron
+  put(g, box(w * 0.42, h * 0.1, 0.03), gold, 0, h * 0.3, 0.075);                                                          // the crown's band
+  for (const x of [-1, 0, 1]) put(g, new THREE.ConeGeometry(h * 0.05, h * 0.13, 4), gold, x * w * 0.17, h * 0.4, 0.075);   // and its points
+  return g;
 }
 
 // ---------- Drawbridge ----------

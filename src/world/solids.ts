@@ -61,6 +61,7 @@ export function propSolids(p: Prop): Shape[] {
     case "chapterHouse": return [circle(p.x / T, p.y / T, p.radius * 1.05)];
     case "graves": return gravePlan(p.rect).map(g => box(g.x, g.z, 0.5, 0.25));
     case "cross": return [circle(p.x / T, p.y / T, 1.1)];
+    case "lion": return [p.facing === "north" || p.facing === "south" ? box(p.x / T, p.y / T, 1.3, 2.1) : box(p.x / T, p.y / T, 2.1, 1.3)];
     case "dovecote": return [circle(p.x / T, p.y / T, 1.15)];
     case "keep": {
       const k = keepPlan(p), z = k.z + k.back;

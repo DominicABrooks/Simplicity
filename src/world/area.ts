@@ -82,8 +82,9 @@ export type Prop =
   | { kind: "dovecote"; x: number; y: number }
   /** The castle keep on its rocky crag `plinth` high, a stair up to its door; its great hall `height` high. */
   | { kind: "keep"; rect: Rect; plinth: number; height: number }
-  /** A barbican or a bridge's gate tower: two towers and a walled passage `gap` wide (3 by default), open toward `facing`. */
-  | { kind: "barbican"; rect: Rect; facing: Facing; height: number; gap?: number }
+  /** A barbican or a bridge's gate tower: two towers and a walled passage `gap` wide (3 by default), open toward
+   * `facing`; `rich` builds it in marble under gilded roofs, its arms over the arch. */
+  | { kind: "barbican"; rect: Rect; facing: Facing; height: number; gap?: number; rich?: boolean }
   /** A drawbridge over a moat, running north-south, lowered. */
   | { kind: "drawbridge"; rect: Rect }
   /** A flight of steps up to a wall walk, against a wall, climbing toward `rises`. */
@@ -92,8 +93,11 @@ export type Prop =
   | { kind: "torch"; x: number; y: number; facing: Facing; height: number }
   /** A plank bridge over water, running north-south. */
   | { kind: "bridge"; rect: Rect }
-  /** A stone bridge of arches over water, running north-south, with parapets. */
-  | { kind: "stoneBridge"; rect: Rect }
+  /** A stone bridge of arches over water, running north-south, with parapets; `rich` builds it in marble and gold,
+   * shields on its posts and banners hung down its sides. */
+  | { kind: "stoneBridge"; rect: Rect; rich?: boolean }
+  /** A gilded lion couchant on a marble plinth, looking toward `facing`. */
+  | { kind: "lion"; x: number; y: number; facing: Facing }
   /** A long open-fronted stable, its stalls toward `facing`, horses in them. */
   | { kind: "stable"; rect: Rect; facing: Facing }
   // The country and the river.

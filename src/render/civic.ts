@@ -13,7 +13,7 @@ import { put } from "./castle.ts";
 import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
-import { DARK_WOOD, DOORWAY, LIT, SLATE, banner, gableGeometry, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
+import { DARK_WOOD, DOORWAY, GOLD, LIT, MARBLE, SLATE, banner, gableGeometry, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
 
 const LEAD = "#5a6470", TRIM = "#8a8378";
 const GLASS = ["#3f6fd0", "#c8423a", "#f5d562", "#5fb04a", "#8a4fc0"] as const;
@@ -486,6 +486,26 @@ export function buildCross(ctx: RenderContext, parent: THREE.Group, p: PropOf<"c
   g.position.set(x, 0, z);
   parent.add(g);
   return { occluders: [occluder(g, x, z, 2.1, 2.1, 5.4)] };
+}
+
+// ---------- Lion ----------
+/** A gilded lion couchant on a marble plinth with a gold band, its head up, looking out along its facing. */
+export function buildLion(ctx: RenderContext, parent: THREE.Group, p: PropOf<"lion">): PropView {
+  const { lambert, tex } = ctx, g = new THREE.Group(), gold = lambert(GOLD), marble = lambert(MARBLE, { map: tex.stone });
+  put(g, tiledBox(1.2, 0.9, 2.0, 0.6), marble, 0, 0.45, 0);
+  put(g, box(1.26, 0.1, 2.06), gold, 0, 0.82, 0);
+  put(g, box(1.3, 0.12, 2.1), marble, 0, 0.06, 0);
+  put(g, box(0.62, 0.5, 1.15), gold, 0, 1.15, -0.15);                                      // the body, lying
+  put(g, new THREE.IcosahedronGeometry(0.36, 0), gold, 0, 1.5, 0.45);                       // the mane
+  put(g, box(0.34, 0.3, 0.32), gold, 0, 1.52, 0.68);                                        // the head
+  put(g, box(0.2, 0.14, 0.16), gold, 0, 1.45, 0.86);                                        // the muzzle
+  for (const s of [-1, 1]) put(g, box(0.14, 0.12, 0.5), gold, s * 0.18, 0.96, 0.62);       // the forepaws
+  put(g, new THREE.CylinderGeometry(0.04, 0.05, 0.7, 5), gold, 0.25, 1.15, -0.78, 0.4, 0, 0.9);    // the tail, curled round
+  const x = p.x / T, z = p.y / T;
+  g.position.set(x, 0, z);
+  g.rotation.y = FACING_YAW[p.facing];
+  parent.add(g);
+  return { occluders: [occluder(g, x, z, 2.1, 2.1, 2)] };
 }
 
 // ---------- Dovecote ----------
