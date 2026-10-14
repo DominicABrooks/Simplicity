@@ -204,7 +204,8 @@ const loot: EntityView<LootView> = {
 };
 
 // ---------- Arrow ----------
-const arrow: EntityView<Simple> = {
+interface ArrowView extends Simple { yaw: number }
+const arrow: EntityView<ArrowView> = {
   create(ctx, e, g) {
     const group = new THREE.Group(), mesh = makeArrowMesh(ctx, g.world.need(e, "arrow").power);
     mesh.position.x = -0.24;                                 // centre the arrow on its game position
@@ -212,12 +213,24 @@ const arrow: EntityView<Simple> = {
     const shadow = addShadow(ctx);
     shadow.scale.set(0.5, 1, 0.15);
     ctx.scene.add(group, shadow);
-    return { group, shadow };
+    return { group, shadow, yaw: 0 };
   },
   update(_ctx, v, e, g) {
     const o = g.world.need(e, "transform"), a = g.world.need(e, "arrow"), [x, z] = toWorld(o.x, o.y);
-    v.group.position.set(x, a.stuck > 0 ? 0.6 : 0.5, z);   // stuck in a tree, a little higher
-    if (a.stuck <= 0) v.group.rotation.set(0, -Math.atan2(a.vy, a.vx), 0);
+    if (a.vx || a.vy) v.yaw = -Math.atan2(a.vy, a.vx);
+    if (a.grounded) {                                        // a dud lying in the grass
+      v.group.position.set(x, 0.03, z);
+      v.group.rotation.set(0, v.yaw, 0);
+    } else if (a.stuck > 0) {                                // stuck in a tree, a little higher
+      v.group.position.set(x, 0.6, z);
+    } else if (a.dud) {                                      // a weak shot: arcs down, nose dipping, to the ground
+      const k = 1 - Math.max(0, a.life) / a.flight;
+      v.group.position.set(x, 0.5 * (1 - k * k), z);
+      v.group.rotation.set(0, v.yaw, -k * 0.8);
+    } else {
+      v.group.position.set(x, 0.5, z);
+      v.group.rotation.set(0, v.yaw, 0);
+    }
     v.shadow.position.set(x, 0.01, z);
     v.shadow.visible = a.stuck <= 0;
   },

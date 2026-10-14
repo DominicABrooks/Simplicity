@@ -30,7 +30,9 @@ export const BOW = {
   knock: 90,
   /** A partial draw deals at most this share of your damage, scaled by the draw, rounded down. */
   partialDamage: 0.5,
-  stuckTime: 1.5,   // arrows sink into trees and stay there this long
+  /** Too weak a draw to do any damage: the arrow flops out and drops to the ground, further the more you drew. */
+  dud: { minRange: 4, maxRange: 40, flightTime: 0.3 },
+  stuckTime: 1.5,   // arrows sink into trees (or lie on the ground) and stay there this long
   hitRadius: 5,     // px between cell positions
   nock: 5,          // arrows leave this far out from the hero's centre
 } as const;

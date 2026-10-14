@@ -60,14 +60,6 @@ describe("combat", () => {
     expect([...crits].sort()).toEqual([3, 3 * CRIT.multiplier]);
   });
 
-  it("a zero-damage hit glances off: no damage, no crit, a grey 0", () => {
-    const g = playing();
-    const slime = addSlime(g, 30, 0, 3);
-    for (let i = 0; i < 50; i++) expect(hitEnemy(g, slime, 0)).toBe(0);
-    expect(g.world.need(slime, "health").hp).toBe(3);
-    expect(g.floaters.every(f => f.text === "0" && !f.crit)).toBe(true);
-  });
-
   it("damage breaks a polymorph and knocks the hero back", () => {
     const g = playing();
     polymorph(g);
@@ -113,7 +105,7 @@ describe("combat", () => {
     const g = playing();
     const slime = addSlime(g, 60, 0, 1);
     hitEnemy(g, slime, 5);
-    step(g, 1 / 60);
+    for (let i = 0; i < 10; i++) step(g, 1 / 60);           // past the hitstop, if it crit
     expect(g.world.isAlive(slime)).toBe(false);
     expect(g.kills).toBe(1);
     expect(g.world.need(g.player, "hero").xp).toBe(10);

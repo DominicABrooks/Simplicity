@@ -18,25 +18,36 @@ export function bowSystem(g: Game, dt: number): void {
   if (m.swimming || m.dash > 0 || m.jump > 0) { a.draw = null; return; }
   if (!input.attackReleased) return;
   const charge = Math.min(1, a.draw.t / BOW.drawTime), power = charge >= 1;
-  const speed = BOW.minSpeed + BOW.maxSpeedBonus * charge, cos = Math.cos(m.aim), sin = Math.sin(m.aim);
-  // A full draw is a power shot: your damage +1. Anything less barely scratches (often 0 early on).
+  const cos = Math.cos(m.aim), sin = Math.sin(m.aim), x = pos.x + cos * BOW.nock, y = pos.y + sin * BOW.nock;
+  // A full draw is a power shot: your damage +1. Anything less barely scratches, and a draw too weak
+  // to do any damage at all is a dud: the arrow flops out and drops to the ground, further the more you drew.
   const damage = power ? hero.damage + 1 : Math.floor(hero.damage * BOW.partialDamage * charge);
-  spawnArrow(g, pos.x + cos * BOW.nock, pos.y + sin * BOW.nock, cos * speed, sin * speed, BOW.arrowLife, damage, power);
+  if (damage < 1) {
+    const { minRange, maxRange, flightTime } = BOW.dud, speed = (minRange + (maxRange - minRange) * charge) / flightTime;
+    spawnArrow(g, x, y, cos * speed, sin * speed, flightTime, 0, false, true);
+  } else {
+    const speed = BOW.minSpeed + BOW.maxSpeedBonus * charge;
+    spawnArrow(g, x, y, cos * speed, sin * speed, BOW.arrowLife, damage, power);
+  }
   a.draw = null;
   a.cooldown = BOW.cooldown;
 }
 
-/** Arrows fly until they hit an enemy, run out of range, or sink into a tree. */
+/** Arrows fly until they hit an enemy, run out of range, or sink into a tree. Duds just drop to the ground. */
 export function arrowSystem(g: Game, dt: number): void {
   const w = g.world;
   for (const [e, { transform: p, arrow: a }] of w.query("arrow", "transform")) {
-    if (a.stuck > 0) {                                       // embedded in a tree for a moment
+    if (a.stuck > 0) {                                       // in a tree, or on the ground, for a moment
       a.stuck -= dt;
       if (a.stuck <= 0) w.destroy(e);
       continue;
     }
     p.x += a.vx * dt; p.y += a.vy * dt; a.life -= dt;
     if (tileAt(g.map, p.x + 4, p.y + 4) === Tile.Tree) { a.stuck = BOW.stuckTime; a.vx = a.vy = 0; continue; }
+    if (a.dud) {                                             // harmless: lands and lies there for a moment
+      if (a.life <= 0) { a.stuck = BOW.stuckTime; a.grounded = true; a.vx = a.vy = 0; }
+      continue;
+    }
     let hit = false;
     for (const [s, { transform: t }] of w.query("enemy", "transform")) {
       if (Math.hypot(t.x - p.x, t.y - p.y) >= BOW.hitRadius) continue;

@@ -46,6 +46,7 @@ describe("bow", () => {
 });
 
 describe("bow damage", () => {
+  /** Draw for drawTime, release, and return the arrow loosed (if any). */
   function shoot(g: Game, drawTime: number) {
     for (const [e] of g.world.query("arrow")) g.world.destroy(e);
     g.world.need(g.player, "actions").cooldown = 0;
@@ -53,18 +54,45 @@ describe("bow damage", () => {
     run(g, drawTime);
     g.input.attackReleased = true;
     step(g, DT);
-    return g.world.query("arrow")[0]![1].arrow;
+    return g.world.query("arrow")[0]?.[1].arrow ?? null;
   }
 
-  it("only a full draw does real damage", () => {
+  it("only a full draw does real damage; a weak draw's arrow just drops to the ground", () => {
     const g = playing();
     g.inventory.reset([makeItem("bow")]);
     const hero = g.world.need(g.player, "hero");
-    expect(shoot(g, 0.1).damage).toBe(0);                    // a quick shot at level 1: nothing
-    expect(shoot(g, BOW.drawTime + 0.05).damage).toBe(hero.damage + 1);
+    const dud = shoot(g, 0.1)!;                               // a quick shot at level 1
+    expect(dud.dud).toBe(true);
+    expect(dud.damage).toBe(0);
+    expect(shoot(g, BOW.drawTime + 0.05)?.damage).toBe(hero.damage + 1);
     hero.damage = 6;                                         // later, with gear and levels
-    expect(shoot(g, BOW.drawTime * 0.8).damage).toBeLessThanOrEqual(2);
-    expect(shoot(g, BOW.drawTime + 0.05).damage).toBe(7);
+    expect(shoot(g, BOW.drawTime * 0.8)?.damage).toBe(2);
+    expect(shoot(g, BOW.drawTime + 0.05)?.damage).toBe(7);
+  });
+
+  it("a dud lands further the more you drew, hurts nothing, then disappears", () => {
+    const g = playing();
+    g.inventory.reset([makeItem("bow")]);
+    const p = hero(g).pos, motion = hero(g).motion;
+    const landing = (drawTime: number) => {
+      motion.aim = 0;
+      const a = shoot(g, drawTime)!;
+      const [e] = g.world.query("arrow")[0]!;
+      run(g, BOW.dud.flightTime + 0.05);
+      expect(a.grounded).toBe(true);
+      return g.world.need(e, "transform").x - p.x;
+    };
+    const short = landing(0.05), long = landing(BOW.drawTime * 0.9);
+    expect(long).toBeGreaterThan(short + 15);
+    // Right in front of a slime: it lands without hurting it.
+    const slime = g.world.create({
+      transform: { x: p.x + 8, y: p.y }, knockback: { vx: 0, vy: 0 }, health: { hp: 3, maxHp: 3 },
+      enemy: { kind: "slime", flash: 0, face: 1 }, slime: { timer: 99, hop: 0, dx: 0, dy: 0 },
+    });
+    landing(0.3);
+    expect(g.world.need(slime, "health").hp).toBe(3);
+    run(g, BOW.stuckTime + 0.1);
+    expect(g.world.query("arrow")).toHaveLength(0);
   });
 });
 

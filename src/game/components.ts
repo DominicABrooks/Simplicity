@@ -170,8 +170,14 @@ export interface Arrow {
   life: number;
   damage: number;
   power: boolean;
-  /** Time left embedded in a tree. */
+  /** Time in the air, in total (for the drop of a dud's arc). */
+  flight: number;
+  /** Too weak to hurt: arcs down to the ground instead of flying true, and hits nothing. */
+  dud: boolean;
+  /** Time left embedded in a tree, or lying on the ground. */
   stuck: number;
+  /** It's lying on the ground (a dud that landed), not in a tree. */
+  grounded: boolean;
 }
 
 /** A mage's spell bolt in flight. */
