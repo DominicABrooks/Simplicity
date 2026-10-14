@@ -256,6 +256,8 @@ export function createView(canvas, PAL, C) {
 
   const toWorld = (x, y) => [(x + 4) / PX_PER_TILE, (y + 4) / PX_PER_TILE];
   const smooth = (cur, target, dt, k) => cur + (target - cur) * (1 - Math.exp(-dt * k));
+  // Turn an angle toward a target along the shortest way round.
+  const turn = (cur, target, dt, k) => cur + Math.atan2(Math.sin(target - cur), Math.cos(target - cur)) * (1 - Math.exp(-dt * k));
   let yaw = 0;
 
   function resize(pixelSize) {
@@ -275,8 +277,7 @@ export function createView(canvas, PAL, C) {
     hero.group.position.set(px, hz + swimY, pz);
     // Face the aim (locked to the swing direction mid-attack). Game angle a maps to yaw -a.
     const targetYaw = -(p.attack > 0 ? p.swingAim : p.aim);
-    const diff = Math.atan2(Math.sin(targetYaw - yaw), Math.cos(targetYaw - yaw));
-    yaw += diff * (1 - Math.exp(-dt * 18));
+    yaw = turn(yaw, targetYaw, dt, 18);
     hero.group.rotation.y = yaw;
     hero.group.visible = !(p.hurt > 0 && Math.floor(t * 16) % 2);
 
@@ -322,7 +323,9 @@ export function createView(canvas, PAL, C) {
       const [x, z] = toWorld(o.x, o.y);
       const hop = o.hop > 0 ? Math.sin((1 - o.hop / 0.3) * Math.PI) : 0;
       v.group.position.set(x, hop * 0.45, z);
-      v.group.rotation.y = o.face > 0 ? 0 : Math.PI;
+      const look = -Math.atan2(p.y - o.y, p.x - o.x);       // always face the hero
+      v.yaw = v.yaw === undefined ? look : turn(v.yaw, look, dt, 10);
+      v.group.rotation.y = v.yaw;
       const wob = Math.sin(t * 5 + o.x);
       v.body.scale.set(1 + (hop ? -0.12 : wob * 0.06), 1 + (hop ? 0.2 : -wob * 0.08), 1 + (hop ? -0.12 : wob * 0.06));
       v.mat.emissive.set(o.flash > 0 ? 0xffffff : 0x000000);
