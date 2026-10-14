@@ -365,10 +365,12 @@ the seal hatches with them, the crack opens, and the Gloom gets a straight path 
 
 Out past the stars, one of Umbrall's enormous eyes has started to open.
 
-The Ember, Frost and Storm mages in the Witchwood are Vael wardens, sent ahead to keep the cracks under
-the forest shut while the grown-ups decide what to do about Aurenmark. That's why the slimes are so
-stirred up: the Gloom is getting close. The mages would really rather just knock on the door of St Mary's
-and ask for the eggs back politely. They're not sure Aurenmark is a polite sort of place.
+The Ember, Frost and Storm mages in the Witchwood were Vael wardens, sent ahead to keep the cracks under
+the forest shut while the grown-ups decided what to do about Aurenmark. The Vael would really rather just
+knock on the door of St Mary's and ask for the eggs back politely. But the wardens held the cracks too
+long, and most of them have **gone grey**: Umbrall's eye looks out through theirs now, and what it wants is
+the eggs hatching right where they are. That's why the slimes are so stirred up, and why the mages attack
+anyone who comes near. (More in [HERO.md](HERO.md#the-mages-he-fights-the-greyed).)
 
 The Old Mother is waking up too. She can feel her eggs getting warm, and she's coming to collect them.
 She's very big and very grumpy before breakfast.
@@ -396,8 +398,7 @@ lately it keeps coming unlocked.
 Things the story leaves open for later:
 
 - **The wanderer.** A little Pebbling who wakes up in the Witchwood with nothing but a bark wrap, and who
-  the mages look an awful lot like. Newly woken? A mage who went grey and came back? Something Ael sent on
-  purpose?
+  the mages look an awful lot like. Something Ael sent on purpose, it turns out: see [HERO.md](HERO.md).
 - **The sheep.** An Ember mage's orb turns you into a sheep. Does Tam Appleby remember being Tam? (He
   certainly remembers liking turnips.)
 - **Three baby dragons.** Who looks after them when they hatch? They'll imprint on the first thing they see.

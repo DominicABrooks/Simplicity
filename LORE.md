@@ -5,7 +5,8 @@ the capital are in [`src/world/people.ts`](src/world/people.ts): the named famil
 customs and secrets, and the ordinary households that fill every other house the town kit builds. Each one
 is tied to a real house on the map. Their histories, loves, feuds, debts and the rumours about them are in
 [FAMILIES.md](FAMILIES.md). Where the world came from, what mages really are, and the kingdom's
-history back to the very beginning are in [HISTORY.md](HISTORY.md).
+history back to the very beginning are in [HISTORY.md](HISTORY.md). The hero, the Foreigner who comes up out
+of the Witchwood, and how the story ends, are in [HERO.md](HERO.md).
 
 ## The kingdom
 

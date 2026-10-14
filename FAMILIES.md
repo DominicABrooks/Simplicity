@@ -699,8 +699,8 @@ What the whole city is saying this autumn, in the Crown, at the well, and up the
 
 | The city says | Truth |
 |---|---|
-| There are witches in the Witchwood | **True.** Vael wardens, keeping the cracks shut. |
-| The witches are coming to burn the city | **False.** They're coming for three eggs. They'd rather knock. |
+| There are witches in the Witchwood | **True.** Vael wardens, sent to keep the cracks shut. Most of them have gone grey. |
+| The witches are coming to burn the city | **Half true.** The Vael want their eggs back and would rather knock. The greyed ones mean to burn St Mary's on Founder's Night. |
 | There's a dragon | **True.** She's waking up and she's hungry. |
 | The dragon eats people | **False.** She eats Gloom. And, before breakfast, anything that's in the way. |
 | The King has the Ranger locked up | **True.** And brings him cake. |
