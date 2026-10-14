@@ -16,6 +16,11 @@ export function combatText(g: Game, x: number, y: number, text: string, color: s
 /** Hit an enemy: 10% crits for double damage, with a flash, a number, and extra weight on crits. */
 export function hitEnemy(g: Game, e: Entity, damage: number): number {
   const health = g.world.need(e, "health"), enemy = g.world.need(e, "enemy"), at = g.world.need(e, "transform");
+  if (damage <= 0) {                                         // a glancing hit (a weak bow shot): no damage, no crit
+    enemy.flash = 0.15;
+    combatText(g, at.x, at.y, "0", COMBAT_COLORS.glance);
+    return 0;
+  }
   const crit = g.rng.next() < CRIT.chance;
   const dealt = crit ? damage * CRIT.multiplier : damage;
   health.hp -= dealt;

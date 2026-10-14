@@ -24,10 +24,12 @@ export const SWIPE = {
   arc: 1.25, reach: 20, sweepStart: 0.25, sweepEnd: 0.6,
 } as const;
 
-/** Bow: hold to draw (full power at drawTime), release to shoot. */
+/** Bow: hold to draw (full power at drawTime), release to shoot. Only a full draw hits hard. */
 export const BOW = {
   drawTime: 0.6, drawSlow: 0.45, arrowLife: 0.45, cooldown: 0.25, minSpeed: 110, maxSpeedBonus: 130,
   knock: 90,
+  /** A partial draw deals at most this share of your damage, scaled by the draw, rounded down. */
+  partialDamage: 0.5,
   stuckTime: 1.5,   // arrows sink into trees and stay there this long
   hitRadius: 5,     // px between cell positions
   nock: 5,          // arrows leave this far out from the hero's centre

@@ -1,5 +1,5 @@
 // The bow: press draws, release shoots along the aim. You can walk (slowly) while drawn. Speed, and
-// so range, grows with draw time; a full draw is a power shot with +1 damage. The bow never swings.
+// so range, grows with draw time. Only a full draw does real damage: a power shot with +1 damage. The bow never swings.
 import { BOW } from "../data/player.ts";
 import { Tile } from "../data/world.ts";
 import { hitEnemy, stagger } from "../game/combat.ts";
@@ -19,7 +19,9 @@ export function bowSystem(g: Game, dt: number): void {
   if (!input.attackReleased) return;
   const charge = Math.min(1, a.draw.t / BOW.drawTime), power = charge >= 1;
   const speed = BOW.minSpeed + BOW.maxSpeedBonus * charge, cos = Math.cos(m.aim), sin = Math.sin(m.aim);
-  spawnArrow(g, pos.x + cos * BOW.nock, pos.y + sin * BOW.nock, cos * speed, sin * speed, BOW.arrowLife, hero.damage + (power ? 1 : 0), power);
+  // A full draw is a power shot: your damage +1. Anything less barely scratches (often 0 early on).
+  const damage = power ? hero.damage + 1 : Math.floor(hero.damage * BOW.partialDamage * charge);
+  spawnArrow(g, pos.x + cos * BOW.nock, pos.y + sin * BOW.nock, cos * speed, sin * speed, BOW.arrowLife, damage, power);
   a.draw = null;
   a.cooldown = BOW.cooldown;
 }

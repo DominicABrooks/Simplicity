@@ -45,6 +45,29 @@ describe("bow", () => {
   });
 });
 
+describe("bow damage", () => {
+  function shoot(g: Game, drawTime: number) {
+    for (const [e] of g.world.query("arrow")) g.world.destroy(e);
+    g.world.need(g.player, "actions").cooldown = 0;
+    g.input.attackPressed = true;
+    run(g, drawTime);
+    g.input.attackReleased = true;
+    step(g, DT);
+    return g.world.query("arrow")[0]![1].arrow;
+  }
+
+  it("only a full draw does real damage", () => {
+    const g = playing();
+    g.inventory.reset([makeItem("bow")]);
+    const hero = g.world.need(g.player, "hero");
+    expect(shoot(g, 0.1).damage).toBe(0);                    // a quick shot at level 1: nothing
+    expect(shoot(g, BOW.drawTime + 0.05).damage).toBe(hero.damage + 1);
+    hero.damage = 6;                                         // later, with gear and levels
+    expect(shoot(g, BOW.drawTime * 0.8).damage).toBeLessThanOrEqual(2);
+    expect(shoot(g, BOW.drawTime + 0.05).damage).toBe(7);
+  });
+});
+
 describe("dash", () => {
   it("covers two tiles, then waits out its cooldown", () => {
     const g = playing();
