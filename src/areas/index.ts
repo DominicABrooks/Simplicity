@@ -2,7 +2,7 @@
 // bundled with the game; every other area is its own chunk, downloaded the first time you travel
 // there, so the game's size doesn't grow with the number of areas.
 import type { AreaDef } from "../world/area.ts";
-import { area as home } from "./greenhollow.ts";
+import { area as home } from "./witchwood.ts";
 
 interface AreaModule {
   area: AreaDef;
@@ -11,7 +11,7 @@ interface AreaModule {
 /** Where every run starts. */
 export const HOME = home;
 
-const lazy = import.meta.glob<AreaModule>(["./*.ts", "!./index.ts", "!./greenhollow.ts"]);
+const lazy = import.meta.glob<AreaModule>(["./*.ts", "!./index.ts", "!./witchwood.ts"]);
 const idOf = (path: string) => path.slice("./".length, -".ts".length);
 
 /** Every area's id. Cheap: nothing is loaded to list them. */

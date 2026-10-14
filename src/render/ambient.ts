@@ -56,7 +56,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
     const tx = Math.floor(x), tz = Math.floor(z);
     return !map || tx < 0 || tz < 0 || tx >= W || tz >= H ? Tile.Tree : map.tiles[tz]![tx]!;
   };
-  const isLand = (x: number, z: number) => { const t = tile(x, z); return t === Tile.Grass || t === Tile.Flower || t === Tile.Path; };
+  const isLand = (x: number, z: number) => { const t = tile(x, z); return t === Tile.Grass || t === Tile.Flower || t === Tile.Path || t === Tile.Cobble; };
   const isWater = (x: number, z: number) => tile(x, z) === Tile.Water;
 
   // Instanced static decor.

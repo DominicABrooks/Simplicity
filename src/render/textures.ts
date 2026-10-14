@@ -13,6 +13,14 @@ export interface Textures {
   leaf: THREE.CanvasTexture;
   /** Trodden earth, for paths. */
   path: THREE.CanvasTexture;
+  /** Paving stones, for city streets. */
+  cobble: THREE.CanvasTexture;
+  /** Dressed stone blocks, for city walls, towers and the keep. */
+  stone: THREE.CanvasTexture;
+  /** Whitewashed plaster in a dark timber frame, for houses. */
+  timber: THREE.CanvasTexture;
+  /** Rows of overlapping shingles, light grey: a roof's material colour tints it. */
+  shingles: THREE.CanvasTexture;
   /** Gear cloth: vertical folds, trim along the hem. Tiers decide the colours. */
   cloth(tier: TierName): THREE.CanvasTexture;
   mantle(tier: TierName): THREE.CanvasTexture;
@@ -77,6 +85,40 @@ export function createTextures(): Textures {
     dots(g, 0, 32, 32, "#a8875c", 18, 1, 1);                 // dry earth
     dots(g, 0, 31, 31, PAL.w, 7, 1, 1);                      // pebbles
   }, true);
+  const cobble = paint(16, 16, g => {
+    g.fillStyle = "#6b655f"; g.fillRect(0, 0, 16, 16);       // mortar
+    for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+      const x = col * 4 + (row % 2 ? 2 : 0), y = row * 4;
+      g.fillStyle = ["#9d968a", "#8a8378", "#a8a196", "#928b80"][Math.floor(rand() * 4)]!;
+      g.fillRect(x % 16, y, 3, 3);
+      if (x + 3 > 16) g.fillRect(0, y, (x + 3) % 16, 3);
+    }
+    dots(g, 0, 16, 16, "#b8b1a4", 6, 1, 1);
+  }, true);
+  const stone = paint(16, 16, g => {
+    g.fillStyle = "#77706a"; g.fillRect(0, 0, 16, 16);       // mortar
+    for (let row = 0; row < 4; row++) for (let col = -1; col < 2; col++) {
+      g.fillStyle = ["#9d968a", "#8a8378", "#a39c90"][Math.floor(rand() * 3)]!;
+      g.fillRect(col * 8 + (row % 2 ? 4 : 0) + 1, row * 4 + 1, 7, 3);
+    }
+  }, true);
+  const timber = paint(16, 16, g => {
+    g.fillStyle = "#e6dcc4"; g.fillRect(0, 0, 16, 16);       // plaster
+    dots(g, 0, 16, 16, "#d4c8ac", 10, 1, 1);
+    g.fillStyle = "#5a3826";                                  // the frame: posts, a rail and a brace
+    g.fillRect(0, 0, 2, 16); g.fillRect(8, 0, 2, 16); g.fillRect(0, 7, 16, 2);
+    for (let i = 0; i < 6; i++) g.fillRect(10 + i, 6 - i, 1, 1);
+  }, true);
+  const shingles = paint(16, 16, g => {
+    g.fillStyle = "#d8d8d8"; g.fillRect(0, 0, 16, 16);
+    for (let row = 0; row < 4; row++) {
+      const y = row * 4;
+      g.fillStyle = "#8c8c8c"; g.fillRect(0, y + 3, 16, 1);  // the shadow under each row
+      g.fillStyle = "#eeeeee"; g.fillRect(0, y, 16, 1);      // its lit top edge
+      g.fillStyle = "#a6a6a6";                               // the gaps between shingles, staggered
+      for (let x = (row % 2) * 2; x < 16; x += 4) g.fillRect(x, y + 1, 1, 2);
+    }
+  }, true);
 
   const cache = new Map<string, THREE.CanvasTexture>();
   const cached = (key: string, make: () => THREE.CanvasTexture) => {
@@ -86,7 +128,7 @@ export function createTextures(): Textures {
   };
 
   return {
-    grass, flower, water, earth, bark, leaf, path,
+    grass, flower, water, earth, bark, leaf, path, cobble, stone, timber, shingles,
     cloth: tier => cached(`cloth/${tier}`, () => paint(16, 16, g => {
       const T = TIERS[tier];
       g.fillStyle = T.cloth; g.fillRect(0, 0, 16, 16);

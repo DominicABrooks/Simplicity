@@ -14,6 +14,12 @@ export interface Rect {
 /** A campfire as a target: neutral, a yellow ring. */
 export const CAMPFIRE_TARGET = { name: "Campfire", radius: 5, height: 0.6 } as const;
 
-/** Ground tiles. Path is trodden earth: open ground like grass, drawn as dirt. */
-export const Tile = { Grass: 0, Flower: 1, Water: 2, Tree: 3, Path: 4 } as const;
+/**
+ * Ground tiles. Path is trodden earth and Cobble is a paved street: open ground like grass. Wall is
+ * anything built (a house, a city wall, a fountain): it blocks movement like a tree, and a prop draws it.
+ */
+export const Tile = { Grass: 0, Flower: 1, Water: 2, Tree: 3, Path: 4, Cobble: 5, Wall: 6 } as const;
 export type Tile = (typeof Tile)[keyof typeof Tile];
+
+/** Trees and buildings: nothing walks, spawns or flies through them. */
+export const isSolidTile = (t: Tile): boolean => t === Tile.Tree || t === Tile.Wall;

@@ -1,7 +1,7 @@
 // The bow: press draws, release shoots along the aim. You can walk (slowly) while drawn. Speed, and
 // so range, grows with draw time. Only a full draw does real damage: a power shot with +1 damage. The bow never swings.
 import { BOW } from "../data/player.ts";
-import { Tile } from "../data/world.ts";
+import { isSolidTile } from "../data/world.ts";
 import { COMBAT_COLORS } from "../data/ui.ts";
 import { combatText, hitEnemy, stagger } from "../game/combat.ts";
 import type { Arrow, Transform } from "../game/components.ts";
@@ -45,7 +45,7 @@ export function arrowSystem(g: Game, dt: number): void {
       continue;
     }
     p.x += a.vx * dt; p.y += a.vy * dt; a.life -= dt;
-    if (tileAt(g.map, p.x + 4, p.y + 4) === Tile.Tree) { a.stuck = BOW.stuckTime; a.vx = a.vy = 0; continue; }
+    if (isSolidTile(tileAt(g.map, p.x + 4, p.y + 4))) { a.stuck = BOW.stuckTime; a.vx = a.vy = 0; continue; }
     if (a.dud) {                                             // harmless: glances off enemies, lands, lies there a moment
       if (!a.bounced) glanceOffEnemy(g, p, a);
       if (a.life <= 0) { a.stuck = BOW.stuckTime; a.grounded = true; a.vx = a.vy = 0; }

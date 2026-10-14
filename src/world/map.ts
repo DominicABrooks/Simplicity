@@ -1,4 +1,4 @@
-import { Tile, type Rect } from "../data/world.ts";
+import { Tile, isSolidTile, type Rect } from "../data/world.ts";
 
 /** The tile grid, indexed [y][x]. */
 export interface TileMap {
@@ -13,9 +13,9 @@ export const tileOf = (map: TileMap, tx: number, ty: number): Tile =>
   tx < 0 || ty < 0 || tx >= map.width || ty >= map.height ? Tile.Tree : map.tiles[ty]![tx]!;
 
 /** Ground you can walk on and things can spawn on (not trees or water). */
-export const isOpenGround = (t: Tile): boolean => t === Tile.Grass || t === Tile.Flower || t === Tile.Path;
+export const isOpenGround = (t: Tile): boolean => t === Tile.Grass || t === Tile.Flower || t === Tile.Path || t === Tile.Cobble;
 
-/** Every non-tree tile reachable from (tx, ty) by stepping up, down, left or right. Keys are y * width + x. */
+/** Every non-solid tile reachable from (tx, ty) by stepping up, down, left or right. Keys are y * width + x. */
 export function reachableFrom(map: TileMap, tx: number, ty: number): Set<number> {
   const seen = new Set([ty * map.width + tx]);
   const queue: [number, number][] = [[tx, ty]];
@@ -23,7 +23,7 @@ export function reachableFrom(map: TileMap, tx: number, ty: number): Set<number>
     const [x, y] = queue.pop()!;
     for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as [number, number][]) {
       const k = ny * map.width + nx;
-      if (seen.has(k) || nx < 0 || ny < 0 || nx >= map.width || ny >= map.height || map.tiles[ny]![nx] === Tile.Tree) continue;
+      if (seen.has(k) || nx < 0 || ny < 0 || nx >= map.width || ny >= map.height || isSolidTile(map.tiles[ny]![nx]!)) continue;
       seen.add(k);
       queue.push([nx, ny]);
     }

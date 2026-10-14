@@ -100,6 +100,11 @@ The world is a graph of **areas** joined by **exits** (caves, for now). Each are
   (a camp, a cave mouth). It must be deterministic.
 - `life` says what lives there (enemies, potions, critters and decor). Leave it out for an empty area.
 
+Props are data too: each kind (a camp, a cave, a city wall, a house, a keep, a fountain, a market
+stall, a lamp) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built stands on
+`Wall` tiles, which block movement like trees, so collision stays a tile lookup however many buildings
+an area has. A new kind of building is a `Prop` variant plus one builder.
+
 Built to scale to thousands of areas:
 
 - **Only one area is ever built.** `enterArea()` (`src/game/travel.ts`) destroys every entity but the
@@ -154,8 +159,8 @@ mapping in `ICON_SWAPS` (`src/data/tiers.ts`). If it's worn, dress it in `dressB
 `src/data/enemies.ts`, then handle its release in `releaseSpell()` in `src/systems/mage.ts`. Bolts reuse the
 `bolt` component; a new ground effect is an entity with its own component, system and view.
 
-**Add an area.** Make `src/areas/<id>.ts` exporting `area: AreaDef` (copy `uncharted.ts` for an empty
-one). Give it entries, and exits that point at other areas' entries, and add the matching exits there.
+**Add an area.** Make `src/areas/<id>.ts` exporting `area: AreaDef` (see `capital.ts` for a hand-laid town
+built from props). Give it entries, and exits that point at other areas' entries, and add the matching exits there.
 `npm test` checks every link. Nothing else needs registering.
 
 **Add a system.** Write `(g: Game, dt: number) => void`, put it in the list in `src/systems/index.ts` at the

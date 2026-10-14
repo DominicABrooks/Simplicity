@@ -36,7 +36,7 @@ WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space
 
 **Map:** press M (or the map button) for a parchment map of the area you're in, showing where you are and which way you're facing, the camp and the caves.
 
-**Areas:** a dirt path leads north from the camp through the woods to a cave. Walk in to travel to the land beyond (blank for now), and back through it to return. Your gear and level go with you; each area keeps its own creatures.
+**Areas:** you start in **Witchwood**. A dirt path leads north from the camp through the woods to a cave; walk in to come out below the walls of **Capital City**, a walled town with a gatehouse, timber-framed houses, a market plaza with a fountain, and a keep. Nothing hostile lives in the city. Walk back into the cave to return. Your gear and level go with you; each area keeps its own creatures.
 
 **Journal (coming soon):** greyed out on the menu bar for now; it's built and switched off in `src/data/features.ts`. A bestiary of every enemy. Each starts as a black silhouette; kill one and its page fills in with its portrait, a little about it, its health, experience, abilities and drops, and how many you've defeated. Your discoveries are saved in the browser and kept across runs. The book button glows when there's a new entry.
 

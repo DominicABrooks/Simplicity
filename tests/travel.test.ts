@@ -39,15 +39,15 @@ describe("travel", () => {
     enterArea(g, HOME, "cave");
     walkNorth(g);
     expect(g.state).toBe("travel");
-    expect(g.travel).toEqual({ area: "uncharted", entry: "cave" });
+    expect(g.travel).toEqual({ area: "capital", entry: "cave" });
     // The world holds still while the next area loads.
     const before = { ...g.world.need(g.player, "transform") };
     step(g, DT);
     expect(g.world.need(g.player, "transform")).toEqual(before);
 
-    arrive(g, await loadArea("uncharted"));
+    arrive(g, await loadArea("capital"));
     expect(g.state).toBe("play");
-    expect(g.area.def.id).toBe("uncharted");
+    expect(g.area.def.id).toBe("capital");
     expect(g.world.need(g.player, "transform")).toEqual(g.area.layout.entries.cave);
     expect(g.world.need(g.player, "hero").level).toBe(4);
     expect(g.inventory.equip.weapon?.rarity).toBe("rare");
@@ -55,7 +55,7 @@ describe("travel", () => {
 
   it("the new area is empty, and stays empty", async () => {
     const g = playing();
-    enterArea(g, await loadArea("uncharted"), "cave");
+    enterArea(g, await loadArea("capital"), "cave");
     expect(g.world.entities()).toEqual([g.player]);
     for (let t = 0; t < 10; t += DT) step(g, DT);           // long enough for several spawn ticks
     expect(g.world.count("enemy")).toBe(0);
@@ -63,15 +63,15 @@ describe("travel", () => {
 
   it("leaving an area clears it, and coming back fills it again", async () => {
     const g = playing();
-    const uncharted = await loadArea("uncharted");
-    enterArea(g, uncharted, "cave");
+    const capital = await loadArea("capital");
+    enterArea(g, capital, "cave");
     // Walk back south into the cave.
     g.input.keys.add("s");
     for (let t = 0; t < 3 && g.state === "play"; t += DT) step(g, DT);
     g.input.keys.clear();
-    expect(g.travel).toEqual({ area: "greenhollow", entry: "cave" });
+    expect(g.travel).toEqual({ area: "witchwood", entry: "cave" });
     arrive(g, HOME);
-    expect(g.area.def.id).toBe("greenhollow");
+    expect(g.area.def.id).toBe("witchwood");
     expect(g.world.count("enemy")).toBeGreaterThan(0);
   });
 

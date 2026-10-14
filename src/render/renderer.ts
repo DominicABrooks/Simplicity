@@ -6,8 +6,6 @@ import { PAL } from "../data/palette.ts";
 import { HALF } from "../data/world.ts";
 import type { Game } from "../game/game.ts";
 import { createAmbient } from "./ambient.ts";
-import { buildCamp, type Camp } from "./camp.ts";
-import { buildCave } from "./cave.ts";
 import { disposeTree } from "./dispose.ts";
 import { PX_PER_TILE, createContext, toWorld } from "./context.ts";
 import { createFishingView } from "./fishing.ts";
@@ -15,6 +13,7 @@ import { createFxView } from "./fx.ts";
 import { createHeroView } from "./hero.ts";
 import { createKoiPond } from "./koi.ts";
 import type { Projector } from "./projector.ts";
+import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
 import { buildTerrain } from "./terrain.ts";
@@ -57,7 +56,8 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const fx = createFxView(ctx);
   const hero = createHeroView(ctx);
   const renderEntities = createRenderSystem(ctx);
-  let camp: Camp | null = null;
+  /** Per-frame updates of the current area's animated props (a campfire's flames, a keep's flags). */
+  let animated: ((t: number, dt: number) => void)[] = [];
   const targetRing = createTargetRing(ctx);
 
   // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
@@ -70,11 +70,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     scenery = new THREE.Group();
     world.add(scenery);
     scenery.add(buildTerrain(ctx, layout.map));
-    camp = null;
-    for (const prop of layout.props) {
-      if (prop.kind === "camp") camp = buildCamp(ctx, scenery, prop);
-      else buildCave(ctx, scenery, prop);
-    }
+    animated = layout.props.map(prop => buildProp(ctx, scenery, prop)).filter(u => u !== null);
     koi.setMap(layout.map);
     ambient.setMap(layout.map, !!def.life?.ambient);
     const p = g.world.need(g.player, "transform");
@@ -104,7 +100,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       const bobber = fishing.update(hero.body, pos, g.world.need(g.player, "actions"), t);
       koi.update(dt, t, px, pz, bobber);
       ambient.update(dt, t, px, pz);
-      camp?.update(t, dt);
+      for (const update of animated) update(t, dt);
       targetRing.update(g, t);
 
       // World animation and camera.

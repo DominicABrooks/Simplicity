@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CAMP_SOLIDS, SPAWN, buildMap } from "../src/areas/greenhollow.ts";
+import { CAMP_SOLIDS, SPAWN, buildMap } from "../src/areas/witchwood.ts";
 import { T, Tile } from "../src/data/world.ts";
 import { blocked } from "../src/world/collision.ts";
 import { isOpenGround, reachableFrom } from "../src/world/map.ts";
 
-describe("Greenhollow's map", () => {
+describe("Witchwood's map", () => {
   const map = buildMap();
 
   it("matches the fixture tile for tile (the original world, plus the path to the cave)", () => {

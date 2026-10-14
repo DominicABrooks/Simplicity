@@ -14,6 +14,8 @@ const INK = {
   ground: "#cbc493",
   groundDot: "#bdb682",
   path: "#b39a6a",
+  cobble: "#c9c0a8",
+  wall: "#7d7466",
   water: "#86a7c4",
   shore: "#5f7fa0",
   tree: "#7d8f5a",
@@ -55,6 +57,12 @@ function drawTerrain(c: HTMLCanvasElement, map: TileMap): void {
       g.fillRect(px, py, S, S);
       g.fillStyle = INK.treeDot;                             // a scatter of canopy dots
       g.fillRect(px + Math.floor(hash(x, y) * S), py + Math.floor(hash(y, x) * S), 1, 1);
+    } else if (t === Tile.Wall) {
+      g.fillStyle = INK.wall;
+      g.fillRect(px, py, S, S);
+    } else if (t === Tile.Cobble) {
+      g.fillStyle = INK.cobble;
+      g.fillRect(px, py, S, S);
     } else if (t === Tile.Path) {
       g.fillStyle = INK.path;
       g.fillRect(px, py, S, S);
@@ -113,7 +121,7 @@ export function createMapView(g: Game): MapView {
         const [fx, fy] = toMap(prop.fire.x, prop.fire.y);
         mg.fillStyle = PAL.K; mg.fillRect(Math.round(fx) - 2, Math.round(fy) - 2, 4, 4);
         mg.fillStyle = PAL.O; mg.fillRect(Math.round(fx) - 1, Math.round(fy) - 1, 2, 2);
-      } else {
+      } else if (prop.kind === "cave") {
         // A cave: a dark arch in a grey rock.
         const cx = (prop.x / T) * S, cy = Math.min(marks.height - 3, Math.max(3, (prop.y / T) * S));
         shape([[cx - 5, cy + 2], [cx - 4, cy - 3], [cx, cy - 5], [cx + 4, cy - 3], [cx + 5, cy + 2]], "#8a8378");

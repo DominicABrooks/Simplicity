@@ -1,5 +1,6 @@
-// Greenhollow: the forest clearing you start in. A camp by the spawn, a lake, a pond and a river, and
-// a dirt path from the camp north through the woods to a cave in the mountains.
+// Witchwood: the forest clearing you start in. A camp by the spawn, a lake, a pond and a river, and
+// a dirt path from the camp north through the woods to a cave in the mountains, which leads up to
+// the capital.
 import { Rng } from "../core/rng.ts";
 import { HALF, T, Tile, type Rect } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
@@ -103,7 +104,7 @@ function build(): AreaLayout {
       // Coming back down through the cave: a couple of steps south of its mouth.
       cave: { x: CAVE_X - HALF, y: 2 * T },
     },
-    exits: [{ rect: { x: CAVE_X - T, y: 0, w: 2 * T, h: 6 }, to: { area: "uncharted", entry: "cave" } }],
+    exits: [{ rect: { x: CAVE_X - T, y: 0, w: 2 * T, h: 6 }, to: { area: "capital", entry: "cave" } }],
     props: [
       { kind: "camp", ...CAMP },
       { kind: "cave", x: CAVE_X, y: 0, facing: "south" },
@@ -112,8 +113,8 @@ function build(): AreaLayout {
 }
 
 export const area: AreaDef = {
-  id: "greenhollow",
-  name: "Greenhollow",
+  id: "witchwood",
+  name: "Witchwood",
   build,
   life: { enemies: true, potions: true, ambient: true },
 };

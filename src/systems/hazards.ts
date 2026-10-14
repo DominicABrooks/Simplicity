@@ -1,6 +1,6 @@
 // Mage spells in the world: bolts in flight (curving after you) and lightning strikes waiting to land.
 import { SPELLS, type BoltKind } from "../data/enemies.ts";
-import { Tile } from "../data/world.ts";
+import { isSolidTile } from "../data/world.ts";
 import { angleDiff, clamp } from "../core/math.ts";
 import type { Bolt } from "../game/components.ts";
 import { damagePlayer, polymorph } from "../game/combat.ts";
@@ -33,7 +33,7 @@ export function boltSystem(g: Game, dt: number): void {
   for (const [e, { transform: f, bolt }] of w.query("bolt", "transform")) {
     steer(bolt, f, p, dt);
     f.x += bolt.vx * dt; f.y += bolt.vy * dt; bolt.life -= dt;
-    if (tileAt(g.map, f.x + 4, f.y + 4) === Tile.Tree) bolt.life = 0;
+    if (isSolidTile(tileAt(g.map, f.x + 4, f.y + 4))) bolt.life = 0;
     else if (status.hurt <= 0 && motion.dash <= 0 && motion.jump <= 0 && Math.hypot(p.x - f.x, p.y - f.y) < BOLT_HIT) {
       if (bolt.kind === "poly") polymorph(g);
       else {

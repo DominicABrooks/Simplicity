@@ -33,7 +33,21 @@ export type Prop =
       y: number;
       /** The way the opening faces (and you walk in from the opposite side of it). */
       facing: "north" | "south";
-    };
+    }
+  // Town buildings. Rects and points are game px; their footprints should be Wall tiles in the map.
+  | {
+      kind: "cityWall";
+      /** The outer edge of the wall (a ring one tile thick), with round towers at the corners. */
+      rect: Rect;
+      /** The gap for the gate in the south side, flanked by the gatehouse towers. */
+      gate: { x: number; w: number };
+    }
+  | { kind: "house"; rect: Rect; roof: string }
+  | { kind: "keep"; rect: Rect }
+  | { kind: "fountain"; x: number; y: number }
+  | { kind: "stall"; rect: Rect; awning: string }
+  /** A street lamp (not solid: you walk past it). */
+  | { kind: "lamp"; x: number; y: number };
 
 /** Everything about an area's ground, built once (deterministically) when you enter it. */
 export interface AreaLayout {

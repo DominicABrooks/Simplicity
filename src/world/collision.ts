@@ -1,5 +1,5 @@
 import type { Rng } from "../core/rng.ts";
-import { T, Tile } from "../data/world.ts";
+import { T, Tile, isSolidTile } from "../data/world.ts";
 import { isOpenGround, tileOf, type TileMap } from "./map.ts";
 
 export interface Point {
@@ -18,7 +18,7 @@ export const hitsSolid = (map: TileMap, x: number, y: number): boolean =>
 export function blocked(map: TileMap, x: number, y: number, blocksWater: boolean): boolean {
   for (const [px, py] of [[x + 1, y + 4], [x + 6.99, y + 4], [x + 1, y + 7.99], [x + 6.99, y + 7.99]] as const) {
     const t = tileAt(map, px, py);
-    if (t === Tile.Tree || (blocksWater && t === Tile.Water)) return true;
+    if (isSolidTile(t) || (blocksWater && t === Tile.Water)) return true;
   }
   return hitsSolid(map, x, y);
 }

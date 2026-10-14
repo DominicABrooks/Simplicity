@@ -2,7 +2,7 @@
 // and earthen banks, a ring of mountains past the map edge, instanced trees and undergrowth.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
-import { Tile } from "../data/world.ts";
+import { Tile, isSolidTile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
 import { BED_Y, WATER_Y, type RenderContext } from "./context.ts";
 
@@ -29,7 +29,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
   const { lambert, tex } = ctx, world = new THREE.Group();
   const { width: W, height: H, tiles } = map;
   const isWater = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y]![x] === Tile.Water;
-  const paths: Quad[] = [], ground: Quad[] = [], flowers: Quad[] = [], water: Quad[] = [], bed: Quad[] = [], shore: Quad[] = [], trees: [number, number][] = [];
+  const paths: Quad[] = [], cobbles: Quad[] = [], ground: Quad[] = [], flowers: Quad[] = [], water: Quad[] = [], bed: Quad[] = [], shore: Quad[] = [], trees: [number, number][] = [];
   const unitUV: [number, number][] = [[0, 0], [0, 1], [1, 1], [1, 0]];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = tiles[y]![x]!;
@@ -48,6 +48,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
       });
     } else {
       if (t === Tile.Path) paths.push({ p: corners(0), uv: worldUV(4) });
+      else if (t === Tile.Cobble || t === Tile.Wall) cobbles.push({ p: corners(0), uv: worldUV(2) });   // paving, under buildings too
       else ground.push({ p: corners(0), uv: worldUV(4) });
       if (t === Tile.Flower) flowers.push({ p: corners(0.01), uv: unitUV });
       if (t === Tile.Tree) trees.push([x + 0.5, y + 0.5]);
@@ -56,12 +57,13 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
   const side = { side: THREE.DoubleSide };
   world.add(new THREE.Mesh(quadGeometry(ground), lambert("#ffffff", { map: tex.grass, ...side })));
   world.add(new THREE.Mesh(quadGeometry(paths), lambert("#ffffff", { map: tex.path, ...side })));
+  world.add(new THREE.Mesh(quadGeometry(cobbles), lambert("#ffffff", { map: tex.cobble, ...side })));
   world.add(new THREE.Mesh(quadGeometry(flowers), lambert("#ffffff", { map: tex.flower, alphaTest: 0.5, ...side })));
   world.add(new THREE.Mesh(quadGeometry(bed), lambert(PAL.b, side)));
   world.add(new THREE.Mesh(quadGeometry(shore), lambert("#ffffff", { map: tex.earth, ...side })));
   world.add(new THREE.Mesh(quadGeometry(water), lambert("#ffffff", { map: tex.water, transparent: true, opacity: 0.62, ...side })));
 
-  const walkable = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y]![x] !== Tile.Tree;
+  const walkable = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && !isSolidTile(tiles[y]![x]!);
 
   // Mountains ring the world beyond the map edge: flat at the edge (meeting the ground), rising
   // gently through foothills and then into faceted ridges and snowy peaks. Kept low for the first
