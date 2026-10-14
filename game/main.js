@@ -242,7 +242,7 @@ function setState(s) {
 
 // ---------- Update ----------
 const PLAYER_SPEED = 42, SWIM_SPEED = 24, JUMP_TIME = 0.45, ATTACK_TIME = 0.3;
-const DASH_TIME = 0.12, DASH_SPEED = 160, DASH_COOLDOWN = 0.6;   // ~19px, about 2.4 tiles, in a quick burst
+const DASH_TIME = 0.12, DASH_SPEED = 110, DASH_COOLDOWN = 0.6;   // ~13px, about 1.6 tiles, in a quick burst
 const CAST_TIME = 0.4, BITE_WINDOW = 0.9, CAST_MIN = 10, CAST_MAX = 40;   // reach: about 5 tiles
 // Bow: hold to draw (full power at DRAW_TIME), release to shoot. Drawn, you move at DRAW_SLOW speed.
 const DRAW_TIME = 0.6, DRAW_SLOW = 0.45, ARROW_LIFE = 0.45, BOW_COOLDOWN = 0.25;
