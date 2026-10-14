@@ -13,6 +13,7 @@ import { createFxView } from "./fx.ts";
 import { createHeroView } from "./hero.ts";
 import { createKoiPond } from "./koi.ts";
 import type { Projector } from "./projector.ts";
+import { createOcclusion } from "./occlusion.ts";
 import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
@@ -58,6 +59,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const renderEntities = createRenderSystem(ctx);
   /** Per-frame updates of the current area's animated props (a campfire's flames, a keep's flags). */
   let animated: ((t: number, dt: number) => void)[] = [];
+  const occlusion = createOcclusion();
   const targetRing = createTargetRing(ctx);
 
   // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
@@ -70,7 +72,9 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     scenery = new THREE.Group();
     world.add(scenery);
     scenery.add(buildTerrain(ctx, layout.map));
-    animated = layout.props.map(prop => buildProp(ctx, scenery, prop)).filter(u => u !== null);
+    const built = layout.props.map(prop => buildProp(ctx, scenery, prop));
+    animated = built.flatMap(b => (b.update ? [b.update] : []));
+    occlusion.set(built.flatMap(b => b.occluders));
     koi.setMap(layout.map);
     ambient.setMap(layout.map, !!def.life?.ambient);
     const p = g.world.need(g.player, "transform");
@@ -101,6 +105,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       koi.update(dt, t, px, pz, bobber);
       ambient.update(dt, t, px, pz);
       for (const update of animated) update(t, dt);
+      occlusion.update(px, pz, CAM_OFFSET, dt);
       targetRing.update(g, t);
 
       // World animation and camera.

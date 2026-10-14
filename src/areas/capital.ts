@@ -38,7 +38,7 @@ const HOUSES: [TileRect, Roof, Roof][] = [
   [[13, 24, 3, 2], "moss", "clay"],
   [[17, 24, 4, 2], "slate", "straw"],
 ];
-const KEEP: TileRect = [19, 5, 10, 5];
+const KEEP: TileRect = [18, 4, 12, 7];
 const FOUNTAIN: TileRect = [23, 16, 2, 2];
 /** Market stalls around the plaza, with their awnings' colours. */
 const STALLS: [TileRect, string][] = [

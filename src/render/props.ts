@@ -6,10 +6,11 @@ import type { Prop } from "../world/area.ts";
 import { buildCamp } from "./camp.ts";
 import { buildCave } from "./cave.ts";
 import type { RenderContext } from "./context.ts";
+import type { Occluder } from "./occlusion.ts";
 import { buildCityWall, buildFountain, buildHouse, buildKeep, buildLamp, buildStall } from "./town.ts";
 
-/** What a built prop needs every frame, if it animates. */
-export type PropView = { update?(t: number, dt: number): void } | void;
+/** What a built prop gives back: a per-frame update if it animates, and occluders if it's tall. */
+export type PropView = { update?(t: number, dt: number): void; occluders?: Occluder[] } | void;
 
 type Builder<K extends Prop["kind"]> = (ctx: RenderContext, parent: THREE.Group, prop: Extract<Prop, { kind: K }>) => PropView;
 
@@ -24,8 +25,8 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   lamp: buildLamp,
 };
 
-/** Build one prop; returns its per-frame update, if it has one. */
-export function buildProp(ctx: RenderContext, parent: THREE.Group, prop: Prop): ((t: number, dt: number) => void) | null {
+/** Build one prop; returns its per-frame update (if it animates) and occluders (if it's tall). */
+export function buildProp(ctx: RenderContext, parent: THREE.Group, prop: Prop): { update: ((t: number, dt: number) => void) | null; occluders: Occluder[] } {
   const view = (PROP_BUILDERS[prop.kind] as Builder<Prop["kind"]>)(ctx, parent, prop as never);
-  return view && view.update ? view.update.bind(view) : null;
+  return { update: view && view.update ? view.update.bind(view) : null, occluders: (view && view.occluders) || [] };
 }
