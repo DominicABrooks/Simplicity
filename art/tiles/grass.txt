@@ -1,0 +1,22 @@
+# Grass: ground tile. Pine base keeps the ground dark so outlined sprites pop.
+!tile
+
+@a 1000
+vvvvvvvv
+vvvGvvvv
+vvvvvvvv
+vGvvvvvv
+vvvvvvGv
+vvvvvvvv
+vvvvGvvv
+vvvvvvvv
+
+@flower 1000
+vvvvvvvv
+vvvvvvvv
+vvYvvvvv
+vYWYvvGv
+vvYvvvvv
+vvvvvvvv
+vGvvvvvv
+vvvvvvvv

@@ -18,6 +18,12 @@ Simplicity is a fantasy RPG drawn as tiny, readable icons. Every sprite should r
 - Leave at least one empty pixel between a sprite and anything you don't want outlined as a separate shape.
 - Water and other effect colours marked `nooutline` in the palette stay soft-edged.
 
+## Tiles
+
+- Ground tiles (`!tile` in the sprite file) fill the whole 8×8 cell and are **never outlined**.
+- Ground stays dark and quiet: a `pine` base with a few `moss` flecks. Bright colours are reserved for things you can interact with.
+- Obstacles like trees are ordinary outlined sprites drawn on top of a ground tile, and they fill their cell so collision matches the art.
+
 ## Palette
 
 16 colours, defined in [`palette/simplicity.txt`](palette/simplicity.txt). Never use a colour that isn't in the palette. If a new colour seems necessary, add it to the palette first and justify it.

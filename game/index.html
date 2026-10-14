@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simplicity</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #14101e; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  .hud { position: fixed; top: 12px; right: 16px; color: #f2ead8; font: bold 16px ui-monospace, Consolas, monospace; text-shadow: 2px 2px 0 #14101e; }
+  .overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgb(20 16 30 / 0.72); color: #f2ead8; font: 16px/1.8 ui-monospace, Consolas, monospace; text-align: center; }
+  .overlay[hidden] { display: none; }
+  .overlay h1 { font-size: 40px; letter-spacing: 0.2em; margin: 0 0 12px; color: #f5d562; }
+  .overlay p { margin: 0; }
+  .overlay .keys { color: #b8ad9c; margin-top: 16px; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div class="hud" id="hud"></div>
+<div class="overlay" id="overlay">
+  <div>
+    <h1>SIMPLICITY</h1>
+    <p id="message">Press any key to begin</p>
+    <p class="keys">WASD / arrows: move &nbsp; Space: jump &nbsp; J / click: attack</p>
+  </div>
+</div>
+<script src="sprites.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

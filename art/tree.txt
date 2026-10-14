@@ -1,0 +1,11 @@
+# Tree: solid prop. Fills its tile so collision matches the art.
+
+@idle 1000
+..GGG...
+.GGGGGv.
+GGGGGGvv
+GGGGGvvv
+.GGvvvv.
+..vvvv..
+...nn...
+...nn...
