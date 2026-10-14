@@ -4,7 +4,7 @@ import type { Entity } from "../src/core/ecs.ts";
 import { TALK } from "../src/data/dialogue.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
-import { advanceTalk, startTalk, talking, updateTalk } from "../src/game/talk.ts";
+import { advanceTalk, jobLine, startTalk, talking, updateTalk } from "../src/game/talk.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { FAMILIES } from "../src/world/people.ts";
 
@@ -61,4 +61,24 @@ describe("talking", () => {
     expect(startTalk(g, dummy)).toBe(false);                 // a click on a dummy is an attack
     expect(startTalk(g, null)).toBe(false);
   });
+});
+
+describe("what people say they do", () => {
+  it.each([
+    ["keeps the accounts", "I keep the accounts."],
+    ["helps with the saddler's work", "I help with the saddler's work."],
+    ["minds the little ones", "I mind the little ones."],
+    ["goes to the song school", "I go to the song school."],
+    ["carries water", "I carry water."],
+    ["washes the floors", "I wash the floors."],
+    ["Master goldbeater", "I'm a master goldbeater."],
+    ["Herbwife", "I'm a herbwife."],
+    ["apprentice to the Maddoxes", "I'm an apprentice to the Maddoxes."],
+    ["Ralph's daughter", "I'm Ralph's daughter."],
+    ["His wife", "I'm the wife."],
+    ["Eldest son", "I'm the eldest son."],
+    ["too little to work", "I'm too little to work."],
+    ["The King's Ranger", "I'm the King's Ranger."],
+    ["almsfolk, once a weaver", "I'm almsfolk, once a weaver."],
+  ])("%s: %s", (job, said) => expect(jobLine(job)).toBe(said));
 });

@@ -84,10 +84,25 @@ function folkLines(rng: Rng, r: Resident): string[] {
   ];
 }
 
-/** What someone does, as they'd say it: "I keep the accounts.", "I'm a baker.", "I'm almsfolk, once a weaver." */
+/** The census's jobs that are something someone does ("helps with the lawyer's work"), not something they are. */
+const DOES = /^(keeps|helps|minds|brews|trades|works|goes|sews|sits|spins|runs|takes|scrubs|sells|carries|mends|cleans|cooks|bakes|washes|tends|watches|feeds|fetches|guards|makes|plays)\b/;
+/** Who someone is in a family ("Eldest son", "His wife"): they'd say "the". */
+const KIN = /^(son|daughter|wife|husband|mother|father|eldest|youngest|middle|twin|grand)/;
+
+/**
+ * What someone does, as they'd say it, from the census's job: "I keep the accounts.", "I help with the
+ * lawyer's work.", "I'm a master goldbeater.", "I'm Ralph's daughter.", "I'm the eldest son.", "I'm too
+ * little to work.", "I'm almsfolk, once a weaver."
+ */
 export function jobLine(job: string): string {
-  const verb = /^(keeps|runs|trades|sits|works|spins|brews|sews|takes|sells|carries|mends|scrubs)\b/.exec(job)?.[1];
-  if (verb) return `I ${verb.endsWith("ies") ? verb.slice(0, -3) + "y" : verb.slice(0, -1)}${job.slice(verb.length)}.`;
-  if (/^(almsfolk|the |a |an )/.test(job)) return `I'm ${job}.`;
-  return `I'm ${/^[aeiou]/i.test(job) ? "an" : "a"} ${job}.`;
+  const verb = DOES.exec(job)?.[1];
+  if (verb) {
+    const base = verb === "goes" ? "go" : verb.endsWith("ies") ? `${verb.slice(0, -3)}y` : /(ch|sh|ss|x)es$/.test(verb) ? verb.slice(0, -2) : verb.slice(0, -1);
+    return `I ${base}${job.slice(verb.length)}.`;
+  }
+  if (/^too /.test(job) || /^[A-Z][a-z]+'s /.test(job)) return `I'm ${job}.`;
+  const said = job.replace(/^(Her|His|Their) /, "the "), lower = said.charAt(0).toLowerCase() + said.slice(1);
+  if (/^(the |a |an |almsfolk)/.test(lower)) return `I'm ${lower}.`;
+  if (KIN.test(lower)) return `I'm the ${lower}.`;
+  return `I'm ${/^[aeiou]/.test(lower) ? "an" : "a"} ${lower}.`;
 }

@@ -8,6 +8,7 @@ import { TIERS, type TierName } from "../../data/tiers.ts";
 import type { Slot } from "../../data/items.ts";
 import { addShadow, box, col, type RenderContext } from "../context.ts";
 import { disposeTree } from "../dispose.ts";
+import type { Dress } from "../../world/wardrobe.ts";
 import { makeArrowMesh } from "./projectiles.ts";
 
 const STEEL = "#a9b1ba", STEEL_DARK = "#6b737d";
@@ -229,81 +230,149 @@ export function dressSoldier(ctx: RenderContext, h: Body, tier: TierName): void 
   h.hands[1]!.add(shield);
 }
 
-/** What one of the townsfolk wears (see dressCommoner). */
-export interface CommonLook {
-  cloth: string;
-  /** Belt, hem and hat band. */
-  trim: string;
-  /** Apron, coif and cap linen. */
-  linen: string;
-  /** A gown to the ground, or a tunic to the knee. */
-  long: boolean;
-  apron: boolean;
-  hat: "none" | "coif" | "cap" | "hood" | "straw";
-  /** A basket on the arm. */
-  basket: boolean;
-}
-
-/** Dress a body as one of the townsfolk: a tunic or gown in their cloth, a belt, maybe an apron, a hat and a basket. Bare hands. */
-export function dressCommoner(ctx: RenderContext, h: Body, look: CommonLook): void {
-  const key = `common/${JSON.stringify(look)}`;
+/**
+ * Dress a body as one of the townsfolk, in their own clothes (see Dress, src/world/wardrobe.ts). The body
+ * faces +x: their garment (a tunic, a smock, a doublet and hose, a gown, a kirtle or a robe) in one colour,
+ * split in two, or banded; what they wear over it; their hair and headwear; a feather, a pouch, a brooch;
+ * their shoes; and whatever they carry, in the back hand (or, a staff, the front).
+ */
+export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
+  const key = `common/${JSON.stringify(d)}`;
   if (key === h.key) return;
   for (const part of [h.gear, h.sword, h.ring]) { disposeTree(part); part.clear(); }
+  for (const hand of h.hands) for (const c of [...hand.children]) { hand.remove(c); disposeTree(c); }
   h.key = key;
-  const { lambert, lathe } = ctx, cloth = lambert(look.cloth), trim = lambert(look.trim), linen = lambert(look.linen);
-  // The gown or tunic, belted, its hem a shade darker.
-  h.gear.add(look.long
-    ? lathe([[0.38, 0], [0.36, 0.1], [0.3, 0.32], [0.28, 0.44], [0.2, 0.6]], cloth)
-    : lathe([[0.33, 0.1], [0.32, 0.16], [0.3, 0.34], [0.28, 0.46], [0.2, 0.6]], cloth));
-  const hemY = look.long ? 0.02 : 0.12, hemR = look.long ? 0.385 : 0.335;
-  const hem = new THREE.Mesh(new THREE.CylinderGeometry(hemR, hemR + 0.005, 0.04, 8), trim); hem.position.y = hemY;
-  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.05, 8), trim); belt.position.y = 0.32;
-  h.gear.add(hem, belt);
-  if (look.apron) {                                          // down the front (+x), from the belt
-    const apron = new THREE.Mesh(box(0.04, look.long ? 0.3 : 0.24, 0.32), linen);
-    apron.position.set(look.long ? 0.33 : 0.3, look.long ? 0.17 : 0.2, 0); apron.rotation.z = 0.12;
-    h.gear.add(apron);
+  const { lambert } = ctx, cloth = lambert(d.cloth), second = lambert(d.second), trim = lambert(d.trim), linen = lambert("#ece4d0");
+  const mesh = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); h.gear.add(m); return m; };
+  /** A turned shape, all the way round or part of the way (phi 0 is +z, PI/2 the front). */
+  const turned = (pts: [number, number][], mat: THREE.Material, phiStart = 0, phi = Math.PI * 2) =>
+    mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 8, phiStart, phi), mat);
+
+  // ---- The garment ----
+  const SHAPE: Record<Dress["garment"], [number, number][]> = {
+    "tunic": [[0.33, 0.1], [0.32, 0.16], [0.3, 0.34], [0.28, 0.46], [0.2, 0.6]],
+    "long tunic": [[0.35, 0.03], [0.33, 0.12], [0.3, 0.34], [0.28, 0.46], [0.2, 0.6]],
+    "smock": [[0.37, 0.09], [0.36, 0.16], [0.32, 0.36], [0.28, 0.48], [0.2, 0.6]],
+    "doublet": [[0.31, 0.2], [0.31, 0.26], [0.3, 0.38], [0.28, 0.48], [0.2, 0.6]],
+    "gown": [[0.4, 0], [0.37, 0.1], [0.3, 0.32], [0.27, 0.44], [0.2, 0.6]],
+    "kirtle": [[0.36, 0], [0.34, 0.1], [0.29, 0.32], [0.26, 0.44], [0.2, 0.6]],
+    "robe": [[0.4, 0], [0.38, 0.12], [0.33, 0.36], [0.3, 0.48], [0.22, 0.6]],
+  };
+  const shape = SHAPE[d.garment], hem = shape[0]!;
+  if (d.pattern === "parti") { turned(shape, cloth, -Math.PI / 2, Math.PI); turned(shape, second, Math.PI / 2, Math.PI); }   // one half each colour, split front to back
+  else turned(shape, cloth);
+  if (d.pattern === "banded") for (const dy of [0.05, 0.11]) mesh(new THREE.CylinderGeometry(hem[0] - dy * 0.12, hem[0] - dy * 0.1, 0.035, 8), second, 0, hem[1] + dy, 0);
+  mesh(new THREE.CylinderGeometry(hem[0] + 0.005, hem[0] + 0.01, 0.035, 8), trim, 0, hem[1] + 0.015, 0);          // the hem
+  if (d.garment === "doublet") turned([[0.24, 0.02], [0.27, 0.08], [0.28, 0.2]], second);                          // hose
+  if (d.garment === "kirtle") for (let i = 0; i < 3; i++) mesh(box(0.02, 0.02, 0.12), trim, 0.29, 0.38 + i * 0.06, 0).rotation.x = i % 2 ? 0.6 : -0.6;   // laced bodice
+  if (d.garment !== "robe") mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.05, 8), trim, 0, 0.32, 0);              // the belt
+  else mesh(new THREE.TorusGeometry(0.3, 0.015, 3, 10).rotateX(Math.PI / 2), linen, 0, 0.32, 0);                  // a cord
+  if (d.pouch) mesh(box(0.08, 0.1, 0.07), lambert("#5d4430"), 0.18, 0.25, 0.25);
+  if (d.brooch) mesh(new THREE.OctahedronGeometry(0.04, 0), lambert("#d9a83a"), 0.27, 0.52, 0);
+
+  // ---- Over it ----
+  if (d.over === "apron") mesh(box(0.04, d.garment === "gown" || d.garment === "kirtle" ? 0.3 : 0.24, 0.32), linen, hem[0] - 0.03, 0.2, 0).rotation.z = 0.12;
+  else if (d.over === "cloak") turned([[0.4, 0.04], [0.36, 0.2], [0.3, 0.44], [0.25, 0.58], [0.16, 0.64]], lambert(d.second, { side: THREE.DoubleSide }), Math.PI * 0.95, Math.PI * 1.1);
+  else if (d.over === "surcoat") turned([[0.36, 0.08], [0.33, 0.2], [0.31, 0.38], [0.29, 0.5], [0.21, 0.6]], second, Math.PI * 0.62, Math.PI * 1.76);
+  else if (d.over === "tabard") for (const s of [1, -1]) mesh(box(0.03, 0.42, 0.24), second, s * 0.3, 0.32, 0);
+  else if (d.over === "vest") turned([[0.31, 0.3], [0.3, 0.4], [0.28, 0.5], [0.21, 0.6]], second);
+  else if (d.over === "shawl") turned([[0.33, 0.42], [0.3, 0.52], [0.22, 0.62]], second);
+
+  // ---- Hair and headwear ----
+  const hair = lambert(d.hair);
+  const cap = (r: number, y: number, mat: THREE.Material, open = 0.5, x = -0.03) =>
+    mesh(new THREE.SphereGeometry(r, 7, 5, 0, Math.PI * 2, 0, Math.PI * open), mat, x, y, 0);
+  if (d.head === "bare" || d.head === "cap" || d.head === "felt" || d.head === "straw") cap(0.28, 0.8, hair, 0.5, -0.05).rotation.z = 0.5;   // hair, swept back
+  switch (d.head) {
+    case "coif": cap(0.29, 0.8, linen, 0.55).rotation.z = 0.35; break;
+    case "kerchief": {
+      cap(0.29, 0.81, second, 0.48).rotation.z = 0.3;
+      mesh(new THREE.ConeGeometry(0.08, 0.14, 4), second, -0.27, 0.72, 0).rotation.z = 0.6;                 // the knot behind
+      break;
+    }
+    case "wimple": {
+      cap(0.3, 0.8, linen, 0.6).rotation.z = 0.3;
+      mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.16, 8, 1, true), linen, 0, 0.64, 0);                    // round the chin and throat
+      break;
+    }
+    case "veil": {
+      cap(0.29, 0.81, hair, 0.45).rotation.z = 0.3;
+      turned([[0.3, 0.55], [0.3, 0.75], [0.25, 0.95], [0.05, 1.08]], lambert(d.second, { side: THREE.DoubleSide }), Math.PI * 0.95, Math.PI * 1.1);
+      break;
+    }
+    case "cap": {
+      cap(0.28, 0.9, cloth, 0.45, -0.02).scale.set(1, 0.7, 1);
+      mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8), trim, -0.02, 0.92, 0);
+      break;
+    }
+    case "chaperon": {                                          // a rolled band like a turban, its tail hanging to one side
+      mesh(new THREE.TorusGeometry(0.22, 0.08, 5, 10).rotateX(Math.PI / 2), second, -0.02, 0.98, 0);
+      cap(0.22, 0.98, second, 0.5, -0.02);
+      mesh(box(0.06, 0.32, 0.12), second, -0.18, 0.84, -0.22).rotation.x = 0.3;
+      break;
+    }
+    case "hood": {
+      mesh(new THREE.SphereGeometry(0.31, 7, 5, Math.PI * 0.15, Math.PI * 1.7), second, -0.02, 0.8, 0).rotation.y = Math.PI / 2;
+      mesh(new THREE.CylinderGeometry(0.22, 0.33, 0.13, 8), second, 0, 0.6, 0);
+      break;
+    }
+    case "straw": {
+      const straw = lambert("#d9b46a");
+      mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.03, 10), straw, 0, 0.99, 0);
+      mesh(new THREE.CylinderGeometry(0.17, 0.21, 0.14, 8), straw, 0, 1.06, 0);
+      mesh(new THREE.CylinderGeometry(0.212, 0.212, 0.03, 8), second, 0, 1.01, 0);
+      break;
+    }
+    case "felt": {
+      mesh(new THREE.CylinderGeometry(0.34, 0.36, 0.03, 10), cloth, -0.02, 0.98, 0);
+      mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.2, 8), cloth, -0.02, 1.08, 0);
+      mesh(new THREE.CylinderGeometry(0.225, 0.225, 0.04, 8), trim, -0.02, 1.0, 0);
+      break;
+    }
   }
-  // Headwear: a linen coif over the head, a felt cap, a hood, or a broad straw hat.
-  if (look.hat === "coif") {
-    const coif = new THREE.Mesh(new THREE.SphereGeometry(0.29, 7, 5, 0, Math.PI * 2, 0, Math.PI * 0.55), linen);
-    coif.position.set(-0.03, 0.8, 0); coif.rotation.z = 0.35;
-    h.gear.add(coif);
-  } else if (look.hat === "cap") {
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.28, 7, 4, 0, Math.PI * 2, 0, Math.PI * 0.45), cloth);
-    cap.position.set(-0.02, 0.9, 0); cap.scale.set(1, 0.7, 1);
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8), trim); band.position.set(-0.02, 0.92, 0);
-    h.gear.add(cap, band);
-  } else if (look.hat === "hood") {
-    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.31, 7, 5, Math.PI * 0.15, Math.PI * 1.7), cloth);
-    hood.position.set(-0.02, 0.8, 0); hood.rotation.y = Math.PI / 2;
-    const cowl = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 0.12, 8), cloth); cowl.position.y = 0.6;
-    h.gear.add(hood, cowl);
-  } else if (look.hat === "straw") {
-    const straw = lambert("#d9b46a");
-    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.44, 0.03, 10), straw); brim.position.y = 0.98;
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.21, 0.14, 8), straw); crown.position.y = 1.05;
-    h.gear.add(brim, crown);
-  }
-  if (look.basket) {                                         // on the back hand's arm
-    const basket = new THREE.Group(), wicker = lambert("#a8794a");
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.14, 8, 1, true), wicker);
-    const base = new THREE.Mesh(new THREE.CircleGeometry(0.12, 8).rotateX(-Math.PI / 2), wicker); base.position.y = -0.07;
-    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.015, 3, 8, Math.PI), wicker); handle.position.y = 0.05;
-    const goods = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), lambert(["#c8423a", "#5fb04a", "#e8963a"][look.cloth.length % 3]!)); goods.position.y = 0.04; goods.scale.y = 0.6;
-    basket.add(body, base, handle, goods);
-    basket.position.set(0.02, -0.12, -0.02);
-    h.hands[1]!.add(basket);
-  }
-  // Feet in plain shoes, under the hem.
+  if (d.feather) mesh(new THREE.ConeGeometry(0.04, 0.32, 4), lambert(["#f2ead8", "#c8423a", "#3f6fd0"][d.cloth.length % 3]!), -0.1, 1.12, 0.2).rotation.set(0.5, 0, 0.6);
+
+  // ---- Shoes ----
+  const shoe = lambert(d.shoes);
   h.feet.forEach(f => {
     const nub = f.userData.nub as THREE.Mesh;
     for (const c of f.children) if (c !== nub) disposeTree(c);
     f.clear(); f.add(nub); nub.visible = false;
-    const shoe = new THREE.Mesh(box(0.17, 0.07, 0.12), lambert("#4f3a2a")); shoe.position.set(0.02, 0.035, 0);
-    f.add(shoe);
+    const s = new THREE.Mesh(box(0.17, 0.07, 0.12), shoe); s.position.set(0.02, 0.035, 0);
+    f.add(s);
   });
-  h.footX = look.long ? 0.26 : 0.18;
+  h.footX = hem[0] > 0.34 ? 0.26 : 0.18;
+
+  // ---- What they carry ----
+  const back = h.hands[1]!, front = h.hands[0]!, hold = (o: THREE.Object3D, hand: THREE.Mesh, x: number, y: number, z: number) => { o.position.set(x, y, z); hand.add(o); };
+  const group = (...parts: [THREE.BufferGeometry, THREE.Material, number, number, number][]) => {
+    const g = new THREE.Group();
+    for (const [geo, mat, x, y, z] of parts) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); }
+    return g;
+  };
+  const wicker = lambert("#a8794a"), wood = lambert("#6b4f3a");
+  switch (d.carry) {
+    case "basket": hold(group(
+      [new THREE.CylinderGeometry(0.15, 0.12, 0.14, 8, 1, true), wicker, 0, 0, 0], [new THREE.CircleGeometry(0.12, 8).rotateX(-Math.PI / 2), wicker, 0, -0.07, 0],
+      [new THREE.TorusGeometry(0.13, 0.015, 3, 8, Math.PI), wicker, 0, 0.05, 0], [new THREE.IcosahedronGeometry(0.1, 0).scale(1, 0.6, 1), lambert(["#c8423a", "#5fb04a", "#e8963a"][d.second.length % 3]!), 0, 0.04, 0],
+    ), back, 0.02, -0.12, -0.02); break;
+    case "sack": mesh(new THREE.IcosahedronGeometry(0.22, 1).scale(0.8, 1.1, 0.9), lambert("#c9b896"), -0.34, 0.6, 0); break;   // over the shoulder, behind
+    case "bundle": hold(group([box(0.22, 0.16, 0.18), second, 0, 0, 0], [box(0.24, 0.03, 0.03), trim, 0, 0.02, 0]), back, 0, -0.06, -0.04); break;
+    case "staff": hold(group([new THREE.CylinderGeometry(0.025, 0.03, 1.5, 5), wood, 0, 0.3, 0]), front, 0.02, 0, 0.02); break;
+    case "bucket": hold(group(
+      [new THREE.CylinderGeometry(0.12, 0.1, 0.18, 8, 1, true), wood, 0, -0.14, 0], [new THREE.CircleGeometry(0.11, 8).rotateX(-Math.PI / 2), lambert("#5a8ab0"), 0, -0.08, 0],
+      [new THREE.TorusGeometry(0.11, 0.012, 3, 8, Math.PI), lambert("#4a4a52"), 0, -0.05, 0],
+    ), back, 0, 0, 0); break;
+    case "tools": hold(group([box(0.04, 0.34, 0.04), wood, 0, -0.1, 0], [box(0.14, 0.07, 0.07), lambert("#6b737d"), 0, 0.07, 0]), back, 0, 0, 0); break;
+    case "book": hold(group([box(0.16, 0.2, 0.06), second, 0, 0, 0], [box(0.14, 0.18, 0.065), linen, 0.012, 0, 0]), back, 0.04, 0, 0); break;
+    case "flowers": {
+      const parts: [THREE.BufferGeometry, THREE.Material, number, number, number][] = [[new THREE.ConeGeometry(0.06, 0.2, 5).rotateZ(Math.PI), lambert("#3d6a2a"), 0, 0, 0]];
+      ["#e05a7a", "#e8d23a", "#f2f0e6", "#9a6ad6", "#e8963a"].forEach((c, i) => parts.push([new THREE.OctahedronGeometry(0.045, 0), lambert(c), Math.cos(i * 1.3) * 0.06, 0.12 + (i % 2) * 0.03, Math.sin(i * 1.3) * 0.06]));
+      hold(group(...parts), back, 0.03, 0.02, 0);
+      break;
+    }
+    case "none": break;
+  }
   h.eyes.forEach(e => { e.position.x = 0.29; });
   h.rodTip = null; h.bow = null;
 }

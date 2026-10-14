@@ -13,10 +13,8 @@ import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
 import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
-import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body, type CommonLook } from "./models/body.ts";
-import { CLOTH } from "../data/townsfolk.ts";
+import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
 import { residentById } from "../game/townsfolk.ts";
-import { FAMILIES } from "../world/people.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
@@ -368,35 +366,17 @@ const dummy: EntityView<DummyView> = {
 
 // ---------- Townsfolk ----------
 /**
- * One of the census's people out in the streets (see src/game/townsfolk.ts): the hero's body in clothes
- * that suit who they are (a merchant's rich cloth, a priest's black, an apron for a maid or a cook, a coif,
- * a cap or a straw hat, a basket for the market), children smaller and the old a little stooped. They walk
- * like the hero, stand breathing when they stop, and face whoever they're talking to.
+ * One of the census's people out in the streets (see src/game/townsfolk.ts): the hero's body in their own
+ * clothes, kept on them in the census (Resident.dress: see src/world/wardrobe.ts), children smaller and the
+ * old a little stooped. They walk like the hero, stand breathing when they stop, and face whoever they're
+ * talking to.
  */
 interface FolkView extends Body { k: number; size: number; stoop: number }
-const pickBy = <V>(list: readonly V[], n: number): V => list[Math.floor(n * list.length) % list.length]!;
-function lookOf(id: number): { look: CommonLook; size: number; stoop: number } {
-  const r = residentById(id), n = (k: number) => { const s = Math.sin(id * 12.9898 + k * 78.233) * 43758.5453; return s - Math.floor(s); };
-  const job = r?.job.toLowerCase() ?? "", female = r?.sex === "f", age = r?.age ?? 30;
-  const rank = r?.family ? FAMILIES.find(f => f.id === r.family)?.rank : undefined;
-  const clergy = /priest|deacon|chaplain|choir|warden/.test(job), rich = rank === "merchant" && r?.role === "family";
-  const serving = /maid|cook|scullion|laundress|nurse|kitchen|baker|brewer|washing|wash/.test(job);
-  const market = /stall|egg|flower|greengrocer|fish|sells|peddler/.test(job);
-  const look: CommonLook = {
-    cloth: pickBy(clergy ? CLOTH.clergy : rich ? CLOTH.rich : CLOTH.common, n(1)),
-    trim: rich ? "#d9a83a" : pickBy(["#4f3222", "#3a2e24", "#6b4f3a"], n(2)),
-    linen: pickBy(CLOTH.linen, n(3)),
-    long: female || clergy || age >= 70,
-    apron: serving || /smith|apprentice|journeyman|butcher|cobbler|weaver/.test(job) || (female && n(4) < 0.3),
-    hat: clergy ? "hood" : female ? (n(5) < 0.65 ? "coif" : n(5) < 0.8 ? "straw" : "none") : pickBy(["cap", "cap", "hood", "straw", "none", "none"], n(6)),
-    basket: market || (n(7) < 0.2 && age >= 12),
-  };
-  return { look, size: age < 14 ? 0.62 + (age / 14) * 0.25 : 1, stoop: age >= 70 ? 0.22 : age >= 60 ? 0.1 : 0 };
-}
 const townsfolk: EntityView<FolkView> = {
   create(ctx, e, g) {
-    const b = makeBody(ctx), w = g.world.need(e, "walker"), { look, size, stoop } = lookOf(w.id);
-    dressCommoner(ctx, b, look);
+    const b = makeBody(ctx), w = g.world.need(e, "walker"), r = residentById(w.id), age = r?.age ?? 30;
+    const size = age < 14 ? 0.62 + (age / 14) * 0.25 : 1, stoop = age >= 70 ? 0.22 : age >= 60 ? 0.1 : 0;
+    if (r) dressCommoner(ctx, b, r.dress);
     b.ripple.visible = false;
     b.sword.visible = false;
     b.group.scale.setScalar(size);
