@@ -152,7 +152,7 @@ const inv = createInventory({
   onUse: item => {                                          // eating a fish
     if (player.hp >= player.maxHp) { toast("Already at full health"); return false; }
     player.hp = Math.min(player.maxHp, player.hp + item.heal);
-    toast(`+${item.heal} Life`, true);
+    combatText(player.x, player.y, `+${item.heal}`, COMBAT_COLORS.heal);
     return true;
   },
 });
@@ -390,6 +390,7 @@ function damagePlayer(sx, sy) {
   const p = player;
   p.sheep = 0;
   p.hp--; p.hurt = 1; cancelActions(p);
+  combatText(p.x, p.y, "-1", COMBAT_COLORS.taken);
   shake = Math.max(shake, 0.3);
   const d = Math.hypot(p.x - sx, p.y - sy) || 1;
   p.vx = (p.x - sx) / d * 110; p.vy = (p.y - sy) / d * 110;
@@ -603,7 +604,7 @@ function updatePlayer(dt) {
         const dx = s.x - p.x, dy = s.y - p.y;
         const along = dx * ax + dy * ay, across = Math.abs(dx * ay - dy * ax);
         if (along > 1 && along < 20 && across < 7) {
-          s.hp -= p.damage; s.flash = 0.15; s.vx = ax * 90; s.vy = ay * 90; s.timer = 0.6;
+          hitEnemy(s, p.damage); s.vx = ax * 90; s.vy = ay * 90; s.timer = 0.6;
           effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
         }
       }
@@ -612,7 +613,11 @@ function updatePlayer(dt) {
   attackPressed = attackReleased = jumpPressed = false; dashRequest = null;
 
   for (let i = potions.length - 1; i >= 0; i--) {
-    if (overlap(p, potions[i]) && p.hp < p.maxHp) { p.hp = Math.min(p.maxHp, p.hp + 2); potions.splice(i, 1); }
+    if (overlap(p, potions[i]) && p.hp < p.maxHp) {
+      const healed = Math.min(2, p.maxHp - p.hp);
+      p.hp += healed; potions.splice(i, 1);
+      combatText(p.x, p.y, `+${healed}`, COMBAT_COLORS.heal);
+    }
   }
   // Walk over loot to pick it up. Dropped items wait until you step off them.
   for (let i = loot.length - 1; i >= 0; i--) {
@@ -667,7 +672,7 @@ function updateSwipes(p, dt) {
       if (rel < lo || rel > hi) continue;
       m.hits.add(s);
       const nx = d < 2 ? Math.cos(m.aim) : dx / d, ny = d < 2 ? Math.sin(m.aim) : dy / d;
-      s.hp -= p.damage; s.flash = 0.15; s.vx = nx * SWIPE.knock; s.vy = ny * SWIPE.knock; s.timer = 0.6;
+      hitEnemy(s, p.damage); s.vx = nx * SWIPE.knock; s.vy = ny * SWIPE.knock; s.timer = 0.6;
       effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
       hitstop = Math.max(hitstop, SWIPE.hitstop);
       shake = Math.max(shake, SWIPE.shake);
@@ -700,7 +705,7 @@ function updateArrows(dt) {
     for (const s of slimes) {
       if (Math.hypot(s.x + 4 - a.x, s.y + 4 - a.y) < 5) {
         const d = Math.hypot(a.vx, a.vy) || 1;
-        s.hp -= a.damage; s.flash = 0.15; s.vx = (a.vx / d) * 90; s.vy = (a.vy / d) * 90; s.timer = 0.6;
+        hitEnemy(s, a.damage); s.vx = (a.vx / d) * 90; s.vy = (a.vy / d) * 90; s.timer = 0.6;
         effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
         a.life = 0; a.hit = true;
         break;
@@ -753,15 +758,40 @@ function updateSlimes(dt) {
   if ((spawnTimer -= dt) <= 0) { spawnTimer = 3; if (slimes.length < cap) spawnSlime(110); }
 }
 
+// ---------- Combat text and crits ----------
+// WoW-style floating numbers: white for your hits, big gold "N!" for crits, red for damage you
+// take, green for healing, lilac for XP. Crits deal double damage and hit a little harder.
+const CRIT = { chance: 0.1, multiplier: 2, hitstop: 0.07, shake: 0.25 };
+const COMBAT_COLORS = { hit: PAL.W, crit: PAL.Y, taken: PAL.R, heal: PAL.G, xp: "#c79cf0" };
+
+function hitEnemy(s, damage) {
+  const crit = rand() < CRIT.chance;
+  const dealt = crit ? damage * CRIT.multiplier : damage;
+  s.hp -= dealt; s.flash = crit ? 0.22 : 0.15;
+  combatText(s.x, s.y, crit ? `${dealt}!` : `${dealt}`, crit ? COMBAT_COLORS.crit : COMBAT_COLORS.hit, crit);
+  if (crit) {
+    hitstop = Math.max(hitstop, CRIT.hitstop);
+    shake = Math.max(shake, CRIT.shake);
+    effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, spark: true });
+  }
+  return dealt;
+}
+
+// Numbers drift sideways a little so a flurry of hits doesn't stack on one spot.
+function combatText(x, y, text, color, crit = false, life = crit ? 1.1 : 0.85) {
+  floaters.push({ x, y, text, color, crit, life, t: 1, jx: Math.round((Math.random() - 0.5) * 10) });
+}
+
 function grantXP(amount, x, y) {
   const p = player;
   if (p.level >= XP.maxLevel) return;
   p.xp += amount;
-  floaters.push({ x, y, t: 1, text: `+${amount} XP` });
+  combatText(x, y, `+${amount} XP`, COMBAT_COLORS.xp, false, 1.3);
   while (p.level < XP.maxLevel && p.xp >= xpToNext(p.level)) {
     p.xp -= xpToNext(p.level);
     p.level++;
     inv.refresh();                                          // new raw stats flow into damage/life/speed
+    if (p.hp < p.maxHp) combatText(p.x, p.y, `+${p.maxHp - p.hp}`, COMBAT_COLORS.heal);
     p.hp = p.maxHp;                                         // a level-up fully heals, as in WoW
     effects.push({ x: p.x + 4, y: p.y + 4, t: 1, levelup: true });
     toast(`Level ${p.level}!`, true);
@@ -873,17 +903,44 @@ function drawXPBar(g, W, H) {
   pixelText(g, label, cx - Math.floor((label.length * 4 - 1) / 2), cy - 3, PAL.Y);
 }
 
-const floaterEls = new Map();
+// 3x5 pixel glyphs for combat text, outlined in ink like every other sprite.
+const GLYPHS = Object.assign(Object.fromEntries(DIGITS.map((b, i) => [String(i), b])), {
+  "+": "000010111010000", "-": "000000111000000", "!": "010010010000010",
+  "X": "101101010101101", "P": "110101110100100", " ": "000000000000000",
+});
+function drawGlyphs(g, text, x, y, color, scale) {
+  for (const pass of ["outline", "fill"]) {
+    g.fillStyle = pass === "outline" ? PAL.K : color;
+    let cx = x;
+    for (const ch of text) {
+      const bits = GLYPHS[ch] || GLYPHS[" "];
+      for (let i = 0; i < 15; i++) {
+        if (bits[i] !== "1") continue;
+        const px = cx + (i % 3) * scale, py = y + Math.floor(i / 3) * scale;
+        if (pass === "outline") g.fillRect(px - 1, py - 1, scale + 2, scale + 2);
+        else g.fillRect(px, py, scale, scale);
+      }
+      cx += 4 * scale;
+    }
+  }
+}
+function renderCombatText(g) {
+  const W = hudCanvas.width, H = hudCanvas.height;
+  for (const f of floaters) {
+    const k = 1 - f.t;                                        // 0 -> 1 over the number's life
+    const s = view.gameToScreen(f.x, f.y, 0.9 + k * 0.9);
+    const scale = f.crit ? (k < 0.12 ? 3 : 2) : 1;          // crits pop in big, then settle
+    const w = f.text.length * 4 * scale - scale;
+    const x = Math.round(s.x * W / innerWidth - w / 2) + f.jx, y = Math.round(s.y * H / innerHeight) - 5 * scale;
+    g.globalAlpha = Math.min(1, f.t * 3);
+    drawGlyphs(g, f.text, x, y, f.color, scale);
+  }
+  g.globalAlpha = 1;
+}
+
 function renderXP() {
   drawXPBar(hg, hudCanvas.width, hudCanvas.height);
-  for (const [f, el] of floaterEls) if (!floaters.includes(f)) { el.remove(); floaterEls.delete(f); }
-  for (const f of floaters) {
-    let el = floaterEls.get(f);
-    if (!el) { el = document.createElement("div"); el.className = "floater"; el.textContent = f.text; labelLayer.append(el); floaterEls.set(f, el); }
-    const s = view.gameToScreen(f.x, f.y, 0.9 + (1 - f.t) * 0.8);
-    el.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`;
-    el.style.opacity = Math.min(1, f.t * 1.5);
-  }
+  renderCombatText(hg);
 }
 
 const toastEl = document.getElementById("toast");
@@ -908,7 +965,7 @@ function loop(now) {
     if (state === "play") { updateArrows(dt); updateSlimes(dt); }
     if (state === "play") updateFireballs(dt);
     for (const e of effects) e.t -= dt;
-    for (const f of floaters) f.t -= dt * 0.9;
+    for (const f of floaters) f.t -= dt / f.life;
     floaters = floaters.filter(f => f.t > 0);
     effects = effects.filter(e => e.t > 0);
   }
@@ -917,7 +974,7 @@ function loop(now) {
 }
 
 // Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
-window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, get fireballs() { return fireballs; }, get strikes() { return strikes; }, inv, view };
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, get fireballs() { return fireballs; }, get strikes() { return strikes; }, get floaters() { return floaters; }, inv, view };
 
 resize();
 reset();
