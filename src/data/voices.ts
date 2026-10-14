@@ -7,6 +7,8 @@
 // what the housemate does ("is a baker"), {kq} the housemate's quirk ("Tom collects buttons"), {said} a
 // rumour about the speaker's own family.
 
+import type { GiftKind } from "./items.ts";
+
 export type Voice = "warm" | "gruff" | "shy" | "chatty" | "dreamy" | "plain";
 
 /** Which voice a personality trait gives. The first trait that has one decides. */
@@ -227,3 +229,126 @@ export const GUARD = {
   ],
   bye: ["Stay out of trouble.", "Off you go, then.", "Safe travels.", "Back to work.", "Move along now.", "I'll be watching. That's my job."],
 } as const;
+
+// ---------- Talking again ----------
+// The more you talk to someone, the more they change. Most warm up: they thank you for stopping and tell
+// you more about their lives. The gruff and impatient get fed up, and a few of them soften in the end.
+// Placeholders as above, plus {place} the part of the city they live in, {trade} what they are ("a baker"),
+// and {child} the first name of one of their children. A line whose placeholders they can't fill isn't said.
+
+/** How someone takes being talked to again. */
+export type Mood = "again" | "fond" | "annoyed" | "softened";
+
+/** Knowing you on a second visit. */
+export const AGAIN: Record<Voice, readonly string[]> = {
+  warm: ["Oh, it's you again! Hello, love.", "Back already? I'm glad.", "There's my favourite quiet visitor.", "Hello again! I was hoping you'd come by."],
+  gruff: ["You again.", "Back, are you.", "Oh. It's the rock.", "I remember you. Unfortunately."],
+  shy: ["Oh, it's you. Hello again.", "Hi... I remember you.", "You came back? Oh. That's nice.", "Hello again. You're the quiet one."],
+  chatty: ["You're back! Wonderful, I've got so much to tell you.", "Oh good, you again! Where was I?", "My favourite listener returns!", "I was just thinking about you! Well, not really. But hello!"],
+  dreamy: ["Oh, you again. I dreamt about you. Or someone like you.", "Hello again, glowy eyes.", "Have we met? Yes. Yes, we have.", "You're back. The stones said you would be."],
+  plain: ["Hello again.", "Oh, it's you.", "Back again?", "You again. Hello."],
+};
+
+/** Warming up: glad you keep stopping by. */
+export const FOND_OPEN: readonly string[] = [
+  "You keep coming back to talk to me. Nobody does that. Thank you.", "I look forward to you stopping by, you know.", "It's nice, having someone who listens.",
+  "Can I tell you something I don't tell many people?", "You're easy to talk to. Maybe because you don't talk back.", "I've been saving something up to tell you.",
+  "Honestly, you're the best part of my day.", "Sit with me a minute. I've been thinking.",
+];
+/** Going deeper into their lives. */
+export const DEEP: readonly string[] = [
+  "I wasn't always {trade}. I wanted to be a sailor, once. Never even seen the sea.",
+  "My {rel} {kin} doesn't know this, but I worry about money all the time.",
+  "Some nights I sit up on the wall and just look south. I don't know what for.",
+  "When I was little, my gran told me stories about dragons. I used to want one. Now I'm not so sure.",
+  "I lost my best friend to the fever, three winters back. I still set a cup out for her.",
+  "I'm saving up for something. A little house of my own, with a garden. Don't laugh.",
+  "Sometimes I think I'd be braver if I didn't have so much to lose.",
+  "My {rel} {kin} and I had a terrible row last week. Over turnips, of all things. We made up.",
+  "I've lived in {place} all my life. Every stone of it. I'd miss it terribly if I had to go.",
+  "I keep a little box of letters from my mother. I read one every Lantern Night.",
+  "I'm frightened of what's in the wood. There, I've said it. Don't tell the Marshal.",
+  "I used to sing at the Crown, before. I don't know why I stopped.",
+  "I've never told anyone, but I can't read. I just nod along.",
+  "I think about leaving the city sometimes. Then I smell the bakery in the morning and I stay.",
+  "My hands ache most days. Too many years of this work. But they still work.",
+  "I made a promise to my father that I'd look after the family. Some days it's heavy.",
+  "When the bells ring at night, I count them, just in case they mean something.",
+  "I'd like to see the Vael, you know. The real ones. I bet they're not so different from us.",
+  "I'm happiest early in the morning, before anyone needs anything from me.",
+  "The day {child} was born was the best day of my life. Don't tell {child}, it'll go to their head.",
+];
+/** Thanks, on the way out. */
+export const FOND_BYE: readonly string[] = [
+  "Thank you for listening. Really.", "Come back soon, won't you?", "I feel better for that. Thank you.", "You're a good friend, little stone.",
+  "Same time tomorrow?", "Don't be a stranger. You never are.",
+];
+
+/** Fed up: worse each time, from `[0]` (mild) to `[3]` (done). */
+export const ANNOYED: readonly (readonly string[])[] = [
+  ["Again? I've already told you everything.", "What now?", "You know, some of us have work to do.", "Didn't we just do this?"],
+  ["Please. I'm busy.", "You're starting to worry me.", "Is something wrong with you? Blink twice if yes.", "I'm not saying it again."],
+  ["Go away.", "No. Whatever it is, no.", "I'm going to start charging you.", "Stop. Following. Me."],
+  ["...", "*pretends not to see you*", "I'm not here.", "*sighs very loudly*"],
+];
+/** The gruff, after enough visits: grudgingly fond. */
+export const SOFTENED: readonly string[] = [
+  "Fine. You're all right, you know. For a rock.", "I suppose I'd miss you if you stopped coming. Don't tell anyone.",
+  "All right. Sit. I'll tell you something, but just one thing.", "You're stubborn. I like that. Don't let it go to your head.",
+];
+
+/** Children, again and again. */
+export const KID_AGAIN = {
+  again: ["You came back! Want to play?", "It's the stone person! Hi again!", "I told my friends about you. They don't believe me."],
+  friend: ["You're my best friend now. Don't tell anyone.", "When I grow up I'm going to be quiet like you. Mum says that'll be the day."],
+} as const;
+
+/** Guards on the same post, again. */
+export const GUARD_AGAIN = {
+  again: ["You again? Fine. Still on watch.", "Back to keep me company? Good.", "Ah, my little friend. Quiet watch today."],
+  personal: [
+    "My wife says I talk to you more than I talk to her. She's not wrong.", "I've got a little girl at home. She'd love you.",
+    "Between us, I hate heights. They put me on the wall anyway.", "I was a baker before this. Better hours. Worse pay.",
+  ],
+  annoyed: ["Move along. Seriously.", "I'm on duty. Shoo.", "Unless you've got a message from the captain, off you go.", "Don't make me call the sergeant."],
+} as const;
+
+// ---------- Gifts ----------
+// Lines that hand the hero something. Each is tagged with what it gives, and the item lands in the bag as
+// the line is said (see src/game/talk.ts). Someone only says one if they haven't given the hero anything
+// yet and there's room for it in the bag. No other line may offer anything (tests/gifts.test.ts checks).
+
+/** A line that hands the hero `gives`. */
+export interface GiftLine { say: string; gives: GiftKind }
+
+export const GIFT = {
+  /** From their work, by what their job contains, as WORK. The first match wins. */
+  work: [
+    [/bak|bread/, [
+      { say: "Here, take a loaf. Still warm. Three cuts on top, for luck.", gives: "loaf" },
+      { say: "Have this loaf. Go on, I baked too many again.", gives: "loaf" },
+    ]],
+    [/cook|kitchen|pot-boy/, [{ say: "Here, have some bread from the kitchen. Nobody will miss it.", gives: "loaf" }]],
+    [/fish/, [
+      { say: "Here, have a koi. Caught it this morning.", gives: "koi" },
+      { say: "Take this koi. It's a small one, but it's fresh.", gives: "koi" },
+    ]],
+  ] as readonly (readonly [RegExp, readonly GiftLine[]])[],
+  /** From the warm-hearted, once they know you. */
+  fond: [
+    { say: "You never eat, do you? Here, take this bread.", gives: "loaf" },
+    { say: "I saved you a loaf. Here. Don't argue.", gives: "loaf" },
+  ] as readonly GiftLine[],
+  /** From a child who thinks you're their friend. */
+  kid: [
+    { say: "I saved you a shiny stone. Here, it's yours now.", gives: "stone" },
+    { say: "This is my second-best stone. You can have it.", gives: "stone" },
+  ] as readonly GiftLine[],
+  /** From a guard who's got used to you. */
+  guard: [{ say: "Here, take this bread. The cook's spare. Don't tell the sergeant.", gives: "loaf" }] as readonly GiftLine[],
+};
+
+/** What each gift line hands over, by the line itself: how a conversation knows a line is a gift. */
+export const GIFT_OF: ReadonlyMap<string, GiftKind> = new Map(
+  [...GIFT.work.flatMap(([, lines]) => lines), ...GIFT.fond, ...GIFT.kid, ...GIFT.guard].map(l => [l.say, l.gives]),
+);

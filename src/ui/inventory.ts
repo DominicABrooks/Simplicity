@@ -47,7 +47,7 @@ export function createInventoryView(model: Inventory, icons: ItemIcons, hooks: I
     img.alt = item.name;
     img.draggable = false;
     const [iw, ih] = iconSize(item.w, item.h);
-    Object.assign(img.style, { width: `${iw}px`, height: `${ih}px`, left: `${(item.w * cell - iw) / 2}px`, top: `${(item.h * cell - ih) / 2}px` });
+    Object.assign(img.style, { width: `${iw}px`, height: `${ih}px`, left: `calc(50% - ${iw / 2}px)`, top: `calc(50% - ${ih / 2}px)` });
     return img;
   }
   const box = (el: HTMLElement, x: number, y: number, w: number, h: number) =>
@@ -82,8 +82,10 @@ export function createInventoryView(model: Inventory, icons: ItemIcons, hooks: I
       box(slotEl, s.x, s.y, s.w, s.h);
       const item = model.equip[slot];
       if (item) {
-        // Centre items narrower or shorter than the slot (a 1x3 blade in the 2x3 weapon slot).
-        slotEl.append(itemEl(item, (s.w - item.w) / 2, (s.h - item.h) / 2));
+        // The item fills its slot, rarity backdrop and all; its icon sits centred (a 1x3 blade in the 2x3 weapon slot).
+        const el = itemEl(item, 0, 0);
+        Object.assign(el.style, { inset: "0", width: "auto", height: "auto" });
+        slotEl.append(el);
       } else {                                               // empty slot: faded silhouette of what goes there
         const ghost = new Image(), type = SLOT_ICON[slot];
         ghost.src = icons[type].normal; ghost.alt = s.label; ghost.className = "ghost"; ghost.draggable = false;
@@ -156,7 +158,7 @@ export function createInventoryView(model: Inventory, icons: ItemIcons, hooks: I
     ev.stopPropagation(); ev.preventDefault(); markHandled(ev);
     if (model.held) { placeHeld(); return; }
     tip.hide();
-    if (ev.button === 2 && !entry.item.slot) model.useFromGrid(entry, hooks.onUse);   // right-click food: eat it
+    if (ev.button === 2 && entry.item.heal) model.useFromGrid(entry, hooks.onUse);   // right-click food: eat it
     else if (ev.button === 2) model.equipFromGrid(entry);                             // right-click: equip
     else { model.pickFromGrid(entry); dragStart = { x: ev.clientX, y: ev.clientY }; }
   }

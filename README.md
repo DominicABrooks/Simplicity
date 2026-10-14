@@ -83,5 +83,6 @@ The game is TypeScript with an entity-component-system design; see [ARCHITECTURE
 - `src/ui/`: HUD, inventory panel, tooltip, labels, toasts and overlay
 - `tests/`: Vitest specs, with fixtures captured from the original game
 - `tools/`: asset builders (`build-sprites.ts`, `build-font.ts`), run with `npm run assets`
+- `tools/lineup/`: the townsfolk outfit lineup, every garment, over-garment, hat and carry (or the census's real people) one to a cell, for checking clothes by eye. With `npm run dev`, open `/Simplicity/lineup.html?set=over&cam=back&pose=walk` (`set`: garment, over, head, carry, pattern, census&n=0; `cam`: three, front, side, back, game, top)
 - `art/`, `palette/`, `font/`: sprite, palette and font sources as text; [ART_STYLE.md](ART_STYLE.md) has the rules
 - `docs/contact-sheet.png`: every sprite, built from `art/`

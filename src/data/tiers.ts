@@ -83,6 +83,8 @@ export const ICON_SWAPS: Record<ItemType, Partial<Record<string, keyof TierColor
   rod:    {},
   bow:    { B: "cloth", b: "dark", Y: "metal" },
   fish:   { O: "fishMain", W: "fishAccent" },
+  bread:  {},
+  stone:  {},
 };
 
 /** Rarity colours for ground loot, labels and tooltips. */

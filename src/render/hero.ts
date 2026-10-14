@@ -193,8 +193,10 @@ export function createHeroView(ctx: RenderContext): HeroView {
       const hz = m.jump > 0 ? Math.sin((1 - m.jump / JUMP_TIME) * Math.PI) * 1.0 : 0;
       const swimY = m.swimming ? -0.48 + Math.sin(t * 4) * 0.03 : 0;
       hero.group.position.set(px, hz + swimY, pz);
-      // Face the aim (locked to the swing direction mid-attack). Game angle a maps to yaw -a.
-      yaw = turn(yaw, -(a.attack > 0 ? a.swingAim : m.aim), dt, 18);
+      // Face the aim (locked to the swing direction mid-attack), or the fire he's sat by. Game angle a maps to yaw -a.
+      const rest = g.world.get(g.player, "resting"), fire = rest && g.world.get(rest.fire, "transform");
+      const face = fire ? Math.atan2(fire.y - pos.y, fire.x - pos.x) : a.attack > 0 ? a.swingAim : m.aim;
+      yaw = turn(yaw, -face, dt, fire ? 6 : 18);
       hero.group.rotation.y = yaw;
       hero.group.visible = !(status.hurt > 0 && Math.floor(t * 16) % 2) && !(status.sheep > 0);
       updateSheep(h, px, pz, t, dt);
@@ -203,7 +205,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
       dressBody(ctx, hero, gear ?? {});
       const b = hero.body;
       b.position.y = 0; b.rotation.z = 0; b.scale.set(1, 1, 1);
-      hero.feet.forEach(f => { f.position.x = hero.footX; f.visible = !m.swimming; });
+      hero.feet.forEach(f => { f.position.set(hero.footX, 0, f.position.z); f.visible = !m.swimming; });
       if (m.dash > 0) {
         b.rotation.z = -0.4; b.scale.set(1.15, 0.9, 0.9);    // lean hard into the dash
       } else if (m.jump > 0) {
@@ -213,6 +215,11 @@ export function createHeroView(ctx: RenderContext): HeroView {
         b.position.y = Math.abs(Math.sin(t * 12)) * 0.07;
         b.rotation.z = -0.1;
         hero.feet.forEach((f, i) => { f.position.x = hero.footX + Math.sin(t * 12 + i * Math.PI) * 0.1; });
+      } else if (fire) {                                     // sat on the ground by the fire, feet out to it, breathing slow
+        b.position.y = -0.1;
+        b.rotation.z = 0.12;
+        b.scale.set(1.05, 0.88 + Math.sin(t * 1.6) * 0.02, 1.05);
+        hero.feet.forEach(f => { f.position.set(hero.footX + 0.16, 0.1 / b.scale.y, f.position.z); });   // still on the ground
       } else if (!m.swimming) {
         b.scale.y = 1 + Math.sin(t * 2.5) * 0.025;
       }

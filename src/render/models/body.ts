@@ -25,6 +25,8 @@ export interface Body {
   /** The ring, orbiting the body. */
   ring: THREE.Group;
   eyes: THREE.Mesh[];
+  /** The bare stone body and its bark wrap: hidden under townsfolk's clothes, which close over it. */
+  torso: THREE.Mesh[];
   feet: THREE.Group[];
   /** [0] is the front hand on the camera side, [1] the back hand. */
   hands: THREE.Mesh[];
@@ -45,7 +47,7 @@ export function makeBody(ctx: RenderContext): Body {
   const group = new THREE.Group(), body = new THREE.Group(), sword = new THREE.Group(), ring = new THREE.Group();
   group.add(body, sword, ring);
   const skin = lambert(PAL.w);
-  body.add(lathe([[0, 0.06], [0.2, 0.06], [0.27, 0.2], [0.27, 0.4], [0.2, 0.56], [0.08, 0.64]], skin));
+  const trunk = lathe([[0, 0.06], [0.2, 0.06], [0.27, 0.2], [0.27, 0.4], [0.2, 0.56], [0.08, 0.64]], skin);
   const wrap = new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.29, 0.11, 7), lambert(PAL.n)); wrap.position.y = 0.19;
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 7, 5), skin); head.position.y = 0.8;
   const face = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 4), basic(PAL.k));
@@ -59,7 +61,7 @@ export function makeBody(ctx: RenderContext): Body {
     f.add(nub); f.userData.nub = nub;
     return f;
   });
-  body.add(wrap, head, face, ...eyes, ...feet);
+  body.add(trunk, wrap, head, face, ...eyes, ...feet);
   const gear = new THREE.Group(); body.add(gear);
   // Floating hands (no arms).
   const handGeo = new THREE.IcosahedronGeometry(0.1, 0).scale(1.1, 0.9, 1);
@@ -70,7 +72,7 @@ export function makeBody(ctx: RenderContext): Body {
   const shadow = addShadow(ctx);
   const ripple = new THREE.Mesh(new THREE.RingGeometry(0.38, 0.5, 10).rotateX(-Math.PI / 2), basic(PAL.C, { transparent: true, opacity: 0.6, depthWrite: false }));
   scene.add(group, shadow, ripple);
-  return { group, body, gear, sword, ring, eyes, feet, hands, shadow, ripple, footX: 0.14, gripY: 0, rodTip: null, bow: null, key: null };
+  return { group, body, gear, sword, ring, eyes, torso: [trunk, wrap], feet, hands, shadow, ripple, footX: 0.14, gripY: 0, rodTip: null, bow: null, key: null };
 }
 
 /** Rebuild the gear meshes if the outfit changed. */
@@ -231,10 +233,42 @@ export function dressSoldier(ctx: RenderContext, h: Body, tier: TierName): void 
 }
 
 /**
+ * Each garment's outline, [radius, height] from the hem up: slim through the waist (0.26 to 0.47 up),
+ * where the hands hover at the sides, and closing over the neck under the head. Long garments stop just
+ * clear of the ground, so the shoes step out from under them rather than through them.
+ */
+const NECK: [number, number][] = [[0.21, 0.56], [0.15, 0.62], [0, 0.65]];
+const GARMENTS: Record<Dress["garment"], [number, number][]> = {
+  "tunic": [[0.32, 0.13], [0.31, 0.18], [0.28, 0.28], [0.275, 0.44], ...NECK],
+  "long tunic": [[0.34, 0.075], [0.32, 0.14], [0.28, 0.28], [0.275, 0.44], ...NECK],
+  "smock": [[0.36, 0.12], [0.34, 0.18], [0.29, 0.25], [0.28, 0.3], [0.28, 0.44], ...NECK],
+  "doublet": [[0.31, 0.21], [0.29, 0.25], [0.265, 0.3], [0.275, 0.44], ...NECK],
+  "gown": [[0.4, 0.075], [0.36, 0.14], [0.29, 0.26], [0.26, 0.36], [0.265, 0.44], ...NECK],
+  "kirtle": [[0.37, 0.075], [0.34, 0.14], [0.28, 0.28], [0.255, 0.4], [0.26, 0.46], ...NECK],
+  "robe": [[0.38, 0.075], [0.36, 0.14], [0.3, 0.26], [0.28, 0.32], [0.28, 0.44], ...NECK],
+};
+/** A profile's radius at height y, flat beyond its ends. */
+function radiusAt(pts: readonly [number, number][], y: number): number {
+  if (y <= pts[0]![1]) return pts[0]![0];
+  for (let i = 1; i < pts.length; i++) {
+    const [r0, y0] = pts[i - 1]!, [r1, y1] = pts[i]!;
+    if (y <= y1) return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0);
+  }
+  return pts[pts.length - 1]![0];
+}
+/** Where a feather sits in each hat that takes one. */
+const FEATHER: Partial<Record<Dress["head"], [number, number, number]>> = { cap: [-0.08, 0.98, 0.2], felt: [-0.06, 1.1, 0.2], chaperon: [-0.08, 1.07, 0.2] };
+
+/**
  * Dress a body as one of the townsfolk, in their own clothes (see Dress, src/world/wardrobe.ts). The body
- * faces +x: their garment (a tunic, a smock, a doublet and hose, a gown, a kirtle or a robe) in one colour,
- * split in two, or banded; what they wear over it; their hair and headwear; a feather, a pouch, a brooch;
- * their shoes; and whatever they carry, in the back hand (or, a staff, the front).
+ * faces +x, and its bare stone is hidden: the clothes close over it. Their garment (a tunic, a smock, a
+ * doublet, a gown, a kirtle or a robe, each with its own collar, buttons, laces, girdle or cord) in one
+ * colour, split in two, or banded; hose, where a short garment shows the legs; what they wear over it;
+ * their hair and headwear; a feather, a pouch, a brooch; their shoes; and whatever they carry, in the back
+ * hand (or, a staff, the front).
+ *
+ * Nothing pokes through anything: every layer is turned on the same eight facets as the garment, so their
+ * corners line up, and measured from the layers beneath (`under` and `outer`), a little further out.
  */
 export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
   const key = `common/${JSON.stringify(d)}`;
@@ -242,47 +276,117 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
   for (const part of [h.gear, h.sword, h.ring]) { disposeTree(part); part.clear(); }
   for (const hand of h.hands) for (const c of [...hand.children]) { hand.remove(c); disposeTree(c); }
   h.key = key;
+  h.torso.forEach(m => { m.visible = false; });
   const { lambert } = ctx, cloth = lambert(d.cloth), second = lambert(d.second), trim = lambert(d.trim), linen = lambert("#ece4d0");
   const mesh = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); h.gear.add(m); return m; };
-  /** A turned shape, all the way round or part of the way (phi 0 is +z, PI/2 the front). */
-  const turned = (pts: [number, number][], mat: THREE.Material, phiStart = 0, phi = Math.PI * 2) =>
-    mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 8, phiStart, phi), mat);
+  /** A turned shape over `quarters` eighth-turns from `from` (0 is +z, 2 the front, 6 the back), on the garment's facets. */
+  const Q = Math.PI / 4;
+  const turned = (pts: [number, number][], mat: THREE.Material, from = 0, quarters = 8) =>
+    mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), quarters, from * Q, quarters * Q), mat);
+  const shape = GARMENTS[d.garment], [hemR, hemY] = shape[0]!;
+  const long = hemY < 0.1;
+
+  // How far out the clothes reach at each height: the garment and anything worn close over it (`under`),
+  // then a cloak or shawl over all (`outer`). Each layer is fitted a little outside the one below.
+  const TIGHT = 0.022, WRAP = { cloak: 0.07, shawl: 0.045 } as Partial<Record<Dress["over"], number>>;
+  const apronLo = Math.max(hemY + 0.04, 0.1), surcoatLo = long ? hemY + 0.06 : Math.max(0.075, hemY - 0.06);
+  const tight: [number, number] | null = { apron: [apronLo, 0.32], vest: [0.24, 0.56], surcoat: [surcoatLo, 0.58], tabard: [0.14, 0.58] }[d.over as string] as [number, number] | undefined ?? null;
+  const wrap: [number, number] | null = d.over === "cloak" ? [0.08, 0.63] : d.over === "shawl" ? [0.3, 0.63] : null;
+  const under = (y: number) => radiusAt(shape, y) + (tight && y >= tight[0] - 0.01 && y <= tight[1] + 0.01 ? TIGHT : 0);
+  const outer = (y: number) => under(y) + (wrap && y >= wrap[0] && y <= wrap[1] ? WRAP[d.over]! : 0);
+  /** Points following the garment from y0 up to y1, `pad` outside the layers beneath. */
+  const fitted = (y0: number, y1: number, pad: number | ((y: number) => number), surface = under): [number, number][] =>
+    [y0, ...shape.map(p => p[1]).filter(y => y > y0 && y < y1), y1].map(y => [surface(y) + (typeof pad === "number" ? pad : pad(y)), y]);
+  const band = (y0: number, y1: number, pad: number, mat: THREE.Material, from = 0, quarters = 8, surface = under) => turned(fitted(y0, y1, pad, surface), mat, from, quarters);
+  /** Something small on the clothes' surface at height y, facing out at angle phi (PI/2 the front). */
+  const onFront = (geo: THREE.BufferGeometry, mat: THREE.Material, y: number, pad: number, phi = Math.PI / 2, surface = under) => {
+    const r = surface(y) + pad, m = mesh(geo, mat, Math.sin(phi) * r, y, Math.cos(phi) * r);
+    m.rotation.y = phi - Math.PI / 2;
+    return m;
+  };
+  /** A rod from a to b (hair, a cord). */
+  const rod = (a: THREE.Vector3, b: THREE.Vector3, r: number, mat: THREE.Material) => {
+    const dir = b.clone().sub(a), m = mesh(new THREE.CylinderGeometry(r, r, dir.length(), 5), mat);
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    return m;
+  };
 
   // ---- The garment ----
-  const SHAPE: Record<Dress["garment"], [number, number][]> = {
-    "tunic": [[0.33, 0.1], [0.32, 0.16], [0.3, 0.34], [0.28, 0.46], [0.2, 0.6]],
-    "long tunic": [[0.35, 0.03], [0.33, 0.12], [0.3, 0.34], [0.28, 0.46], [0.2, 0.6]],
-    "smock": [[0.37, 0.09], [0.36, 0.16], [0.32, 0.36], [0.28, 0.48], [0.2, 0.6]],
-    "doublet": [[0.31, 0.2], [0.31, 0.26], [0.3, 0.38], [0.28, 0.48], [0.2, 0.6]],
-    "gown": [[0.4, 0], [0.37, 0.1], [0.3, 0.32], [0.27, 0.44], [0.2, 0.6]],
-    "kirtle": [[0.36, 0], [0.34, 0.1], [0.29, 0.32], [0.26, 0.44], [0.2, 0.6]],
-    "robe": [[0.4, 0], [0.38, 0.12], [0.33, 0.36], [0.3, 0.48], [0.22, 0.6]],
-  };
-  const shape = SHAPE[d.garment], hem = shape[0]!;
-  if (d.pattern === "parti") { turned(shape, cloth, -Math.PI / 2, Math.PI); turned(shape, second, Math.PI / 2, Math.PI); }   // one half each colour, split front to back
+  if (d.pattern === "parti") { turned(shape, cloth, -2, 4); turned(shape, second, 2, 4); }   // one side each colour
   else turned(shape, cloth);
-  if (d.pattern === "banded") for (const dy of [0.05, 0.11]) mesh(new THREE.CylinderGeometry(hem[0] - dy * 0.12, hem[0] - dy * 0.1, 0.035, 8), second, 0, hem[1] + dy, 0);
-  mesh(new THREE.CylinderGeometry(hem[0] + 0.005, hem[0] + 0.01, 0.035, 8), trim, 0, hem[1] + 0.015, 0);          // the hem
-  if (d.garment === "doublet") turned([[0.24, 0.02], [0.27, 0.08], [0.28, 0.2]], second);                          // hose
-  if (d.garment === "kirtle") for (let i = 0; i < 3; i++) mesh(box(0.02, 0.02, 0.12), trim, 0.29, 0.38 + i * 0.06, 0).rotation.x = i % 2 ? 0.6 : -0.6;   // laced bodice
-  if (d.garment !== "robe") mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.05, 8), trim, 0, 0.32, 0);              // the belt
-  else mesh(new THREE.TorusGeometry(0.3, 0.015, 3, 10).rotateX(Math.PI / 2), linen, 0, 0.32, 0);                  // a cord
-  if (d.pouch) mesh(box(0.08, 0.1, 0.07), lambert("#5d4430"), 0.18, 0.25, 0.25);
-  if (d.brooch) mesh(new THREE.OctahedronGeometry(0.04, 0), lambert("#d9a83a"), 0.27, 0.52, 0);
+  if (d.pattern === "banded") for (const y of [hemY + 0.05, hemY + 0.11]) band(y, y + 0.03, 0.008, second);
+  band(hemY, hemY + 0.035, 0.01, trim);                                                     // the hem
+  switch (d.garment) {
+    case "tunic": case "long tunic":
+      band(0.5, 0.57, 0.01, trim);                                                          // the collar
+      if (d.garment === "long tunic") onFront(box(0.02, 0.16, 0.035), trim, 0.47, 0.008).rotation.z = 0.35;   // a placket at the throat
+      break;
+    case "smock": band(0.44, 0.54, 0.01, d.pattern === "plain" ? second : linen); break;   // the gathered yoke
+    case "doublet":
+      band(0.5, 0.58, 0.012, trim);                                                         // a standing collar
+      for (let i = 0; i < 4; i++) onFront(box(0.03, 0.03, 0.035), trim, 0.25 + i * 0.065, 0.012);   // buttons down the front
+      break;
+    case "gown": band(0.5, 0.57, 0.01, trim); break;                                        // the neckline
+    case "kirtle":
+      band(0.53, 0.6, 0.008, linen);                                                        // the shift showing at the neck
+      for (let i = 0; i < 6; i++) onFront(box(0.015, 0.018, 0.1), trim, 0.33 + Math.floor(i / 2) * 0.055, 0.01).rotation.x = i % 2 ? 0.7 : -0.7;   // laced up the front
+      break;
+    case "robe": break;
+  }
 
-  // ---- Over it ----
-  if (d.over === "apron") mesh(box(0.04, d.garment === "gown" || d.garment === "kirtle" ? 0.3 : 0.24, 0.32), linen, hem[0] - 0.03, 0.2, 0).rotation.z = 0.12;
-  else if (d.over === "cloak") turned([[0.4, 0.04], [0.36, 0.2], [0.3, 0.44], [0.25, 0.58], [0.16, 0.64]], lambert(d.second, { side: THREE.DoubleSide }), Math.PI * 0.95, Math.PI * 1.1);
-  else if (d.over === "surcoat") turned([[0.36, 0.08], [0.33, 0.2], [0.31, 0.38], [0.29, 0.5], [0.21, 0.6]], second, Math.PI * 0.62, Math.PI * 1.76);
-  else if (d.over === "tabard") for (const s of [1, -1]) mesh(box(0.03, 0.42, 0.24), second, s * 0.3, 0.32, 0);
-  else if (d.over === "vest") turned([[0.31, 0.3], [0.3, 0.4], [0.28, 0.5], [0.21, 0.6]], second);
-  else if (d.over === "shawl") turned([[0.33, 0.42], [0.3, 0.52], [0.22, 0.62]], second);
+  // ---- Close over it ----
+  if (d.over === "apron") {
+    band(apronLo, 0.32, TIGHT, second, 1, 2);                                               // linen, or a smith's leather
+    if (d.garment === "gown" || d.garment === "kirtle") onFront(box(0.015, 0.15, 0.15), second, 0.4, TIGHT, Math.PI / 2, y => radiusAt(shape, y));   // and a bib
+  } else if (d.over === "vest") band(0.24, 0.56, TIGHT, second, 3, 6);                    // open down the front
+  else if (d.over === "surcoat") {                                                          // sideless: open at the sides down to the hips
+    band(surcoatLo, 0.3, TIGHT, second);
+    for (const from of [1, 5]) band(0.3, 0.58, TIGHT, second, from, 2);
+    band(surcoatLo, surcoatLo + 0.03, 0.01, trim);
+  } else if (d.over === "tabard") {                                                         // panels front and back, the arms on the front
+    for (const from of [1, 5]) { band(0.14, 0.58, TIGHT, second, from, 2); band(0.14, 0.17, 0.01, trim, from, 2); }
+    onFront(new THREE.OctahedronGeometry(0.06, 0), trim, 0.42, 0.01).scale.x = 0.3;
+  }
+
+  // ---- Belt, pouch ----
+  if (d.garment === "robe") {                                                               // a cord, its ends hanging
+    band(0.31, 0.335, 0.01, linen);
+    for (const [phi, lo] of [[Math.PI / 2, 0.14], [Math.PI / 2 - 0.12, 0.18]] as const) {
+      const r = (y: number) => under(y) + 0.014;
+      rod(new THREE.Vector3(Math.sin(phi) * r(0.31), 0.31, Math.cos(phi) * r(0.31)), new THREE.Vector3(Math.sin(phi) * r(lo), lo, Math.cos(phi) * r(lo)), 0.013, linen);
+    }
+  } else if (d.garment === "gown") {                                                        // a girdle high under the bust, its end hanging
+    band(0.37, 0.4, 0.01, trim);
+    if (d.over !== "apron" && d.over !== "surcoat") onFront(box(0.015, 0.2, 0.035), trim, 0.27, 0.012);
+  } else band(0.3, 0.345, 0.012, trim);                                                     // the belt
+  if (d.pouch) onFront(box(0.06, 0.09, 0.08), lambert("#5d4430"), 0.23, 0.03, 0.2 * Math.PI);
+  if (d.garment === "robe" && !d.over.match(/cloak|shawl/) && (d.head === "bare" || d.head === "coif"))   // the cowl, down on the shoulders
+    turned([[under(0.42) + 0.015, 0.42], [under(0.5) + 0.05, 0.5], [under(0.58) + 0.035, 0.58]], lambert(d.cloth, { side: THREE.DoubleSide }), 4, 4);
+
+  // ---- Over all ----
+  if (d.over === "cloak") {                                                                 // down the back from the shoulders, with a collar and clasp
+    const mat = lambert(d.second, { side: THREE.DoubleSide });
+    turned([...fitted(0.08, 0.56, y => WRAP.cloak! - 0.02 + (0.56 - y) * 0.04), [0.17, 0.63]], mat, 4, 4);
+    band(0.52, 0.6, WRAP.cloak!, mat);
+    onFront(box(0.03, 0.05, 0.07), trim, 0.56, WRAP.cloak! + 0.01);
+  } else if (d.over === "shawl") {                                                          // round the shoulders, to a point down the back
+    band(0.42, 0.6, WRAP.shawl!, second);
+    band(0.3, 0.42, WRAP.shawl!, second, 5, 2);
+    onFront(new THREE.OctahedronGeometry(0.045, 0), second, 0.45, WRAP.shawl! + 0.015);
+  }
+  if (d.brooch) onFront(new THREE.OctahedronGeometry(0.04, 0), lambert("#d9a83a"), d.over === "cloak" ? 0.6 : 0.5, 0.02, Math.PI / 2, outer);
 
   // ---- Hair and headwear ----
   const hair = lambert(d.hair);
   const cap = (r: number, y: number, mat: THREE.Material, open = 0.5, x = -0.03) =>
     mesh(new THREE.SphereGeometry(r, 7, 5, 0, Math.PI * 2, 0, Math.PI * open), mat, x, y, 0);
   if (d.head === "bare" || d.head === "cap" || d.head === "felt" || d.head === "straw") cap(0.28, 0.8, hair, 0.5, -0.05).rotation.z = 0.5;   // hair, swept back
+  if (d.longHair && d.head !== "wimple" && d.head !== "veil" && d.head !== "hood") {          // a braid down the back, a ribbon at its end
+    const top = new THREE.Vector3(-0.25, 0.7, 0), end = new THREE.Vector3(-(outer(0.42) + 0.05), 0.42, 0), plait = new THREE.IcosahedronGeometry(0.058, 0).scale(1, 1.3, 1);
+    for (let i = 0; i < 4; i++) mesh(plait, hair).position.lerpVectors(top, end, i / 3).add(new THREE.Vector3(0, 0, i % 2 ? 0.015 : -0.015));
+    mesh(box(0.05, 0.035, 0.1), second, end.x, end.y - 0.07, 0);
+  }
   switch (d.head) {
     case "coif": cap(0.29, 0.8, linen, 0.55).rotation.z = 0.35; break;
     case "kerchief": {
@@ -292,12 +396,14 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
     }
     case "wimple": {
       cap(0.3, 0.8, linen, 0.6).rotation.z = 0.3;
-      mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.16, 8, 1, true), linen, 0, 0.64, 0);                    // round the chin and throat
+      mesh(new THREE.CylinderGeometry(0.2, outer(0.56) + 0.03, 0.16, 8, 1, true), linen, 0, 0.64, 0);       // round the chin and throat
       break;
     }
-    case "veil": {
-      cap(0.29, 0.81, hair, 0.45).rotation.z = 0.3;
-      turned([[0.3, 0.55], [0.3, 0.75], [0.25, 0.95], [0.05, 1.08]], lambert(d.second, { side: THREE.DoubleSide }), Math.PI * 0.95, Math.PI * 1.1);
+    case "veil": {                                                                         // over the crown and down the back, held by a fillet
+      const veil = lambert(d.second, { side: THREE.DoubleSide });
+      cap(0.3, 0.8, veil, 0.5, -0.02);
+      turned([[0.3, 0.8], [0.31, 0.68], [outer(0.6) + 0.03, 0.6], [outer(0.48) + 0.035, 0.48], [outer(0.38) + 0.04, 0.38]], veil, 4, 4);
+      mesh(new THREE.CylinderGeometry(0.305, 0.305, 0.04, 8), trim, -0.02, 0.83, 0);
       break;
     }
     case "cap": {
@@ -305,7 +411,7 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
       mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8), trim, -0.02, 0.92, 0);
       break;
     }
-    case "chaperon": {                                          // a rolled band like a turban, its tail hanging to one side
+    case "chaperon": {                                                                     // a rolled band like a turban, its tail hanging to one side
       mesh(new THREE.TorusGeometry(0.22, 0.08, 5, 10).rotateX(Math.PI / 2), second, -0.02, 0.98, 0);
       cap(0.22, 0.98, second, 0.5, -0.02);
       mesh(box(0.06, 0.32, 0.12), second, -0.18, 0.84, -0.22).rotation.x = 0.3;
@@ -313,7 +419,7 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
     }
     case "hood": {
       mesh(new THREE.SphereGeometry(0.31, 7, 5, Math.PI * 0.15, Math.PI * 1.7), second, -0.02, 0.8, 0).rotation.y = Math.PI / 2;
-      mesh(new THREE.CylinderGeometry(0.22, 0.33, 0.13, 8), second, 0, 0.6, 0);
+      mesh(new THREE.CylinderGeometry(0.22, Math.max(0.33, outer(0.54) + 0.03), 0.13, 8), second, 0, 0.6, 0);   // its cape, over whatever's on the shoulders
       break;
     }
     case "straw": {
@@ -330,18 +436,22 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
       break;
     }
   }
-  if (d.feather) mesh(new THREE.ConeGeometry(0.04, 0.32, 4), lambert(["#f2ead8", "#c8423a", "#3f6fd0"][d.cloth.length % 3]!), -0.1, 1.12, 0.2).rotation.set(0.5, 0, 0.6);
+  const quill = FEATHER[d.head];
+  if (d.feather && quill) mesh(new THREE.ConeGeometry(0.04, 0.32, 4), lambert(["#f2ead8", "#c8423a", "#3f6fd0"][d.cloth.length % 3]!), ...quill).rotation.set(0.5, 0, 0.6);
 
-  // ---- Shoes ----
-  const shoe = lambert(d.shoes);
+  // ---- Hose and shoes ----
+  // Feet step out from under a long hem; under a short one, legs in hose run up inside it, so they're
+  // never seen ending.
+  const shoe = lambert(d.shoes), hose = lambert(d.hose);
   h.feet.forEach(f => {
     const nub = f.userData.nub as THREE.Mesh;
     for (const c of f.children) if (c !== nub) disposeTree(c);
     f.clear(); f.add(nub); nub.visible = false;
     const s = new THREE.Mesh(box(0.17, 0.07, 0.12), shoe); s.position.set(0.02, 0.035, 0);
     f.add(s);
+    if (!long) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, hemY - 0.05, 5), hose); leg.position.set(-0.01, 0.06 + (hemY - 0.05) / 2, 0); f.add(leg); }
   });
-  h.footX = hem[0] > 0.34 ? 0.26 : 0.18;
+  h.footX = long ? hemR - 0.07 : 0.15;
 
   // ---- What they carry ----
   const back = h.hands[1]!, front = h.hands[0]!, hold = (o: THREE.Object3D, hand: THREE.Mesh, x: number, y: number, z: number) => { o.position.set(x, y, z); hand.add(o); };
@@ -356,7 +466,7 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
       [new THREE.CylinderGeometry(0.15, 0.12, 0.14, 8, 1, true), wicker, 0, 0, 0], [new THREE.CircleGeometry(0.12, 8).rotateX(-Math.PI / 2), wicker, 0, -0.07, 0],
       [new THREE.TorusGeometry(0.13, 0.015, 3, 8, Math.PI), wicker, 0, 0.05, 0], [new THREE.IcosahedronGeometry(0.1, 0).scale(1, 0.6, 1), lambert(["#c8423a", "#5fb04a", "#e8963a"][d.second.length % 3]!), 0, 0.04, 0],
     ), back, 0.02, -0.12, -0.02); break;
-    case "sack": mesh(new THREE.IcosahedronGeometry(0.22, 1).scale(0.8, 1.1, 0.9), lambert("#c9b896"), -0.34, 0.6, 0); break;   // over the shoulder, behind
+    case "sack": mesh(new THREE.IcosahedronGeometry(0.22, 1).scale(0.8, 1.1, 0.9), lambert("#c9b896"), -(outer(0.55) + 0.15), 0.6, 0); break;   // over the shoulder, on the back
     case "bundle": hold(group([box(0.22, 0.16, 0.18), second, 0, 0, 0], [box(0.24, 0.03, 0.03), trim, 0, 0.02, 0]), back, 0, -0.06, -0.04); break;
     case "staff": hold(group([new THREE.CylinderGeometry(0.025, 0.03, 1.5, 5), wood, 0, 0.3, 0]), front, 0.02, 0, 0.02); break;
     case "bucket": hold(group(

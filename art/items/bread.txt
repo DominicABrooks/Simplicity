@@ -1,0 +1,11 @@
+# Loaf icon: 2x1 inventory cells. Three cuts on top, for luck.
+
+@idle 1000
+................
+....NNNNNNNN....
+..NNOOYOOYOOYNn.
+.NOOOYOOYOOYOONn
+.NOOOOOOOOOOOONn
+.NNOOOOOOOOOONNn
+..nnnnnnnnnnnnn.
+................

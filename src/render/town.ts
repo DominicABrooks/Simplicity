@@ -353,18 +353,31 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
     cap.rotation.y = Math.PI / 4;
     g.add(arm, lamp, cap);
   }
-  // A chimney on the bigger houses.
+  // A chimney on the bigger houses, and on most a fire lit below it: smoke puffs up, swells, drifts off
+  // on the wind (always the same way, whichever way the house faces) and thins away.
+  let smoke: ((t: number) => void) | undefined;
+  const cx = (p.rect.x + p.rect.w / 2) / T, cz = (p.rect.y + p.rect.h / 2) / T, yaw = FACING_YAW[p.doorSide];
   if (w * d >= 16) {
     const chimney = new THREE.Mesh(tiledBox(0.38, roofH + 0.6, 0.38, 0.5), stone);
     chimney.position.set(w / 2 - 0.55, top + (roofH + 0.6) / 2, -d / 4);
     g.add(chimney);
+    if (hash(seed, 3, 470) < 0.6) {
+      const puffGeo = new THREE.IcosahedronGeometry(0.16, 0), puffMat = lambert("#c8c4bc", { transparent: true, opacity: 0.55, depthWrite: false });
+      const puffs = Array.from({ length: 4 }, () => { const m = new THREE.Mesh(puffGeo, puffMat); g.add(m); return m; });
+      const base = new THREE.Vector3(w / 2 - 0.55, top + roofH + 0.65, -d / 4), windX = Math.cos(yaw), windZ = Math.sin(yaw), phase = hash(seed, 4, 471) * 10;
+      smoke = t => puffs.forEach((m, i) => {
+        const k = ((t * 0.28 + phase + i / puffs.length) % 1);  // each puff's way up, 0-1
+        m.position.set(base.x + windX * k * 1.1 + Math.sin(t + i) * 0.04, base.y + k * 1.5, base.z + windZ * k * 1.1);
+        m.scale.setScalar((0.5 + k * 1.3) * Math.min(1, (1 - k) * 3));
+        m.rotation.set(k * 3 + i, k * 2, 0);
+      });
+    }
   }
-  const cx = (p.rect.x + p.rect.w / 2) / T, cz = (p.rect.y + p.rect.h / 2) / T;
   g.position.set(cx, 0, cz);
-  g.rotation.y = FACING_YAW[p.doorSide];
+  g.rotation.y = yaw;
   parent.add(g);
   const ow = (sideways ? d + outTop : w) + 0.2, od = (sideways ? w : d + outTop) + 0.2;
-  return { occluders: [occluder(g, cx, cz, ow, od, top + roofH)] };
+  return { occluders: [occluder(g, cx, cz, ow, od, top + roofH)], ...(smoke ? { update: smoke } : {}) };
 }
 
 // ---------- The keep ----------

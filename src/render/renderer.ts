@@ -6,6 +6,8 @@ import { PAL } from "../data/palette.ts";
 import { HALF, T } from "../data/world.ts";
 import type { Game } from "../game/game.ts";
 import { createAmbient } from "./ambient.ts";
+import { createDaylight } from "./daylight.ts";
+import { createWeatherView } from "./weather.ts";
 import { disposeTree } from "./dispose.ts";
 import { PX_PER_TILE, createContext, toWorld } from "./context.ts";
 import { createFishingView } from "./fishing.ts";
@@ -42,13 +44,17 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const scene = new THREE.Scene();
   const sky = new THREE.Color(PAL.k);
   scene.background = sky;
-  scene.fog = new THREE.Fog(sky, 22, 52);
+  const fog = new THREE.Fog(sky, 22, 52);
+  fog.color = sky;                                           // shared (the constructor copies it), so the fog follows the sky
+  scene.fog = fog;
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 80);
   const camTarget = new THREE.Vector3();
-  scene.add(new THREE.HemisphereLight(0xcfe3ff, new THREE.Color(PAL.v), 1.5));
+  const fill = new THREE.HemisphereLight(0xcfe3ff, new THREE.Color(PAL.v), 1.5);
+  scene.add(fill);
   const sun = new THREE.DirectionalLight(0xffe2b0, 2.4);
   sun.position.set(-3, 6, 2);                                // top-left of screen, as in ART_STYLE.md
   scene.add(sun);
+  const daylight = createDaylight(sky, fill, sun);
 
   const ctx = createContext(scene);
   const world = new THREE.Group();
@@ -63,6 +69,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   let animated: ((t: number, dt: number) => void)[] = [];
   const occlusion = createOcclusion(scene);
   const targetRing = createTargetRing(ctx);
+  const weather = createWeatherView(ctx, { sky, fog, fill, sun });
 
   // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
   // the hero. Only one area's scenery is ever in memory.
@@ -84,6 +91,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     compactScenery(scenery, occluders.map(o => o.object), animated, [terrain.group]);
     occlusion.set(occluders, terrain.trees);
     koi.setMap(layout.map);
+    targetRing.setProps(props);
     ambient.setMap(layout.map, !!def.life?.ambient);
     const p = g.world.need(g.player, "transform");
     const [x, z] = toWorld(p.x, p.y);
@@ -116,9 +124,11 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       occlusion.update(px, pz, CAM_OFFSET, dt);
       targetRing.update(g, t);
 
-      // World animation and camera.
+      // World animation, light and camera.
+      daylight.update(g.hour);
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
       camTarget.set(smooth(camTarget.x, px, dt, 8), 0, smooth(camTarget.z, pz, dt, 8));
+      weather.update(g.weather, dt, camTarget.x, camTarget.z);
       camera.position.copy(camTarget).add(CAM_OFFSET);
       camera.lookAt(camTarget);
       if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));

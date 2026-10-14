@@ -6,6 +6,7 @@ import type { Gear } from "../items/inventory.ts";
 import type { Item } from "../items/items.ts";
 import type { Entity } from "../core/ecs.ts";
 import type { TrainingKind } from "../data/npcs.ts";
+import type { Species } from "../data/pets.ts";
 
 export interface Transform {
   x: number;
@@ -271,18 +272,57 @@ export interface Walker {
   catchingUp: boolean;
 }
 
+/** How a dog or cat is holding itself: up on its feet, nose down sniffing, sitting, or lying down. */
+export type PetPose = "stand" | "sniff" | "sit" | "lie";
+
+/** One of the city's dogs and cats (see src/game/pets.ts). Paths are in tiles. */
+export interface Pet {
+  species: Species;
+  /** Which coat it has (an index into the renderer's coats for its species). */
+  coat: number;
+  /** The tiles still to go through, the next one first. */
+  path: (readonly [number, number])[];
+  /** Its own line along a street: a small offset from the middle of each tile, px. */
+  lane: [number, number];
+  /** Its own easy pace, and how fast it's going now (px per second). */
+  pace: number;
+  speed: number;
+  moving: boolean;
+  /** Running: a dog giving chase or bounding up to the hero, a cat bolting. */
+  running: boolean;
+  pose: PetPose;
+  /** Seconds left settled where it is. */
+  wait: number;
+  /** Which way it faces (a game angle). */
+  facing: number;
+  /** A dog sitting by the hero, wagging. */
+  greeting: boolean;
+  /** Seconds before it takes notice of the hero (or a dog) again. */
+  calm: number;
+}
+
+/** The hero sitting by a campfire, getting his health back (see src/game/resting.ts). */
+export interface Resting {
+  fire: Entity;
+  /** Seconds to the next heart back, and his health as last seen (a drop means he was hit). */
+  heal: number;
+  hp: number;
+}
+
 /** The hero talking to someone (see src/game/talk.ts). */
 export interface Conversation {
   with: Entity;
   /** Who's speaking, as their target name shows. */
   name: string;
+  /** Who they are, to remember them by: "folk:<census id>", or "guard:<area>:<post>". */
+  key: string;
   lines: string[];
   /** The line being said, and seconds since it started (it types out). */
   line: number;
   t: number;
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "dummy" | "townsfolk";
+export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "dummy" | "townsfolk" | "pet";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -310,5 +350,7 @@ export interface Components {
   sentry: Sentry;
   dummy: Dummy;
   conversation: Conversation;
+  resting: Resting;
   walker: Walker;
+  pet: Pet;
 }

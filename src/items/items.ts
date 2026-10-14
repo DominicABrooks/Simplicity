@@ -1,5 +1,5 @@
 import type { Rng } from "../core/rng.ts";
-import { AFFIXES, BASES, FISH, RARE_A, RARE_B, RARITY_ODDS, type ItemType, type Rarity, type Slot, type StatKey, type Stats } from "../data/items.ts";
+import { AFFIXES, BASES, FISH, GIFTS, RARE_A, RARE_B, RARITY_ODDS, type GiftKind, type ItemType, type Rarity, type Slot, type StatKey, type Stats } from "../data/items.ts";
 
 export interface Item {
   id: number;
@@ -56,5 +56,12 @@ export function rollItem(rng: Rng, minRarity: Rarity = "normal"): Item {
 export function makeFish(rarity: Rarity): Item {
   const item = makeItem("fish", rarity, {}, FISH[rarity].name);
   item.heal = FISH[rarity].heal;
+  return item;
+}
+
+/** Something someone hands the hero as they talk: a loaf, a koi, a shiny stone. */
+export function makeGift(kind: GiftKind): Item {
+  const gift = GIFTS[kind], item = makeItem(gift.type, "normal", {}, gift.name);
+  if (gift.heal) item.heal = gift.heal;
   return item;
 }

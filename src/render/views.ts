@@ -3,7 +3,7 @@
 // Adding a new kind of thing to draw means adding one entry here.
 import * as THREE from "three";
 import type { Entity } from "../core/ecs.ts";
-import { turn } from "../core/math.ts";
+import { smooth, turn } from "../core/math.ts";
 import { SLIME, SPELLS, type BoltKind, type School, type SpellName } from "../data/enemies.ts";
 import { PAL } from "../data/palette.ts";
 import { RARITY_COLOR } from "../data/tiers.ts";
@@ -16,6 +16,7 @@ import { disposeTree } from "./dispose.ts";
 import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
 import { residentById } from "../game/townsfolk.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
+import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
 import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
@@ -408,7 +409,83 @@ const townsfolk: EntityView<FolkView> = {
   remove: removeBody,
 };
 
+// ---------- Dogs and cats ----------
+/**
+ * One of the city's dogs and cats (see src/game/pets.ts), in its own breed and coat (models/pets.ts). They
+ * trot (or bolt) with their legs stepping in diagonal pairs, stand nose down sniffing, sit up and lie down,
+ * easing from one to the next. A dog wags, hard when it's greeting the hero, and lays its head on its paws
+ * to doze; a cat walks with its tail up and hooked, wraps it round its paws when it sits, and curls up,
+ * eyes shut, when it dozes.
+ */
+interface PetView extends PetModel {
+  shadow: THREE.Object3D;
+  k: number;
+  /** The pose as drawn, easing toward the pet's (0-1). */
+  sit: number;
+  lie: number;
+  curl: number;
+  sniff: number;
+  /** How far up the tail's carried, and how far the stride swings (eased). */
+  lift: number;
+  swing: number;
+  /** Where its legs are in their stride. */
+  stride: number;
+}
+const pet: EntityView<PetView> = {
+  create(ctx, e, g) {
+    const p = g.world.need(e, "pet"), k = (e * 0.618) % 1;
+    const m = makePetModel(ctx, p.species, p.coat, 0.92 + k * 0.16);
+    const shadow = addShadow(ctx, m.build.L * m.group.scale.x * 1.5);
+    ctx.scene.add(m.group, shadow);
+    m.group.rotation.y = -p.facing;
+    const lie = p.pose === "lie" ? 1 : 0;
+    return Object.assign(m, { shadow, k: k * 10, sit: 0, lie, curl: lie, sniff: 0, lift: m.build.tail.lift, swing: 0, stride: 0 });
+  },
+  update(_ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), p = g.world.need(e, "pet"), [x, z] = toWorld(o.x, o.y), t = f.t + v.k, cat = p.species === "cat";
+    v.group.position.set(x, 0, z);
+    v.group.rotation.y = turn(v.group.rotation.y, -p.facing, f.dt, p.running ? 14 : 7);
+    v.shadow.position.set(x, SHADOW_Y, z);
+    const dozing = p.pose === "lie" && !p.moving && p.wait > 12;
+    v.sit = smooth(v.sit, p.pose === "sit" ? 1 : 0, f.dt, 6);
+    v.lie = smooth(v.lie, p.pose === "lie" ? 1 : 0, f.dt, 4);
+    v.curl = smooth(v.curl, cat && dozing ? 1 : 0, f.dt, 2);
+    v.sniff = smooth(v.sniff, p.pose === "sniff" ? 1 : 0, f.dt, 5);
+
+    // Legs: diagonal pairs, faster and wider at a run, the body bobbing with each step.
+    if (p.moving) v.stride += f.dt * p.speed / (cat ? 3.2 : 4.2);
+    v.swing = smooth(v.swing, p.moving ? (p.running ? 0.8 : 0.45) : 0, f.dt, 10);
+    const bob = Math.abs(Math.sin(v.stride)) * v.swing * (p.running ? 0.05 : 0.025);
+    posePet(v, { sit: v.sit, lie: v.lie, curl: v.curl, stride: v.stride, swing: v.swing, bob });
+
+    // Neck and head: nose to the ground sniffing, laid down dozing, otherwise up and looking about.
+    const look = p.moving ? 0 : Math.sin(t * 0.4) * 0.6 * (1 - v.lie * 0.6) * (1 - v.sniff);
+    v.neck.rotation.z = -v.sniff * 1.05 - v.lie * (cat ? 0.5 + v.curl * 0.6 : 0.75) + (p.moving ? Math.sin(v.stride * 2) * 0.05 - (p.running ? 0.3 : 0.1) : 0);
+    v.head.rotation.set(0, look, -v.trunk.rotation.z * 0.5 - v.sniff * 0.35 + v.lie * 0.25 + (cat && v.curl > 0.5 ? -0.3 : 0) + (v.sniff ? Math.sin(t * 9) * 0.06 * v.sniff : 0));
+    v.eyes.forEach(eye => { eye.scale.y = dozing || t % 4.3 < 0.15 ? 0.15 : 1; });
+
+    // The tail.
+    const b = v.build.tail, n = v.tail.length;
+    if (cat) {                                               // up and hooked walking, straight out running, round the paws sitting, round the body curled
+      const lift = p.running ? 0.2 : p.moving ? 1.35 : -0.25 - v.sit * 0.35 - v.lie * 0.2;
+      v.lift = smooth(v.lift, lift, f.dt, 4);
+      const wrap = Math.max(v.sit, v.lie) * (1 - (p.moving ? 1 : 0)), sway = Math.sin(t * 1.3) * 0.3 * (1 - wrap * 0.6);
+      v.tail.forEach((seg, i) => {
+        const hook = p.moving && !p.running ? [0, 0.1, 0.3, 0.75][i] ?? 0 : 0;
+        seg.rotation.set(0, (i ? 0.55 : 1.3) * wrap + sway * (i + 1) / n, i ? -hook + Math.sin(t * 2.1 - i) * 0.1 : -v.lift);
+      });
+    } else {                                                 // carried as the breed carries it; wagging, hard when greeting
+      const lift = b.lift + (p.greeting ? 0.45 : p.moving ? 0.15 : 0) - (p.running && b.lift < 1 ? 0.3 : 0) - v.lie * (b.lift + 0.1) - v.sit * 0.4;
+      v.lift = smooth(v.lift, lift, f.dt, 5);
+      const wag = p.greeting ? Math.sin(t * 22) * 0.6 : Math.sin(t * (p.moving ? 9 : 3)) * (dozing ? 0.04 : 0.22);
+      v.tail.forEach((seg, i) => seg.rotation.set(0, wag * (i ? 0.6 : 1) + v.lie * (i ? 0.3 : 0.9), i ? -b.curl * (1 - v.lie) : -v.lift));
+    }
+    v.trunk.scale.y = 1 + Math.sin(t * (dozing ? 1.4 : 2.6)) * 0.03;   // breathing
+  },
+  remove: removeSimple,
+};
+
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard, dummy, townsfolk } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard, dummy, townsfolk, pet } satisfies { [K in ViewKind]: EntityView<object> };

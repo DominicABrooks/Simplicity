@@ -2,10 +2,15 @@
 // your target, starts a conversation instead of an attack: their lines come one at a time in a box at the
 // bottom of the screen. A click, Enter, Space or E shows the rest of a line or goes on to the next;
 // Escape, or walking away, ends it. It lives on the hero (see Conversation), so it's gone with the area.
+// Some lines hand the hero something (the gift lines in src/data/voices.ts): it lands in the bag as the
+// line is said. Each person gives at most once a run, and only offers if it'll fit in the bag.
 import type { Entity } from "../core/ecs.ts";
 import { TALK } from "../data/dialogue.ts";
+import { GIFT_OF } from "../data/voices.ts";
+import { T } from "../data/world.ts";
 import type { Resident } from "../world/residents.ts";
-import { folkLines, guardLines } from "./conversation.ts";
+import { makeGift } from "../items/items.ts";
+import { folkLines, guardLines, type CanGive } from "./conversation.ts";
 
 export { jobLine } from "./conversation.ts";
 import { residentById } from "./townsfolk.ts";
@@ -30,9 +35,53 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   if (Math.hypot(hero.x - them.x, hero.y - them.y) > TALK.reach) { toast(g, "Too far away to talk"); return true; }
   const name = g.world.need(e, "targetable").name;
   const who = g.world.get(e, "walker"), resident = who && residentById(who.id);
-  const lines = resident ? folkLines(g.rng, resident, housematesOf(resident)) : guardLines(g.rng, g.area.def.id);
-  g.world.add(g.player, "conversation", { with: e, name, lines, line: 0, t: 0 });
+  // Who this is, to remember them by: a townsperson by their census id, a guard by their post.
+  const key = resident ? `folk:${resident.id}` : `guard:${g.area.def.id}:${Math.round(them.x / T)},${Math.round(them.y / T)}`;
+  const visits = chatsWith(g).get(key) ?? 0;
+  chatsWith(g).set(key, visits + 1);
+  // They only offer something if they haven't given the hero anything yet and it'll fit in the bag.
+  const gives: CanGive = kind => !giftsFrom(g).has(key) && g.inventory.freeSpot(makeGift(kind)) !== null;
+  const lines = resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
+  g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0 });
+  said(g);
   return true;
+}
+
+/** Everyone who has given the hero something this run, by their key: nobody gives twice. */
+const gifts = new WeakMap<Game, Set<string>>();
+export function giftsFrom(g: Game): Set<string> {
+  let given = gifts.get(g);
+  if (!given) {
+    const fresh = new Set<string>();
+    gifts.set(g, given = fresh);
+    g.events.on("reset", () => fresh.clear());
+  }
+  return given;
+}
+
+/** A line has just begun: if it hands something over, into the bag it goes (or, if the bag filled up meanwhile, it doesn't). */
+function said(g: Game): void {
+  const c = talking(g), kind = c && GIFT_OF.get(c.lines[c.line]!);
+  if (!c || !kind || giftsFrom(g).has(c.key)) return;
+  const item = makeGift(kind);
+  if (!g.inventory.add(item)) { toast(g, "Inventory full"); return; }
+  giftsFrom(g).add(c.key);
+  toast(g, `Received ${item.name}`, true);
+}
+
+/**
+ * How many times the hero has talked to each person this run, so they can warm up or get fed up with
+ * him. A new run (the hero waking again) starts everyone afresh.
+ */
+const chats = new WeakMap<Game, Map<string, number>>();
+export function chatsWith(g: Game): Map<string, number> {
+  let met = chats.get(g);
+  if (!met) {
+    const fresh = new Map<string, number>();
+    chats.set(g, met = fresh);
+    g.events.on("reset", () => fresh.clear());
+  }
+  return met;
 }
 
 /** Show the rest of the line, or go on to the next, or end it after the last. */
@@ -42,7 +91,7 @@ export function advanceTalk(g: Game): void {
   const shown = Math.floor(c.t * TALK.charsPerSecond);
   if (shown < c.lines[c.line]!.length) { c.t = c.lines[c.line]!.length / TALK.charsPerSecond; return; }
   if (++c.line >= c.lines.length) endTalk(g);
-  else c.t = 0;
+  else { c.t = 0; said(g); }
 }
 
 export function endTalk(g: Game): void {

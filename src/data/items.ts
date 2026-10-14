@@ -2,7 +2,7 @@
 
 export type Rarity = "normal" | "magic" | "rare";
 export type Slot = "helm" | "amulet" | "weapon" | "armor" | "ring" | "boots";
-export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish";
+export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone";
 export type StatKey = "damage" | "life" | "speed" | "dash";
 export type Stats = Partial<Record<StatKey, number>>;
 
@@ -30,6 +30,9 @@ export const BASES: Record<ItemType, ItemBase> = {
   // Not in the random loot table: the pole is a starter item and fish come from fishing.
   rod:    { name: "Fishing Pole", slot: "weapon", w: 1, h: 3, base: {}, noLoot: true, note: "Aim at water and click to cast" },
   fish:   { name: "Koi", slot: null, w: 2, h: 1, base: {}, noLoot: true },
+  // Gifts: only ever given, by the people you talk to (see GIFTS).
+  bread:  { name: "Loaf", slot: null, w: 2, h: 1, base: {}, noLoot: true },
+  stone:  { name: "Shiny Stone", slot: null, w: 1, h: 1, base: {}, noLoot: true, note: "A gift. It's yours now" },
 };
 
 /** Catches: rarity decides the koi and how much eating it heals. */
@@ -37,6 +40,14 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
   normal: { name: "Pond Koi", heal: 1 },
   magic: { name: "Silver Koi", heal: 2 },
   rare: { name: "Golden Koi", heal: 4 },
+};
+
+/** What people give the hero when they talk to him: the gift lines in src/data/voices.ts say which. */
+export type GiftKind = "loaf" | "koi" | "stone";
+export const GIFTS: Record<GiftKind, { type: ItemType; name: string; heal?: number }> = {
+  loaf: { type: "bread", name: "Three-Cut Loaf", heal: 1 },
+  koi: { type: "fish", name: FISH.normal.name, heal: FISH.normal.heal },
+  stone: { type: "stone", name: "Shiny Stone" },
 };
 
 /** Equipment paperdoll: slot positions in cells inside a 10x7 area. */

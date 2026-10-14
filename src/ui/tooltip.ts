@@ -30,7 +30,7 @@ export function createTooltip(): Tooltip {
     show(item, mouse) {
       const lines = [line(`tip-name rarity-${item.rarity}`, item.name)];
       if (item.rarity !== "normal") lines.push(line("tip-base", BASES[item.type].name));
-      lines.push(line("tip-slot", item.slot ? SLOTS[item.slot].label : "Food"));
+      lines.push(line("tip-slot", item.slot ? SLOTS[item.slot].label : item.heal ? "Food" : "Keepsake"));
       if (item.heal) lines.push(line("tip-stat", `Restores ${item.heal} Life`), line("tip-note", "Right-click to eat"));
       const note = BASES[item.type].note;
       if (note) lines.push(line("tip-note", note));

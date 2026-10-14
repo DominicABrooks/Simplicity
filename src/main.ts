@@ -23,6 +23,8 @@ import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
 import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
+import { startResting, updateResting } from "./game/resting.ts";
+import { enterPets } from "./game/pets.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -50,6 +52,7 @@ const toggleJournal = () => { if (FEATURES.journal) journal.toggle(); };
 const closePanels = () => { inventory.close(); journal.close(); map.close(); };
 g.events.on("reset", () => inventory.close());
 g.events.on("area", () => enterTownsfolk(g));             // the townsfolk come out onto the streets
+g.events.on("area", () => enterPets(g));                  // and the dogs and cats
 g.events.on("state", ({ state }) => { if (state === "dead") closePanels(); });
 
 // Walking into a cave: fade out, load the next area (its module is downloaded on the first visit),
@@ -80,7 +83,7 @@ const input = bindInput(g, {
   talkClick: at => {
     if (talking(g)) { advanceTalk(g); return true; }
     const hit = pickTarget(g, view, at);
-    return knock(g, hit) || startTalk(g, hit);              // a door: knock; someone: talk
+    return knock(g, hit) || startResting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; someone: talk
   },
   talkKey: k => {
     if (talking(g)) {
@@ -88,7 +91,7 @@ const input = bindInput(g, {
       if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
       return false;
     }
-    return k === "e" && (knock(g, g.target) || startTalk(g, g.target));
+    return k === "e" && (knock(g, g.target) || startResting(g, g.target) || startTalk(g, g.target));
   },
 });
 
@@ -111,6 +114,7 @@ function frame(now: number): void {
   const mouse = input.mouse();
   g.input.pointer = mouse && view.screenToGame(mouse.x, mouse.y);
   updateTarget(g, view, mouse, input.overUi());
+  updateResting(g, dt);                                    // before the hero moves: anything he does gets him up
   step(g, dt);
   updateTalk(g, dt);
   updateTownsfolk(g, g.hitstop > 0 ? 0 : dt);

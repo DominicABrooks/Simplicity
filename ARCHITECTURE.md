@@ -52,6 +52,7 @@ What an entity is depends only on its components:
 | Mage | `transform knockback health enemy mage renderable` |
 | Potion, loot | `transform pickup renderable` |
 | Arrow | `transform arrow renderable` |
+| Dog, cat | `transform pet renderable` |
 | Spell bolt | `transform bolt renderable` |
 | Lightning strike | `transform strike renderable` |
 
@@ -76,7 +77,7 @@ order, and **order matters**: each system sees what the ones before it did this 
    thrust (punch, or the rod's bonk) only gets presses no weapon took.
 5. `clearPresses`, then `pickups`.
 6. Then, while the hero is alive: `arrows`, `enemyPhysics`, `mage`, `slime`, `deaths`, `spawner`, `sentry` (guards
-   keeping watch, turning to watch the hero who comes close), and the spell hazards, `bolts` and `strikes`.
+   keeping watch, turning to watch the hero who comes close), `pets` (the city's dogs and cats, `src/game/pets.ts`), and the spell hazards, `bolts` and `strikes`.
 7. `floaters` (combat numbers drift and fade).
 
 During hitstop the world holds still for a few frames; only the camera shake decays.

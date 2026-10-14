@@ -6,6 +6,8 @@ import { Rng } from "../core/rng.ts";
 import { emptyJournal, type BestiaryId, type Journal } from "../data/bestiary.ts";
 import { BASE_HP } from "../data/player.ts";
 import { levelBonus } from "../data/progression.ts";
+import { START_HOUR } from "../data/daylight.ts";
+import { createWeather, type Weather } from "../data/weather.ts";
 import { Inventory, type InventoryStats } from "../items/inventory.ts";
 import type { Point } from "../world/collision.ts";
 import { HOME } from "../areas/index.ts";
@@ -80,6 +82,10 @@ export interface Game {
   player: Entity;
   /** Seconds of play this run (stops during hitstop). */
   clock: number;
+  /** The hour of the day, 0-24 (fractional). Runs on through play and carries across runs. */
+  hour: number;
+  /** Clear, foggy or rainy. Carries across runs, like the hour. */
+  weather: Weather;
   /** While > 0, the world freezes for a few frames so hits land with weight. */
   hitstop: number;
   /** Camera shake strength; decays every frame. */
@@ -110,7 +116,7 @@ export function createGame(): Game {
     floaters: [],
     state: "title",
     player: 0,
-    clock: 0, hitstop: 0, shake: 0, kills: 0, spawnTimer: 0, resetHold: 0, resetLatch: false, target: null,
+    clock: 0, hour: START_HOUR, weather: createWeather(), hitstop: 0, shake: 0, kills: 0, spawnTimer: 0, resetHold: 0, resetLatch: false, target: null,
     journal: emptyJournal(),
   };
   g.inventory.subscribe(stats => applyStats(g, stats));

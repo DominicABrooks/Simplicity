@@ -4,11 +4,11 @@ import type { Entity } from "../src/core/ecs.ts";
 import { TALK } from "../src/data/dialogue.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
-import { advanceTalk, jobLine, startTalk, talking, updateTalk } from "../src/game/talk.ts";
+import { advanceTalk, chatsWith, endTalk, jobLine, startTalk, talking, updateTalk } from "../src/game/talk.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { updateTarget } from "../src/input/targeting.ts";
 import type { Projector } from "../src/render/projector.ts";
-import { GUARD } from "../src/data/voices.ts";
+import { GUARD, GUARD_AGAIN } from "../src/data/voices.ts";
 
 /** At the castle, by a guard. */
 async function byGuard(): Promise<{ g: Game; guard: Entity }> {
@@ -62,6 +62,18 @@ describe("talking", () => {
     g.target = dummy;                                        // as if the cursor had wandered onto the dummy
     updateTarget(g, {} as Projector, { x: 0, y: 0 }, false);
     expect(g.target).toBe(guard);
+  });
+
+  it("remembers you: the same guard greets you differently the second time, and a new run forgets", async () => {
+    const { g, guard } = await byGuard();
+    startTalk(g, guard);
+    endTalk(g);
+    startTalk(g, guard);
+    expect(GUARD_AGAIN.again).toContain(talking(g)!.lines[0]);
+    endTalk(g);
+    expect([...chatsWith(g).values()]).toEqual([2]);
+    resetGame(g);
+    expect(chatsWith(g).size).toBe(0);
   });
 
   it("ends when the hero walks off", async () => {

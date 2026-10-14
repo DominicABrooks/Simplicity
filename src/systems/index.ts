@@ -1,6 +1,7 @@
 // The simulation step: every system, in order. Order matters: each system sees the effects of the
 // ones before it this frame (a sword consumes the click before a punch can, a dash cancels a swing
 // before the sword updates, and so on).
+import { SECONDS_PER_HOUR } from "../data/daylight.ts";
 import type { Game } from "../game/game.ts";
 import { arrowSystem, bowSystem } from "./bow.ts";
 import { deathSystem, enemyPhysicsSystem, slimeSystem, spawnerSystem } from "./enemies.ts";
@@ -8,11 +9,13 @@ import { fishingSystem, rodSystem } from "./fishing.ts";
 import { boltSystem, strikeSystem } from "./hazards.ts";
 import { clearPressesSystem, heroMoveSystem, heroStatusSystem, resetHoldSystem } from "./hero.ts";
 import { mageSystem } from "./mage.ts";
+import { petSystem } from "../game/pets.ts";
 import { travelSystem } from "../game/travel.ts";
 import { despawnSystem, pickupSystem } from "./pickups.ts";
 import { sentrySystem } from "./sentry.ts";
 import { swordSystem } from "./sword.ts";
 import { thrustSystem } from "./thrust.ts";
+import { weatherSystem } from "./weather.ts";
 
 export type System = (g: Game, dt: number) => void;
 
@@ -34,7 +37,7 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [arrowSystem, enemyPhysicsSystem, mageSystem, slimeSystem, deathSystem, spawnerSystem, sentrySystem],
+  [arrowSystem, enemyPhysicsSystem, mageSystem, slimeSystem, deathSystem, spawnerSystem, sentrySystem, petSystem],
   [boltSystem, strikeSystem],
 ];
 
@@ -52,6 +55,8 @@ export function step(g: Game, dt: number): void {
   if (g.state !== "play") return;
   if (g.hitstop > 0) { g.hitstop -= dt; return; }
   g.clock += dt;
+  g.hour = (g.hour + dt / SECONDS_PER_HOUR) % 24;
+  weatherSystem(g, dt);
   for (const system of HERO_SYSTEMS) system(g, dt);
   for (const group of WORLD_SYSTEMS) {
     if (g.state !== "play") break;

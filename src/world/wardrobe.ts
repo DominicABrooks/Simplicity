@@ -19,8 +19,11 @@ export interface Dress {
   trim: string;
   over: Over;
   head: Headwear;
-  /** Hair, where it shows. */
+  /** Hair, where it shows, and whether it's worn long (a braid down the back). */
   hair: string;
+  longHair: boolean;
+  /** Hose: the legs, where a short garment shows them. */
+  hose: string;
   /** A feather in the hat, a pouch at the belt, a brooch at the throat. */
   feather: boolean;
   pouch: boolean;
@@ -92,7 +95,7 @@ export function dressFor(p: Wearer): Dress {
 
   const head: Headwear = clergy ? (is(/choir/) ? "bare" : "hood")
     : female ? (old ? (n(5) < 0.6 ? "wimple" : "coif") : child ? (n(5) < 0.6 ? "bare" : "kerchief") : wealthy ? (n(5) < 0.6 ? "veil" : "wimple")
-      : servant || baker ? "coif" : market ? (n(5) < 0.5 ? "straw" : "kerchief") : pick(["coif", "coif", "kerchief", "bare", "straw", "veil"] as const, 5))
+      : servant || baker ? (n(5) < 0.6 ? "coif" : "kerchief") : market ? (n(5) < 0.5 ? "straw" : "kerchief") : pick(["coif", "kerchief", "kerchief", "bare", "straw", "veil", "hood"] as const, 5))
     : child ? (n(5) < 0.7 ? "bare" : "cap") : wealthy ? (n(5) < 0.6 ? "chaperon" : "felt") : traveller ? (n(5) < 0.5 ? "hood" : "felt")
     : smith || mason ? (n(5) < 0.6 ? "cap" : "bare") : market || is(/carter|water|field|garden/) ? "straw"
     : pick(["cap", "cap", "hood", "felt", "bare", "bare", "chaperon"] as const, 5);
@@ -102,7 +105,7 @@ export function dressFor(p: Wearer): Dress {
     : clergy || is(/clerk|scrivener|notary|lawyer|tutor/) ? (n(6) < 0.5 ? "book" : "none") : is(/carter|porter|miller/) ? "sack"
     : old && n(6) < 0.4 ? "staff" : female && n(6) < 0.25 ? "basket" : n(6) < 0.06 ? "bundle" : "none";
 
-  const second = pattern === "parti" ? pick(wealthy ? DYES.rich : DYES.cheap, 7) : over === "apron" || over === "vest" ? pick(DYES.linen, 7)
+  const second = pattern === "parti" ? pick(wealthy ? DYES.rich : DYES.cheap, 7) : over === "apron" && (smith || is(/cobbler|butcher|tanner|brewer/)) ? pick(DYES.leather, 7) : over === "apron" || over === "vest" ? pick(DYES.linen, 7)
     : pick(wealthy ? DYES.rich : clergy ? DYES.clergy : DYES.earth, 7);
   return {
     garment, pattern, over, head, carry,
@@ -110,6 +113,8 @@ export function dressFor(p: Wearer): Dress {
     second: second === pick(dyes, 8) ? pick(DYES.undyed, 9) : second,
     trim: wealthy ? (n(10) < 0.6 ? "#d9a83a" : "#c8c0b0") : pick(DYES.leather, 10),
     hair: old ? pick(DYES.grey, 11) : pick(DYES.hair, 11),
+    longHair: female,
+    hose: wealthy ? pick(DYES.rich, 16) : poor ? pick(DYES.undyed, 16) : pick([...DYES.earth, ...DYES.cheap], 16),
     feather: (head === "felt" || head === "cap" || head === "chaperon") && (showy || wealthy) && n(12) < 0.6,
     pouch: !child && !clergy && n(13) < (wealthy ? 0.8 : 0.4),
     brooch: (wealthy || showy) && n(14) < 0.5,
