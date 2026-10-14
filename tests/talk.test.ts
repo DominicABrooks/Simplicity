@@ -6,6 +6,8 @@ import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { advanceTalk, jobLine, startTalk, talking, updateTalk } from "../src/game/talk.ts";
 import { enterArea } from "../src/game/travel.ts";
+import { updateTarget } from "../src/input/targeting.ts";
+import type { Projector } from "../src/render/projector.ts";
 import { GUARD } from "../src/data/voices.ts";
 
 /** At the castle, by a guard. */
@@ -43,6 +45,23 @@ describe("talking", () => {
     for (let i = 1; i < c.lines.length; i++) { advanceTalk(g); expect(c.line).toBe(i); advanceTalk(g); }
     advanceTalk(g);
     expect(talking(g)).toBeNull();
+  });
+
+  it("is always with the one you're targeting: talking to someone makes them the target", async () => {
+    const { g, guard } = await byGuard();
+    const [dummy] = g.world.query("dummy")[0]!;
+    g.target = dummy;
+    startTalk(g, guard);
+    expect(g.target).toBe(guard);
+  });
+
+  it("keeps them targeted while you talk, whatever the cursor passes over", async () => {
+    const { g, guard } = await byGuard();
+    startTalk(g, guard);
+    const [dummy] = g.world.query("dummy")[0]!;
+    g.target = dummy;                                        // as if the cursor had wandered onto the dummy
+    updateTarget(g, {} as Projector, { x: 0, y: 0 }, false);
+    expect(g.target).toBe(guard);
   });
 
   it("ends when the hero walks off", async () => {

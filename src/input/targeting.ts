@@ -1,5 +1,5 @@
 // Hover targeting: whatever targetable thing is under the cursor becomes the target, and stays the
-// target until you hover something else or it's gone.
+// target until you hover something else or it's gone. While you're talking to someone, they stay the target.
 import type { Entity } from "../core/ecs.ts";
 import { T } from "../data/world.ts";
 import type { Game } from "../game/game.ts";
@@ -31,6 +31,8 @@ export function pickTarget(g: Game, view: Projector, mouse: Point): Entity | nul
 
 /** Update the target from the cursor (skipped while it's over the UI), and drop targets that are gone. */
 export function updateTarget(g: Game, view: Projector, mouse: Point | null, overUi: boolean): void {
+  const talkingTo = g.world.get(g.player, "conversation")?.with;
+  if (talkingTo !== undefined && g.world.has(talkingTo, "targetable")) { g.target = talkingTo; return; }
   if (g.target !== null && !g.world.has(g.target, "targetable")) g.target = null;
   if (!mouse || overUi || g.state !== "play") return;
   const hovered = pickTarget(g, view, mouse);

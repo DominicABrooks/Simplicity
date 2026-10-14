@@ -19,9 +19,13 @@ export function canTalk(g: Game, e: Entity | null): e is Entity {
 /** The conversation the hero is in, if any. */
 export const talking = (g: Game) => g.world.get(g.player, "conversation") ?? null;
 
-/** Start talking to someone, if they can talk and are close enough. Returns whether they could talk at all. */
+/**
+ * Start talking to someone, if they can talk and are close enough. Returns whether they could talk at all.
+ * Whoever you talk to (or try to) becomes your target, so the ring is always on the person talking.
+ */
 export function startTalk(g: Game, e: Entity | null): boolean {
   if (!canTalk(g, e)) return false;
+  g.target = e;
   const hero = g.world.need(g.player, "transform"), them = g.world.need(e, "transform");
   if (Math.hypot(hero.x - them.x, hero.y - them.y) > TALK.reach) { toast(g, "Too far away to talk"); return true; }
   const name = g.world.need(e, "targetable").name;
