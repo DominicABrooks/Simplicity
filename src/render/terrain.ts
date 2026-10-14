@@ -97,11 +97,14 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
   // Broad ridges plus finer crags so slopes break into rugged facets instead of smooth walls.
   const ridge = (x: number, z: number) => 0.5 + 0.26 * Math.sin(x * 0.29 + 1.7) * Math.sin(z * 0.33 + 0.3) + 0.2 * Math.sin(x * 0.11 - z * 0.15 + 2.2)
     + 0.14 * Math.sin(x * 0.83 + z * 0.21) + 0.1 * Math.sin(z * 0.97 - x * 0.4);
+  // The camera looks down from the south (8.5 back, 11.5 up: see the renderer), so past the south edge
+  // it's over the slope: there the hills stay under its line of sight to a hero at the edge.
+  const southCap = (z: number) => (z > H ? 0.75 * (z - H) : Infinity);
   const mountainHeight = (x: number, z: number) => {
     const d = outside(x, z);
     if (d <= 0) return 0;
     const rise = Math.min(1, d / 6);
-    return Math.max(0, Math.pow(rise, 1.3) * (3.5 + 11 * ridge(x, z)) + (hash(x, z, 40) - 0.5) * 1.8 * rise);
+    return Math.min(southCap(z), Math.max(0, Math.pow(rise, 1.3) * (3.5 + 11 * ridge(x, z)) + (hash(x, z, 40) - 0.5) * 1.8 * rise));
   };
   {
     const STEP = 2, MR = 34, pos: number[] = [], colors: number[] = [], c = new THREE.Color();

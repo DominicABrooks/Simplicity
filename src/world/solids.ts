@@ -10,6 +10,9 @@ import {
 } from "./plans.ts";
 import type { Shape } from "./shapes.ts";
 
+/** How deep a lion's plinth is, along its facing (it's 1.2 across). */
+export const LION_PLINTH = 1.5;
+
 /** A box `w` by `d` world units centred on (x, z). */
 const box = (x: number, z: number, w: number, d: number): Shape => ({ kind: "box", x: (x - w / 2) * T, y: (z - d / 2) * T, w: w * T, h: d * T });
 const circle = (x: number, z: number, r: number): Shape => ({ kind: "circle", x: x * T, y: z * T, r: r * T });
@@ -61,7 +64,7 @@ export function propSolids(p: Prop): Shape[] {
     case "chapterHouse": return [circle(p.x / T, p.y / T, p.radius * 1.05)];
     case "graves": return gravePlan(p.rect).map(g => { const [dz, w, d] = GRAVE_FOOT[g.kind]; return box(g.x, g.z + dz, w, d); });
     case "cross": return [circle(p.x / T, p.y / T, 1.1)];
-    case "lion": return [p.facing === "north" || p.facing === "south" ? box(p.x / T, p.y / T, 1.3, 2.1) : box(p.x / T, p.y / T, 2.1, 1.3)];
+    case "lion": { const d = LION_PLINTH + 0.1; return [p.facing === "north" || p.facing === "south" ? box(p.x / T, p.y / T, 1.3, d) : box(p.x / T, p.y / T, d, 1.3)]; }
     case "dovecote": return [circle(p.x / T, p.y / T, 1.15)];
     case "keep": {
       const k = keepPlan(p), z = k.z + k.back;

@@ -7,9 +7,9 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import { FACING_YAW, cathedralPlan, churchPlan, cloisterPlan, hallBody } from "../world/plans.ts";
-import { arcadePillars, gravePlan } from "../world/solids.ts";
+import { LION_PLINTH, arcadePillars, gravePlan } from "../world/solids.ts";
 import { box, type RenderContext } from "./context.ts";
-import { put } from "./castle.ts";
+import { put, shield } from "./castle.ts";
 import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
@@ -549,23 +549,55 @@ export function buildCross(ctx: RenderContext, parent: THREE.Group, p: PropOf<"c
 }
 
 // ---------- Lion ----------
-/** A gilded lion couchant on a marble plinth with a gold band, its head up, looking out along its facing. */
+/** A gilded lion sitting up on guard on a marble plinth, the kingdom's arms on the plinth's face, looking out along its facing. */
 export function buildLion(ctx: RenderContext, parent: THREE.Group, p: PropOf<"lion">): PropView {
-  const { lambert, tex } = ctx, g = new THREE.Group(), gold = lambert(GOLD), marble = lambert(MARBLE, { map: tex.stone });
-  put(g, tiledBox(1.2, 0.9, 2.0, 0.6), marble, 0, 0.45, 0);
-  put(g, box(1.26, 0.1, 2.06), gold, 0, 0.82, 0);
-  put(g, box(1.3, 0.12, 2.1), marble, 0, 0.06, 0);
-  put(g, box(0.62, 0.5, 1.15), gold, 0, 1.15, -0.15);                                      // the body, lying
-  put(g, new THREE.IcosahedronGeometry(0.36, 0), gold, 0, 1.5, 0.45);                       // the mane
-  put(g, box(0.34, 0.3, 0.32), gold, 0, 1.52, 0.68);                                        // the head
-  put(g, box(0.2, 0.14, 0.16), gold, 0, 1.45, 0.86);                                        // the muzzle
-  for (const s of [-1, 1]) put(g, box(0.14, 0.12, 0.5), gold, s * 0.18, 0.96, 0.62);       // the forepaws
-  put(g, new THREE.CylinderGeometry(0.04, 0.05, 0.7, 5), gold, 0.25, 1.15, -0.78, 0.4, 0, 0.9);    // the tail, curled round
+  const { lambert, tex } = ctx, g = new THREE.Group(), gold = lambert(GOLD), marble = lambert(MARBLE, { map: tex.stone }), dark = lambert("#8a6420");
+  const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+  // A rounded limb from a to b.
+  const limb = (a: THREE.Vector3, b: THREE.Vector3, r: number) => {
+    const m = put(g, new THREE.CapsuleGeometry(r, a.distanceTo(b), 2, 6), gold, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    m.quaternion.setFromUnitVectors(v(0, 1, 0), b.clone().sub(a).normalize());
+  };
+  // The plinth: a marble block on a footing, a gilded band under its cap, the kingdom's arms on its face.
+  put(g, box(1.3, 0.12, LION_PLINTH + 0.1), marble, 0, 0.06, 0);
+  put(g, tiledBox(1.2, 0.8, LION_PLINTH, 0.6), marble, 0, 0.52, 0);
+  put(g, box(1.26, 0.08, LION_PLINTH + 0.06), gold, 0, 0.88, 0);
+  put(g, box(1.3, 0.1, LION_PLINTH + 0.1), marble, 0, 0.97, 0);
+  const arms = shield(ctx, 0.5);
+  arms.position.set(0, 0.52, LION_PLINTH / 2 + 0.02);
+  g.add(arms);
+  // The lion, sitting up on guard: haunches and hind paws, its chest raised on straight forelegs.
+  const y0 = 1.02;
+  for (const s of [-1, 1]) {
+    put(g, new THREE.IcosahedronGeometry(0.27, 1), gold, s * 0.2, y0 + 0.24, -0.3).scale.set(0.85, 0.9, 1.25);     // haunches
+    put(g, box(0.16, 0.08, 0.26), gold, s * 0.3, y0 + 0.04, 0.02);                                                     // hind paws
+    limb(v(s * 0.14, y0 + 0.62, 0.22), v(s * 0.14, y0 + 0.08, 0.32), 0.07);                                         // forelegs
+    put(g, box(0.15, 0.08, 0.2), gold, s * 0.14, y0 + 0.04, 0.4);                                                     // forepaws
+  }
+  limb(v(0, y0 + 0.28, -0.28), v(0, y0 + 0.72, 0.12), 0.25);                                                          // the body, upright
+  put(g, new THREE.IcosahedronGeometry(0.25, 1), gold, 0, y0 + 0.66, 0.2).scale.set(1, 1.05, 0.9);                  // the chest
+  // The head: a great mane, the face out of it, muzzle, nose and ears.
+  put(g, new THREE.IcosahedronGeometry(0.33, 1), gold, 0, y0 + 1.0, 0.16).scale.set(1.05, 1.05, 0.8);
+  for (let i = 0; i < 7; i++) {                                                                                       // locks of the mane
+    const a = -Math.PI * 0.8 + (i / 6) * Math.PI * 1.6;
+    put(g, new THREE.ConeGeometry(0.09, 0.22, 4), gold, Math.sin(a) * 0.3, y0 + 1.0 + Math.cos(a) * 0.3, 0.12, 0, 0, -a);
+  }
+  put(g, new THREE.IcosahedronGeometry(0.19, 1), gold, 0, y0 + 1.02, 0.36);
+  put(g, box(0.2, 0.13, 0.16), gold, 0, y0 + 0.94, 0.5);
+  put(g, box(0.07, 0.05, 0.03), dark, 0, y0 + 0.99, 0.585);
+  for (const s of [-1, 1]) {
+    put(g, new THREE.ConeGeometry(0.06, 0.1, 4), gold, s * 0.13, y0 + 1.2, 0.3);
+    put(g, box(0.05, 0.03, 0.02), dark, s * 0.075, y0 + 1.07, 0.53);                                                 // eyes
+  }
+  // The tail, curled round its hip to lie along the plinth, ending in a tuft.
+  const tail = new THREE.CatmullRomCurve3([v(0, y0 + 0.1, -0.55), v(0.3, y0 + 0.05, -0.55), v(0.42, y0 + 0.05, -0.2), v(0.42, y0 + 0.08, 0.1)]);
+  put(g, new THREE.TubeGeometry(tail, 10, 0.04, 5, false), gold, 0, 0, 0);
+  put(g, new THREE.IcosahedronGeometry(0.08, 0), gold, 0.42, y0 + 0.1, 0.14);
   const x = p.x / T, z = p.y / T;
   g.position.set(x, 0, z);
   g.rotation.y = FACING_YAW[p.facing];
   parent.add(g);
-  return { occluders: [occluder(g, x, z, 2.1, 2.1, 2)] };
+  return { occluders: [occluder(g, x, z, 1.8, 1.8, 2.3)] };
 }
 
 // ---------- Dovecote ----------
