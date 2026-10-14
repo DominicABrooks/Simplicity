@@ -276,7 +276,7 @@ describe("knocking at doors", () => {
     run(g, DT);
     const lines = talking(g)!.lines;
     expect(opens).toContain(lines[0]);
-    expect(byes).toContain(lines[lines.length - 1]);
+    expect([...byes, ...D.come, ...D.comeInn]).toContain(lines[lines.length - 1]);   // goodbye, or asked in
   });
 
   it("tells you who of the house is out, and where", async () => {

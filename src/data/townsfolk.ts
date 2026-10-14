@@ -22,6 +22,8 @@ export const TOWNSFOLK = {
   /** Knocking at a door: how close the hero must be (px), how long before someone comes (s), how long they'll stand
    *  in the doorway (s), how far off the hero can go before they go back in (px), and how likely nobody comes at night. */
   knock: { reach: 16, answer: 1.4, wait: 30, leave: 36, asleep: 0.6 },
+  /** Being asked in: how long the invitation stands (s), and how likely it is, by how they took to you. */
+  invite: { stands: 90, inn: 1, cheerful: 0.75, day: 0.4, nervous: 0.15 },
   /** Whoever comes to the door: how long they'll wait to be spoken to before giving up (s), and how long they take to shut it after (s). */
   doorstep: { idle: 9, shut: 0.8 },
   /**
@@ -42,6 +44,9 @@ export const TOWNSFOLK = {
     },
     away: ["If you're after {name}, {he}'s out. {Place}.", "{name}'s not in, I'm afraid. You'll find {him} {place}.", "Looking for {name}? Out: {place}."],
     alone: ["It's just me in, I'm afraid.", "Nobody else is home just now."],
+    /** Asking you in: open the door again (knock, or E) to go in. */
+    come: ["Well, don't stand out there. Come in, come in!", "Come in and warm yourself by the fire.", "Come inside, mind the step."],
+    comeInn: ["Come in, there's a seat by the fire!", "Come on in, the ale's good tonight."],
     wary: ["What's your business here, then? I like to know who comes knocking.", "Don't think I've seen you about before. Who sent you?"],
     bye: {
       day: ["Well, good day to you.", "I'll get back to it, then.", "Mind how you go."], grumpy: ["Right. Is that all? Good.", "Off you go, then."],

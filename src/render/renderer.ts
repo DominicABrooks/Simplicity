@@ -34,6 +34,8 @@ export interface Renderer extends Projector {
   memory(): { geometries: number; textures: number };
 }
 
+/** The light inside a house: no sky, a dim warm fill and a low sun for shading (the hearth brings its own fire). */
+const INDOORS = { sky: "#120d10", fill: 0xffd8b0, fillI: 0.85, sun: 0xffc890, sunI: 0.55 } as const;
 const CAM_OFFSET = new THREE.Vector3(0, 11.5, 8.5);
 
 export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
@@ -83,7 +85,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     // Drawn: the map, or its view when it shows what lies past its edges (the next district along).
     const view = layout.view ?? { map: layout.map, x: 0, y: 0, props: [] }, props = [...layout.props, ...view.props];
     const bridges = props.filter(p => p.kind === "bridge" || p.kind === "stoneBridge" || p.kind === "drawbridge").map(p => shift(p, -view.x * T, -view.y * T));
-    const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view);
+    const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view, !!def.indoors);
     scenery.add(terrain.group);
     const built = props.map(prop => buildProp(ctx, scenery, prop));
     animated = built.flatMap(b => (b.update ? [b.update] : []));
@@ -125,10 +127,16 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       targetRing.update(g, t);
 
       // World animation, light and camera.
-      daylight.update(g.hour);
+      if (g.area.def.indoors) {                              // indoors: dark beyond the walls, lit warm by the fire
+        sky.set(INDOORS.sky);
+        fill.color.set(INDOORS.fill);
+        fill.intensity = INDOORS.fillI;
+        sun.color.set(INDOORS.sun);
+        sun.intensity = INDOORS.sunI;
+      } else daylight.update(g.hour);
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
       camTarget.set(smooth(camTarget.x, px, dt, 8), 0, smooth(camTarget.z, pz, dt, 8));
-      weather.update(g.weather, dt, camTarget.x, camTarget.z);
+      weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z);   // no rain indoors
       camera.position.copy(camTarget).add(CAM_OFFSET);
       camera.lookAt(camTarget);
       if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));

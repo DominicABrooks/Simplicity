@@ -23,6 +23,7 @@ import { doorOf, findPath, nearestWalkable, walkable, walkwaysOf, type TileXY, t
 import type { Errand, Walker } from "./components.ts";
 import { combatText } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
+import { goInside } from "./interiors.ts";
 
 // ---------- The census ----------
 const CITY: readonly Where[] = ["capital", "castle", "kingsroad"];
@@ -375,6 +376,15 @@ function doorstepLines(g: Game, s: Streets, r: Resident, door: Door): string[] {
     } else if (!night && door.household.filter(p => homeNow(g, s, p)).length <= 1) lines.push(pick(D.alone));
   }
   if (r.stance === "informer" && !child && !night) lines.push(pick(D.wary));
+  const I = TOWNSFOLK.invite, servant = noble && r.role === "servant";
+  const welcome = night || child || servant || r.stance === "informer" || open === D.open.grumpy ? 0
+    : inn ? I.inn : open === D.open.cheerful ? I.cheerful : open === D.open.nervous ? I.nervous : I.day;
+  if (s.rng.next() < welcome) {
+    lines.push(pick(inn ? D.comeInn : D.come));
+    door.invitedUntil = g.clock + I.stands;
+    for (const [e, d] of doors) if (d === door) { const t = g.world.get(e, "targetable"); if (t) t.name = `${door.name} (go in)`; }
+    return lines;                                            // no goodbye: they're holding the door for you
+  }
   lines.push(pick(night ? D.bye.night : child ? D.bye.child : open === D.open.grumpy ? D.bye.grumpy : open === D.open.cheerful ? D.bye.cheerful : open === D.open.nervous ? D.bye.nervous : D.bye.day));   // in the same mood
   return lines;
 }
@@ -438,6 +448,9 @@ function catchUp(g: Game, s: Streets, w: Walker, t: { x: number; y: number }, lx
 interface Door {
   tile: TileXY;
   name: string;
+  /** The house it's the door of, and until when (the game clock) you've been asked in. */
+  house: Extract<Prop, { kind: "house" }>;
+  invitedUntil: number;
   household: Resident[];
   /** Seconds till whoever's coming gets to the door (0: nobody's knocked), and who that is (null: nobody's home). */
   knocked: number;
@@ -467,7 +480,7 @@ function hangDoors(g: Game, s: Streets, people: readonly Resident[]): void {
     const name = houseName(household.find(p => p.role === "head" || p.role === "family")?.home.place ?? household[0]!.home.place);
     const at = houseDoor(house).at;                         // the ring goes on the door itself, as the house is drawn
     const e = g.world.create({ transform: { x: at.x * T - HALF, y: at.z * T - HALF }, targetable: { hostile: false, name, radius: 4, height: 1.6 } });
-    doors.set(e, { tile, name, household, knocked: 0, who: null });
+    doors.set(e, { tile, name, house, invitedUntil: 0, household, knocked: 0, who: null });
   }
 }
 
@@ -508,6 +521,12 @@ export function knock(g: Game, e: Entity | null): boolean {
   g.target = e;
   const hero = g.world.need(g.player, "transform"), d = g.world.need(e, "transform"), dx = d.x + HALF, dy = d.y + HALF;
   if (Math.hypot(hero.x - d.x, hero.y - d.y) > TOWNSFOLK.knock.reach) { toast(g, "Too far away to knock"); return true; }
+  if (door.invitedUntil > g.clock) {                         // they asked you in: in you go
+    const answerers = new Set([...answering].flatMap(([a, at]) => (at.door === door ? [g.world.get(a, "walker")?.id] : [])));
+    const home = door.household.filter(r => homeNow(g, s, r) || answerers.has(r.id));
+    goInside(g, s.area, door.house, door.household, home, door.name);
+    return true;
+  }
   if (door.knocked > 0 || door.household.some(r => { const w = s.out.get(r.id); return w !== undefined && g.world.get(w, "walker")?.plan === "answer"; })) return true;
   combatText(g, dx - HALF, dy - HALF - 4, "Knock knock", "#e8dcc4");
   const h = hourOf(g), night = h >= TOWNSFOLK.hours.bedtime || h < 6;
@@ -519,6 +538,7 @@ export function knock(g: Game, e: Entity | null): boolean {
 /** Knocks waiting on an answer: whoever's coming opens up and stands in the doorway, facing the hero; or nobody comes. */
 function answerDoors(g: Game, s: Streets, dt: number): void {
   for (const [e, door] of doors) {
+    if (door.invitedUntil && door.invitedUntil <= g.clock) { door.invitedUntil = 0; const t = g.world.get(e, "targetable"); if (t) t.name = door.name; }
     if (door.knocked <= 0 || (door.knocked -= dt) > 0) continue;
     door.knocked = 0;
     const r = door.who;

@@ -22,6 +22,7 @@ import { createMapView } from "./ui/mapView.ts";
 import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
+import { enterInterior, updateInterior } from "./game/interiors.ts";
 import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
 import { updateChatter } from "./game/chatter.ts";
 import { startPetting, updatePetting } from "./game/petting.ts";
@@ -54,6 +55,7 @@ const toggleJournal = () => { if (FEATURES.journal) journal.toggle(); };
 const closePanels = () => { inventory.close(); journal.close(); map.close(); };
 g.events.on("reset", () => inventory.close());
 g.events.on("area", () => enterTownsfolk(g));             // the townsfolk come out onto the streets
+g.events.on("area", () => enterInterior(g));              // and inside a house, whoever's home
 g.events.on("area", () => enterPets(g));                  // and the dogs and cats
 g.events.on("state", ({ state }) => { if (state === "dead") closePanels(); });
 
@@ -120,6 +122,7 @@ function frame(now: number): void {
   step(g, dt);
   updateTalk(g, dt);
   updateTownsfolk(g, g.hitstop > 0 ? 0 : dt);
+  updateInterior(g);
   updateChatter(g, g.hitstop > 0 ? 0 : dt);              // and people who know each other stop for a word
   updatePetting(g, g.hitstop > 0 ? 0 : dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);

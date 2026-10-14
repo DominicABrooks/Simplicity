@@ -6,7 +6,7 @@
 import { T, type Rect } from "../data/world.ts";
 import type { Facing, Prop } from "./area.ts";
 import {
-  FACING_YAW, TOWER_FLARE, barbicanPlan, cathedralPlan, churchPlan, cloisterPlan, hallBody, houseBody, keepPlan, local, stallBody, wallPlan, type XZ,
+  FACING_YAW, FURNITURE, TOWER_FLARE, roomWalls, barbicanPlan, cathedralPlan, churchPlan, cloisterPlan, hallBody, houseBody, keepPlan, local, stallBody, wallPlan, type XZ,
 } from "./plans.ts";
 import type { Shape } from "./shapes.ts";
 
@@ -97,6 +97,11 @@ export function propSolids(p: Prop): Shape[] {
     case "stoneBridge": {                                    // its parapets, with their posts and pinnacles (the deck is road)
       const c = rectCentre(p.rect), w = p.rect.w / T + 0.6, len = p.rect.h / T + 1.2;
       return [-1, 1].map(s => box(c.x + s * (w / 2 - 0.35), c.z, 0.9, len));
+    }
+    case "room": return roomWalls(p).map(w => box(w.x, w.z, w.w, w.d));
+    case "furniture": {                                      // its footprint, turned with it; a rug is just underfoot
+      const [w, d] = FURNITURE[p.item];
+      return w ? [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, w, d)] : [];
     }
     case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": return [];
   }

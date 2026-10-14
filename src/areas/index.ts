@@ -17,9 +17,19 @@ const idOf = (path: string) => path.slice("./".length, -".ts".length);
 /** Every area's id. Cheap: nothing is loaded to list them. */
 export const AREA_IDS: readonly string[] = [home.id, ...Object.keys(lazy).map(idOf)];
 
+/** Areas made while playing (the inside of a house: see src/world/interiors.ts), by id. */
+const made = new Map<string, AreaDef>();
+
+/** Add an area made while playing, so travelling there finds it. */
+export function registerArea(def: AreaDef): void {
+  made.set(def.id, def);
+}
+
 /** An area's definition, loading its module if needed. */
 export async function loadArea(id: string): Promise<AreaDef> {
   if (id === home.id) return home;
+  const inside = made.get(id);
+  if (inside) return inside;
   const load = lazy[`./${id}.ts`];
   if (!load) throw new Error(`No area "${id}" (expected src/areas/${id}.ts)`);
   return (await load()).area;

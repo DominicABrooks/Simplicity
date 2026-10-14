@@ -50,7 +50,7 @@ export function groundUnderBridges(map: TileMap, props: readonly Prop[]): TileMa
 }
 
 /** The scenery for a map whose top-left tile is at `origin` (tiles) in the world. */
-export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, y: 0 }): { group: THREE.Group; trees: TreeSet } {
+export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, y: 0 }, indoors = false): { group: THREE.Group; trees: TreeSet } {
   const { lambert, tex } = ctx, world = new THREE.Group();
   const { width: W, height: H, tiles } = map;
   const isWater = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y]![x] === Tile.Water;
@@ -106,7 +106,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     const rise = Math.min(1, d / 6);
     return Math.min(southCap(z), Math.max(0, Math.pow(rise, 1.3) * (3.5 + 11 * ridge(x, z)) + (hash(x, z, 40) - 0.5) * 1.8 * rise));
   };
-  {
+  if (!indoors) {                                            // indoors, nothing past the walls
     const STEP = 2, MR = 34, pos: number[] = [], colors: number[] = [], c = new THREE.Color();
     const vtx = (x: number, z: number): V3 => [x, mountainHeight(x, z), z];
     // Colour each facet by its height: mossy foothills, grey stone, snow on the peaks.
@@ -138,7 +138,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
   for (const [x, z] of treeTiles) {
     placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45, 0]);
   }
-  for (let y = -4; y < H + 4; y++) for (let x = -4; x < W + 4; x++) {
+  if (!indoors) for (let y = -4; y < H + 4; y++) for (let x = -4; x < W + 4; x++) {
     if (x >= 0 && y >= 0 && x < W && y < H) continue;
     const tx = x + 0.5 + (hash(x, y, 6) - 0.5) * 0.7, tz = y + 0.5 + (hash(x, y, 7) - 0.5) * 0.7;
     const d = outside(tx, tz);

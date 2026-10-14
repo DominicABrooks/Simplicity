@@ -2,7 +2,7 @@
 // and body stands at ground level. The renderer (src/render/*) builds on these and collision
 // (solids.ts) is made from them, so what you see is what you bump into.
 import { T, type Rect } from "../data/world.ts";
-import type { Facing, Prop } from "./area.ts";
+import type { Facing, FurnitureItem, Prop } from "./area.ts";
 
 type PropOf<K extends Prop["kind"]> = Extract<Prop, { kind: K }>;
 export interface XZ { x: number; z: number }
@@ -144,3 +144,31 @@ export function houseDoor(p: PropOf<"house">): { along: number; at: XZ } {
   const along = w > 2.5 ? (p.shop ? w / 2 - 0.65 : -w / 2 + 0.75) : 0;
   return { along, at: local(centre(p.rect), FACING_YAW[p.doorSide], along, d / 2 + 0.3) };
 }
+
+/** How thick and tall a room's walls are (world units): low, so the camera sees in over them. */
+export const ROOM_WALL = { thick: 0.35, high: 1.25, gap: 1.3 } as const;
+
+/**
+ * A room's walls, as boxes (centre and size, world units) just inside its rect, with a doorway `gap` wide
+ * in the door wall, its near edge `doorAt` tiles along that wall (from the west, or from the north).
+ */
+export function roomWalls(p: PropOf<"room">): { x: number; z: number; w: number; d: number }[] {
+  const x0 = p.rect.x / T, z0 = p.rect.y / T, x1 = (p.rect.x + p.rect.w) / T, z1 = (p.rect.y + p.rect.h) / T, t = ROOM_WALL.thick;
+  const out: { x: number; z: number; w: number; d: number }[] = [];
+  // Along a side, from a to b, leaving the doorway open if this is the door's side.
+  const run = (side: Facing, a: number, b: number, at: number, horizontal: boolean) => {
+    const cuts = side === p.door ? [[a, a + p.doorAt], [a + p.doorAt + ROOM_WALL.gap, b]] : [[a, b]];
+    for (const [s, e] of cuts) if (e! - s! > 0.01) out.push(horizontal ? { x: (s! + e!) / 2, z: at, w: e! - s!, d: t } : { x: at, z: (s! + e!) / 2, w: t, d: e! - s! });
+  };
+  run("north", x0, x1, z0 + t / 2, true);
+  run("south", x0, x1, z1 - t / 2, true);
+  run("west", z0 + t, z1 - t, x0 + t / 2, false);
+  run("east", z0 + t, z1 - t, x1 - t / 2, false);
+  return out;
+}
+
+/** Each piece of furniture's footprint (world units): across its front, and front to back. Rugs are no footprint. */
+export const FURNITURE: Record<FurnitureItem, readonly [number, number]> = {
+  hearth: [1.7, 0.8], table: [1.7, 0.9], bench: [1.5, 0.35], bed: [0.95, 1.8], chest: [0.8, 0.5], shelf: [1.3, 0.35],
+  barrel: [0.6, 0.6], counter: [2.8, 0.7], loom: [1.4, 0.8], workbench: [1.7, 0.7], anvil: [0.65, 0.4], rug: [0, 0], cradle: [0.6, 0.9],
+};

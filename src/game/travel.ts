@@ -5,13 +5,14 @@ import { HALF } from "../data/world.ts";
 import { FACING_ANGLE, type AreaDef } from "../world/area.ts";
 import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
+import { doorStep } from "../world/townkit.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { spawnCampfire, spawnEnemy, spawnGuard, spawnPotion, spawnTraining } from "./spawn.ts";
 
 /** Put the hero at an arrival point in an area, and fill the area with what lives there. */
 export function enterArea(g: Game, def: AreaDef, entry: string): void {
-  const layout = layoutOf(def), at = layout.entries[entry];
+  const layout = layoutOf(def), at = layout.entries[entry] ?? doorStep(layout, entry);   // or out of a house's door
   if (!at) throw new Error(`Area "${def.id}" has no entry "${entry}"`);
   for (const e of g.world.entities()) if (e !== g.player) g.world.destroy(e);
   g.area = { def, layout };

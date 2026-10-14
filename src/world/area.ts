@@ -152,7 +152,15 @@ export type Prop =
   /** A saddled horse, its head toward `facing`. */
   | { kind: "horse"; rect: Rect; facing: Facing }
   /** A water trough. */
-  | { kind: "trough"; rect: Rect };
+  | { kind: "trough"; rect: Rect }
+  // Inside a house (src/render/interior.ts): the room, and what's in it.
+  /** A room: its floor (planks, or flagstones in a stone house), low walls round it (so the camera sees in) and a doorway in one, doorAt tiles along it. */
+  | { kind: "room"; rect: Rect; floor: "planks" | "flags"; wall: string; door: Facing; doorAt: number }
+  /** A piece of furniture, centred at (x, y), its front toward its facing. */
+  | { kind: "furniture"; item: FurnitureItem; x: number; y: number; facing: Facing };
+
+/** What furnishes a house. */
+export type FurnitureItem = "hearth" | "table" | "bench" | "bed" | "chest" | "shelf" | "barrel" | "counter" | "loom" | "workbench" | "anvil" | "rug" | "cradle";
 
 export type Facing = "north" | "south" | "east" | "west";
 /** A facing as a game angle (0 east, PI/2 south: y grows southward). */
@@ -192,4 +200,6 @@ export interface AreaDef {
   /** Deterministic: the same layout every time. */
   build(): AreaLayout;
   life?: AreaLife;
+  /** Inside a building: no sky, weather or mountains, and the firelight. */
+  indoors?: boolean;
 }

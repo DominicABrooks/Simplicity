@@ -7,6 +7,7 @@
 import { HALF, T, Tile, type Rect } from "../data/world.ts";
 import type { AreaLayout, ExitDef, Facing, Goods, Prop } from "./area.ts";
 import type { Point } from "./collision.ts";
+import { FACING_DIR, houseDoor } from "./plans.ts";
 import { propSolids } from "./solids.ts";
 import { boundsOf, overlapsBox, type Shape } from "./shapes.ts";
 
@@ -184,6 +185,16 @@ export class Town {
     return { map, entries, exits, props: this.props, view };
   }
 }
+
+/** Where you come out of a house ("door:x,y", keyed by its top-left tile; see doorKey): a step out from its front door (see houseDoor). */
+export function doorStep(layout: AreaLayout, entry: string): Point | undefined {
+  const house = layout.props.find(p => p.kind === "house" && doorKey(p) === entry);
+  if (!house || house.kind !== "house") return undefined;
+  const at = houseDoor(house).at, dir = FACING_DIR[house.doorSide];
+  return { x: (at.x + dir.x * 0.45) * T - HALF, y: (at.z + dir.z * 0.45) * T - HALF };
+}
+/** A house's door's entry name. */
+export const doorKey = (p: { rect: Rect }): string => `door:${Math.round(p.rect.x / T)},${Math.round(p.rect.y / T)}`;
 
 const rectOf = (s: Shape): Rect => { const b = boundsOf(s); return { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 }; };
 
