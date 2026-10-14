@@ -408,9 +408,11 @@ const LUNGE_WINDUP = 0.2, LUNGE_DASH_END = 0.5, LUNGE_HIT_END = 0.62, LUNGE_REAC
 let hitstop = 0, shake = 0;
 
 function startMove(p, index) {
-  const m = COMBO[index];
-  p.move = { index, ...m, t: 0, queued: false, hits: new Set(), aim: p.aim };
-  p.swingAim = p.aim; p.swingSide = m.side || 1;
+  const m = COMBO[index], c = p.combo;
+  // Swipes alternate direction on their own, so swinging at the air still flows back and forth.
+  const side = m.kind === "swipe" ? (c.side = -(c.side || -1)) : 1;
+  p.move = { index, ...m, side, t: 0, queued: false, hits: new Set(), aim: p.aim };
+  p.swingAim = p.aim; p.swingSide = side;
   p.cooldown = 0;
   if (m.step) { p.vx += Math.cos(p.aim) * m.step; p.vy += Math.sin(p.aim) * m.step; }   // step into the swing
 }
@@ -477,7 +479,8 @@ function updateCombo(p, dt) {
 
   if (m.t >= m.dur) {
     p.move = null; p.attack = 0; p.lungeActive = false;
-    c.next = (m.index + 1) % COMBO.length;
+    // Only a hit that lands advances the combo; a whiff starts it over from the first swipe.
+    c.next = m.hits.size ? (m.index + 1) % COMBO.length : 0;
     c.window = m.kind === "lunge" ? 0 : COMBO_WINDOW;
     if (m.kind === "lunge") p.cooldown = 0.2;                  // a beat of rest after the finisher
     else if (m.queued) startMove(p, c.next);
