@@ -16,31 +16,30 @@ the kingdom spends it on white marble, gold leaf, lions on plinths and a bridge 
 wall. Every year on **Gilding Day**, the anniversary of the king's crowning, the crown and the fountain's
 stone king are leafed again, and the bakers press a flake of gold into the top of every crown loaf.
 
-The city has about **2,300 people**. Roughly 1,950 of them live in the 239 town houses, and the rest live
-in the castle, the cathedral close and the almshouse:
+The city has about **1,900 people**. Roughly 1,550 of them live in the town houses (about 210 of them), and the rest
+live in the castle, the clergy house of St Mary's and the almshouse:
 
 | District | Houses | Who lives there |
 |---|---|---|
-| **The Market Quarter** | 128 | Guild masters, shopkeepers and craftsmen on the high street and the square. Labourers, fishers, night-soil men and widows crowd the tenements in the back lanes by the west and south walls (the *Wallside*). |
-| **The Castleward** | 79 | Courtiers' town houses, the royal armourers and falconers, and soldiers' wives along the lanes under the castle. In the castle itself are the royal family, the court and the garrison. |
-| **The Cathedral Close** | 32 | The canons in the close, the cathedral's masons, and the chandlers, scriveners and pilgrims' lodgings on Minster Lane outside it. The bishop lives in his palace. |
+| **The Market Quarter** | ~130 | Guild masters, shopkeepers and craftsmen on the high street and the square. The priests and masons of St Mary's, and the chandlers who serve it, live along East Street. Labourers, fishers, night-soil men and widows crowd the tenements in the back lanes by the west and south walls (the *Wallside*). |
+| **The Castleward** | ~80 | Courtiers' town houses, the royal armourers and falconers, and soldiers' wives along the lanes under the castle. In the castle itself are the royal family, the court and the garrison. |
 
 ## The founding, as it's told
 
 Six hundred years ago **Aldric the Founder** led the first men up out of the south and found the valley
 held by witches: robed folk who called down fire, frost and storm. Aldric drove them into the forest
-(the Witchwood, named for them) and burned their temple on the hill. The cathedral stands on its
-foundations. Every autumn, on **Founder's Night**, the city burns straw witches in the market square and
+(the Witchwood, named for them) and burned their temple on the hill. **St Mary's**, the great church on East
+Street with the tallest spire in the kingdom, stands on its foundations. Every autumn, on **Founder's Night**, the city burns straw witches in the market square and
 children throw rowan into the fire.
 
 ## The founding, as it was
 
-The canons' library holds the true chronicle, and only Canon Pryce has read it. In it, Aldric came to the
+St Mary's library holds the true chronicle, and only Father Pryce has read it. In it, Aldric came to the
 valley as a beggar and a guest. The witch-folk, who call themselves the **Vael**, gave him land and showed
 him where the gold lay. When he had enough men, he burned their temple with them inside it, took the
 mines, and drove the rest south over the Greyspines. The chronicle also mentions *the Old Mother*, a beast
 the Vael kept sleeping under their mountains, and says Aldric's men "took her eggs from the deep places".
-Three of those eggs are said to lie, gilded, in the cathedral treasury, where pilgrims are told they are
+Three of those eggs are said to lie, gilded, in St Mary's treasury, where pilgrims are told they are
 the stones of the first altar.
 
 ## The scout
@@ -78,8 +77,8 @@ was **Jack Linnet**, a ballad singer who made a song about the Ranger's orb. The
 
 ### Why the king denies it
 
-- **The founding.** If the Vael are real and coming back, then Aldric's victory was a theft, the cathedral
-  is a stolen temple, and the crown's right rests on a massacre. Osric has read the chronicle, and Canon
+- **The founding.** If the Vael are real and coming back, then Aldric's victory was a theft, St Mary's
+  is a stolen temple, and the crown's right rests on a massacre. Osric has read the chronicle, and Father
   Pryce knows he has.
 - **The gold.** Every coin of the Gilding is borrowed against the southern trade road, which runs through
   the Witchwood. Admitting the road is lost would bring every lender in the city to the castle gate.
@@ -118,7 +117,7 @@ Nobody says *witch* or *dragon* aloud any more. Everyone talks about the weather
   of her neighbours hang a grey rag from theirs. The Marshal can't hang a rag.
 - **Jack Linnet's song**, sung by the Wallside children as nonsense words to the tune of a skipping rhyme.
   Everyone over twelve knows the real words.
-- **Facing south.** The cathedral masons have started carving the new gargoyles as robed figures with fire
+- **Facing south.** St Mary's masons have started carving the new gargoyles as robed figures with fire
   in their hands. Asked about it, they say "devils, Your Grace".
 
 ## Customs older than the fear
@@ -129,7 +128,7 @@ Nobody says *witch* or *dragon* aloud any more. Everyone talks about the weather
   twice as big, and the city's quietly dreading it.
 - **Lantern Night** (midwinter): every house hangs a lantern for the dead, so the lanterns on the shops
   and inns are lit all winter long.
-- **The Bridge Blessing** (spring): the bishop walks the King's Bridge and drops a silver coin into the
+- **The Bridge Blessing** (spring): the Dean of St Mary's walks the King's Bridge and drops a silver coin into the
   Aurel for every guild. The fishers dive for them.
 - **Oaths at the cross:** a bargain shaken on at the market cross can't be broken. Guild masters still
   meet there at dawn.
@@ -142,7 +141,7 @@ Nobody says *witch* or *dragon* aloud any more. Everyone talks about the weather
 |---|---|---|
 | **Royal** | House Aurel, in the keep | 6, with 60 in their household |
 | **Noble** | The Marshal's family, the Fitzwarens, and courtiers lodged in the castle | a few dozen |
-| **Clergy** | The bishop, canons, vicars choral, chantry priests and choirboys | ~60 |
+| **Clergy** | The Dean and priests of St Mary's, the chantry priest of St Giles' and the choirboys | ~25 |
 | **Merchant** | The great guild families (mercers, goldbeaters, moneylenders) in four-storey stone houses on the square and the high street | ~65 households |
 | **Craft** | Bakers, butchers, potters, smiths and masons, with their apprentices, in the middling houses | ~120 households |
 | **Labouring** | Carters, fishers, laundresses, porters and night-soil men in timber tenements, two or three families to a house | ~45 houses |
