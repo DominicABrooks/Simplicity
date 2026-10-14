@@ -1,0 +1,391 @@
+// Simplicity ambience: small critters and environmental detail. Purely visual: nothing here
+// touches gameplay. Critters wander on their own and react to the hero.
+import * as THREE from "three";
+
+const WATER_Y = -0.15;
+
+export function createAmbient({ scene, PAL, lambert, basic, col, C }) {
+  const group = new THREE.Group();
+  scene.add(group);
+  let map = null, W = 0, H = 0;
+
+  const tile = (x, z) => {
+    const tx = Math.floor(x), tz = Math.floor(z);
+    return tx < 0 || tz < 0 || tx >= W || tz >= H ? C.TREE : map[tz][tx];
+  };
+  const isLand = (x, z) => { const t = tile(x, z); return t === C.GRASS || t === C.FLOWER; };
+  const isWater = (x, z) => tile(x, z) === C.WATER;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const hash = (x, z, k) => { const s = Math.sin(x * 127.1 + z * 311.7 + k * 74.7) * 43758.5453; return s - Math.floor(s); };
+
+  // Merge simple geometries into one (used for tufts, reeds and critter parts).
+  function merge(parts) {
+    const pos = [], nor = [];
+    for (const g of parts) {
+      const n = g.index ? g.toNonIndexed() : g;
+      n.computeVertexNormals();
+      pos.push(...n.attributes.position.array); nor.push(...n.attributes.normal.array);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+    return geo;
+  }
+
+  // Instanced static decor: entries are [x, y, z, scale, rotY, color?].
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  function instanced(geo, mat, list) {
+    if (!list.length) return;
+    const inst = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach(([x, y, z, k, r, c], i) => {
+      q.setFromAxisAngle(up, r);
+      m4.compose(new THREE.Vector3(x, y, z), q, s3.set(k, k, k));
+      inst.setMatrixAt(i, m4);
+      if (c) inst.setColorAt(i, c);
+    });
+    group.add(inst);
+  }
+
+  // ---------- Geometry ----------
+  const tuftGeo = merge([-0.05, 0, 0.05].map((o, i) => new THREE.ConeGeometry(0.025, 0.24 - i * 0.03, 3).translate(o, 0.12 - i * 0.015, (i - 1) * 0.03).rotateZ(o * 2)));
+  const reedGeo = merge([
+    ...[-0.06, 0, 0.06].map((o, i) => new THREE.ConeGeometry(0.02, 0.6 - i * 0.12, 3).translate(o, 0.3 - i * 0.06, (i - 1) * 0.04)),
+  ]);
+  const cattailGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.12, 5).translate(0, 0.5, 0);
+  const padGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.01, 7, 1, false, 0.4, Math.PI * 2 - 0.6);
+  const lilyGeo = new THREE.ConeGeometry(0.06, 0.08, 5).translate(0, 0.05, 0);
+  const stemGeo = new THREE.CylinderGeometry(0.025, 0.03, 0.1, 5).translate(0, 0.05, 0);
+  const capGeo = new THREE.SphereGeometry(0.07, 6, 3, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.7, 1).translate(0, 0.09, 0);
+  const logGeo = new THREE.CylinderGeometry(0.13, 0.15, 1.1, 6).rotateZ(Math.PI / 2).translate(0, 0.13, 0);
+
+  // ---------- Critters ----------
+  const shadowGeo = new THREE.CircleGeometry(0.12, 6).rotateX(-Math.PI / 2);
+  const shadowMat = basic("#000000", { transparent: true, opacity: 0.3, depthWrite: false });
+  const dark = basic(PAL.k);
+
+  function makeBunny() {
+    const g = new THREE.Group(), body = new THREE.Group();
+    const fur = lambert(pick([PAL.N, PAL.w, PAL.W, "#a8774a"]));
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12, 0).scale(1.3, 0.95, 1), fur); b.position.y = 0.12;
+    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.08, 0), fur); head.position.set(0.13, 0.2, 0);
+    const ears = [1, -1].map(s => { const e = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.12, 0.045), fur); e.position.set(0.1, 0.3, s * 0.035); e.rotation.z = 0.25; return e; });
+    const tail = new THREE.Mesh(new THREE.IcosahedronGeometry(0.045, 0), lambert(PAL.W)); tail.position.set(-0.16, 0.13, 0);
+    const eyes = [1, -1].map(s => { const e = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.02), dark); e.position.set(0.19, 0.22, s * 0.045); return e; });
+    body.add(b, head, ...ears, tail, ...eyes);
+    g.add(body);
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    group.add(g, shadow);
+    return { g, body, shadow, x: 0, z: 0, state: "idle", t: rnd(0.5, 2), hop: null, yaw: Math.random() * 6 };
+  }
+  function makeBird() {
+    const g = new THREE.Group();
+    const feather = lambert(pick([PAL.n, PAL.k, "#5a4a3a", PAL.b]));
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.055, 0).scale(1.6, 1, 1), feather); b.position.y = 0.06;
+    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.04, 0), feather); head.position.set(0.07, 0.1, 0);
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.04, 3).rotateZ(-Math.PI / 2), lambert(PAL.O)); beak.position.set(0.12, 0.1, 0);
+    const breast = new THREE.Mesh(new THREE.IcosahedronGeometry(0.035, 0), lambert(pick([PAL.R, PAL.O, PAL.w]))); breast.position.set(0.05, 0.05, 0);
+    const wings = [1, -1].map(s => { const w = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.01, 0.1).translate(0, 0, s * 0.05), feather); w.position.set(-0.01, 0.08, s * 0.03); return w; });
+    g.add(b, head, beak, breast, ...wings);
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    shadow.scale.setScalar(0.6);
+    group.add(g, shadow);
+    return { g, wings, shadow, x: 0, z: 0, y: 0, vx: 0, vz: 0, flying: false, gone: 0, t: rnd(0.2, 1.5), yaw: Math.random() * 6 };
+  }
+  function makeButterfly() {
+    const g = new THREE.Group();
+    const color = pick([PAL.Y, PAL.W, PAL.O, PAL.C, "#c79cf0", "#f2a6c0"]);
+    const wingMat = basic(color, { side: THREE.DoubleSide });
+    const wings = [1, -1].map(s => { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.08).rotateX(-Math.PI / 2).translate(0, 0, s * 0.045), wingMat); return w; });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.015), dark);
+    g.add(body, ...wings);
+    group.add(g);
+    return { g, wings, x: 0, z: 0, hx: 0, hz: 0, phase: Math.random() * 10, startle: 0 };
+  }
+  function makeFrog() {
+    const g = new THREE.Group(), body = new THREE.Group();
+    const skin = lambert(pick([PAL.G, "#7fbf5a", PAL.v]));
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.08, 0).scale(1.2, 0.7, 1.1), skin); b.position.y = 0.06;
+    const eyes = [1, -1].map(s => {
+      const e = new THREE.Mesh(new THREE.IcosahedronGeometry(0.025, 0), lambert(PAL.W)); e.position.set(0.05, 0.11, s * 0.04);
+      const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.012), dark); pupil.position.set(0.07, 0.115, s * 0.04);
+      return [e, pupil];
+    }).flat();
+    body.add(b, ...eyes);
+    g.add(body);
+    group.add(g);
+    return { g, body, x: 0, z: 0, hop: null, gone: 0, phase: Math.random() * 10, yaw: Math.random() * 6 };
+  }
+
+  // ---------- Atmosphere ----------
+  const cloudMat = basic("#000000", { transparent: true, opacity: 0.12, depthWrite: false });
+  const leafGeo = new THREE.PlaneGeometry(0.08, 0.05);
+  const leafMats = [basic(PAL.G, { side: THREE.DoubleSide, transparent: true }), basic(PAL.O, { side: THREE.DoubleSide, transparent: true }), basic("#86c46a", { side: THREE.DoubleSide, transparent: true })];
+  const splashGeo = new THREE.RingGeometry(0.08, 0.13, 10).rotateX(-Math.PI / 2);
+
+  let bunnies = [], birds = [], butterflies = [], frogs = [], clouds = [], leaves = [], splashes = [];
+  let landTiles = [], flowerTiles = [], shoreTiles = [], treeTiles = [], leafTimer = 0;
+
+  function placeOn(list) { const [x, z] = pick(list); return [x + rnd(0.2, 0.8), z + rnd(0.2, 0.8)]; }
+
+  function setMap(m) {
+    map = m; H = m.length; W = m[0].length;
+    group.clear();
+    landTiles = []; flowerTiles = []; shoreTiles = []; treeTiles = [];
+    const waterTiles = [];
+    const near = (x, y, t) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tile(x + dx, y + dy) === t);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const t = m[y][x];
+      if (t === C.GRASS || t === C.FLOWER) {
+        landTiles.push([x, y]);
+        if (t === C.FLOWER) flowerTiles.push([x, y]);
+        if (near(x, y, C.WATER)) shoreTiles.push([x, y]);
+      } else if (t === C.WATER) waterTiles.push([x, y]);
+      else if (t === C.TREE && (near(x, y, C.GRASS) || near(x, y, C.FLOWER))) treeTiles.push([x, y]);
+    }
+
+    // Grass tufts across the meadows.
+    const tufts = [];
+    for (const [x, y] of landTiles) {
+      for (let i = 0; i < 2; i++) {
+        if (hash(x, y, 50 + i) > 0.38) continue;
+        const shade = 0.75 + hash(x, y, 60 + i) * 0.4;
+        tufts.push([x + hash(x, y, 70 + i), 0, y + hash(x, y, 80 + i), 1.2 + hash(x, y, 90 + i) * 0.8, hash(x, y, 95 + i) * 6, new THREE.Color(shade * 0.85, shade, shade * 0.8)]);
+      }
+    }
+    instanced(tuftGeo, lambert("#86c46a"), tufts);
+
+    // Reeds and cattails on the shores, leaning out over the water.
+    const reeds = [], cattails = [];
+    for (const [x, y] of shoreTiles) {
+      if (hash(x, y, 100) > 0.6) continue;
+      const [wx, wy] = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([dx, dy]) => tile(x + dx, y + dy) === C.WATER);
+      const rx = x + 0.5 + wx * 0.42 + (hash(x, y, 101) - 0.5) * 0.4, rz = y + 0.5 + wy * 0.42 + (hash(x, y, 102) - 0.5) * 0.4;
+      const k = 0.8 + hash(x, y, 103) * 0.5;
+      reeds.push([rx, 0, rz, k, hash(x, y, 104) * 6, new THREE.Color(0.7 + hash(x, y, 105) * 0.3, 0.85, 0.6)]);
+      if (hash(x, y, 106) < 0.6) cattails.push([rx + 0.03, 0, rz, k, 0]);
+    }
+    instanced(reedGeo, lambert(PAL.G), reeds);
+    instanced(cattailGeo, lambert(PAL.n), cattails);
+
+    // Lily pads float on the lake and pond (not the fast river), a few with flowers.
+    const pads = [], lilies = [];
+    for (const [x, y] of waterTiles) {
+      const open = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => tile(x + dx, y + dy) === C.WATER).length;
+      if (open < 4 || hash(x, y, 110) > 0.14) continue;
+      const px = x + hash(x, y, 111), pz = y + hash(x, y, 112);
+      pads.push([px, WATER_Y + 0.012, pz, 0.8 + hash(x, y, 113) * 0.6, hash(x, y, 114) * 6]);
+      if (hash(x, y, 115) < 0.35) lilies.push([px, WATER_Y + 0.012, pz, 1, 0]);
+    }
+    instanced(padGeo, lambert("#4f9a42"), pads);
+    instanced(lilyGeo, lambert("#f2a6c0", { emissive: col("#f2a6c0"), emissiveIntensity: 0.2 }), lilies);
+
+    // Mushrooms at the foot of the treeline, and the odd fallen log.
+    const stems = [], caps = [], logs = [];
+    const capColors = [PAL.R, PAL.O, PAL.N, PAL.R];
+    for (const [x, y] of treeTiles) {
+      if (hash(x, y, 120) < 0.16) {
+        for (let i = 0; i < 1 + Math.floor(hash(x, y, 121) * 3); i++) {
+          const mx = x + 0.2 + hash(x, y, 122 + i) * 0.6, mz = y + 0.2 + hash(x, y, 125 + i) * 0.6, k = 0.8 + hash(x, y, 128 + i) * 0.6;
+          stems.push([mx, 0, mz, k, 0]);
+          caps.push([mx, 0, mz, k, 0, col(capColors[Math.floor(hash(x, y, 131) * 4)])]);
+        }
+      }
+      if (hash(x, y, 140) < 0.03) logs.push([x + 0.5, 0, y + 0.5, 1, hash(x, y, 141) * Math.PI]);
+    }
+    instanced(stemGeo, lambert(PAL.W), stems);
+    instanced(capGeo, lambert("#ffffff"), caps);
+    instanced(logGeo, lambert(PAL.N), logs);
+
+    // Critters.
+    bunnies = Array.from({ length: 7 }, makeBunny);
+    for (const b of bunnies) [b.x, b.z] = placeOn(landTiles);
+    birds = [];
+    for (let f = 0; f < 3; f++) {
+      const [fx, fz] = placeOn(landTiles);
+      for (let i = 0; i < 4; i++) {
+        const b = makeBird();
+        b.x = fx + rnd(-0.6, 0.6); b.z = fz + rnd(-0.6, 0.6);
+        if (!isLand(b.x, b.z)) { b.x = fx; b.z = fz; }
+        b.flock = f;
+        birds.push(b);
+      }
+    }
+    butterflies = Array.from({ length: 18 }, () => {
+      const b = makeButterfly();
+      [b.hx, b.hz] = placeOn(flowerTiles.length ? flowerTiles : landTiles);
+      b.x = b.hx; b.z = b.hz;
+      return b;
+    });
+    frogs = shoreTiles.length ? Array.from({ length: 6 }, () => { const f = makeFrog(); [f.x, f.z] = placeOn(shoreTiles); return f; }) : [];
+
+    // Cloud shadows drifting across the land.
+    clouds = Array.from({ length: 6 }, () => {
+      const c = new THREE.Mesh(new THREE.CircleGeometry(rnd(3, 6), 12).rotateX(-Math.PI / 2).scale(1.6, 1, 1), cloudMat);
+      c.position.set(rnd(0, W), 0.04, rnd(0, H));
+      c.userData.speed = rnd(0.25, 0.45);
+      group.add(c);
+      return c;
+    });
+    leaves = []; splashes = [];
+  }
+
+  // ---------- Update ----------
+  const turn = (cur, target, dt, k) => cur + Math.atan2(Math.sin(target - cur), Math.cos(target - cur)) * (1 - Math.exp(-dt * k));
+
+  function splash(x, z) {
+    const m = new THREE.Mesh(splashGeo, basic(PAL.W, { transparent: true, opacity: 0.8, depthWrite: false }));
+    m.position.set(x, WATER_Y + 0.02, z);
+    m.userData.life = 0.5;
+    group.add(m); splashes.push(m);
+  }
+
+  // Start a hop toward (tx, tz) if it lands on land; returns whether it did.
+  function startHop(c, tx, tz, time, height) {
+    if (!isLand(tx, tz)) return false;
+    c.hop = { fx: c.x, fz: c.z, tx, tz, t: 0, time, height };
+    c.yaw = -Math.atan2(tz - c.z, tx - c.x);
+    return true;
+  }
+  function stepHop(c, dt) {
+    const h = c.hop;
+    h.t += dt;
+    const k = Math.min(1, h.t / h.time);
+    c.x = h.fx + (h.tx - h.fx) * k; c.z = h.fz + (h.tz - h.fz) * k;
+    const y = Math.sin(k * Math.PI) * h.height;
+    if (k >= 1) c.hop = null;
+    return y;
+  }
+
+  function update(dt, t, hx, hz) {
+    if (!map) return;
+    const dist = (x, z) => Math.hypot(x - hx, z - hz);
+
+    for (const b of bunnies) {
+      let y = 0;
+      if (b.hop) y = stepHop(b, dt);
+      else if (dist(b.x, b.z) < 2.4) {                      // bolt away from the hero
+        const a = Math.atan2(b.z - hz, b.x - hx) + rnd(-0.5, 0.5);
+        if (!startHop(b, b.x + Math.cos(a) * 0.9, b.z + Math.sin(a) * 0.9, 0.22, 0.22)) startHop(b, b.x + rnd(-0.8, 0.8), b.z + rnd(-0.8, 0.8), 0.22, 0.22);
+      } else if ((b.t -= dt) <= 0) {                        // wander: a short lazy hop
+        b.t = rnd(0.8, 3);
+        const a = Math.random() * Math.PI * 2;
+        startHop(b, b.x + Math.cos(a) * 0.45, b.z + Math.sin(a) * 0.45, 0.3, 0.12);
+      }
+      b.g.position.set(b.x, y, b.z);
+      b.g.rotation.y = b.yaw;
+      b.body.rotation.z = b.hop ? -0.2 : Math.sin(t * 6 + b.x) * 0.04;   // nibbling when still
+      b.shadow.position.set(b.x, 0.01, b.z);
+    }
+
+    for (const b of birds) {
+      if (b.gone > 0) {                                     // flown off; come back somewhere else later
+        b.gone -= dt;
+        if (b.gone <= 0) {
+          const [x, z] = placeOn(landTiles);
+          for (const o of birds) if (o.flock === b.flock) { o.x = x + rnd(-0.6, 0.6); o.z = z + rnd(-0.6, 0.6); if (!isLand(o.x, o.z)) { o.x = x; o.z = z; } o.y = 0; o.flying = false; o.gone = 0; o.g.visible = o.shadow.visible = true; }
+        }
+        continue;
+      }
+      if (!b.flying && dist(b.x, b.z) < 3) {                 // the whole flock takes off together
+        for (const o of birds) if (o.flock === b.flock && !o.flying) {
+          const a = Math.atan2(o.z - hz, o.x - hx) + rnd(-0.6, 0.6), sp = rnd(2.5, 3.5);
+          o.flying = true; o.vx = Math.cos(a) * sp; o.vz = Math.sin(a) * sp; o.yaw = -a;
+        }
+      }
+      if (b.flying) {
+        b.x += b.vx * dt; b.z += b.vz * dt; b.y += dt * 1.6;
+        b.wings.forEach((w, i) => { w.rotation.x = Math.sin(t * 30) * 0.9 * (i ? -1 : 1); });
+        if (b.y > 6) { b.g.visible = b.shadow.visible = false; b.gone = rnd(6, 12); for (const o of birds) if (o.flock === b.flock) { o.gone = b.gone; o.g.visible = o.shadow.visible = false; } }
+      } else {
+        b.wings.forEach(w => { w.rotation.x = 0; });
+        if ((b.t -= dt) <= 0) { b.t = rnd(0.3, 1.4); b.yaw += rnd(-1.2, 1.2); }
+      }
+      const peck = !b.flying && Math.sin(t * 9 + b.x * 7) > 0.7;
+      b.g.position.set(b.x, b.y, b.z);
+      b.g.rotation.set(0, b.yaw, peck ? -0.5 : 0);
+      b.shadow.position.set(b.x, 0.01, b.z);
+      b.shadow.material.opacity = 0.3;
+    }
+
+    for (const b of butterflies) {
+      if (dist(b.x, b.z) < 1.2) b.startle = 1.5;
+      b.startle = Math.max(0, b.startle - dt);
+      const r = b.startle > 0 ? 1.4 : 0.6;
+      b.phase += dt * (b.startle > 0 ? 2.2 : 1);
+      const tx = b.hx + Math.cos(b.phase * 0.9) * r + Math.sin(b.phase * 2.3) * 0.2;
+      const tz = b.hz + Math.sin(b.phase * 0.7) * r;
+      const yaw = -Math.atan2(tz - b.z, tx - b.x);
+      b.x += (tx - b.x) * Math.min(1, dt * 3); b.z += (tz - b.z) * Math.min(1, dt * 3);
+      b.g.position.set(b.x, 0.45 + Math.sin(b.phase * 3) * 0.15 + (b.startle > 0 ? 0.4 : 0), b.z);
+      b.g.rotation.y = yaw;
+      b.wings.forEach((w, i) => { w.rotation.x = Math.sin(t * 22 + b.phase) * 1.1 * (i ? -1 : 1); });
+    }
+
+    for (const f of frogs) {
+      if (f.gone > 0) {                                     // under water; pop up on another bank later
+        f.gone -= dt;
+        if (f.gone <= 0) { [f.x, f.z] = placeOn(shoreTiles); f.g.visible = true; }
+        continue;
+      }
+      let y = 0;
+      if (f.hop) {
+        y = stepHopAny(f, dt);
+        if (!f.hop && f.diving) { splash(f.x, f.z); f.diving = false; f.g.visible = false; f.gone = rnd(8, 15); }
+      } else if (dist(f.x, f.z) < 2) {                       // leap into the nearest water
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => [f.x + dx * 0.9, f.z + dz * 0.9]).filter(([x, z]) => isWater(x, z));
+        if (dirs.length) { const [tx, tz] = dirs[0]; f.hop = { fx: f.x, fz: f.z, tx, tz, t: 0, time: 0.35, height: 0.3 }; f.yaw = -Math.atan2(tz - f.z, tx - f.x); f.diving = true; }
+      }
+      f.g.position.set(f.x, y, f.z);
+      f.g.rotation.y = f.yaw;
+      f.body.scale.y = f.hop ? 1.15 : 1 + Math.max(0, Math.sin(t * 3 + f.phase)) * 0.08;   // throat puffing
+    }
+    function stepHopAny(c, dt) {                            // like stepHop, but the landing may be water
+      const h = c.hop; h.t += dt;
+      const k = Math.min(1, h.t / h.time);
+      c.x = h.fx + (h.tx - h.fx) * k; c.z = h.fz + (h.tz - h.fz) * k;
+      if (k >= 1) c.hop = null;
+      return Math.sin(k * Math.PI) * h.height + (k > 0.8 ? WATER_Y * (k - 0.8) * 5 : 0);
+    }
+
+    for (const c of clouds) {
+      c.position.x += c.userData.speed * dt;
+      if (c.position.x > W + 10) { c.position.x = -10; c.position.z = rnd(0, H); }
+    }
+
+    // Leaves drift down from trees near the hero.
+    if ((leafTimer -= dt) <= 0 && treeTiles.length) {
+      leafTimer = 0.25;
+      const nearTrees = treeTiles.filter(([x, z]) => Math.abs(x - hx) < 8 && Math.abs(z - hz) < 6);
+      if (nearTrees.length) {
+        const [x, z] = pick(nearTrees);
+        const leaf = new THREE.Mesh(leafGeo, pick(leafMats));
+        leaf.position.set(x + rnd(0.2, 0.8), rnd(1, 1.5), z + rnd(0.2, 0.8));
+        leaf.userData = { life: 3, sway: Math.random() * 6 };
+        group.add(leaf); leaves.push(leaf);
+      }
+    }
+    leaves = leaves.filter(l => {
+      const u = l.userData;
+      u.life -= dt;
+      if (l.position.y > 0.02) {
+        l.position.y -= dt * 0.35;
+        l.position.x += Math.sin(t * 2 + u.sway) * dt * 0.4;
+        l.rotation.set(t * 2 + u.sway, t * 1.3, Math.sin(t * 3 + u.sway));
+      } else l.rotation.set(-Math.PI / 2, 0, u.sway);
+      if (u.life <= 0) { group.remove(l); return false; }
+      return true;
+    });
+    splashes = splashes.filter(s => {
+      s.userData.life -= dt;
+      const k = 1 - s.userData.life / 0.5;
+      s.scale.setScalar(1 + k * 2.5); s.material.opacity = 0.8 * (1 - k);
+      if (s.userData.life <= 0) { group.remove(s); s.material.dispose(); return false; }
+      return true;
+    });
+  }
+
+  // Debug: where the critters are (used from the browser console).
+  const critters = () => ({ bunnies, birds, butterflies, frogs });
+  return { setMap, update, critters };
+}

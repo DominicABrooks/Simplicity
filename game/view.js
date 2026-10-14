@@ -2,6 +2,7 @@
 // Gameplay never reads from here. One tile = one world unit; game x -> world X, game y -> world Z.
 import * as THREE from "three";
 import { TIERS } from "./tiers.js";
+import { createAmbient } from "./ambient.js";
 
 const PX_PER_TILE = 8;
 const WATER_Y = -0.15, BED_Y = -0.6;
@@ -112,6 +113,8 @@ export function createView(canvas, PAL, C) {
 
   // ---------- Terrain ----------
   const world = new THREE.Group(); scene.add(world);
+  // Critters and environmental detail live in ambient.js.
+  const ambient = createAmbient({ scene, PAL, lambert, basic, col, C });
   let fish = [], isWaterAt = () => false;
   function quadGeometry(quads) {
     const pos = [], uv = [];
@@ -265,6 +268,7 @@ export function createView(canvas, PAL, C) {
       const [x, y] = waterTiles[Math.floor(Math.random() * waterTiles.length)];
       fish.push(makeFish(x + 0.5, y + 0.5));
     }
+    ambient.setMap(map);
   }
 
   // A koi: elongated octahedron body, a wiggling tail and a top fin, in one of a few koi colourings.
@@ -1127,6 +1131,7 @@ export function createView(canvas, PAL, C) {
 
     updateFishing(p, t, dt);
     updateFish(dt, t, px, pz);
+    ambient.update(dt, t, px, pz);
 
     // World animation and camera
     waterTex.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
@@ -1160,5 +1165,5 @@ export function createView(canvas, PAL, C) {
     return { x: r.left + (proj.x + 1) / 2 * r.width, y: r.top + (1 - proj.y) / 2 * r.height };
   }
 
-  return { setMap, render, resize, snapCamera, screenToGame, gameToScreen };
+  return { setMap, render, resize, snapCamera, screenToGame, gameToScreen, critters: () => ambient.critters() };
 }

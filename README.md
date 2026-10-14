@@ -32,7 +32,7 @@ WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space
 - **Frost Mage** (icy white robes): frostbolts that **chill** you to about half speed for 2.5 s. Get close and it casts **Frost Nova**: a frost ring grows on the ground around it, and if you're still inside when it goes off you're **frozen** in ice for 1.6 s.
 - **Storm Mage** (indigo and gold robes): fast **spark** bolts with a short wind-up, and **Lightning Strike**: three glowing circles appear on and around you, and lightning hits each one 0.9 s later. Keep moving.
 
-Dash or jump through bolts and the nova; only a dash's invulnerability beats lightning. Get close and a mage blinks away (6 s cooldown), including when you pin it against trees or water. Catch it up close while blink is on cooldown and it draws a sword and chases you, swinging (watch for the raised blade), until blink is ready and it escapes. Outrun it (more than about 5.5 tiles) and it goes back to casting. Mages have twice a slime's health and always drop a magic or better item.
+Dash or jump through bolts and the nova; only a dash's invulnerability beats lightning. Get close and a mage blinks away (6 s cooldown), including when you pin it against trees or water. Catch it up close while blink is on cooldown and it draws a sword and chases you, swinging (watch for the raised blade), until blink is ready and it escapes. Outrun it (more than about 5.5 tiles) and it goes back to casting. Mages scale with your level: they appear more often (15% of spawns at level 1, up to 50%), more can be out at once (one more every 5 levels, up to 4), and they get tougher (6 health at level 1, +2 per level). They always drop a magic or better item.
 
 **Sword:** every attack is a wide swipe that alternates direction and steps you forward. Pressing during a swipe queues the next one, so mashing chains smoothly, and swipes and dashes feed each other: a dash cancels a swipe at any point and readies your next swipe, and every swipe resets your dash cooldown, so you can weave swipe, dash, swipe, dash. Hits briefly freeze the action and shake the camera.
 
@@ -52,6 +52,7 @@ Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inven
 - `game/view.js`: the low-poly 3D renderer (three.js)
 - `game/inventory.js`: items, loot rolls, the inventory grid and equipment
 - `game/tiers.js`: rarity colours shared by worn gear and inventory icons
+- `game/ambient.js`: critters (bunnies, birds, butterflies, frogs) and environmental detail (grass, reeds, lily pads, mushrooms, logs, cloud shadows, falling leaves)
 - `tools/serve.py`: no-cache dev server
 - `font/pixel.txt` and `tools/build_font.py`: the game's pixel font (builds `game/fonts/simplicity-pixel.ttf` and `game/font.js`)
 

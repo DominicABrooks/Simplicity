@@ -210,9 +210,10 @@ function spawnSlime(minDist) {
   const p = randomGrassSpot(minDist);
   if (!p) return;
   // Rarely, once you've proven yourself, a mage spawns instead. Never more than one at a time.
-  if (kills >= 3 && !slimes.some(s => s.kind === "mage") && rand() < 0.15) {
+  const level = player ? player.level : 1;
+  if (kills >= 3 && slimes.filter(s => s.kind === "mage").length < mageCap(level) && rand() < mageChance(level)) {
     const school = ["ember", "frost", "storm"][Math.floor(rand() * 3)];
-    slimes.push({ kind: "mage", school, x: p.x, y: p.y, hp: MAGE.hp, timer: 1.5, casting: false, castT: 0, castK: 0, spell: null,
+    slimes.push({ kind: "mage", school, x: p.x, y: p.y, hp: mageHp(level), timer: 1.5, casting: false, castT: 0, castK: 0, spell: null,
       strafe: 1, strafeT: 0, stuckT: 0, blinkCD: 2, specialCD: 4, face: 1, flash: 0, vx: 0, vy: 0, moving: false });
     toast(`A ${SCHOOLS[school].name} appears!`);
     return;
@@ -221,6 +222,11 @@ function spawnSlime(minDist) {
 }
 
 // ---------- Mages ----------
+// Mages scale with the hero's level: more likely to appear, more of them at once, and tougher.
+const mageChance = level => Math.min(0.5, 0.15 + 0.02 * (level - 1));   // 15% at level 1, 50% by level 18
+const mageCap = level => 1 + Math.floor((level - 1) / 5);               // 1, then 2 at level 6, 3 at 11, 4 at 16
+const mageHp = level => MAGE.hp + 2 * (level - 1);                      // 6 at level 1, 44 at level 20
+
 // Three schools share one body and one brain: keep a casting distance, telegraph every spell
 // with a charge-up, blink away when crowded or pinned, and draw a sword up close while blink
 // is on cooldown. Each school has its own bolt and a signature spell.
@@ -824,7 +830,7 @@ function grantXP(amount, x, y) {
 
 // ---------- Render ----------
 // The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
-const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME, NOVA_RADIUS: SPELLS.nova.radius, STRIKE_RADIUS: SPELLS.strike.radius });
+const view = createView(document.getElementById("screen"), PAL, { GRASS, WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME, NOVA_RADIUS: SPELLS.nova.radius, STRIKE_RADIUS: SPELLS.strike.radius });
 const hudCanvas = document.getElementById("hudCanvas");
 const hg = hudCanvas.getContext("2d");
 let pixelSize = 3;
