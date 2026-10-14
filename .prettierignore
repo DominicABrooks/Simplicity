@@ -1,0 +1,9 @@
+dist
+build
+node_modules
+src/assets/generated
+tests/fixtures
+art
+font
+palette
+*.md

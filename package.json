@@ -1,0 +1,39 @@
+{
+  "name": "simplicity",
+  "private": true,
+  "version": "0.2.0",
+  "description": "A fantasy RPG that plays in 2D and looks like a late-90s 3D game, in the browser.",
+  "type": "module",
+  "scripts": {
+    "assets": "tsx tools/build-sprites.ts && tsx tools/build-font.ts",
+    "predev": "npm run assets",
+    "dev": "vite",
+    "prebuild": "npm run assets",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "pretest": "npm run assets",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "@types/pngjs": "^6.0.5",
+    "@types/three": "0.160.0",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "pngjs": "^7.0.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
+  }
+}
