@@ -217,7 +217,7 @@ export function buildHall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ha
   }
   // The door, up steps if it's raised; or, over an arcade, a stair up to the hall on the side.
   if (!p.arcade) {
-    const door = portal(ctx, p.stone ? 1.3 : 0.9, p.stone ? 2.3 : 1.6);
+    const doorH = Math.min(p.stone ? 2.3 : 1.6, wallH - 0.45), door = portal(ctx, Math.min(p.stone ? 1.3 : 0.9, doorH * 0.56), doorH);   // under the eaves, however low
     door.position.set(0, lift, d / 2 + 0.03);
     g.add(door);
     if (p.raised) for (let i = 0; i < 3; i++) put(g, box(1.0, (i + 1) * 0.23, 0.25), lambert(TRIM), 0, ((i + 1) * 0.23) / 2, d / 2 + 0.7 - i * 0.25);

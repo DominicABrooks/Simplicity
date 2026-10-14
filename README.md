@@ -40,7 +40,7 @@ WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space
 
 - **The King's Bridge**: out of the cave, between two gilded lions on marble plinths, through a great marble gate tower under gilded roofs, and over the great river on a bridge of white marble and gold leaf (the kingdom's arms on every post, its banners hung down the sides, gilded braziers and standards along it, ships moored either side) to Southgate in the city wall.
 - **The Market Quarter**: the high street up to the market square (the great fountain, the market cross, four rows of stalls under bunting, the guildhall over its open arcade, the Crown and the Bell), St Mary's and St Giles', and lanes of tall timber-framed houses, gable end to the street, shops on the main streets.
-- **The Castle**, up Castle Street, built into the city wall: a barbican and a drawbridge over the moat, then one ring of walls round the ward: the keep on its crag, the great hall and its kitchen, the chapel and lodgings, the barracks, the stable, the smithy, a well and a training corner.
+- **The Castle**, up Castle Street, built into the city wall: a barbican and a drawbridge over the moat, then one ring of walls round the ward: the keep on its crag, the great hall and its kitchen, the chapel and lodgings, the barracks, the storehouse, the smithy, a well and a training corner.
 
 Guards in the kingdom's colours keep the gates; nothing hostile lives in the city. Walk back into the cave to return. Your gear and level go with you; each area keeps its own creatures.
 

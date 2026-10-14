@@ -2,7 +2,7 @@
 //
 // Castle Street comes up from the Market Quarter to the barbican, over the drawbridge and the moat, and
 // through the gatehouse into the ward: the keep on its crag between burning braziers, the great hall and
-// its kitchen, the chapel and the lodgings, the barracks by the gate, the stable, the smithy, a well and
+// its kitchen, the chapel and the lodgings, the barracks by the gate, the storehouse, the smithy, a well and
 // a corner for training, all inside one ring of tall walls with a tower at every corner.
 import { T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
@@ -52,18 +52,16 @@ function build(): AreaLayout {
   town.add({ kind: "hall", rect: px([11, 20, 6, 4]), door: "east", roof: "#7a3a2a", storeys: 1, stone: true, louvre: true });
   town.add({ kind: "church", rect: px([38, 6, 10, 5]), tower: "bellcote" });
   town.add({ kind: "hall", rect: px([39, 12, 8, 7]), door: "west", roof: "#a8473a", storeys: 3, stone: false, chimneys: 1 });
-  // South of it, toward the gate: the barracks, the stable with a horse at its trough, the smithy, a
+  // South of it, toward the gate: the barracks, the storehouse, the smithy, a
   // well, and a corner for training at arms.
   town.add({ kind: "hall", rect: px([10, 26, 10, 5]), door: "east", roof: "#5d6a7d", storeys: 2, stone: true, chimneys: 1 });
-  town.add({ kind: "stable", rect: px([37, 28, 11, 3]), facing: "north" });
-  town.add({ kind: "trough", rect: px([38, 25, 2, 1]) });
-  town.add({ kind: "horse", rect: px([41, 25, 2, 1]), facing: "west" });
+  town.add({ kind: "hall", rect: px([37, 27, 11, 4]), door: "north", roof: "#7a3a2a", storeys: 1, stone: true });
   town.add({ kind: "smithy", rect: px([38, 20, 4, 3]) });
   town.add({ kind: "well", ...at(23, 26) });
   for (const x of [20, 22]) town.add({ kind: "target", ...at(x, 22), facing: "south" });
   town.add({ kind: "dummy", ...at(33, 25), facing: "south" });
   town.add({ kind: "rack", rect: px([33, 22, 2, 1]), facing: "south" });
-  for (const [x, y, what] of [[44, 21, "barrels"], [21, 30, "crates"], [46, 25, "hay"]] as const) town.add({ kind: "stock", ...at(x, y), what });
+  for (const [x, y, what] of [[44, 21, "barrels"], [21, 30, "crates"], [46, 24, "crates"]] as const) town.add({ kind: "stock", ...at(x, y), what });
 
   // The city round the castle: houses along the lanes either side of it and the street below it.
   town.houses({
