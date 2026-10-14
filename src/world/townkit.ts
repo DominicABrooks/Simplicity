@@ -73,11 +73,15 @@ export class Town {
       const b = boundsOf(s);
       for (let y = Math.max(0, Math.floor(b.y0 / T)); y <= Math.min(this.H - 1, Math.floor(b.y1 / T)); y++) for (let x = Math.max(0, Math.floor(b.x0 / T)); x <= Math.min(this.W - 1, Math.floor(b.x1 / T)); x++) {
         if (this.at(x, y) === Tile.Water) continue;
-        if (overlapsBox(s, { x0: (x + 0.25) * T, y0: (y + 0.25) * T, x1: (x + 0.75) * T, y1: (y + 0.75) * T })) this.set(x, y, Tile.Wall);
+        if (!overlapsBox(s, { x0: (x + 0.25) * T, y0: (y + 0.25) * T, x1: (x + 0.75) * T, y1: (y + 0.75) * T })) continue;
+        if (prop.kind === "graves" && this.at(x, y) !== Tile.Wall) this.graveGround.set(y * this.W + x, this.at(x, y)!);
+        this.set(x, y, Tile.Wall);
       }
     }
     return prop;
   }
+  /** The ground under a churchyard's graves, given back when the town is laid out (see layout). */
+  private readonly graveGround = new Map<number, Tile>();
 
   /**
    * Line the streets with houses: for each side a street can be on, every run of street frontage gets
@@ -161,6 +165,13 @@ export class Town {
 
   /** The finished layout: the map (with every prop's solid shapes) and its ways in and out, and what's seen past its edges. */
   layout(entries: Record<string, Point>, exits: ExitDef[]): AreaLayout {
+    // A churchyard keeps its ground (grass, a path through it): its graves only kept the houses off it
+    // while the town was laid out. Not where something else stands, though.
+    const others = this.props.filter(p => p.kind !== "graves").flatMap(propSolids);
+    for (const [i, t] of this.graveGround) {
+      const x = i % this.W, y = Math.floor(i / this.W), centre = { x0: (x + 0.25) * T, y0: (y + 0.25) * T, x1: (x + 0.75) * T, y1: (y + 0.75) * T };
+      if (!others.some(o => overlapsBox(o, centre))) this.set(x, y, t);
+    }
     const map = { width: this.W, height: this.H, tiles: this.tiles, solids: this.props.flatMap(propSolids) };
     if (!this.past.length) return { map, entries, exits, props: this.props };
     // The view: one grid round the map and everything past it, the map's tiles and theirs laid in it, grass between.

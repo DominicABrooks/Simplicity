@@ -450,23 +450,83 @@ export function buildChapterHouse(ctx: RenderContext, parent: THREE.Group, p: Pr
 }
 
 // ---------- Graves ----------
-/** A churchyard's headstones and crosses, in rows, mossy and leaning a little. */
+/**
+ * A churchyard's graves in rows, each facing +z with its grave in front of it. Mostly headstones,
+ * round-topped on a plinth with a cross cut in the face, or small and pointed; stone crosses on stepped
+ * bases, some with a wheel; here and there a chest tomb with carved panels and a cross on its lid; and
+ * the newest, a wooden cross over fresh earth with flowers on it. The older stones lean a little and
+ * some have flowers left at their foot; the mounds are grassed over and rounded.
+ */
 export function buildGraves(ctx: RenderContext, parent: THREE.Group, p: PropOf<"graves">): PropView {
-  const { lambert } = ctx, g = new THREE.Group(), greys = ["#8a8378", "#9a948a", "#77706a"].map(c => lambert(c));
-  for (const [i, s] of gravePlan(p.rect).entries()) {
-    const m = greys[i % greys.length]!, lean = (hash(i, s.kind, 430) - 0.5) * 0.2;
-    const stone = new THREE.Group();
-    if (s.kind === 1) {                                                               // a cross
-      put(stone, box(0.1, 0.75, 0.1), m, 0, 0.375, 0);
-      put(stone, box(0.42, 0.1, 0.1), m, 0, 0.55, 0);
-    } else {                                                                          // a headstone with a rounded top
-      const h = s.kind === 0 ? 0.55 : 0.4;
-      put(stone, box(0.42, h, 0.1), m, 0, h / 2, 0);
-      put(stone, new THREE.CylinderGeometry(0.21, 0.21, 0.1, 8, 1, false, -Math.PI / 2, Math.PI), m, 0, h, 0, Math.PI / 2, 0, 0);
+  const { lambert, tex } = ctx, g = new THREE.Group();
+  const greys = ["#f2ede2", "#e2dccf", "#d4cdbf", "#c6bfb2"].map(c => lambert(c, { map: tex.stone })), cut = lambert("#4e4a45");
+  const turf = lambert("#4f7a35"), earth = lambert("#6b4a2e"), wood = lambert(DARK_WOOD);
+  const blooms = ["#e8d23a", "#e05a7a", "#f2f0e6", "#9a6ad6"].map(c => lambert(c)), stem = lambert("#3d6a2a");
+  const mound = new THREE.SphereGeometry(1, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2);
+  // A cross cut into a stone's face, `y` up it.
+  const carve = (to: THREE.Group, y: number, s: number, z: number) => {
+    put(to, box(0.035 * s, 0.17 * s, 0.01), cut, 0, y, z);
+    put(to, box(0.11 * s, 0.035 * s, 0.01), cut, 0, y + 0.03 * s, z);
+  };
+  const flowers = (to: THREE.Group, z: number, n: number, k: number) => {
+    for (let i = 0; i < n; i++) {
+      const fx = (hash(k, i, 431) - 0.5) * 0.3, fz = z + (hash(k, i, 432) - 0.5) * 0.12;
+      put(to, box(0.015, 0.1, 0.015), stem, fx, 0.05, fz);
+      put(to, new THREE.OctahedronGeometry(0.035, 0), blooms[Math.floor(hash(k, i, 433) * blooms.length)]!, fx, 0.11, fz);
     }
-    put(stone, box(0.4, 0.06, 0.7), lambert("#5a7a3a"), 0, 0.03, 0.42);               // the grave's mound
+  };
+  for (const [i, s] of gravePlan(p.rect).entries()) {
+    const m = greys[Math.floor(hash(s.x, s.z, 434) * greys.length)]!, k = hash(s.x, s.z, 430), stone = new THREE.Group();
+    switch (s.kind) {
+      case 0: {                                                                         // a tall headstone on a plinth
+        put(stone, box(0.52, 0.08, 0.2), m, 0, 0.04, 0);
+        put(stone, box(0.42, 0.5, 0.09), m, 0, 0.33, 0);
+        put(stone, new THREE.CylinderGeometry(0.21, 0.21, 0.09, 10, 1, false, -Math.PI / 2, Math.PI), m, 0, 0.58, 0, -Math.PI / 2, 0, 0);   // its rounded head, upward
+        carve(stone, 0.42, 1, 0.05);
+        break;
+      }
+      case 1: case 4: {                                                                 // a cross on stepped bases, or a wheel cross
+        put(stone, box(0.4, 0.08, 0.3), m, 0, 0.04, 0);
+        put(stone, box(0.26, 0.08, 0.2), m, 0, 0.12, 0);
+        put(stone, box(0.09, 0.78, 0.09), m, 0, 0.55, 0);
+        put(stone, box(0.42, 0.09, 0.09), m, 0, 0.7, 0);
+        if (s.kind === 4) put(stone, new THREE.TorusGeometry(0.13, 0.025, 4, 12), m, 0, 0.7, 0);
+        break;
+      }
+      case 2: {                                                                         // a small stone with a pointed head
+        put(stone, box(0.36, 0.3, 0.08), m, 0, 0.15, 0);
+        put(stone, box(0.255, 0.255, 0.08), m, 0, 0.3, 0, 0, 0, Math.PI / 4);
+        carve(stone, 0.18, 0.7, 0.045);
+        break;
+      }
+      case 3: {                                                                         // a chest tomb over the grave
+        const z = 0.35;
+        put(stone, box(0.64, 0.08, 1.06), m, 0, 0.04, z);
+        put(stone, tiledBox(0.54, 0.4, 0.96, 0.5), m, 0, 0.28, z);
+        put(stone, box(0.66, 0.07, 1.08), m, 0, 0.515, z);
+        for (const pz of [-0.25, 0.25]) for (const sx of [-1, 1]) put(stone, box(0.01, 0.22, 0.32), cut, sx * 0.272, 0.27, z + pz);   // carved panels
+        put(stone, box(0.3, 0.22, 0.01), cut, 0, 0.27, z + 0.482);
+        put(stone, box(0.05, 0.012, 0.6), cut, 0, 0.555, z);                           // a cross on the lid
+        put(stone, box(0.3, 0.012, 0.05), cut, 0, 0.555, z - 0.1);
+        break;
+      }
+      case 5: {                                                                         // a wooden cross over fresh earth
+        put(stone, box(0.07, 0.6, 0.05), wood, 0, 0.3, 0);
+        put(stone, box(0.32, 0.06, 0.05), wood, 0, 0.45, 0);
+        break;
+      }
+    }
+    if (s.kind !== 3) {                                                                 // the grave: a rounded mound
+      const fresh = s.kind === 5, heap = put(stone, mound, fresh ? earth : turf, 0, 0, 0.45);
+      heap.scale.set(0.2, fresh ? 0.11 : 0.06, 0.38);
+      if (fresh) flowers(stone, 0.45, 5, i);
+      else if (k < 0.3) flowers(stone, 0.12, 3, i);
+    }
     stone.position.set(s.x, 0, s.z);
-    stone.rotation.z = lean;
+    if (s.kind !== 3) {
+      stone.rotation.z = (k - 0.5) * 0.16;                                              // the old ones lean
+      stone.rotation.x = (hash(s.x, s.z, 435) - 0.6) * 0.12;
+    }
     g.add(stone);
   }
   parent.add(g);

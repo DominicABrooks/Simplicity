@@ -14,7 +14,7 @@ import { DARK_WOOD, IRON, WOOD, banner, occluder, tiledCylinder, type PropOf } f
 /** Turn a group built facing south (+z) to face a facing. */
 export const TURN = FACING_YAW;
 
-export const STATUE_STONE = "#d6cfc0", STRAW = "#d9b46a";
+export const STATUE_STONE = "#d6cfc0", STRAW = "#d9b46a", GILT = "#d9a83a";
 
 /** Where a prop given at a point (game px) stands, in world units. */
 export const at = (p: { x: number; y: number }) => [p.x / T, p.y / T] as const;
@@ -22,30 +22,58 @@ export const centreOf = (r: { x: number; y: number; w: number; h: number }) => [
 
 // ---------- The fountain's king ----------
 /**
- * A stone king about 1.4 tall, facing +z, feet at y = 0, all in one material but for gold details: a long
- * robe and cape, a crown, and a sceptre raised high.
+ * A stone king about 1.75 tall, facing +z, feet at y = 0, all in one stone but for his gilding: a long
+ * robe flaring to the ground under a gilded belt, a mantle hanging from his shoulders behind him with an
+ * ermine collar, a bearded head under a gold crown, a sceptre raised high in his right hand and an orb
+ * held at his waist in his left.
  */
-function stoneKing(ctx: RenderContext, mat: THREE.Material): THREE.Group {
-  const g = new THREE.Group(), gold = ctx.basic(PAL.Y);
-  const add = (geo: THREE.BufferGeometry, x: number, y: number, z: number, m: THREE.Material = mat) => {
+function stoneKing(ctx: RenderContext, colour: string): THREE.Group {
+  const g = new THREE.Group(), stone = ctx.lambert(colour), drape = ctx.lambert(colour, { side: THREE.DoubleSide }), gold = ctx.lambert(GILT);
+  const add = (geo: THREE.BufferGeometry, x: number, y: number, z: number, m: THREE.Material = stone) => {
     const mesh = new THREE.Mesh(geo, m);
     mesh.position.set(x, y, z);
     g.add(mesh);
     return mesh;
   };
-  add(new THREE.IcosahedronGeometry(0.15, 1), 0, 1.22, 0);                       // head
-  add(new THREE.CylinderGeometry(0.2, 0.36, 0.95, 8), 0, 0.48, 0);               // robe
-  add(new THREE.CylinderGeometry(0.17, 0.21, 0.3, 8), 0, 1.0, 0);                // chest
-  add(box(0.5, 0.95, 0.06), 0, 0.62, -0.24).rotation.x = -0.12;                  // cape
-  add(new THREE.CylinderGeometry(0.15, 0.13, 0.12, 8, 1, true), 0, 1.38, 0, gold);   // crown
+  // A limb (or a rod) from a to b, rounded at its ends.
+  const limb = (a: THREE.Vector3, b: THREE.Vector3, r: number, m: THREE.Material = stone) => {
+    const mesh = add(new THREE.CapsuleGeometry(r, Math.max(0.01, a.distanceTo(b)), 2, 6), (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2, m);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    return mesh;
+  };
+  const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+  // The robe, turned on a profile: flaring at the hem, narrowing to the waist, the chest above it.
+  const profile = [[0.0, 0], [0.4, 0], [0.38, 0.08], [0.3, 0.4], [0.22, 0.8], [0.2, 0.92], [0.23, 1.08], [0.21, 1.2], [0.0, 1.24]].map(([r, y]) => new THREE.Vector2(r!, y!));
+  add(new THREE.LatheGeometry(profile, 10), 0, 0, 0);
+  for (let i = -2; i <= 2; i++) {                                                      // folds down the front of the robe
+    const a = (i / 2) * 0.7;
+    limb(v(Math.sin(a) * 0.3, 0.38, Math.cos(a) * 0.3), v(Math.sin(a) * 0.37, 0.06, Math.cos(a) * 0.37), 0.025);
+  }
+  add(new THREE.CylinderGeometry(0.215, 0.215, 0.06, 10), 0, 0.9, 0, gold);           // the belt
+  // The mantle: hung from the shoulders, open at the front, falling behind him to the ground.
+  add(new THREE.CylinderGeometry(0.27, 0.44, 1.2, 10, 1, true, Math.PI * 0.42, Math.PI * 1.16), 0, 0.62, -0.02, drape);
+  add(new THREE.TorusGeometry(0.21, 0.065, 5, 10), 0, 1.24, 0, stone).rotation.x = Math.PI / 2;   // the ermine collar
+  limb(v(-0.24, 1.2, 0), v(0.24, 1.2, 0), 0.09);                                       // the shoulders
+  // The head: neck, head, beard and hair, and the crown with its five points.
+  add(new THREE.CylinderGeometry(0.06, 0.07, 0.1, 6), 0, 1.3, 0);
+  add(new THREE.IcosahedronGeometry(0.13, 1), 0, 1.45, 0).scale.set(0.95, 1.1, 1);
+  add(new THREE.ConeGeometry(0.1, 0.2, 6), 0, 1.33, 0.07).rotation.x = Math.PI + 0.25;
+  add(new THREE.CylinderGeometry(0.135, 0.14, 0.08, 8), 0, 1.47, -0.02).scale.set(1, 1, 1.05);
+  add(new THREE.CylinderGeometry(0.135, 0.13, 0.09, 10, 1, true), 0, 1.58, 0, gold);
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    add(new THREE.ConeGeometry(0.035, 0.1, 4), Math.cos(a) * 0.13, 1.48, Math.sin(a) * 0.13, gold);
+    add(new THREE.ConeGeometry(0.035, 0.1, 4), Math.sin(a) * 0.13, 1.67, Math.cos(a) * 0.13, gold);
   }
-  add(box(0.09, 0.42, 0.09), 0.24, 1.18, 0.04).rotation.z = -0.35;              // raised arm and sceptre
-  add(box(0.04, 0.62, 0.04), 0.33, 1.5, 0.06, gold);
-  add(new THREE.IcosahedronGeometry(0.06, 0), 0.33, 1.84, 0.06, gold);
-  add(box(0.09, 0.4, 0.09), -0.22, 0.86, 0.04).rotation.z = 0.15;
+  // His right arm raised, the sceptre in his fist; his left bent, holding the orb.
+  limb(v(0.25, 1.18, 0), v(0.34, 0.98, 0.1), 0.06);
+  limb(v(0.34, 0.98, 0.1), v(0.33, 1.18, 0.24), 0.055);
+  limb(v(0.33, 0.9, 0.26), v(0.33, 1.72, 0.22), 0.022, gold);
+  add(new THREE.OctahedronGeometry(0.07, 0), 0.33, 1.78, 0.22, gold);
+  limb(v(-0.25, 1.18, 0), v(-0.3, 0.96, 0.08), 0.06);
+  limb(v(-0.3, 0.96, 0.08), v(-0.16, 0.98, 0.24), 0.055);
+  add(new THREE.IcosahedronGeometry(0.075, 1), -0.13, 1.06, 0.27, gold);
+  add(box(0.02, 0.09, 0.02), -0.13, 1.17, 0.27, gold);
+  add(box(0.06, 0.02, 0.02), -0.13, 1.18, 0.27, gold);
   return g;
 }
 
@@ -122,12 +150,13 @@ export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf
     for (let k = 0; k < n; k++)
       add(new THREE.Mesh(new THREE.CylinderGeometry(r + 0.02, r + 0.08, drop, 3, 1, true, k * arc + arc * 0.3, arc * 0.32), sheets), lands + drop / 2);
   });
-  // The king on a little plinth in the top bowl.
+  // The king on an octagonal plinth in the top bowl, a gilded band round its cornice.
   const top = tiers[1]!;
-  add(new THREE.Mesh(tiledCylinder(0.12, 0.22, 8, 0.4), stone), top.y + 0.14);
-  const king = stoneKing(ctx, lambert(STATUE_STONE));
-  king.scale.setScalar(0.6);
-  king.position.y = top.y + 0.25;
+  add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.3, 8), stone), top.y + 0.15);
+  add(new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 8), lambert(GILT)), top.y + 0.32);
+  const king = stoneKing(ctx, STATUE_STONE);
+  king.scale.setScalar(0.66);
+  king.position.y = top.y + 0.34;
   g.add(king);
 
   const [cx, cz] = at(p);
