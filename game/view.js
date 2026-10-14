@@ -352,10 +352,11 @@ export function createView(canvas, PAL, C) {
   // The same body as the hero, dressed in the red ember tier, with orange eyes.
   const mageViews = new Map(), fireballViews = new Map();
   const mageEyes = basic(PAL.O);
-  function makeFireballMesh() {
+  function makeFireballMesh(kind = "fire") {
     const g = new THREE.Group();
-    g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), basic(PAL.Y)));
-    g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 0), basic(PAL.R, { transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })));
+    const [core, shell] = kind === "poly" ? ["#e6d2ff", PAL.P] : [PAL.Y, PAL.R];
+    g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), basic(core)));
+    g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 0), basic(shell, { transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })));
     return g;
   }
   function makeMageView() {
@@ -364,7 +365,8 @@ export function createView(canvas, PAL, C) {
     m.eyes.forEach(e => { e.material = mageEyes; });
     m.ripple.visible = false;
     m.orb = makeFireballMesh(); m.orb.visible = false;
-    m.group.add(m.orb);
+    m.polyOrb = makeFireballMesh("poly"); m.polyOrb.visible = false;
+    m.group.add(m.orb, m.polyOrb);
     return m;
   }
   function updateMages(list, p, t, dt) {
@@ -380,22 +382,24 @@ export function createView(canvas, PAL, C) {
       v.body.scale.y = 1 + Math.sin(t * 2.5) * 0.025;
       v.feet.forEach((f, i) => { f.position.x = v.footX + (o.moving ? Math.sin(t * 10 + i * Math.PI) * 0.08 : 0); });
       // Casting: both hands come forward and a fireball grows between them (the telegraph).
-      const k = o.casting ? Math.min(1, o.castT / C.MAGE_CHARGE) : 0;
+      const k = o.casting ? o.castK : 0;
       v.hands.forEach((h, i) => {
         const side = i === 0 ? 1 : -1;
         if (o.casting) h.position.set(0.32 + k * 0.08, 0.5 + k * 0.1, side * (0.22 - k * 0.08));
         else h.position.set(0.12, 0.38 + Math.sin(t * 2.5 + i) * 0.02, side * 0.44);
       });
-      v.orb.visible = o.casting;
-      v.orb.position.set(0.5, 0.58 + k * 0.08, 0);
-      v.orb.scale.setScalar(0.3 + k * 0.9 + Math.sin(t * 30) * 0.05 * k);
-      v.orb.rotation.set(t * 4, t * 5, 0);
+      for (const [orb, spell] of [[v.orb, "fire"], [v.polyOrb, "poly"]]) {
+        orb.visible = o.casting && o.spell === spell;
+        orb.position.set(0.5, 0.58 + k * 0.08, 0);
+        orb.scale.setScalar(0.3 + k * 0.9 + Math.sin(t * 30) * 0.05 * k);
+        orb.rotation.set(t * 4, t * 5, 0);
+      }
       v.shadow.position.set(x, 0.01, z);
     }
   }
   function updateFireballViews(list, t, dt) {
-    syncSet(list, fireballViews, () => {
-      const group = makeFireballMesh();
+    syncSet(list, fireballViews, (f) => {
+      const group = makeFireballMesh(f.kind);
       const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.scale.setScalar(0.35); shadow.position.y = 0.01;
       scene.add(group, shadow);
       return { group, shadow };
@@ -406,12 +410,62 @@ export function createView(canvas, PAL, C) {
       v.group.rotation.set(t * 6, t * 7, 0);
       v.shadow.position.set(x, 0.01, z);
       if (Math.random() < dt * 30) {                        // ember trail
-        const m = new THREE.Mesh(sparkGeo, Math.random() < 0.5 ? sparkMats.fire : sparkMats.ember);
+        const poly = f.kind === "poly";
+        const m = new THREE.Mesh(sparkGeo, Math.random() < 0.5 ? (poly ? sparkMats.arcane : sparkMats.fire) : (poly ? sparkMats.arcaneLight : sparkMats.ember));
         m.position.set(x, 0.55, z);
         m.userData = { vx: (Math.random() - 0.5) * 0.6, vz: (Math.random() - 0.5) * 0.6, vy: 0.8 + Math.random() * 0.6, life: 0.25 };
         scene.add(m); sparks.push(m);
       }
     }
+  }
+
+  // ---------- Sheep (polymorph) ----------
+  // A fluffy low-poly sheep: wool body and tufts, dark face and legs. Faces the way it walks.
+  // Built on first use: the helpers it needs are defined further down this file.
+  let sheep = null, sheepBody = null;
+  function buildSheep() {
+    sheep = new THREE.Group(); sheepBody = new THREE.Group();
+    const wool = lambert(PAL.W), dark = lambert(PAL.k);
+    const body = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 0).scale(1.3, 0.9, 1), wool); body.position.y = 0.4;
+    const tufts = [[-0.15, 0.62, 0.08], [0.08, 0.66, -0.06], [-0.05, 0.6, -0.16], [0.15, 0.58, 0.12]].map(([x, y, z]) => {
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12, 0), wool); m.position.set(x, y, z); return m;
+    });
+    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.14, 0).scale(1.2, 1, 0.9), dark); head.position.set(0.4, 0.5, 0);
+    const ears = [1, -1].map(s => { const m = new THREE.Mesh(box(0.06, 0.03, 0.12), dark); m.position.set(0.36, 0.56, s * 0.14); m.rotation.x = s * 0.4; return m; });
+    const eyes = [1, -1].map(s => { const m = new THREE.Mesh(box(0.03, 0.03, 0.03), basic(PAL.W)); m.position.set(0.5, 0.53, s * 0.06); return m; });
+    const legs = [[0.18, 0.12], [0.18, -0.12], [-0.18, 0.12], [-0.18, -0.12]].map(([x, z]) => {
+      const m = new THREE.Mesh(box(0.07, 0.24, 0.07), dark); m.position.set(x, 0.12, z); return m;
+    });
+    sheepBody.add(body, ...tufts, head, ...ears, ...eyes);
+    sheep.add(sheepBody, ...legs);
+    sheep.userData.legs = legs;
+    scene.add(sheep);
+  }
+  let sheepYaw = 0, sheepLast = null, wasSheep = false;
+  function updateSheep(p, px, pz, t, dt) {
+    const on = p.sheep > 0;
+    if (!sheep) { if (!on) return; buildSheep(); }
+    if (on !== wasSheep) {                                  // a puff of arcane sparks on change
+      for (let i = 0; i < 12; i++) {
+        const m = new THREE.Mesh(sparkGeo, i % 2 ? sparkMats.arcane : sparkMats.arcaneLight), a = Math.random() * Math.PI * 2;
+        m.position.set(px, 0.4, pz);
+        m.userData = { vx: Math.cos(a) * 2, vz: Math.sin(a) * 2, vy: 1.5 + Math.random() * 2, life: 0.4 };
+        scene.add(m); sparks.push(m);
+      }
+      wasSheep = on; sheepLast = null;
+    }
+    sheep.visible = on && !(p.hurt > 0 && Math.floor(t * 16) % 2);
+    if (!on) return;
+    const swimY = p.swimming ? -0.4 + Math.sin(t * 4) * 0.03 : 0;
+    sheep.position.set(px, swimY, pz);
+    if (sheepLast) {
+      const dx = px - sheepLast.x, dz = pz - sheepLast.z;
+      if (Math.hypot(dx, dz) > 0.002) sheepYaw = turn(sheepYaw, -Math.atan2(dz, dx), dt, 12);
+    }
+    sheepLast = { x: px, z: pz };
+    sheep.rotation.y = sheepYaw;
+    sheepBody.position.y = p.moving ? Math.abs(Math.sin(t * 14)) * 0.06 : Math.sin(t * 2) * 0.01;   // trot
+    sheep.userData.legs.forEach((l, i) => { l.rotation.z = p.moving ? Math.sin(t * 14 + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI : 0)) * 0.5 : 0; });
   }
 
   // ---------- Sword swoosh ----------
@@ -711,7 +765,7 @@ export function createView(canvas, PAL, C) {
     return { group, shadow };
   }
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
-  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C), fire: basic(PAL.O), ember: basic(PAL.R) };
+  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C), fire: basic(PAL.O), ember: basic(PAL.R), arcane: basic(PAL.P), arcaneLight: basic("#c79cf0") };
   let sparks = [];
   let ghosts = [], ghostTimer = 0, wasDashing = false;
   const dustMat = basic(PAL.w);
@@ -756,7 +810,8 @@ export function createView(canvas, PAL, C) {
     const targetYaw = -(p.attack > 0 ? p.swingAim : p.aim);
     yaw = turn(yaw, targetYaw, dt, 18);
     hero.group.rotation.y = yaw;
-    hero.group.visible = !(p.hurt > 0 && Math.floor(t * 16) % 2);
+    hero.group.visible = !(p.hurt > 0 && Math.floor(t * 16) % 2) && !(p.sheep > 0);
+    updateSheep(p, px, pz, t, dt);
 
     dressHero(hero, p.gear || {});
     const b = hero.body;
@@ -885,9 +940,9 @@ export function createView(canvas, PAL, C) {
       if (seenEffects.has(e)) continue;
       seenEffects.add(e);
       const [x, z] = toWorld(e.x - 4, e.y - 4);
-      for (let i = 0; i < (e.big || e.fire ? 10 : 5); i++) {
-        const m = new THREE.Mesh(sparkGeo, e.fire ? (i % 2 ? sparkMats.fire : sparkMats.ember) : e.big ? sparkMats.big : sparkMats.hit);
-        const a = Math.random() * Math.PI * 2, sp = e.big || e.fire ? 2.5 : 3.5;
+      for (let i = 0; i < (e.big || e.fire || e.arcane ? 10 : 5); i++) {
+        const m = new THREE.Mesh(sparkGeo, e.arcane ? (i % 2 ? sparkMats.arcane : sparkMats.arcaneLight) : e.fire ? (i % 2 ? sparkMats.fire : sparkMats.ember) : e.big ? sparkMats.big : sparkMats.hit);
+        const a = Math.random() * Math.PI * 2, sp = e.big || e.fire || e.arcane ? 2.5 : 3.5;
         m.position.set(x, 0.4, z);
         m.userData = { vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: 2 + Math.random() * 2, life: e.big ? 0.45 : 0.25 };
         scene.add(m); sparks.push(m);
@@ -924,7 +979,7 @@ export function createView(canvas, PAL, C) {
     // Aim marker on the ground, a short way out along the aim.
     reticle.position.set(px + Math.cos(p.aim) * 1.4, 0.02, pz + Math.sin(p.aim) * 1.4);
     reticle.rotation.y = -p.aim;
-    reticle.visible = !p.swimming;
+    reticle.visible = !p.swimming && !(p.sheep > 0);
 
     updateFishing(p, t, dt);
     updateFish(dt, t, px, pz);

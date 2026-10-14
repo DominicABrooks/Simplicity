@@ -178,7 +178,8 @@ function spawnSlime(minDist) {
   if (!p) return;
   // Rarely, once you've proven yourself, a mage spawns instead. Never more than one at a time.
   if (kills >= 3 && !slimes.some(s => s.kind === "mage") && rand() < 0.15) {
-    slimes.push({ kind: "mage", x: p.x, y: p.y, hp: MAGE.hp, timer: 1.5, casting: false, castT: 0, strafe: 1, strafeT: 0, face: 1, flash: 0, vx: 0, vy: 0, moving: false });
+    slimes.push({ kind: "mage", x: p.x, y: p.y, hp: MAGE.hp, timer: 1.5, casting: false, castT: 0, castK: 0, spell: "fire",
+      strafe: 1, strafeT: 0, stuckT: 0, blinkCD: 2, polyCD: 4, face: 1, flash: 0, vx: 0, vy: 0, moving: false });
     toast("An Ember Mage appears!");
     return;
   }
@@ -186,17 +187,43 @@ function spawnSlime(minDist) {
 }
 
 // ---------- Ember Mage ----------
-// Keeps a casting distance, telegraphs each fireball with a 0.7 s charge, then throws it at you.
-const MAGE = { hp: 6, speed: 20, near: 28, far: 64, sight: 100, charge: 0.7, every: [1.6, 2.8], fireSpeed: 70, fireLife: 2.4 };
+// Keeps a casting distance and telegraphs every spell with a charge-up in its hands:
+// a fireball (0.7 s) or, now and then, polymorph (1 s), which turns you into a sheep.
+// Pinned against a tree or the water, it blinks to an open spot near you.
+const MAGE = {
+  hp: 6, speed: 20, near: 28, far: 64, sight: 100, every: [1.6, 2.8],
+  charge: 0.7, fireSpeed: 70, fireLife: 2.4,
+  polyCharge: 1.0, polySpeed: 85, polyCooldown: 12, polyChance: 0.45, sheepTime: 5,
+  blinkCooldown: 6, stuckBeforeBlink: 0.3, blinkMin: 40, blinkMax: 72,
+};
+
+// Teleport to a random open spot 5-9 tiles from the hero, clear of trees and water on all sides.
+function blinkMage(s) {
+  const p = player;
+  for (let i = 0; i < 60; i++) {
+    const a = rand() * Math.PI * 2, d = MAGE.blinkMin + rand() * (MAGE.blinkMax - MAGE.blinkMin);
+    const x = Math.round(p.x + Math.cos(a) * d), y = Math.round(p.y + Math.sin(a) * d);
+    if ([[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]].some(([ox, oy]) => blocked(x + ox, y + oy, true))) continue;
+    effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, arcane: true });
+    s.x = x; s.y = y; s.vx = s.vy = 0;
+    effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, arcane: true });
+    s.blinkCD = MAGE.blinkCooldown; s.stuckT = 0;
+    s.timer = Math.max(s.timer, 0.8);                       // a beat to reorient before casting
+    return;
+  }
+}
 
 function updateMage(s, dt) {
   const p = player, dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy) || 1;
   s.face = dx >= 0 ? 1 : -1;
+  s.blinkCD = Math.max(0, s.blinkCD - dt); s.polyCD = Math.max(0, s.polyCD - dt);
   if (s.casting) {
-    s.castT += dt; s.moving = false;
-    if (s.castT >= MAGE.charge) {
-      const a = Math.atan2(dy, dx);
-      fireballs.push({ x: s.x + 4 + Math.cos(a) * 5, y: s.y + 4 + Math.sin(a) * 5, vx: Math.cos(a) * MAGE.fireSpeed, vy: Math.sin(a) * MAGE.fireSpeed, life: MAGE.fireLife });
+    const poly = s.spell === "poly", charge = poly ? MAGE.polyCharge : MAGE.charge;
+    s.castT += dt; s.castK = Math.min(1, s.castT / charge); s.moving = false;
+    if (s.castT >= charge) {
+      const a = Math.atan2(dy, dx), speed = poly ? MAGE.polySpeed : MAGE.fireSpeed;
+      fireballs.push({ kind: poly ? "poly" : "fire", x: s.x + 4 + Math.cos(a) * 5, y: s.y + 4 + Math.sin(a) * 5, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: MAGE.fireLife });
+      if (poly) s.polyCD = MAGE.polyCooldown;
       s.casting = false; s.timer = MAGE.every[0] + rand() * (MAGE.every[1] - MAGE.every[0]);
     }
     return;
@@ -209,9 +236,18 @@ function updateMage(s, dt) {
     if ((s.strafeT -= dt) <= 0) { s.strafe = rand() < 0.5 ? 1 : -1; s.strafeT = 1 + rand() * 1.5; }
     mx = -dy / d * s.strafe * 0.7; my = dx / d * s.strafe * 0.7;
   }
-  if (mx || my) moveBy(s, mx * MAGE.speed * dt, my * MAGE.speed * dt, true);
+  // Track whether a wall is stopping it; if it stays pinned, blink away.
+  if (mx || my) {
+    const ox = s.x, oy = s.y;
+    moveBy(s, mx * MAGE.speed * dt, my * MAGE.speed * dt, true);
+    s.stuckT = Math.hypot(s.x - ox, s.y - oy) < MAGE.speed * dt * 0.3 ? s.stuckT + dt : 0;
+  } else s.stuckT = 0;
   s.moving = !!(mx || my);
-  if ((s.timer -= dt) <= 0 && d < MAGE.sight) { s.casting = true; s.castT = 0; }
+  if (s.stuckT >= MAGE.stuckBeforeBlink && s.blinkCD <= 0) { blinkMage(s); return; }
+  if ((s.timer -= dt) <= 0 && d < MAGE.sight) {
+    s.casting = true; s.castT = 0; s.castK = 0;
+    s.spell = s.polyCD <= 0 && !(p.sheep > 0) && rand() < MAGE.polyChance ? "poly" : "fire";
+  }
 }
 
 // Fireballs explode on trees; a dash or a jump dodges through them.
@@ -220,15 +256,27 @@ function updateFireballs(dt) {
   for (const f of fireballs) {
     f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
     if (tileAt(f.x, f.y) === TREE) f.life = 0;
-    else if (p.hurt <= 0 && p.dash <= 0 && p.jump <= 0 && Math.hypot(p.x + 4 - f.x, p.y + 4 - f.y) < 5) { damagePlayer(f.x - 4, f.y - 4); f.life = 0; }
-    if (f.life <= 0) effects.push({ x: f.x, y: f.y, t: 0.3, fire: true });
+    else if (p.hurt <= 0 && p.dash <= 0 && p.jump <= 0 && Math.hypot(p.x + 4 - f.x, p.y + 4 - f.y) < 5) {
+      if (f.kind === "poly") polymorph(); else damagePlayer(f.x - 4, f.y - 4);
+      f.life = 0;
+    }
+    if (f.life <= 0) effects.push({ x: f.x, y: f.y, t: 0.3, fire: f.kind !== "poly", arcane: f.kind === "poly" });
   }
   fireballs = fireballs.filter(f => f.life > 0);
+}
+
+// Polymorph: a sheep for a few seconds. Sheep can only walk; any damage breaks it early.
+function polymorph() {
+  const p = player;
+  p.sheep = MAGE.sheepTime;
+  p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
+  toast("Polymorphed!");
 }
 
 // One heart of damage from something at (sx, sy): knock back, cancel what you were doing.
 function damagePlayer(sx, sy) {
   const p = player;
+  p.sheep = 0;
   p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
   shake = Math.max(shake, 0.3);
   const d = Math.hypot(p.x - sx, p.y - sy) || 1;
@@ -351,6 +399,10 @@ function updateFishing(p, dt) {
 
 function updatePlayer(dt) {
   const p = player;
+  if (p.sheep > 0) {                                        // polymorphed: walking is all a sheep can do
+    p.sheep = Math.max(0, p.sheep - dt);
+    attackPressed = attackReleased = jumpPressed = false; dashRequest = null;
+  }
   p.cooldown = Math.max(0, p.cooldown - dt);
   p.hurt = Math.max(0, p.hurt - dt);
   p.dashCooldown = Math.max(0, p.dashCooldown - dt);
@@ -366,7 +418,7 @@ function updatePlayer(dt) {
   else if (ix || iy) p.aim = Math.atan2(iy, ix);
   p.face = Math.cos(p.attack > 0 ? p.swingAim : p.aim) >= 0 ? 1 : -1;
   const len = Math.hypot(ix, iy) || 1;
-  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * p.speedMul;
+  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * (p.draw ? DRAW_SLOW : 1) * (p.sheep > 0 ? 0.8 : 1) * p.speedMul;
   p.moving = ix !== 0 || iy !== 0;
   const recovering = p.move && p.move.t / SWIPE.dur > 0.6;     // dash-cancel out of a swipe's recovery
   if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && (p.attack <= 0 || recovering)) {
@@ -581,7 +633,7 @@ function updateSlimes(dt) {
 
 // ---------- Render ----------
 // The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
-const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME, MAGE_CHARGE: MAGE.charge });
+const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME });
 const hudCanvas = document.getElementById("hudCanvas");
 const hg = hudCanvas.getContext("2d");
 let pixelSize = 3;
