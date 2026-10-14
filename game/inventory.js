@@ -11,7 +11,18 @@ const BASES = {
   boots:  { name: "Boots",  slot: "boots",  w: 2, h: 2, base: { speed: 5 } },
   ring:   { name: "Ring",   slot: "ring",   w: 1, h: 1, base: {} },
   amulet: { name: "Amulet", slot: "amulet", w: 1, h: 1, base: {} },
+  // Not in the random loot table: the pole is a starter item and fish come from fishing.
+  rod:    { name: "Fishing Pole", slot: "weapon", w: 1, h: 3, base: {}, noLoot: true, note: "Aim at water and click to cast" },
+  fish:   { name: "Koi", slot: null, w: 2, h: 1, base: {}, noLoot: true },
 };
+
+// Catches: rarity decides the koi and how much eating it heals.
+const FISH = { normal: { name: "Pond Koi", heal: 1 }, magic: { name: "Silver Koi", heal: 2 }, rare: { name: "Golden Koi", heal: 4 } };
+export function makeFish(rarity) {
+  const item = makeItem("fish", rarity, {}, FISH[rarity].name);
+  item.heal = FISH[rarity].heal;
+  return item;
+}
 
 // Equipment paperdoll: slot positions in cells inside a 10x7 area.
 export const SLOTS = {
@@ -43,7 +54,7 @@ export function makeItem(type, rarity = "normal", mods = {}, name) {
 }
 
 export function rollItem(rand) {
-  const types = Object.keys(BASES);
+  const types = Object.keys(BASES).filter(t => !BASES[t].noLoot);
   const type = types[Math.floor(rand() * types.length)];
   const slot = BASES[type].slot;
   const r = rand();
@@ -67,7 +78,7 @@ export function rollItem(rand) {
   return makeItem(type, rarity, mods, name);
 }
 
-export function createInventory({ icons, onChange, onDrop }) {
+export function createInventory({ icons, onChange, onDrop, onUse }) {
   const panel = document.getElementById("inventory");
   const gridEl = document.getElementById("invGrid"), equipEl = document.getElementById("invEquip");
   const statsEl = document.getElementById("invStats"), tip = document.getElementById("tooltip"), heldEl = document.getElementById("held");
@@ -98,6 +109,7 @@ export function createInventory({ icons, onChange, onDrop }) {
       for (const src of [item.base, item.mods]) for (const k in src) t[k] += src[k];
     }
     const gear = Object.fromEntries(Object.keys(SLOTS).map(k => [k, equip[k] ? equip[k].rarity : null]));
+    gear.weaponType = equip.weapon ? equip.weapon.type : null;
     return { damage: Math.max(1, t.damage), life: t.life, speed: t.speed, dash: Math.min(60, t.dash), gear };
   }
 
@@ -188,7 +200,9 @@ export function createInventory({ icons, onChange, onDrop }) {
     if (held) return;
     const lines = [`<div class="tip-name ${rarityClass(item)}">${item.name}</div>`];
     if (item.rarity !== "normal") lines.push(`<div class="tip-base">${BASES[item.type].name}</div>`);
-    lines.push(`<div class="tip-slot">${SLOTS[item.slot].label}</div>`);
+    lines.push(`<div class="tip-slot">${item.slot ? SLOTS[item.slot].label : "Food"}</div>`);
+    if (item.heal) lines.push(`<div class="tip-stat">Restores ${item.heal} Life</div><div class="tip-note">Right-click to eat</div>`);
+    if (BASES[item.type].note) lines.push(`<div class="tip-note">${BASES[item.type].note}</div>`);
     for (const k in item.base) lines.push(`<div class="tip-stat">${BASE_TEXT[k](item.base[k])}</div>`);
     for (const k in item.mods) lines.push(`<div class="tip-mod">${AFFIXES[k].text(item.mods[k])}</div>`);
     tip.innerHTML = lines.join("");
@@ -207,6 +221,10 @@ export function createInventory({ icons, onChange, onDrop }) {
   function onGridItem(ev, entry) {
     ev.stopPropagation(); ev.preventDefault(); ev.simplicityHandled = true;
     if (held) return placeHeld(ev);
+    if (ev.button === 2 && !entry.item.slot) {             // right-click food: eat it
+      if (onUse(entry.item)) { grid = grid.filter(e => e !== entry); hideTip(); changed(); }
+      return;
+    }
     if (ev.button === 2) {                                  // right-click: equip
       grid = grid.filter(e => e !== entry);
       const old = equip[entry.item.slot];

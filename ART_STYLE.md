@@ -39,7 +39,7 @@ The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a roun
 | Helm | Hood with a backward-leaning tip; the eyes move forward into its opening |
 | Armor | Robe and mantle; the feet move forward to peek out from under the hem |
 | Boots | Chunky boots with a trim cuff replace the stub feet |
-| Weapon | The floating sword |
+| Weapon | The floating sword, or a fishing pole (oak pole, grip and reel) |
 | Amulet | A chain and a glowing pendant on the chest |
 | Ring | A small glowing ring orbiting the body |
 
@@ -95,6 +95,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | hurt | Model blinks while invulnerable |
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |
 | fish | Koi just under the water surface: wander, wiggle their tails, turn back at the shore, dart away from the hero |
+| fishing | Pole swings from behind the head on a cast; the bobber arcs out on a sagging line; koi drift toward it; on a bite the bobber dips with a splash ring and a gold **!** pops over the hero; the catch leaps out of the water to the hero |
 
 ## UI and icons
 

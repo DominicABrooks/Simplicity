@@ -240,19 +240,99 @@ export function createView(canvas, PAL, C) {
   const fishBodyGeo = new THREE.OctahedronGeometry(0.1, 0).scale(1.9, 0.65, 0.8);
   const fishTailGeo = new THREE.ConeGeometry(0.075, 0.13, 3).rotateZ(Math.PI / 2).translate(-0.065, 0, 0);
   const fishFinGeo = new THREE.ConeGeometry(0.035, 0.08, 3).translate(0, 0.07, 0);
-  function makeFish(x, z) {
-    const [main, accent] = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
+  function makeKoiMesh(main, accent, glow = 0.75) {
     const group = new THREE.Group(), tail = new THREE.Group();
-    const bodyMat = lambert(main, { emissive: col(main), emissiveIntensity: 0.75 });
-    const accentMat = lambert(accent, { emissive: col(accent), emissiveIntensity: 0.75 });
+    const bodyMat = lambert(main, { emissive: col(main), emissiveIntensity: glow });
+    const accentMat = lambert(accent, { emissive: col(accent), emissiveIntensity: glow });
     group.add(new THREE.Mesh(fishBodyGeo, bodyMat));
     const fin = new THREE.Mesh(fishFinGeo, accentMat); fin.position.x = 0.02;
     tail.position.x = -0.17; tail.add(new THREE.Mesh(fishTailGeo, accentMat));
     group.add(fin, tail);
+    group.userData.tail = tail;
+    return group;
+  }
+  function makeFish(x, z) {
+    const [main, accent] = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
+    const group = makeKoiMesh(main, accent), tail = group.userData.tail;
     const s = 1.4 + Math.random() * 0.6;
     group.scale.setScalar(s);
     world.add(group);
     return { group, tail, x, z, heading: Math.random() * Math.PI * 2, speed: 0.4, phase: Math.random() * 10, turn: 0, dart: 0 };
+  }
+
+  // ---------- Fishing visuals ----------
+  const lineGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 9 }, () => new THREE.Vector3()));
+  const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: col(PAL.W), transparent: true, opacity: 0.8 }));
+  const bobber = new THREE.Group();
+  const bobTop = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), lambert(PAL.R, { emissive: col(PAL.R), emissiveIntensity: 0.4 }));
+  const bobBottom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), lambert(PAL.W));
+  bobber.add(bobTop, bobBottom);
+  const splash = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.2, 10).rotateX(-Math.PI / 2), basic(PAL.W, { transparent: true, opacity: 0.7, depthWrite: false }));
+  scene.add(line, bobber, splash);
+  line.visible = bobber.visible = splash.visible = false;
+  let bobberAt = null;
+  // The caught koi leaps from the water to the hero.
+  let leaper = null, leaperKey = null;
+  const tipPos = new THREE.Vector3(), bobPos = new THREE.Vector3(), mid = new THREE.Vector3();
+
+  function updateFishing(p, t, dt) {
+    const f = p.fishing;
+    const show = !!(f && hero.rodTip && hero.sword.visible);
+    line.visible = bobber.visible = show;
+    splash.visible = false;
+    bobberAt = null;
+    if (show) {
+      hero.group.updateMatrixWorld(true);
+      hero.rodTip.getWorldPosition(tipPos);
+      const [bx, bz] = toWorld(f.x - 4, f.y - 4);
+      if (f.phase === "cast") {                             // arc from the rod tip to the water
+        const k = Math.min(1, f.t / C.CAST_TIME);
+        bobPos.set(tipPos.x + (bx - tipPos.x) * k, tipPos.y + (WATER_Y - tipPos.y) * k + Math.sin(k * Math.PI) * 0.8, tipPos.z + (bz - tipPos.z) * k);
+      } else {
+        const dip = f.phase === "bite" ? -0.08 + Math.sin(t * 30) * 0.03 : Math.sin(t * 3) * 0.015;
+        bobPos.set(bx, WATER_Y + 0.02 + dip, bz);
+        bobberAt = { x: bx, z: bz };
+        if (f.phase === "bite") {
+          splash.visible = true;
+          splash.position.set(bx, WATER_Y + 0.01, bz);
+          const s = (t * 3) % 1;
+          splash.scale.setScalar(1 + s * 2); splash.material.opacity = 0.7 * (1 - s);
+        }
+      }
+      bobber.position.copy(bobPos);
+      // Line sags between the tip and the bobber.
+      const pos = lineGeo.attributes.position;
+      for (let i = 0; i < 9; i++) {
+        const k = i / 8;
+        mid.lerpVectors(tipPos, bobPos, k);
+        mid.y -= Math.sin(k * Math.PI) * (f.phase === "bite" ? 0.05 : 0.25);
+        pos.setXYZ(i, mid.x, mid.y, mid.z);
+      }
+      pos.needsUpdate = true;
+      lineGeo.computeBoundingSphere();
+    }
+
+    const c = p.catchAnim, age = c ? t - c.t0 : 99;
+    if (age < 0.7) {
+      if (leaperKey !== c) {
+        if (leaper) world.remove(leaper);
+        const T = TIERS[c.rarity];
+        leaper = makeKoiMesh(T.fishMain, T.fishAccent);
+        leaper.scale.setScalar(2.2);
+        world.add(leaper); leaperKey = c;
+        const [sx, sz] = toWorld(c.x - 4, c.y - 4);
+        for (let i = 0; i < 8; i++) {                       // splash droplets
+          const m = new THREE.Mesh(sparkGeo, sparkMats.water), a = Math.random() * Math.PI * 2;
+          m.position.set(sx, WATER_Y, sz);
+          m.userData = { vx: Math.cos(a) * 1.2, vz: Math.sin(a) * 1.2, vy: 2.5 + Math.random() * 1.5, life: 0.45 };
+          scene.add(m); sparks.push(m);
+        }
+      }
+      const [sx, sz] = toWorld(c.x - 4, c.y - 4), k = age / 0.7;
+      const [hx, hz] = toWorld(p.x, p.y);
+      leaper.position.set(sx + (hx - sx) * k, WATER_Y + Math.sin(k * Math.PI) * 1.6 + k * 0.6, sz + (hz - sz) * k);
+      leaper.rotation.set(0, -Math.atan2(hz - sz, hx - sx), Math.sin(t * 25) * 0.5 + k * 6);
+    } else if (leaper) { world.remove(leaper); leaper = null; leaperKey = null; }
   }
 
   function updateFish(dt, t, px, pz) {
@@ -260,6 +340,11 @@ export function createView(canvas, PAL, C) {
       // Wander: drift the turn rate, and occasionally pick a new one.
       if (Math.random() < dt * 0.8) f.turn = (Math.random() - 0.5) * 2.4;
       f.heading += f.turn * dt;
+      // Drift toward a bobber in the water and mill around it.
+      if (bobberAt) {
+        const bx = bobberAt.x - f.x, bz = bobberAt.z - f.z, bd = Math.hypot(bx, bz);
+        if (bd < 3 && bd > 0.35) f.heading += Math.atan2(Math.sin(Math.atan2(bz, bx) - f.heading), Math.cos(Math.atan2(bz, bx) - f.heading)) * dt * 2;
+      }
       // Scatter from the hero.
       const dx = f.x - px, dz = f.z - pz, d = Math.hypot(dx, dz);
       if (d < 1.4 && f.dart <= 0) { f.heading = Math.atan2(dz, dx) + (Math.random() - 0.5) * 0.8; f.dart = 0.6; }
@@ -365,7 +450,17 @@ export function createView(canvas, PAL, C) {
       band.position.set(0.52, 0.45, 0);
       h.ring.add(band);
     }
-    if (g.weapon) {
+    h.rodTip = null;
+    if (g.weaponType === "rod") {
+      const oak = lambert(PAL.N), dark = lambert(PAL.n);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.035, 1.3, 4).translate(0, 0.6, 0), oak);
+      const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 5).translate(0, -0.05, 0), dark);
+      const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 6).rotateX(Math.PI / 2), lambert(PAL.w));
+      reel.position.set(-0.06, 0.12, 0);
+      const tip = new THREE.Object3D(); tip.position.y = 1.25;
+      h.sword.add(pole, grip, reel, tip);
+      h.rodTip = tip;
+    } else if (g.weapon) {
       const T = TIERS[g.weapon];
       const blade = lambert(T.blade, { emissive: col(g.weapon === "rare" ? PAL.Y : PAL.C), emissiveIntensity: T.glow });
       const guard = lambert(T.guard);
@@ -427,7 +522,7 @@ export function createView(canvas, PAL, C) {
   scene.add(reticle);
   const slimeViews = new Map(), potionViews = new Map(), lootViews = new Map();
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
-  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G) };
+  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C) };
   let sparks = [];
   let ghosts = [], ghostTimer = 0, wasDashing = false;
   const dustMat = basic(PAL.w);
@@ -498,7 +593,17 @@ export function createView(canvas, PAL, C) {
     sw.visible = !p.swimming && !!(p.gear && p.gear.weapon);
     hero.ring.rotation.y = t * 1.8;                         // the ring orbits the hero
     hero.ring.position.y = Math.sin(t * 2.4) * 0.05;
-    if (p.attack > 0) {
+    const rod = p.gear && p.gear.weaponType === "rod";
+    const fishing = p.fishing;
+    if (rod && fishing) {
+      const k = fishing.phase === "cast" ? Math.min(1, fishing.t / C.CAST_TIME) : 1;
+      const shake = fishing.phase === "bite" ? Math.sin(t * 60) * 0.06 : 0;
+      sw.position.set(0.15, 0.45, 0.3);
+      sw.rotation.set(0, 0, 0.9 - k * 1.8 + shake);      // swing from behind the head to out over the water
+    } else if (rod && p.attack <= 0) {
+      sw.position.set(0.1, 0.4 + Math.sin(t * 3) * 0.03, 0.4);
+      sw.rotation.set(0, 0, -0.35 + Math.sin(t * 1.7) * 0.04);
+    } else if (p.attack > 0) {
       const windup = p.attack > C.ATTACK_TIME * 0.66;
       if (windup) { sw.position.set(-0.05, 0.75, 0.42); sw.rotation.set(0, 0, 0.7); }
       else { sw.position.set(0.5, 0.45, 0.2); sw.rotation.set(0, 0, -Math.PI / 2); }
@@ -595,6 +700,7 @@ export function createView(canvas, PAL, C) {
     reticle.rotation.y = -p.aim;
     reticle.visible = !p.swimming;
 
+    updateFishing(p, t, dt);
     updateFish(dt, t, px, pz);
 
     // World animation and camera

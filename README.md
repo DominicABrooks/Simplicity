@@ -24,6 +24,8 @@ WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space
 
 Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inventory: click an item to pick it up, click to place it, right-click to equip or unequip, and click outside the panel to drop what you're holding. Equipment adds damage, life, movement speed and faster dash recovery, and every piece shows on your character. You start with nothing equipped and a plain starter set in your bag.
 
+**Fishing:** equip the Old Fishing Pole (weapon slot), aim at water and click to cast. When the bobber dips and a **!** appears, click within a second to hook the fish; click early or walk away to reel in. Catches go in your bag: Pond, Silver and Golden Koi. Right-click a koi to eat it for 1, 2 or 4 life. With the pole equipped, clicking land still swings a weak attack.
+
 ## Layout
 
 - [ART_STYLE.md](ART_STYLE.md): the rules every sprite follows

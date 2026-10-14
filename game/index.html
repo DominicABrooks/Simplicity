@@ -73,6 +73,11 @@
   .tip-name.rarity-rare, .label.rarity-rare { color: var(--glow); }
   #labels { position: fixed; inset: 0; pointer-events: none; z-index: 10; overflow: hidden; }
   .label { position: absolute; left: 0; top: 0; padding: 1px 7px; white-space: nowrap; font: 700 12px var(--title); letter-spacing: 0.03em; background: rgb(14 11 22 / 0.78); border: 1px solid rgb(139 90 52 / 0.7); }
+  #toast.good { color: var(--glow); }
+  .tip-note { color: #6b5f78; font-size: 12px; font-style: italic; }
+  #alert { position: fixed; left: 0; top: 0; z-index: 12; pointer-events: none; font: 700 30px var(--title); color: var(--glow); text-shadow: 2px 2px 0 var(--ink), 0 0 12px rgb(245 213 98 / 0.6); animation: pop 0.25s ease-out; }
+  #alert[hidden] { display: none; }
+  @keyframes pop { from { scale: 0.4; } to { scale: 1; } }
   #toast { position: fixed; top: 18%; left: 50%; transform: translateX(-50%); z-index: 45; color: var(--ember); font: 700 18px var(--title); text-shadow: 2px 2px 0 var(--ink); }
 </style>
 </head>
@@ -91,6 +96,7 @@
 <div id="held" hidden></div>
 <div id="tooltip" hidden></div>
 <div id="toast" hidden></div>
+<div id="alert" hidden>!</div>
 
 <div class="overlay" id="overlay">
   <div>

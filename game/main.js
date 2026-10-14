@@ -1,5 +1,5 @@
 import { createView } from "./view.js";
-import { createInventory, makeItem, rollItem } from "./inventory.js";
+import { createInventory, makeItem, makeFish, rollItem } from "./inventory.js";
 import { TIERS, ICON_SWAPS } from "./tiers.js";
 // Simplicity: a tiny top-down fantasy RPG. All art comes from sprites.js (built from art/).
 
@@ -139,6 +139,12 @@ const inv = createInventory({
   icons: ICONS,
   onChange: applyStats,
   onDrop: item => loot.push({ x: player.x, y: player.y, item, ignore: true }),
+  onUse: item => {                                          // eating a fish
+    if (player.hp >= player.maxHp) { toast("Already at full health"); return false; }
+    player.hp = Math.min(player.maxHp, player.hp + item.heal);
+    toast(`+${item.heal} Life`, true);
+    return true;
+  },
 });
 // Equipment totals feed straight into gameplay numbers.
 function applyStats(st) {
@@ -159,7 +165,7 @@ function reset() {
   slimes = []; potions = []; loot = []; effects = [];
   // Start naked, with a plain starter set in the bag to put on.
   inv.reset([]);
-  for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"]]) inv.add(makeItem(type, "normal", {}, name));
+  for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"]]) inv.add(makeItem(type, "normal", {}, name));
   kills = 0; clock = 0; spawnTimer = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
   for (let i = 0; i < 5; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }
@@ -220,6 +226,40 @@ function setState(s) {
 // ---------- Update ----------
 const PLAYER_SPEED = 42, SWIM_SPEED = 24, JUMP_TIME = 0.45, ATTACK_TIME = 0.3;
 const DASH_TIME = 0.18, DASH_SPEED = 160, DASH_COOLDOWN = 0.6;   // ~29px, about 3.5 tiles
+const CAST_TIME = 0.4, BITE_WINDOW = 0.9, CAST_MIN = 12, CAST_MAX = 30;
+
+// Where a cast would land: toward the cursor (clamped to the pole's reach), along the aim.
+function castTarget(p) {
+  let d = 24;
+  const m = mouse && view.screenToGame(mouse.x, mouse.y);
+  if (m) d = Math.hypot(m.x - (p.x + 4), m.y - (p.y + 4));
+  d = Math.max(CAST_MIN, Math.min(CAST_MAX, d));
+  return { x: p.x + 4 + Math.cos(p.aim) * d, y: p.y + 4 + Math.sin(p.aim) * d };
+}
+
+// Fishing: cast -> wait for a bite -> click during the bite to catch. Moving reels in.
+function updateFishing(p, dt) {
+  const f = p.fishing;
+  if (!f) return;
+  if (p.moving || p.dash > 0 || p.jump > 0 || p.swimming || !(p.gear && p.gear.weaponType === "rod")) { p.fishing = null; return; }
+  f.t += dt;
+  p.aim = Math.atan2(f.y - (p.y + 4), f.x - (p.x + 4));    // keep facing the bobber
+  if (f.phase === "cast" && f.t >= CAST_TIME) { f.phase = "wait"; f.t = 0; f.biteAt = 2 + rand() * 4; }
+  else if (f.phase === "wait") {
+    if (attackPressed) p.fishing = null;                    // reeled in too early
+    else if (f.t >= f.biteAt) { f.phase = "bite"; f.t = 0; }
+  } else if (f.phase === "bite") {
+    if (attackPressed) {
+      const r = rand(), rarity = r < 0.08 ? "rare" : r < 0.33 ? "magic" : "normal";
+      const item = makeFish(rarity);
+      if (!inv.add(item)) loot.push({ x: p.x, y: p.y, item, ignore: true });
+      p.catchAnim = { x: f.x, y: f.y, t0: clock, rarity };
+      toast(`Caught a ${item.name}!`, true);
+      p.fishing = null;
+    } else if (f.t >= BITE_WINDOW) { toast("It got away"); p.fishing = null; }
+  }
+  attackPressed = false;                                    // clicks belong to the line while fishing
+}
 
 function updatePlayer(dt) {
   const p = player;
@@ -255,6 +295,12 @@ function updatePlayer(dt) {
   if (jumpPressed && p.jump <= 0 && !p.swimming && p.attack <= 0) p.jump = JUMP_TIME;
   if (p.jump > 0) p.jump = Math.max(0, p.jump - dt);
 
+  updateFishing(p, dt);
+  // With a pole equipped, clicking water casts; clicking land still does a weak bonk.
+  if (attackPressed && !p.fishing && p.cooldown <= 0 && !p.swimming && p.gear && p.gear.weaponType === "rod") {
+    const tgt = castTarget(p);
+    if (tileAt(tgt.x, tgt.y) === WATER) { p.fishing = { phase: "cast", x: tgt.x, y: tgt.y, t: 0 }; p.cooldown = 0.38; attackPressed = false; }
+  }
   if (attackPressed && p.cooldown <= 0 && !p.swimming) { p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim; }
   if (p.attack > 0) {
     p.attack = Math.max(0, p.attack - dt);
@@ -303,7 +349,7 @@ function updateSlimes(dt) {
       s.hop = 0.3; s.timer = 0.7 + rand() * 0.7;
     }
     if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) {
-      p.hp--; p.hurt = 1;
+      p.hp--; p.hurt = 1; p.fishing = null;
       const d = Math.hypot(p.x - s.x, p.y - s.y) || 1;
       p.vx = (p.x - s.x) / d * 110; p.vy = (p.y - s.y) / d * 110;
       if (p.hp <= 0) setState("dead");
@@ -325,7 +371,7 @@ function updateSlimes(dt) {
 
 // ---------- Render ----------
 // The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
-const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME });
+const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME });
 const hudCanvas = document.getElementById("hudCanvas");
 const hg = hudCanvas.getContext("2d");
 let pixelSize = 3;
@@ -365,12 +411,21 @@ function renderLabels() {
     const s = view.gameToScreen(l.x, l.y, 0.55);
     el.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`;
   }
+  // "!" over the hero's head when a fish bites.
+  const biting = player.fishing && player.fishing.phase === "bite";
+  alertEl.hidden = !biting;
+  if (biting) {
+    const s = view.gameToScreen(player.x, player.y, 1.7);
+    alertEl.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`;
+  }
 }
+const alertEl = document.getElementById("alert");
 
 const toastEl = document.getElementById("toast");
 let toastTimer;
-function toast(text) {
+function toast(text, good = false) {
   toastEl.textContent = text; toastEl.hidden = false;
+  toastEl.classList.toggle("good", good);
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 1500);
 }
 
