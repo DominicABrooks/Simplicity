@@ -20,7 +20,7 @@ The game is already built: `game/sprites.js` is generated from `art/` and commit
 
 ## Play
 
-WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Slimes chase you, and potions restore two hearts.
+WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
 
 Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inventory: click an item to pick it up, click to place it, right-click to equip or unequip, and click outside the panel to drop what you're holding. Equipment adds damage, life, movement speed and faster dash recovery, and every piece shows on your character. You start with nothing equipped and a plain starter set in your bag.
 

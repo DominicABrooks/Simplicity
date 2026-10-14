@@ -188,7 +188,7 @@ addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
   if (state !== "play") {
-    if (state === "title" || (state === "dead" && k === "r")) { reset(); setState("play"); }
+    if (state === "title" || (state === "dead" && k === "r")) { reset(); setState("play"); if (k === "r") resetLatch = true; }
     return;
   }
   if (k === "i" || k === "tab") { e.preventDefault(); if (!e.repeat) inv.toggle(); return; }
@@ -204,7 +204,22 @@ addEventListener("keydown", e => {
   }
   keys.add(k);
 });
-addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
+addEventListener("keyup", e => {
+  const k = e.key.toLowerCase();
+  keys.delete(k);
+  if (k === "r") resetLatch = false;
+});
+
+// Hold R to restart the run. A reset needs R released before another can start.
+const RESET_HOLD = 1;
+let resetHold = 0, resetLatch = false;
+const resetEl = document.getElementById("resetHold"), resetFill = resetEl.querySelector("i");
+function updateResetHold(dt) {
+  resetHold = keys.has("r") && !resetLatch ? resetHold + dt : 0;
+  if (resetHold >= RESET_HOLD) { resetHold = 0; resetLatch = true; reset(); setState("play"); }
+  resetEl.hidden = resetHold < 0.08;                        // ignore quick taps
+  resetFill.style.width = `${Math.min(100, (resetHold / RESET_HOLD) * 100)}%`;
+}
 addEventListener("mousedown", e => {
   if (state !== "play" || e.button !== 0 || e.simplicityHandled || inv.owns(e.target)) return;
   attackPressed = true;
@@ -435,6 +450,7 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (state === "play") {
     clock += dt;
+    updateResetHold(dt);
     updatePlayer(dt);
     if (state === "play") updateSlimes(dt);
     for (const e of effects) e.t -= dt;

@@ -78,6 +78,10 @@
   #alert { position: fixed; left: 0; top: 0; z-index: 12; pointer-events: none; font: 700 30px var(--title); color: var(--glow); text-shadow: 2px 2px 0 var(--ink), 0 0 12px rgb(245 213 98 / 0.6); animation: pop 0.25s ease-out; }
   #alert[hidden] { display: none; }
   @keyframes pop { from { scale: 0.4; } to { scale: 1; } }
+  #resetHold { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 45; text-align: center; color: var(--bone); font: 700 13px var(--title); letter-spacing: 0.12em; text-shadow: 2px 2px 0 var(--ink); }
+  #resetHold[hidden] { display: none; }
+  #resetHold .bar { width: 180px; height: 6px; margin-top: 6px; background: rgb(14 11 22 / 0.8); border: 1px solid var(--oak); }
+  #resetHold i { display: block; height: 100%; width: 0; background: var(--ember); }
   #toast { position: fixed; top: 18%; left: 50%; transform: translateX(-50%); z-index: 45; color: var(--ember); font: 700 18px var(--title); text-shadow: 2px 2px 0 var(--ink); }
 </style>
 </head>
@@ -85,7 +89,7 @@
 <canvas id="screen"></canvas>
 <canvas id="hudCanvas"></canvas>
 <div id="labels"></div>
-<div class="hud"><span id="hud"></span><small>I: inventory</small></div>
+<div class="hud"><span id="hud"></span><small>I: inventory &middot; hold R: reset</small></div>
 
 <div id="inventory" hidden>
   <h2>INVENTORY</h2>
@@ -97,12 +101,13 @@
 <div id="tooltip" hidden></div>
 <div id="toast" hidden></div>
 <div id="alert" hidden>!</div>
+<div id="resetHold" hidden>RESETTING<div class="bar"><i></i></div></div>
 
 <div class="overlay" id="overlay">
   <div>
     <h1>SIMPLICITY</h1>
     <p id="message">Press any key to begin</p>
-    <p class="keys">WASD / arrows: move (double-tap to dash) &nbsp; Mouse: aim &nbsp; Space: jump &nbsp; J / click: attack &nbsp; I: inventory</p>
+    <p class="keys">WASD / arrows: move (double-tap to dash) &nbsp; Mouse: aim &nbsp; Space: jump &nbsp; J / click: attack &nbsp; I: inventory &nbsp; Hold R: reset</p>
   </div>
 </div>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
