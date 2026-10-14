@@ -20,11 +20,27 @@ const GLASS = ["#3f6fd0", "#c8423a", "#f5d562", "#5fb04a", "#8a4fc0"] as const;
 
 /** A pointed (lancet) window or doorway, `w` wide and `h` tall to its point, its face toward +z, base at y = 0. */
 function lancet(mat: THREE.Material, w: number, h: number): THREE.Group {
-  const g = new THREE.Group(), body = h - w * 0.6;
-  put(g, box(w, body, 0.05), mat, 0, body / 2, 0);
-  const tip = put(g, new THREE.ConeGeometry(w * 0.72, w * 0.9, 4, 1), mat, 0, body + w * 0.3, 0, 0, Math.PI / 4, 0);
-  tip.scale.z = 0.07;
+  const g = new THREE.Group();
+  put(g, arch(w, h), mat, 0, 0, 0);
   return g;
+}
+
+/** A flat pointed arch, `w` wide and `h` tall to its point, facing +z: straight sides, then two curves meeting at the top. */
+const arches = new Map<string, THREE.ExtrudeGeometry>();
+function arch(w: number, h: number): THREE.BufferGeometry {
+  const key = `${w.toFixed(3)}x${h.toFixed(3)}`;
+  let geo = arches.get(key);
+  if (geo) return geo.clone();
+  const spring = h - w * 0.6, shape = new THREE.Shape();
+  shape.moveTo(-w / 2, 0);
+  shape.lineTo(w / 2, 0);
+  shape.lineTo(w / 2, spring);
+  shape.quadraticCurveTo(w / 2, spring + w * 0.4, 0, h);
+  shape.quadraticCurveTo(-w / 2, spring + w * 0.4, -w / 2, spring);
+  shape.closePath();
+  geo = new THREE.ExtrudeGeometry(shape, { depth: 0.05, bevelEnabled: false, curveSegments: 4 }).translate(0, 0, -0.025);
+  arches.set(key, geo);
+  return geo.clone();
 }
 
 /**
@@ -165,11 +181,13 @@ export function buildHall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ha
       if (f === 0 && side > 0 && !p.arcade && Math.abs(x) < 0.9) continue;                  // the door
       const y = base + f * storeyH + (p.stone ? 0.45 : 0.55), z = side * (d / 2 + 0.02);
       if (p.stone) {
-        const lit = hash(p.rect.x + i, p.rect.y + f, 420) < 0.45;
-        const win = lancet(basic(lit ? LIT : "#2b3a5a"), 0.38, storeyH * 0.65);
-        win.position.set(x, y, z);
-        win.rotation.y = side > 0 ? 0 : Math.PI;
-        g.add(win);
+        // A tall square-headed window, as a house or hall has (pointed ones are for churches): a stone
+        // frame, glass lit or dark, and a stone mullion and transom across it.
+        const lit = hash(p.rect.x + i, p.rect.y + f, 420) < 0.45, h = storeyH * 0.62, out = side * 0.03;
+        put(g, box(0.56, h + 0.14, 0.04), trim, x, y + h / 2, z);
+        put(g, box(0.44, h, 0.04), basic(lit ? LIT : "#2b3a5a"), x, y + h / 2, z + out);
+        put(g, box(0.05, h, 0.05), trim, x, y + h / 2, z + out * 1.6);
+        put(g, box(0.44, 0.05, 0.05), trim, x, y + h * 0.62, z + out * 1.6);
       } else put(g, box(0.36, 0.44, 0.06), lambert("#5e4630"), x, y + 0.25, z);
     }
   }

@@ -38,6 +38,8 @@ export interface HouseRules {
   storeys: readonly [number, number];
   /** Chance of a one-tile alley after a house. */
   alley: number;
+  /** Share of houses with a stone ground floor: the richer the street, the more (default 0.3). */
+  stone?: number;
   seed: number;
 }
 
@@ -113,7 +115,7 @@ export class Town {
       ...(shop ? { shop } : {}),
       ...(shop && k < 0.45 ? { sign: pick(AWNINGS, k * 2) } : {}),
       ...(shop || k > 0.82 ? { lantern: true } : {}),
-      ...(hash(rect[0], rect[1], rules.seed + 6) < 0.3 ? { stone: true } : {}),
+      ...(hash(rect[0], rect[1], rules.seed + 6) < (rules.stone ?? 0.3) ? { stone: true } : {}),
     });
   }
 

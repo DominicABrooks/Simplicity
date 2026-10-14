@@ -84,7 +84,7 @@ function build(): AreaLayout {
     street: (x, y) => town.at(x, y) === Tile.Cobble,
     allowed: (x, y) => x > WEST_WALL + 2 && y < SOUTH_WALL - 3 && !inSquare(x, y),
     shop: (x, y, k) => (mainStreet(x, y) && k < 0.75 ? SHOPS[Math.floor(k * 97) % SHOPS.length]! : null),
-    frontage: [3, 4], depth: [5, 7], storeys: [3, 4], alley: 0.25, seed: 201,
+    frontage: [3, 4], depth: [5, 7], storeys: [3, 4], alley: 0.25, seed: 201, stone: 0.65,
   });
   town.yards(0.07, (x, y) => x > WEST_WALL + 2 && y < SOUTH_WALL - 3);
 

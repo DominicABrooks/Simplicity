@@ -97,7 +97,7 @@ function build(): AreaLayout {
     street: (x, y) => town.at(x, y) === Tile.Cobble,
     allowed: (x, y) => (x < OUTER.x0 - 3 || x > OUTER.x1 + 3 || y > MOAT.y1 + 1) && !(x >= BARBICAN[0] - 1 && x < BARBICAN[0] + BARBICAN[2] + 1 && y < BARBICAN[1] + BARBICAN[3] + 1),
     shop: (x, _y, k) => (x >= STREET.x0 && x <= STREET.x1 && k < 0.6 ? (["bread", "meat", "cloth"] as const)[Math.floor(k * 5) % 3]! : null),
-    frontage: [3, 4], depth: [4, 7], storeys: [3, 4], alley: 0.2, seed: 401,
+    frontage: [3, 4], depth: [4, 7], storeys: [3, 4], alley: 0.2, seed: 401, stone: 0.6,
   });
   town.yards(0.06, (x, y) => x < OUTER.x0 - 3 || x > OUTER.x1 + 3 || y > MOAT.y1 + 1);
 

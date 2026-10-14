@@ -1,142 +1,121 @@
-// The King's Road: the approach to Capital City, the seat of the kingdom of men, up the cave from Witchwood.
+// The King's Bridge: the approach to Capital City, the seat of the kingdom of men, up the cave from
+// Witchwood. Everything here is meant to tell you how rich the kingdom is before you're even inside it.
 //
-// You come out of the cave among fields: wheat, barley and cabbages behind hedgerows, a windmill on its
-// rise. The road runs north over the river on a stone bridge, past the watermill and the wharf (cogs and
-// rowing boats at their moorings, a treadwheel crane, warehouses), through the suburb that grew up along
-// it outside the walls (inns, stables, a farrier, an almshouse, a wayside chapel), past the jousting
-// ground with its pavilions and grandstand, to the barbican: over the drawbridge and the moat, through the
-// great south wall by Southgate, into the city, whose rooftops and spires rise beyond it.
+// You come out of the cave into the King's Park, where a broad paved avenue runs north between an allée
+// of trees, banner standards and braziers on their stones. It crosses the great river on the King's
+// Bridge, a stone bridge with a gate tower standing in the stream, guarded at both ends. On the far bank
+// is the harbour: stone quays either side of the bridge, cogs and rowing boats at their moorings,
+// treadwheel cranes, the merchants' warehouses, the customs house over its arcade and the merchants'
+// guildhall; behind them, the merchant palaces in their walled gardens. Then the Gate Plaza, flagstoned,
+// with a great fountain either side, the barbican, the drawbridge over the moat, and the great south wall
+// with Southgate in it, the city's rooftops and spires rising beyond.
 import { T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
-import { AWNINGS, Town, at, corner, edgeExit, hash, px, type TileRect } from "../world/townkit.ts";
+import { Town, at, corner, edgeExit, hash, px, type TileRect } from "../world/townkit.ts";
 
 const W = 96, H = 80;
-/** The road (tile columns), the city wall's line, the moat's rows and the barbican before the gate. */
-const ROAD = { x0: 47, x1: 49 }, MID = 48.5, WALL_Y = 12, MOAT = { y0: 16, y1: 18 };
-const BARBICAN: TileRect = [43, 19, 11, 5];
-/** The river runs west to east; straight past the bridge, the mill and the wharf, winding elsewhere. */
-const RIVER_W = 5;
-const riverTop = (x: number) => (x >= 20 && x <= 66 ? 50 : 50 + Math.round(1.6 * Math.sin((x - 20) / 9)));
-const onRoad = (x: number) => x >= ROAD.x0 && x <= ROAD.x1;
-/** The jousting ground (inside its fence), and the suburb's limits. */
-const LISTS = { x0: 64, y0: 28, x1: 90, y1: 40 };
-const SUBURB = { y0: 24, y1: 41 };
+/** The avenue's line, the city wall's row, the moat's rows, the barbican before the gate, and the plaza. */
+const MID = 48.5, AVENUE = { x0: 45, x1: 51 }, WALL_Y = 12, MOAT = { y0: 16, y1: 18 };
+const BARBICAN: TileRect = [43, 19, 11, 5], PLAZA = { x0: 30, y0: 24, x1: 67, y1: 36 };
+/** The river, the quays along its north bank, the bridge over it and the gate tower standing on it. */
+const RIVER = { y0: 44, y1: 51 }, QUAY = { y0: 40, y1: 43 }, BRIDGE: TileRect = [46, RIVER.y0, 5, RIVER.y1 - RIVER.y0 + 1];
+const BRIDGE_GATE: TileRect = [43, RIVER.y0 + 2, 11, 4];
+const onAvenue = (x: number) => x >= AVENUE.x0 && x <= AVENUE.x1;
 
 function build(): AreaLayout {
   const town = new Town(W, H);
 
-  // The country: grass, flowers, forest closing in at the map's edges (but never on the road).
-  town.paint((x, y) => hash(x, y, 1) < 0.05, Tile.Flower);
+  // The park: grass, flowers, the woods closing in at its edges and round the cave.
+  town.paint((x, y) => hash(x, y, 1) < 0.06, Tile.Flower);
   town.paint((x, y) => {
     const edge = Math.min(x, W - 1 - x, H - 1 - y);
-    return y > WALL_Y + 2 && !onRoad(x) && (edge === 0 || (edge < 3 && hash(x, y, 2) < 0.75 - edge * 0.2));
+    return y > RIVER.y1 + 1 && !onAvenue(x) && (edge === 0 || (edge < 4 && hash(x, y, 2) < 0.8 - edge * 0.18));
   }, Tile.Tree);
 
-  // Beyond the wall, the city: a lane under the wall, houses along it, and a church spire.
+  // Beyond the wall, the city: a lane under the wall, tall houses along it, and its spires.
   town.fill([0, 0, W, WALL_Y - 1], Tile.Grass);
   town.fill([0, WALL_Y - 3, W, 2], Tile.Cobble);
   town.add({ kind: "church", rect: px([62, 1, 13, 6]), tower: "spire" });
-  town.houses({ street: (x, y) => y === WALL_Y - 3 && town.at(x, y) === Tile.Cobble, allowed: (_x, y) => y < WALL_Y - 3, frontage: [3, 4], depth: [4, 6], storeys: [3, 4], alley: 0.15, seed: 101 });
+  town.add({ kind: "church", rect: px([14, 1, 14, 6]), tower: "spire" });
+  town.houses({ street: (x, y) => y === WALL_Y - 3 && town.at(x, y) === Tile.Cobble, allowed: (_x, y) => y < WALL_Y - 3, frontage: [3, 4], depth: [4, 6], storeys: [3, 4], alley: 0.1, seed: 101, stone: 0.7 });
 
-  // The great south wall, and Southgate in it.
-  const wallLine = [-2, 14, 30, 67, 83, 98].map(x => corner(x, WALL_Y));
+  // The great south wall, taller here where the kingdom shows itself, and Southgate in it.
   town.add({
-    kind: "curtainWall", points: wallLine, closed: false, inside: corner(MID, 0), gates: [{ at: corner(MID, WALL_Y), width: 3 * T }],
-    height: 6.5, thickness: 2.0, tower: { radius: 1.9, height: 10, roof: "#4a5a7a" },
+    kind: "curtainWall", points: [-2, 14, 30, 67, 83, 98].map(x => corner(x, WALL_Y)), closed: false, inside: corner(MID, 0),
+    gates: [{ at: corner(MID, WALL_Y), width: 3 * T }], height: 8, thickness: 2.4, tower: { radius: 2.3, height: 13, roof: "#4a5a7a" },
   });
-  town.fill([ROAD.x0, WALL_Y - 3, 3, 7], Tile.Cobble);         // the gate passage
+  town.fill([AVENUE.x0 + 2, WALL_Y - 3, 3, 7], Tile.Cobble);    // the gate passage
   // The moat, crossed by the drawbridge, and the barbican before it.
   town.paint((_x, y) => y >= MOAT.y0 && y <= MOAT.y1, Tile.Water);
-  town.fill([ROAD.x0, WALL_Y + 2, 3, MOAT.y1 - WALL_Y - 1], Tile.Path);
-  town.add({ kind: "drawbridge", rect: px([ROAD.x0, MOAT.y0 - 1, 3, MOAT.y1 - MOAT.y0 + 2]) });
-  town.fill([ROAD.x0, BARBICAN[1], 3, BARBICAN[3]], Tile.Cobble);
-  town.add({ kind: "barbican", rect: px(BARBICAN), facing: "south", height: 5.5 });
-  for (const x of [ROAD.x0 - 0.3, ROAD.x1 + 1.3]) town.add({ kind: "torch", x: x * T, y: (BARBICAN[1] + BARBICAN[3] - 0.55) * T, facing: "south", height: 2.6 });
+  town.fill([AVENUE.x0 + 2, WALL_Y + 2, 3, MOAT.y1 - WALL_Y - 1], Tile.Cobble);
+  town.add({ kind: "drawbridge", rect: px([AVENUE.x0 + 2, MOAT.y0 - 1, 3, MOAT.y1 - MOAT.y0 + 2]) });
+  town.fill([AVENUE.x0 + 2, BARBICAN[1], 3, BARBICAN[3]], Tile.Cobble);
+  town.add({ kind: "barbican", rect: px(BARBICAN), facing: "south", height: 6.5 });
+  for (const x of [AVENUE.x0 + 1.7, AVENUE.x1 - 0.7]) town.add({ kind: "torch", x: x * T, y: (BARBICAN[1] + BARBICAN[3] - 0.55) * T, facing: "south", height: 2.8 });
 
-  // The road, all the way from the barbican to the cave.
-  town.fill([ROAD.x0, BARBICAN[1] + BARBICAN[3], 3, H], Tile.Path);
+  // The Gate Plaza: flagstones, a great fountain either side of the way, braziers and the kingdom's
+  // standards round it, guards before the barbican.
+  town.fill([PLAZA.x0, PLAZA.y0, PLAZA.x1 - PLAZA.x0 + 1, PLAZA.y1 - PLAZA.y0 + 1], Tile.Cobble);
+  town.fill([AVENUE.x0, PLAZA.y1, AVENUE.x1 - AVENUE.x0 + 1, RIVER.y0 - PLAZA.y1], Tile.Cobble);   // on down to the bridge
+  town.add({ kind: "plaza", rect: px([PLAZA.x0, PLAZA.y0, PLAZA.x1 - PLAZA.x0 + 1, PLAZA.y1 - PLAZA.y0 + 1]), centre: corner(MID, 30.5) });
+  for (const x of [38, 59]) town.add({ kind: "fountain", ...corner(x, 30.5), radius: 2.2 });
+  for (const x of [PLAZA.x0 + 1, PLAZA.x1 - 1]) for (const y of [PLAZA.y0 + 1, PLAZA.y1 - 1]) town.add({ kind: "brazier", ...at(x, y) });
+  for (const x of [33, 43, 54, 64]) town.add({ kind: "standard", ...at(x, PLAZA.y0) });
+  for (const x of [AVENUE.x0 + 1, AVENUE.x1 - 1]) town.add({ kind: "guard", ...at(x, PLAZA.y0 + 1), facing: "south" });
 
-  // The river, and the stone bridge over it.
-  for (let x = 0; x < W; x++) for (let y = riverTop(x); y < riverTop(x) + RIVER_W; y++) if (!onRoad(x)) town.set(x, y, Tile.Water);
-  town.add({ kind: "stoneBridge", rect: px([ROAD.x0, riverTop(MID), 3, RIVER_W]) });
-  const bank = riverTop(MID) - 1;                              // the last row of land on the north bank
-  // The wharf west of the bridge: a paved quay, a crane, warehouses behind, boats on the water.
-  town.fill([22, bank - 2, ROAD.x0 - 22, 3], Tile.Cobble);
-  town.add({ kind: "crane", ...at(34, bank), facing: "south" });
-  town.add({ kind: "hall", rect: px([23, bank - 9, 8, 6]), door: "south", roof: "#8a4a3a", storeys: 2, stone: false });
-  town.add({ kind: "hall", rect: px([33, bank - 9, 8, 6]), door: "south", roof: "#5d6a7d", storeys: 2, stone: false });
-  for (const [x, y] of [[27, 0], [37, 0], [42, 1]] as const) town.add({ kind: "stock", ...at(x, bank - 2 + y), what: y ? "crates" : "barrels" });
-  town.add({ kind: "boat", x: 29 * T, y: (bank + 3.5) * T, facing: "east", size: "cog" });
-  town.add({ kind: "boat", ...at(39, bank + 2), facing: "west", size: "rowing" });
-  town.add({ kind: "boat", ...at(23, bank + 3), facing: "east", size: "rowing" });
-  // The watermill east of the bridge, its wheel in the water.
-  town.add({ kind: "watermill", rect: px([56, bank - 4, 6, 5]), wheel: "south" });
-  town.fill([50, bank - 1, 6, 2], Tile.Path);
+  // The river, the King's Bridge over it, and its gate tower standing in the stream, guarded.
+  town.paint((_x, y) => y >= RIVER.y0 && y <= RIVER.y1, Tile.Water);
+  town.fill([BRIDGE[0], BRIDGE[1], BRIDGE[2], BRIDGE[3]], Tile.Cobble);
+  town.add({ kind: "stoneBridge", rect: px(BRIDGE) });
+  town.add({ kind: "barbican", rect: px(BRIDGE_GATE), facing: "south", height: 6 });
+  for (const x of [AVENUE.x0, AVENUE.x1]) town.add({ kind: "guard", ...at(x, RIVER.y1 + 2), facing: "south" });
 
-  // The suburb along the road: inns, a stable yard, the farrier, an almshouse and a wayside chapel.
-  town.add({ kind: "house", rect: px([40, 26, 6, 6]), doorSide: "east", roof: "#a8473a", storeys: 3, sign: "#c8423a", lantern: true, stone: true });
-  town.add({ kind: "house", rect: px([51, 26, 6, 6]), doorSide: "west", roof: "#4a5a7a", storeys: 3, sign: "#3f6fd0", lantern: true });
-  town.add({ kind: "stable", rect: px([31, 25, 9, 3]), facing: "south" });
-  town.add({ kind: "trough", rect: px([34, 29, 2, 1]) });
-  town.add({ kind: "smithy", rect: px([52, 36, 3, 2]) });
-  town.add({ kind: "hall", rect: px([12, 33, 11, 5]), door: "north", roof: "#8a4a3a", storeys: 1, stone: false });   // the almshouse
-  town.add({ kind: "church", rect: px([11, 25, 11, 6]), tower: "bellcote" });                                   // the wayside chapel
-  town.add({ kind: "well", ...at(26, 36) });
-  // Its lanes: one west to the chapel, one east to the jousting ground, one down to the wharf.
-  town.fill([8, 31, ROAD.x0 - 8, 2], Tile.Path);
-  town.fill([ROAD.x1 + 1, 33, LISTS.x0 - ROAD.x1 - 1, 2], Tile.Path);
-  town.fill([22, 38, ROAD.x0 - 22, 2], Tile.Path);
-  town.fill([22, 38, 2, bank - 40], Tile.Path);
-  town.houses({
-    street: (x, y) => town.at(x, y) === Tile.Path || town.at(x, y) === Tile.Cobble,
-    allowed: (x, y) => y >= SUBURB.y0 && y <= SUBURB.y1 + 5 && x > 6 && x < LISTS.x0 - 2 && y < bank - 3,
-    shop: (x, _y, k) => (onRoad(x) && k < 0.5 ? (["bread", "produce", "pottery", "meat"] as const)[Math.floor(k * 8) % 4]! : null),
-    frontage: [3, 4], depth: [4, 6], storeys: [2, 3], alley: 0.3, seed: 102,
-  });
+  // The harbour along the north bank: stone quays, cranes swinging out over the water, ships at their
+  // moorings; behind the quays, warehouses, the customs house on its arcade, the merchants' guildhall.
+  town.fill([0, QUAY.y0, W, QUAY.y1 - QUAY.y0 + 1], Tile.Cobble);
+  for (const x of [12, 28, 66, 82]) town.add({ kind: "crane", ...at(x, QUAY.y1), facing: "south" });
+  for (const [x, y, facing] of [[10, 47.5, "east"], [27, 48.5, "west"], [68, 47.5, "east"], [84, 48.5, "west"]] as const) town.add({ kind: "boat", x: x * T, y: y * T, facing, size: "cog" });
+  for (const [x, y, facing] of [[19, 49.5, "east"], [37, 46.5, "west"], [60, 49.5, "west"], [76, 46.5, "east"]] as const) town.add({ kind: "boat", x: x * T, y: y * T, facing, size: "rowing" });
+  for (const r of [[4, 34, 10, 5], [16, 34, 10, 5], [70, 34, 10, 5], [82, 34, 10, 5]] as TileRect[]) town.add({ kind: "hall", rect: px(r), door: "south", roof: "#5d6a7d", storeys: 2, stone: true });
+  town.fill([31, 37, 11, 4], Tile.Cobble);
+  town.add({ kind: "hall", rect: px([31, 37, 11, 4]), door: "south", roof: "#a8473a", storeys: 2, stone: true, arcade: true });   // the customs house
+  town.add({ kind: "hall", rect: px([55, 37, 11, 4]), door: "south", roof: "#4a5a7a", storeys: 2, stone: true, chimneys: 2 });  // the merchants' guildhall
+  for (const [x, y, what] of [[8, 40, "barrels"], [21, 40, "crates"], [35, 41, "sacks"], [62, 41, "barrels"], [74, 40, "crates"], [88, 40, "sacks"]] as const) town.add({ kind: "stock", ...at(x, y), what });
 
-  // The jousting ground: a fenced field with the tilt barrier down its middle, pavilions at either end,
-  // a grandstand along its north side and standards flying.
-  town.add({ kind: "fence", points: [[LISTS.x0, 31], [LISTS.x0, LISTS.y0], [LISTS.x1, LISTS.y0], [LISTS.x1, LISTS.y1], [LISTS.x0, LISTS.y1], [LISTS.x0, 37]].map(([x, y]) => corner(x!, y!)) });
-  town.add({ kind: "fence", points: [corner(69, 34), corner(85, 34)] });
-  [[66.5, 30.5, AWNINGS[0]], [66.5, 37.5, AWNINGS[1]], [87.5, 30.5, AWNINGS[2]], [87.5, 37.5, AWNINGS[3]]].forEach(([x, y, c]) =>
-    town.add({ kind: "pavilion", x: (x as number) * T, y: (y as number) * T, color: c as string }));
-  town.add({ kind: "grandstand", rect: px([70, 24, 14, 3]), facing: "south" });
-  for (const x of [68, 85]) town.add({ kind: "standard", ...at(x, 25) });
-  for (const x of [72, 82]) town.add({ kind: "target", ...at(x, 38), facing: "west" });
-
-  // South of the river: fields behind hedgerows, and the windmill on its rise.
-  const fields: [TileRect, "wheat" | "barley" | "cabbage"][] = [
-    [[8, 59, 16, 7], "wheat"], [[8, 67, 16, 6], "barley"], [[26, 59, 13, 6], "cabbage"],
-    [[57, 59, 15, 7], "wheat"], [[57, 67, 15, 6], "barley"], [[74, 59, 14, 13], "cabbage"],
-  ];
-  for (const [r, crop] of fields) {
-    town.fill(r, Tile.Grass);
-    town.add({ kind: "field", rect: px(r), crop });
-    for (let x = r[0] - 1; x <= r[0] + r[2]; x++) for (const y of [r[1] - 1, r[1] + r[3]]) if (town.open(x, y) && hash(x, y, 3) < 0.55) town.set(x, y, Tile.Tree);   // hedgerows
+  // The merchant palaces: great stone houses behind the warehouses, each in its walled garden, a lane in front.
+  town.fill([0, 31, PLAZA.x0, 2], Tile.Cobble);
+  town.fill([PLAZA.x1 + 1, 31, W - PLAZA.x1 - 1, 2], Tile.Cobble);
+  for (const r of [[3, 20, 12, 9], [17, 20, 11, 9], [69, 20, 11, 9], [82, 20, 12, 9]] as TileRect[]) {
+    town.add({ kind: "hall", rect: px(r), door: "south", roof: "#7a3a2a", storeys: 3, stone: true, chimneys: 2 });
+    town.fill([r[0], r[1] + r[3], r[2], 2], Tile.Flower);     // its garden, between it and the lane
+    for (const x of [r[0], r[0] + r[2] - 1]) town.set(x, r[1] + r[3] + 1, Tile.Tree);
   }
-  town.fill([28, 68, ROAD.x0 - 28, 2], Tile.Path);
-  town.add({ kind: "windmill", ...at(30, 71) });
 
-  // The cave, back down to Witchwood, among the trees at the road's end.
+  // The King's Park south of the river: the avenue from the bridge to the cave, an allée of trees down
+  // either side of it, standards and braziers along it.
+  town.fill([AVENUE.x0, RIVER.y1 + 1, AVENUE.x1 - AVENUE.x0 + 1, H - RIVER.y1 - 7], Tile.Cobble);
+  town.fill([AVENUE.x0 + 2, H - 6, 3, 6], Tile.Path);          // narrowing to a path into the woods and the cave
+  for (let y = RIVER.y1 + 3; y < H - 4; y += 2) for (const x of [AVENUE.x0 - 2, AVENUE.x1 + 2]) town.set(x, y, Tile.Tree);
+  for (let y = RIVER.y1 + 4; y < H - 6; y += 6) {
+    for (const x of [AVENUE.x0 - 1, AVENUE.x1 + 1]) town.add({ kind: "standard", ...at(x, y) });
+    for (const x of [AVENUE.x0 - 1, AVENUE.x1 + 1]) town.add({ kind: "brazier", ...at(x, y + 3) });
+  }
   town.add({ kind: "cave", x: MID * T, y: H * T, facing: "north" });
-
-  // Guards before the barbican, watching the road.
-  for (const x of [ROAD.x0 - 1, ROAD.x1 + 1]) town.add({ kind: "guard", ...at(x, BARBICAN[1] + BARBICAN[3] + 1), facing: "south" });
-  town.yards(0.05, (x, y) => y > WALL_Y + 3 && y < riverTop(x) - 1 && x < LISTS.x0 - 2);
+  town.yards(0.04, (x, y) => y > RIVER.y1 + 2 && (x < AVENUE.x0 - 4 || x > AVENUE.x1 + 4));
 
   return town.layout(
-    // Coming up out of the cave, a few steps up the road; coming out of Southgate, on the drawbridge.
-    { cave: { x: (ROAD.x0 + 1) * T, y: (H - 4) * T }, gate: { x: (ROAD.x0 + 1) * T, y: (MOAT.y0 - 1) * T } },
+    // Coming up out of the cave, a few steps up the avenue; coming out of Southgate, on the drawbridge.
+    { cave: { x: 48 * T, y: (H - 4) * T }, gate: { x: 48 * T, y: (MOAT.y0 - 1) * T } },
     [
-      edgeExit("south", ROAD.x0, ROAD.x1, W, H, { area: "witchwood", entry: "cave" }),
-      { rect: { x: ROAD.x0 * T, y: (WALL_Y - 3) * T, w: 3 * T, h: 2 * T }, to: { area: "capital", entry: "southgate" } },
+      edgeExit("south", AVENUE.x0 + 2, AVENUE.x0 + 4, W, H, { area: "witchwood", entry: "cave" }),
+      { rect: { x: (AVENUE.x0 + 2) * T, y: (WALL_Y - 3) * T, w: 3 * T, h: 2 * T }, to: { area: "capital", entry: "southgate" } },
     ],
   );
 }
 
 export const area: AreaDef = {
   id: "kingsroad",
-  name: "Capital City: the King's Road",
+  name: "Capital City: the King's Bridge",
   build,
   life: { enemies: false, potions: false, ambient: true },
 };
