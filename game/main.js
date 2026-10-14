@@ -197,6 +197,7 @@ const MAGE = {
   blinkCooldown: 6, stuckBeforeBlink: 0.3, blinkMin: 40, blinkMax: 72,
   // Melee: caught up close with blink on cooldown, it draws a sword and chases you until it can blink.
   chaseSpeed: 30, swingReach: 16, swingWindup: 0.32, swingSweep: 0.16, swingRecover: 0.2, swingRest: 0.5,
+  meleeLeash: 44,   // get further than this (5.5 tiles) and it sheathes the sword and goes back to casting
 };
 
 // One mage sword swing: a long, readable wind-up, a fast sweep, a short recovery.
@@ -275,6 +276,7 @@ function updateMage(s, dt) {
   }
   if (s.melee) {
     if (s.blinkCD <= 0 && !s.swing) { s.melee = false; blinkMage(s); return; }
+    if (d > MAGE.meleeLeash && !s.swing) { s.melee = false; s.timer = Math.max(s.timer, 0.6); return; }   // you got away
     updateMageMelee(s, dt, dx, dy, d);
     return;
   }
