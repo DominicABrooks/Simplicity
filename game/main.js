@@ -132,11 +132,21 @@ function randomGrassSpot(minDist) {
 }
 
 // ---------- State ----------
-let player, slimes, potions, loot, arrows, fireballs, strikes, effects, kills, state, clock, spawnTimer;
+let player, slimes, potions, loot, arrows, fireballs, strikes, effects, floaters, kills, state, clock, spawnTimer;
 
 // ---------- Inventory ----------
+// ---------- Experience ----------
+// WoW-flavoured: kills give XP, each level needs a bit more, and levelling up grants raw stats
+// and a full heal. Level bonuses add to gear through the inventory's stat totals.
+const XP = { slime: 10, mage: 50, maxLevel: 20 };
+const xpToNext = level => 50 + (level - 1) * 40;
+function levelBonus(level) {
+  return { level, speed: (level - 1) * 2, life: Math.floor((level - 1) / 2), damage: Math.floor((level - 1) / 4) };
+}
+
 const inv = createInventory({
   icons: ICONS,
+  bonus: () => levelBonus(player ? player.level : 1),
   onChange: applyStats,
   onDrop: item => loot.push({ x: player.x, y: player.y, item, ignore: true }),
   onUse: item => {                                          // eating a fish
@@ -161,8 +171,8 @@ function reset() {
   makeMap();
   view.setMap(map);
   seed = Date.now() % 100000 + 1;
-  player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
-  slimes = []; potions = []; loot = []; arrows = []; fireballs = []; strikes = []; effects = [];
+  player = { level: 1, xp: 0, x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
+  slimes = []; potions = []; loot = []; arrows = []; fireballs = []; strikes = []; effects = []; floaters = [];
   // Start naked, with a plain starter set in the bag to put on.
   inv.reset([]);
   for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"], ["bow", "Old Short Bow"]]) inv.add(makeItem(type, "normal", {}, name));
@@ -451,7 +461,7 @@ function setState(s) {
 
 // ---------- Update ----------
 const PLAYER_SPEED = 42, SWIM_SPEED = 24, JUMP_TIME = 0.45, ATTACK_TIME = 0.3;
-const DASH_TIME = 0.08, DASH_SPEED = 80, DASH_COOLDOWN = 0.6;    // 6.4px, 0.8 tiles, in a quick burst
+const DASH_TIME = 0.1, DASH_SPEED = 160, DASH_COOLDOWN = 0.6;    // 16px, 2 tiles, in a quick burst
 const CAST_TIME = 0.4, BITE_WINDOW = 0.9, CAST_MIN = 10, CAST_MAX = 40;   // reach: about 5 tiles
 // Bow: hold to draw (full power at DRAW_TIME), release to shoot. Drawn, you move at DRAW_SLOW speed.
 const DRAW_TIME = 0.6, DRAW_SLOW = 0.45, ARROW_LIFE = 0.45, BOW_COOLDOWN = 0.25;
@@ -720,6 +730,7 @@ function updateSlimes(dt) {
     const s = slimes[i];
     if (s.hp <= 0) {
       kills++;
+      grantXP(s.kind === "mage" ? XP.mage : XP.slime, s.x, s.y);
       if (s.kind === "mage") {
         // The mage always drops an item of magic rarity or better, and sometimes a potion.
         effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, fire: true });
@@ -737,6 +748,22 @@ function updateSlimes(dt) {
   }
   const cap = Math.min(14, 8 + Math.floor(kills / 5));
   if ((spawnTimer -= dt) <= 0) { spawnTimer = 3; if (slimes.length < cap) spawnSlime(110); }
+}
+
+function grantXP(amount, x, y) {
+  const p = player;
+  if (p.level >= XP.maxLevel) return;
+  p.xp += amount;
+  floaters.push({ x, y, t: 1, text: `+${amount} XP` });
+  while (p.level < XP.maxLevel && p.xp >= xpToNext(p.level)) {
+    p.xp -= xpToNext(p.level);
+    p.level++;
+    inv.refresh();                                          // new raw stats flow into damage/life/speed
+    p.hp = p.maxHp;                                         // a level-up fully heals, as in WoW
+    effects.push({ x: p.x + 4, y: p.y + 4, t: 1, levelup: true });
+    toast(`Level ${p.level}!`, true);
+  }
+  if (p.level >= XP.maxLevel) p.xp = 0;
 }
 
 // ---------- Render ----------
@@ -762,6 +789,7 @@ function render(dt) {
     hg.drawImage(h.frames[0].r, 3 + (i % 10) * 10, 3 + Math.floor(i / 10) * 10);
   }
   renderLabels();
+  renderXP();
   hud.textContent = `Slimes ${kills}`;
 }
 
@@ -791,6 +819,23 @@ function renderLabels() {
 }
 const alertEl = document.getElementById("alert");
 
+// WoW-style XP bar along the bottom, and "+10 XP" floating up from kills.
+const xpFill = document.getElementById("xpFill"), xpText = document.getElementById("xpText");
+const floaterEls = new Map();
+function renderXP() {
+  const p = player, max = p.level >= XP.maxLevel;
+  xpFill.style.width = max ? "100%" : `${(p.xp / xpToNext(p.level)) * 100}%`;
+  xpText.textContent = max ? `Level ${p.level} (max)` : `Level ${p.level}  \u00b7  ${p.xp} / ${xpToNext(p.level)} XP`;
+  for (const [f, el] of floaterEls) if (!floaters.includes(f)) { el.remove(); floaterEls.delete(f); }
+  for (const f of floaters) {
+    let el = floaterEls.get(f);
+    if (!el) { el = document.createElement("div"); el.className = "floater"; el.textContent = f.text; labelLayer.append(el); floaterEls.set(f, el); }
+    const s = view.gameToScreen(f.x, f.y, 0.9 + (1 - f.t) * 0.8);
+    el.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`;
+    el.style.opacity = Math.min(1, f.t * 1.5);
+  }
+}
+
 const toastEl = document.getElementById("toast");
 let toastTimer;
 function toast(text, good = false) {
@@ -813,6 +858,8 @@ function loop(now) {
     if (state === "play") { updateArrows(dt); updateSlimes(dt); }
     if (state === "play") updateFireballs(dt);
     for (const e of effects) e.t -= dt;
+    for (const f of floaters) f.t -= dt * 0.9;
+    floaters = floaters.filter(f => f.t > 0);
     effects = effects.filter(e => e.t > 0);
   }
   render(dt);

@@ -80,7 +80,7 @@ export function rollItem(rand, minRarity = "normal") {
   return makeItem(type, rarity, mods, name);
 }
 
-export function createInventory({ icons, onChange, onDrop, onUse }) {
+export function createInventory({ icons, onChange, onDrop, onUse, bonus = () => ({ level: 1, damage: 0, life: 0, speed: 0 }) }) {
   const panel = document.getElementById("inventory");
   const gridEl = document.getElementById("invGrid"), equipEl = document.getElementById("invEquip");
   const statsEl = document.getElementById("invStats"), tip = document.getElementById("tooltip"), heldEl = document.getElementById("held");
@@ -112,7 +112,8 @@ export function createInventory({ icons, onChange, onDrop, onUse }) {
     }
     const gear = Object.fromEntries(Object.keys(SLOTS).map(k => [k, equip[k] ? equip[k].rarity : null]));
     gear.weaponType = equip.weapon ? equip.weapon.type : null;
-    return { damage: Math.max(1, t.damage), life: t.life, speed: t.speed, dash: Math.min(60, t.dash), gear };
+    const b = bonus();                                      // raw stats from the hero's level
+    return { level: b.level, damage: Math.max(1, t.damage) + b.damage, life: t.life + b.life, speed: t.speed + b.speed, dash: Math.min(60, t.dash), gear };
   }
 
   function changed() { render(); onChange(stats()); }
@@ -157,7 +158,7 @@ export function createInventory({ icons, onChange, onDrop, onUse }) {
     }
     const st = stats();
     statsEl.innerHTML = [
-      `<b>${st.damage}</b> Damage`, `<b>${5 + st.life}</b> Life`,
+      `Level <b>${st.level}</b>`, `<b>${st.damage}</b> Damage`, `<b>${5 + st.life}</b> Life`,
       `<b>+${st.speed}%</b> Speed`, `<b>${st.dash}%</b> Dash recovery`,
     ].map(s => `<span>${s}</span>`).join("");
     renderHeld();
@@ -305,6 +306,7 @@ export function createInventory({ icons, onChange, onDrop, onUse }) {
 
   return {
     add, reset, stats,
+    refresh: changed,                                       // re-total stats (after a level-up)
     toggle: () => setOpen(panel.hidden),
     close: () => setOpen(false),
     isOpen: () => !panel.hidden,

@@ -457,6 +457,19 @@ export function createView(canvas, PAL, C) {
     m.position.set(x, 0, z); m.userData = { life: 0.18, total: 0.18 };
     scene.add(m); transients.push(m);
   }
+  // Level-up: a golden pillar of light around the hero, rising and fading, with a ring of sparks.
+  function spawnLevelUp(x, z) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 3, 10, 1, true).translate(0, 1.5, 0),
+      basic(PAL.Y, { transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+    m.position.set(x, 0, z); m.userData = { life: 1.2, total: 1.2, rise: true };
+    scene.add(m); transients.push(m);
+    for (let i = 0; i < 18; i++) {
+      const s = new THREE.Mesh(sparkGeo, i % 2 ? sparkMats.spark : sparkMats.sparkLight), a = (i / 18) * Math.PI * 2;
+      s.position.set(x + Math.cos(a) * 0.6, 0.2, z + Math.sin(a) * 0.6);
+      s.userData = { vx: Math.cos(a) * 0.8, vz: Math.sin(a) * 0.8, vy: 3 + Math.random() * 1.5, life: 0.8 };
+      scene.add(s); sparks.push(s);
+    }
+  }
   function updateTransients(dt) {
     for (let i = transients.length - 1; i >= 0; i--) {
       const m = transients[i], u = m.userData;
@@ -464,6 +477,7 @@ export function createView(canvas, PAL, C) {
       const k = Math.max(0, u.life / u.total);
       m.material.opacity = k * 0.9;
       if (u.grow) m.scale.setScalar(0.4 + (1 - k) * 0.6);
+      if (u.rise) m.scale.set(1 + (1 - k) * 0.3, 0.6 + (1 - k) * 0.6, 1 + (1 - k) * 0.3);
       if (u.life <= 0) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); transients.splice(i, 1); }
     }
   }
@@ -1036,6 +1050,7 @@ export function createView(canvas, PAL, C) {
       const [x, z] = toWorld(e.x - 4, e.y - 4);
       if (e.nova) spawnNovaRing(x, z, e.radius);
       if (e.bolt) spawnBoltColumn(x, z);
+      if (e.levelup) spawnLevelUp(x, z);
       for (let i = 0; i < (e.big || e.fire || e.arcane || e.frost || e.spark || e.nova || e.bolt ? 10 : 5); i++) {
         const fx = Object.keys(FX_MATS).find(k => e[k]) || (e.nova && "frost") || (e.bolt && "spark");
         const m = new THREE.Mesh(sparkGeo, fx ? sparkMats[FX_MATS[fx][i % 2]] : e.big ? sparkMats.big : sparkMats.hit);

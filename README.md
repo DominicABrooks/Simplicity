@@ -22,6 +22,8 @@ The game is already built: `game/sprites.js` is generated from `art/` and commit
 
 WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
 
+**Experience:** kills give XP (10 per slime, 50 per mage), shown on the purple bar along the bottom. Level 2 takes 50 XP and each level needs 40 more, up to level 20. Each level gives raw stats on top of your gear (+2% movement speed per level, +1 life every 2 levels, +1 damage every 4 levels) and, as in WoW, a full heal.
+
 **Mages:** once you've killed a few slimes, a rare mage may appear: a robed twin of you that keeps its distance, telegraphs every spell with a charge-up in its hands, and casts. There are three schools:
 
 - **Ember Mage** (red robes): fireballs, and sometimes a purple orb, **polymorph**, which turns you into a sheep for 5 seconds (a sheep can only walk; any damage breaks it).

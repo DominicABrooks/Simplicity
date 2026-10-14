@@ -78,10 +78,17 @@
   #alert { position: fixed; left: 0; top: 0; z-index: 12; pointer-events: none; font: 700 30px var(--title); color: var(--glow); text-shadow: 2px 2px 0 var(--ink), 0 0 12px rgb(245 213 98 / 0.6); animation: pop 0.25s ease-out; }
   #alert[hidden] { display: none; }
   @keyframes pop { from { scale: 0.4; } to { scale: 1; } }
-  #resetHold { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 45; text-align: center; color: var(--bone); font: 700 13px var(--title); letter-spacing: 0.12em; text-shadow: 2px 2px 0 var(--ink); }
+  #resetHold { position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%); z-index: 45; text-align: center; color: var(--bone); font: 700 13px var(--title); letter-spacing: 0.12em; text-shadow: 2px 2px 0 var(--ink); }
   #resetHold[hidden] { display: none; }
   #resetHold .bar { width: 180px; height: 6px; margin-top: 6px; background: rgb(14 11 22 / 0.8); border: 1px solid var(--oak); }
   #resetHold i { display: block; height: 100%; width: 0; background: var(--ember); }
+  /* XP bar: WoW-style purple, segmented into 20 bubbles */
+  #xp { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); z-index: 15; pointer-events: none; }
+  #xpText { display: block; text-align: center; margin-bottom: 4px; color: var(--bone); font: 700 12px var(--title); letter-spacing: 0.06em; text-shadow: 2px 2px 0 var(--ink); white-space: pre; }
+  #xpBar { position: relative; height: 10px; background: rgb(14 11 22 / 0.85); border: 1px solid var(--oak); box-shadow: inset 0 0 0 1px #1a1424; overflow: hidden; }
+  #xpFill { height: 100%; width: 0; background: linear-gradient(#b07de0, #8a4fc0 55%, #6a3a9a); transition: width 0.25s ease-out; }
+  #xpBar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(5% - 1px), rgb(14 11 22 / 0.9) calc(5% - 1px) 5%); }
+  .floater { position: absolute; left: 0; top: 0; white-space: nowrap; color: #c79cf0; font: 700 13px var(--title); text-shadow: 2px 2px 0 var(--ink); }
   #toast { position: fixed; top: 18%; left: 50%; transform: translateX(-50%); z-index: 45; color: var(--ember); font: 700 18px var(--title); text-shadow: 2px 2px 0 var(--ink); }
 </style>
 </head>
@@ -100,6 +107,7 @@
 <div id="held" hidden></div>
 <div id="tooltip" hidden></div>
 <div id="toast" hidden></div>
+<div id="xp"><span id="xpText"></span><div id="xpBar"><div id="xpFill"></div></div></div>
 <div id="alert" hidden>!</div>
 <div id="resetHold" hidden>RESETTING<div class="bar"><i></i></div></div>
 
