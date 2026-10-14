@@ -2,15 +2,23 @@
 
 A fantasy RPG that plays in 2D and looks like a late-90s 3D game: chunky low-poly models with PlayStation-style rendering, in the browser.
 
+## Quick start
+
+You need **Python 3** and an internet connection (three.js and the UI font load from CDNs). Nothing else to install to play.
+
+1. Open a terminal in this folder (the one with this README).
+2. Run the dev server:
+
+   ```
+   python tools/serve.py
+   ```
+
+   On macOS or Linux, use `python3` if `python` isn't found.
+3. Open http://localhost:8123 in a browser.
+
+The game is already built: `game/sprites.js` is generated from `art/` and committed. Rebuild only after changing the art (see the end of this file). The server disables browser caching, so a reload always picks up your edits. Opening `game/index.html` directly as a file won't work, because browsers block ES modules from `file://`.
+
 ## Play
-
-Run the dev server (it disables browser caching so reloads always pick up edits; three.js loads from a CDN):
-
-```
-python tools/serve.py
-```
-
-Then open http://localhost:8123.
 
 WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Slimes chase you, and potions restore two hearts.
 
