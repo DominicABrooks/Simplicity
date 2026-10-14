@@ -395,7 +395,8 @@ lately it keeps coming unlocked.
 
 ## How it all ends
 
-Every thread here is tied up by the end of the Foreigner's story in [HERO.md](HERO.md#the-end): the eggs
-hatch into three dragons who sing the seal shut for good, Umbrall's eye closes and its star goes back to
-being an ordinary star, Tam Appleby stops being a sheep, the slimes turn back into the people of Ul-Ael,
-the Vael come home to the valley, and Ael sleeps soundly ever after.
+Every thread here is tied up by the end of the Foreigner's story in [HERO.md](HERO.md#the-end): Calder
+falls at the great crack and it shuts, the King gives the Vael their eggs back, the eggs hatch under the
+Greyspines beside the Old Mother and their song seals the valley for good, Umbrall's eye closes and its
+star goes back to being an ordinary star, Tam Appleby stops being a sheep, the slimes turn back into the
+people of Ul-Ael, the Vael come home to the valley, and Ael sleeps soundly ever after.

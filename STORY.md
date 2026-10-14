@@ -1,243 +1,308 @@
 # The Story, Minute by Minute
 
-The playable hour, from waking on the stone to The End: every story beat, where it happens, what the
+The playable hour, from waking on the stone to the credits: every story beat, where it happens, what the
 player does there, what it teaches, and how long it should take. The lore behind it is in
 [HERO.md](HERO.md) (the Foreigner, the Greyed and the ending), [LORE.md](LORE.md),
 [HISTORY.md](HISTORY.md) and [FAMILIES.md](FAMILIES.md).
 
 **The hour is the story path:** a player who goes straight from beat to beat, fighting only what's in
-their way, reaches The End in about 60 minutes. Exploring, fishing, loot-hunting and the detours come on
-top, as much as anyone likes.
+their way, reaches the credits in about 60 minutes. Exploring, fishing, loot-hunting and the city's
+people come on top, as much as anyone likes.
+
+## The story in one breath
+
+You wake in the Witchwood. The way deeper into the woods is barred by the King's woodwardens, so you go
+north to Kingsholm instead and stand before the King. He reads the Ranger's note you carry, works out
+what you are, and asks you, quietly, for the one thing his frightened kingdom needs: go deep into the
+Witchwood and kill **Calder**, the leader of the mages. With the King's writ the barricade opens. You fight
+your way through three ever-deeper parts of the wood, growing stronger, beat Calder at the great crack at
+its heart, and carry his head back to the King. Credits roll.
 
 ## How to pace an hour (the short version)
 
 A few rules this plan follows, so you can change it later and keep it working:
 
-1. **Get them playing in 30 seconds.** No long opening. Wake, look around, move. The story comes in
-   through what the player finds, not through talk.
-2. **One new thing per stretch.** Each area teaches one idea (punching, ranged enemies, the bow), lets the
-   player practise it on easy enemies, and then a fight tests it. Nintendo calls this *teach, practise,
-   test, twist*.
-3. **Breathe between fights.** Hard stretches alternate with calm ones about every 8 to 12 minutes: a
-   fight, then a town, then a fight. The calm stretches are where the story and characters live.
-4. **A twist at the middle.** Around 30 minutes, the player learns the real problem. It changes why they're
-   playing, and the second half should feel different from the first.
-5. **A low point before the end.** Around 45 minutes, things go wrong: the player wins a fight and loses
-   the bigger battle. It makes the finale feel earned.
-6. **The finale gets bigger, then smaller.** First a big running battle using everything they've learned,
-   then a one-on-one boss, then a short, warm ending. Two or three minutes of ending is plenty. Don't
-   outstay it.
+1. **Get them playing in 30 seconds.** No long opening. Wake, look around, move.
+2. **Show the goal early, then make them earn it.** The barricade in the first minutes tells the player
+   where the game is going (deeper in) before they're allowed there.
+3. **One new thing per stretch.** Each part of the wood brings one new kind of mage. The player practises
+   on the ordinary ones, then a boss tests it. Nintendo calls this *teach, practise, test*.
+4. **Breathe between fights.** The city visit is the long calm stretch, where the story and the people
+   live. In the deep woods, each boss is followed by a quiet minute at an old stone.
+5. **Each zone harder than the last.** The Ashwild, the Frozen Hollow and the Thunder Rift climb in
+   difficulty, and the player's levels climb with them.
+6. **End fast.** After the last boss, get the player back to the King quickly and roll the credits.
+   Nobody wants a long walk after the final fight.
 7. **Every area has one job.** If an area doesn't teach, test, rest or reveal something, cut it.
 
 ## The map of the hour
 
-Seven places: four that exist, one that's a night-time version of one that exists, and two new ones.
-
 | Area | Status | Its job |
 |---|---|---|
-| **The Clearing** (Witchwood) | Exists | Teach moving, punching, swimming and fishing on slimes |
-| **The Greywood** | **New** | Teach fighting mages; the first boss, Cinder |
-| **The King's Bridge** | Exists | The first calm: spectacle, and arrival in the kingdom |
-| **The Market Quarter** | Exists | The hub: people, story, potions, rest |
-| **St Mary's** (nave and crypt) | **New** | The midpoint reveal, and later the final boss |
-| **The Castle** | Exists | Power up: the bow, the cold sword, the Ranger |
-| **The frozen King's Bridge** | Variant of an existing area | The second boss, Rime |
-| **Founder's Night** (the Market Quarter at night) | Variant of an existing area | The finale's running battle |
+| **The Clearing** (Witchwood) | Exists, plus the barricade | Teach moving, punching, swimming and fishing; show the barred way deeper |
+| **The King's Bridge** | Exists | Arrival in the kingdom: spectacle, a breather |
+| **The Market Quarter** | Exists | The city: people, rumours, potions, the way to the castle |
+| **The Castle** | Exists | The King, and the quest |
+| **The Ashwild** | **New** | The first deep zone: Ember mages, and Cinder |
+| **The Frozen Hollow** | **New** | The second: Frost mages, and Rime |
+| **The Thunder Rift** | **New** | The last: Storm mages, and Calder at the great crack |
+
+### The barricade
+
+On the Clearing's far side from the cave (across the river, where an old trail runs on into the trees), the
+King's **woodwardens** have built a barricade of sharpened stakes across the trail, with two wardens on
+guard. They're friendly, like the city's guards, and talking to them is how the player learns where they
+can't go yet.
+
+Before the King's writ:
+
+> *"No further, little one. King's orders: nobody goes deeper into the Witchwood. Not woodcutters, not
+> hunters, not you."*
+>
+> *"There's things in there now. Robed things. If you've business with the King, the cave's north, up the
+> path. He's in Kingsholm, over the river."*
+
+After it:
+
+> *"That's the King's own seal. Well. Mind yourself in there."* (The stakes are pulled aside.)
 
 ### The new areas
 
-**The Greywood.** The deep Witchwood between the Clearing and the cave, where the cracks are. The
-Clearing is green, gold and friendly. The Greywood is the same forest going wrong: the trees get greyer
-the further in you go, cold cracks run across the ground like dry riverbeds, and the slimes are thicker.
-At its far end is the Greyed's camp, three faded tents and a cold campfire, in front of the cave mouth.
-It's the first place the player *sees* the problem. Size: about the Clearing's.
+All three continue from the barricade, one leading into the next, each a bit deeper, darker and stranger
+than the last. The forest is the same forest, going more and more wrong.
 
-**St Mary's.** The great church's inside, one area in two parts: the nave above (long, tall, candles,
-stained glass, Father Pryce, the treasury with the warm eggs behind a grille) and the crypt below, down a
-stair (low, dark, old stone, the little carved door at the far end). The crypt is the final boss arena,
-so it needs room to dodge lightning in. Its entrance is St Mary's door on East Street in the Market
-Quarter.
+**The Ashwild.** The trees go ash-grey the further in you go, and cold cracks run across the ground like dry
+riverbeds. Slimes are thicker here. The **Ember** Greyed hunt in pairs, throwing fire and the sheep orb.
+Partway in are the woodcutters' abandoned huts, and at the far end the Greyed's first camp, three faded
+tents round a cold fire, where **Cinder** waits. Size: about the Clearing's.
+
+**The Frozen Hollow.** A sunken valley in the wood where it's always winter: a frozen lake, white trees,
+ice underfoot and snow falling. The **Frost** Greyed patrol the ice. Their frostbolts slow you, and
+standing close to one gets you frozen solid. **Rime** sits at the middle of the frozen lake. Something big
+swims under the ice now and then; it's only a very large koi.
+
+**The Thunder Rift.** The oldest, tallest trees in the valley, a storm that never stops overhead, and
+the ground split by the **great crack**: the deepest one under the Witchwood, cold and humming, a door into
+the dark. The **Storm** Greyed hold the paths up to it. **Calder** stands at its edge. The lightning here
+comes out of a sky that is, if you look closely, perfectly clear.
+
+### The King's audience
+
+The King holds court in the castle's inner ward, at the foot of the keep's stair, between the braziers,
+with his guards around him. No new area is needed. The player walks up Castle Street, through the
+barbican and the gatehouse into the ward, and the guards there point the way: *"The King's on the keep
+steps. Mind your manners."*
 
 ### Checkpoints: the old stones
 
 The Foreigner wakes on the oldest stone in the valley (see [HERO.md](HERO.md#falling-and-waking-again)).
-Today, falling sends him back to the Clearing with nothing, which suits a run-based game but would wreck a
-story: losing twenty minutes to one mistake at minute 45 makes people quit.
-
-The fix is in the lore already. **Ael can wake him on any of its old stones**, and there are a few
-scattered through the valley: grey, flat, faintly warm, with a little glow when he touches one. When he
-falls, he wakes on the last stone he touched, **with his gear and level kept**. (He might drop his potions,
-so falling still stings.) Place one at each of these:
+Losing twenty minutes to one mistake makes people quit, so **Ael wakes him on the last old stone he
+touched, with his gear and level kept.** (He might drop his potions, so falling still stings.) The stones
+are grey, flat and faintly warm, and glow a little when he touches one.
 
 | Stone | Where |
 |---|---|
 | The Ranger's stone | The Clearing, by the camp (the start) |
-| The grey stone | The Greywood, just before the Greyed's camp (before Cinder) |
-| The fountain stone | The Market Quarter, at the foot of the fountain (the fountain stands on an old stone; Hereward built it there) |
-| The bridge stone | The King's Bridge, at the gate tower (before Rime) |
-| The crypt stone | St Mary's, at the top of the crypt stair (before Calder) |
+| The fountain stone | The Market Quarter, at the foot of the fountain |
+| The ash stone | The Ashwild, at its entrance just past the barricade |
+| The hollow stone | The Frozen Hollow, at its entrance |
+| The rift stone | The Thunder Rift, just below the great crack (before Calder) |
+
+**The way home.** When Calder falls, the rift stone glows brighter than any stone has before. Touching it
+carries the Foreigner straight to the fountain stone in the Market Quarter, so the walk back to the King
+is two minutes, not ten. (Ael's stones are all one stone underneath. It just took the crack closing for
+them to be able to tell each other so.)
 
 ### The clock
 
-The day and night cycle runs a whole day every ten minutes. Let it run freely for most of the hour (six
-days and nights is about right for a short adventure), with two exceptions where the story sets the time:
-**arriving at the King's Bridge is golden late afternoon** (the first sight of the city should be
-beautiful), and **Founder's Night is night**, from the moment it starts until the end.
+The day and night cycle runs a whole day every ten minutes. Let it run freely, with two moments the story
+sets: **arriving at the King's Bridge is golden late afternoon**, and **the return to the King is at
+dawn**, the first sunrise after the crack closes.
 
 ## The hour, beat by beat
 
-The clock column is the target time on the straight story path. *Intensity* is how hard the stretch feels,
-from 1 (calm) to 5 (the hardest fight).
+*Intensity* is how hard the stretch feels, from 1 (calm) to 5 (the hardest fight).
 
 | Clock | Beat | Area | Intensity |
 |---|---|---|---|
 | 0:00 | Waking | The Clearing | 1 |
-| 0:03 | First slimes | The Clearing | 2 |
-| 0:07 | Into the Greywood | The Greywood | 3 |
-| 0:11 | Cinder | The Greywood | 4 |
-| 0:15 | The golden bridge | The King's Bridge | 1 |
-| 0:17 | The city | The Market Quarter | 1 |
-| 0:24 | The Crown after dark | The Market Quarter | 1 |
-| 0:28 | **The midpoint: the crypt** | St Mary's | 3 |
-| 0:34 | The castle | The Castle | 2 |
-| 0:41 | Rime | The frozen King's Bridge | 4 |
-| 0:45 | **The low point: Founder's Night** | The King's Bridge | 3 |
-| 0:47 | The battle for the city | Founder's Night | 4 |
-| 0:54 | Calder | St Mary's crypt | 5 |
-| 0:58 | The end | St Mary's, then the city | 1 |
+| 0:02 | First slimes, the barricade | The Clearing | 2 |
+| 0:07 | Through the cave, over the golden bridge | The King's Bridge | 1 |
+| 0:09 | The city | The Market Quarter | 1 |
+| 0:13 | **The King** | The Castle | 1 |
+| 0:17 | Back to the wood, through the barricade | The Clearing | 1 |
+| 0:20 | Into the Ashwild | The Ashwild | 3 |
+| 0:28 | Cinder | The Ashwild | 4 |
+| 0:31 | Into the Frozen Hollow | The Frozen Hollow | 3 |
+| 0:39 | Rime | The Frozen Hollow | 4 |
+| 0:42 | Up to the Thunder Rift | The Thunder Rift | 4 |
+| 0:50 | **Calder** | The Thunder Rift | 5 |
+| 0:55 | The head, the King, the credits | The city, the Castle | 1 |
 
-### Act I: The Witchwood (0:00 to 0:15)
+### Part one: the King's errand (0:00 to 0:20)
 
-**0:00 Waking (3 min).** He opens his eyes on the stone by the Ranger's fire. No text, just the clearing,
-birdsong and the fire crackling. The player moves within seconds. Under the stone: the Ranger's note (the
-one line of story here: *go north, find Meg Fell, the eggs have to go home*), a fishing pole and a crust.
-*Teaches:* moving, looking around, picking things up.
+**0:00 Waking (2 min).** He opens his eyes on the stone by the Ranger's fire. No text, just the clearing,
+birdsong and the fire crackling. The player moves within seconds. Under the stone: the Ranger's note, a
+fishing pole and a crust. *Teaches:* moving, looking around, picking things up.
 
-**0:03 First slimes (4 min).** Slimes come bouncing out of the pond. *Teaches:* punching, dashing out of
-the way, jumping. The lake teaches swimming (slimes won't follow you in) and fishing (koi heal you).
-They're easy. Let the player feel good. A blade drops from one of them, and swinging it feels great after
-punching.
+**0:02 First slimes, and the barricade (5 min).** Slimes bounce out of the pond. *Teaches:* punching,
+dashing, jumping. The lake teaches swimming (slimes won't follow you in) and fishing (koi heal you). A
+blade drops from a slime, and swinging it feels great after punching. Exploring the clearing, the player
+finds the trail across the river and the **barricade**: the wardens turn him back and point north to the
+King. *Shows the goal:* the real adventure is behind those stakes.
 
-**0:07 Into the Greywood (4 min).** The path north crosses into the Greywood: the trees going grey, the
-first cold crack in the ground. The first Greyed mage blinks into view, throws fire, and turns him into a
-sheep. It wears off in five seconds and he chases it down. *Teaches:* enemies that keep their distance and
-blink; the sheep. Two or three more mages along the path, never more than one at a time. At the edge of
-the trees, a frost-white figure watches him and nods: **Yssa**. The grey stone checkpoint is just before
-the camp.
+**0:07 Through the cave and over the bridge (2 min).** Up the path, through the cave, out between the
+gilded lions onto the King's Bridge in late-afternoon gold. Nothing to fight. Let the player look.
 
-**0:11 Cinder (4 min).** The Greyed's camp in front of the cave. **Cinder**, the Ember lieutenant, a bigger
-Ember mage: faster fire, more blinks, and the sheep orb in volleys of three. *Tests:* dashing through
-gaps, catching a mage right after it blinks. When he falls, his spark flies south. The cave is open.
-(Back in the city, the Applebys' sheep sneezes and becomes Tam again.) **First power spike:** Cinder
-always drops a magic-or-better weapon.
+**0:09 The city (4 min).** Through Southgate into the Market Quarter, up the high street, across the square
+and up Castle Street. The city tells its story through what's around: three-cut loaves, horseshoes over
+doors, the Edict read at the cross, people muttering about "the weather". Anyone the player talks to has a
+rumour (see [FAMILIES.md](FAMILIES.md)). **Old Mother Larke** looks into his eyes on the way past, laughs,
+and gives him three potions. *Teaches:* talking to people, potions. The fountain stone is here.
 
-### Act II: Kingsholm (0:15 to 0:45)
+**0:13 The King (4 min).** Through the castle gates to the ward. **King Osric** on the keep steps, with
+Prince Edmund beside him and the Marshal glowering. The Foreigner can't speak (he has no mouth), so he does
+the only thing he can: he holds out the Ranger's note. The scene, in the King's words:
 
-**0:15 The golden bridge (2 min).** Out of the cave, between the gilded lions, onto the King's Bridge in
-late-afternoon gold. Nothing to fight. Banners, braziers, ships, the city on its hill. This is the reward
-for Act I: let the player stop and look. The guards at the gate tower turn to watch him pass.
+> *"A stone child, out of the Witchwood, with my Ranger's handwriting. Give it here."*
+>
+> *(He reads. He goes very quiet, and then very red.)*
+>
+> *"You can't talk, can you? No. Of course not. Good. Then you can't repeat this either."*
+>
+> *"Officially, there are no witches in the Witchwood. I've said so. I've had it read at the cross every
+> market day. Unofficially... there is one. A Storm mage. He calls himself Calder. He leads the rest of
+> them, and every week he comes a little closer to my city."*
+>
+> *"The road south is shut. Nobody will drive it. The bridge isn't paid for. The people are whispering about
+> the weather and hanging horseshoes on their doors, and on Founder's Night they'll be in the square
+> burning straw witches with half of them wondering if the real ones are watching. My kingdom is
+> frightened, and it's getting desperate."*
+>
+> *"My soldiers won't go deep into that wood. I can't make them, and I can't tell them why they should.
+> But you came out of it. You walked out of it, in bark, without a scratch."*
+>
+> *"So. If you can go deep into the woods and kill him... I need it. The kingdom needs it. Bring me proof,
+> and you'll have anything Aurenmark can give."*
+>
+> *(He presses his seal into a strip of parchment and hands it over.)* *"Show that to my woodwardens.
+> They'll let you through."*
 
-**0:17 The city (7 min).** Through Southgate into the Market Quarter. The calm hub. The player finds Meg
-Fell at the house with the grey cloak (the cloak is visible from the high street, so they can't miss it)
-and delivers the note. Wren gives him a crust. Meg sends him to the Crown. On the way, the city tells its
-story through what's around: three-cut loaves, horseshoes over doors, the Edict read at the cross, people
-muttering about "the weather". **Old Mother Larke** looks into his eyes, laughs, and hands him three
-potions. *Teaches:* talking to people, the potions. The fountain stone checkpoint is here.
+The player now has **the King's writ**. The Prince, as the player leaves, adds quietly: *"The Hammonds'
+forge is by the gate. Tell Walter I sent you."* (A better sword, if the player stops.)
 
-**0:24 The Crown after dark (4 min).** The clock rolls round to evening. In the Crown's back room,
-**Bethan Maddox** lets him sit in, and **Princess Rosamund** (in her laundress's hood) tells him the
-Ranger is in the dungeon and the King is hiding something in St Mary's. *Does:* points the player at the
-church. Pure story, short.
+**0:17 Back to the wood (3 min).** Back down through the city, over the bridge, through the cave, to the
+barricade. The wardens see the seal and pull the stakes aside. *(Tip for building it: this walk is the one
+stretch with nothing new in it, so keep it short. The fountain stone can carry him back to the Ranger's
+stone once he holds the writ, which saves most of it.)*
 
-**0:28 The midpoint: the crypt (6 min).** St Mary's. **Father Pryce** shows him the warm eggs behind the
-treasury grille, gives him the true chronicle, and takes him down to the crypt. At the little carved door,
-the floor is cold and cracked, and slimes are oozing up through it. A short fight in the dark. Then the
-door opens a crack, and **an enormous eye looks out at him**, then closes. **The twist:** this was never
-about witches. The eggs are about to hatch on top of a door to something terrible, and the Greyed want them
-to. Now the player knows what they're fighting for.
+### Part two: deep into the Witchwood (0:20 to 0:55)
 
-**0:34 The castle (7 min).** Up Castle Street. **Prince Edmund** takes the Foreigner to ask the King to
-free the Ranger. The King says no, very loudly. The Prince lets him into the dungeon anyway, for one
-minute: **Wystan Fell**, behind bars, gives him the Ranger's bow from the storehouse and his map. In the
-castle's training yard, the targets and the dummy teach the bow. **Nell Hammond** gives him the cold
-sword. *Teaches:* the bow (hold to draw, only a full draw hits hard). **Second power spike:** the bow and
-the cold sword.
+**0:20 Into the Ashwild (8 min).** Past the ash stone, the trees go ash-grey. The first Greyed mage blinks
+into view, throws fire and turns him into a sheep. It wears off in five seconds and he chases it down.
+*Teaches:* enemies that keep their distance and blink; the sheep; catching a mage after it blinks. Ember
+mages in ones and then in pairs, slimes between them. At the edge of the trees, a tall frost-white figure
+watches him and nods: **Yssa**. She doesn't fight. She's the only robed one who doesn't.
 
-**0:41 Rime (4 min).** The bells ring: the King's Bridge has frozen over. **Rime**, the Frost lieutenant,
-came up the river on her own ice to cut the city off before Founder's Night. The bridge stone checkpoint is
-at the gate tower. A bigger Frost mage on a long, narrow bridge: frostbolts that slow, and a freezing nova
-if you stand close. *Tests:* the bow. Rushing her with the sword gets you frozen. Bran Harrow and Will
-Bowyer cheer from the gate tower.
+**0:28 Cinder (3 min).** The Greyed's first camp. **Cinder**, the Ember lieutenant: faster fire, more
+blinks, and the sheep orb in volleys of three. *Tests:* dashing through gaps, punishing after a blink.
+When he falls, he crumbles to grey stone, and his spark flies south. (Back in the city, the Applebys' sheep
+sneezes and becomes Tam again.) **Power spike:** Cinder always drops a magic-or-better weapon.
 
-**0:45 The low point (2 min).** Rime falls, and the ice melts. With her last breath she laughs: *"You're too
-late. It's tonight."* The sky goes dark in a moment, the stars come out, and one of them is far too big.
-Up in the city, the straw witches catch fire all at once, and the bells start ringing the wrong way. **The
-player won the fight and the battle has started without them.**
+**0:31 Into the Frozen Hollow (8 min).** Down into the always-winter valley, past the hollow stone. Frost
+mages on the ice: frostbolts that slow you, and a nova that freezes you if you stand close. *Teaches:*
+keeping your distance, and the **bow**, found in an abandoned hunter's hut at the Hollow's edge (hold to
+draw, only a full draw hits hard). Rushing a Frost mage with a sword gets you frozen and punished.
 
-### Act III: Founder's Night (0:47 to 1:00)
+**0:39 Rime (3 min).** The middle of the frozen lake, nowhere to hide. **Rime**, the Frost lieutenant:
+bigger novas, faster bolts, and patches of ice that freeze over around her. *Tests:* the bow and
+keeping distance. When she falls, the lake thaws in a ring around where she stood, and the path up out of
+the Hollow opens.
 
-**0:47 The battle for the city (7 min).** The Market Quarter at night, on fire, everything at once. Greyed
-mages of all three orders come over the walls, and slimes pour up through the cracks in the streets. The
-player fights from Southgate up the high street, across the square and down East Street to St Mary's.
-*Tests:* everything learned so far, against every enemy type. The city helps, and that's the payoff for
-everyone they've met: the bridge watch holds the gate, **Tom Bowyer** keeps Southgate open, the **Stotts
-and Cleaves** hand out food (a full heal), the **Hammonds** throw him arrows, and **Old Mother Larke**
-lights the high street's lanterns to show the way. The Storm mages appear here for the first time: sparks
-too fast to dodge, and lightning that marks the ground before it strikes. *Teaches:* dash out of the
-marked circles. The crypt stone checkpoint is at the top of the stair.
+**0:42 Up to the Thunder Rift (8 min).** The climb through the oldest trees, under the storm that
+isn't there. Storm mages: sparks too fast to react to, and lightning that marks the ground before it
+strikes. *Teaches:* watch the ground and dash out of the marked circles. Everything at once by the end:
+Ember, Frost and Storm mages together, slimes pouring up out of the cracks. The rift stone is just below
+the great crack.
 
-**0:54 Calder (4 min).** The crypt, the eggs in the fire, the door open a crack with the eye behind it.
-**Calder of the Storm**: sparks, three lightning strikes at a time, and a blink so fast he seems to be in
-three places. Every time the Foreigner is knocked back, the door opens wider, and every time he lands a hit,
-it closes a little. *Tests:* everything: dodging the marked circles, full-draw arrows at range, the sword
-in the moment after each blink, potions and food to stay alive.
+**0:50 Calder (5 min).** The edge of the great crack, humming, cold and wide open. **Calder of the Storm**:
+sparks, three lightning strikes at a time, and a blink so fast he seems to be in three places. Every time
+the Foreigner is knocked back, the crack opens wider, and every time he lands a hit, it closes a little.
+*Tests:* everything: dodging the marked circles, full-draw arrows at range, the sword in the moment after
+each blink, potions and koi to stay alive.
 
-**0:58 The end (2 min).** Calder's last words (*"Oh. He sent you. Good."*). The eggs hatch, three dragons
-see the Foreigner first, the Old Mother arrives over the city, and the song shuts the door for good. Then a
-short epilogue in a few still pictures: the King at the cross, the Ranger home, Yssa playing cards, the
-slimes becoming people, the hatchlings asleep on the Fells' roof, a lantern with his name on it. **The
-End.** (The full ending is in [HERO.md](HERO.md#the-end).)
+When Calder falls, the grey goes out of him last of all. For a moment he's a tired old Storm mage. He looks
+at the Foreigner and says, in Vael, *"Oh. He sent you. Good."* Then his spark flies south, his body
+crumbles to grey stone, and the great crack groans shut. All that's left whole is **his head**: a round
+grey stone with the dark gone out of its face. The Foreigner picks it up.
+
+### The ending (0:55 to 1:00)
+
+**0:55 The head, the King, the credits (5 min).** The rift stone glows, and he touches it and wakes at the
+fountain stone, at dawn. The city is waking up. People stop and stare at the little stone figure carrying
+a stone head up the high street, and by Castle Street there's a crowd following him.
+
+On the keep steps, he sets Calder's head at the King's feet. The King looks at it for a long time.
+
+> *"...You did it."*
+>
+> *"Then it's over. No more whispering. No more Edict. Quill can read something else at the cross on
+> market day, for once."*
+>
+> *(He looks at the crowd that's followed the Foreigner into the ward, and seems to make up his mind.)*
+>
+> *"And I suppose I'd better tell them the rest."*
+
+**Credits roll**, over a few still pictures showing how it all ends (the full ending is in
+[HERO.md](HERO.md#the-end)): the King reading the true chronicle at the cross and going very red; the Ranger
+walking home to the house with the grey cloak; the Vael coming over the King's Bridge to take their eggs
+home; Yssa playing cards with Widow Crane; Tam Appleby eating a turnip; the Foreigner asleep in the top room
+of the Fells' house, with a lantern of his own in the window. **The End.**
 
 ## Fights, levels and gear along the way
 
-A rough guide to how strong the Foreigner should be at each boss on the straight path, so the bosses can
-be tuned. It uses the game's experience numbers (a slime is worth 10, a mage 50) and suggests the bosses
-be worth 200 each.
+A rough guide to how strong the Foreigner should be at each boss on the straight path, so the bosses can be
+tuned. It uses the game's experience numbers (a slime is worth 10, a mage 50) and suggests the bosses be
+worth 200 each.
 
 | Point | Fights on the way | Total XP | About level | Gear |
 |---|---|---|---|---|
-| At Cinder | ~15 slimes, ~4 mages | ~350 | 4 | A blade, a piece or two of armour |
-| At Rime | + Cinder, ~8 crypt slimes | ~630 | 5 | Cinder's weapon, the bow, the cold sword |
-| At Calder | + Rime, the battle (~20 slimes, ~8 mages) | ~1,430 | 8 | Everything above, plus the battle's drops |
+| At the King | ~10 slimes | ~100 | 2 | A blade |
+| At Cinder | + ~10 slimes, ~6 Ember mages | ~500 | 5 | A piece or two of armour, maybe the Hammonds' sword |
+| At Rime | + Cinder, ~8 slimes, ~6 Frost mages | ~1,080 | 7 | Cinder's weapon, the bow |
+| At Calder | + Rime, ~10 slimes, ~8 Storm mages | ~1,780 | 9 | Everything above, plus the climb's drops |
 
 Players who explore will arrive stronger. That's fine: the bosses should be fair at these levels and
-easier above them, so exploring is rewarded and nobody is forced to grind.
+easier above them, so exploring is rewarded and nobody is forced to grind. The gear sets for each stretch,
+and the hidden Heartstone set for explorers, are in [GEAR.md](GEAR.md).
 
 ## The detours
 
 Off the story path, for players who want them. Each is a few minutes, and none is needed to finish.
 
-| Detour | Where | When it opens | Reward |
-|---|---|---|---|
-| **The whole Witchwood** | The Clearing | From the start | Koi, slimes, early loot |
-| **Hal and Marian** | The Market Quarter | After the city | Carry notes between the butchers' lovers. In the battle, both halves of the shop feed him. |
-| **The falcon post** | The Castle | After the castle | Find Elinor Hawke's goshawk on the wall. A map of hidden chests in the Greywood. |
-| **Fishing with Jory** | Under the King's Bridge | After the city | The best spot for golden koi |
-| **The Waxley girls** | St Mary's crypt | After the midpoint | Tibby and Isabel show him a hidden niche in the crypt. A rare ring. |
+| Detour | Where | Reward |
+|---|---|---|
+| **The whole Clearing** | The Witchwood | Koi, slimes, early loot |
+| **The city's people** | The Market Quarter, the Castle | Rumours, gossip, the families' stories (see [FAMILIES.md](FAMILIES.md)) |
+| **The Hammonds' forge** | The Castle | A better sword, on the Prince's word |
+| **Meg Fell** | The Market Quarter | Deliver the Ranger's note to his wife as well as the King. She gives him her husband's grey cloak (armour). |
+| **The woodcutters' huts** | The Ashwild | Hidden chests |
+| **The big koi** | The Frozen Hollow | Fish through a hole in the ice for a golden koi |
 
 ## What needs building
 
 **Already in the game:** the Clearing, the King's Bridge, the Market Quarter and the Castle; slimes and the
 three kinds of mage; the blade, bow, fishing pole, armour, rings and amulets; potions, koi, levels, the
-dash, jump and swimming; the day and night cycle.
+dash, jump and swimming; the day and night cycle; and (in progress) talking to people.
 
 **To build, roughly in order of the hour:**
 
-1. **Old stones** as checkpoints, keeping gear and level on a fall.
-2. **The Greywood** area, and the Greyed's camp.
-3. **Bosses:** Cinder, Rime and Calder, as bigger versions of the three mages with a twist each (the sheep
-   volley, the long narrow bridge, the triple blink and the door).
-4. **People you can talk to**, and simple story triggers (deliver the note, and so on).
-5. **St Mary's**, nave and crypt.
-6. **Story states for existing areas:** the frozen bridge, and the city on Founder's Night.
-7. **The ending**: a few still pictures and The End.
+1. **The barricade** in the Clearing, with its two woodwardens, and an exit beyond it.
+2. **The King** as someone you can talk to in the castle ward, with his scene, and **the writ** that opens
+   the barricade.
+3. **Old stones** as checkpoints, keeping gear and level on a fall, and the fountain-stone shortcut.
+4. **The Ashwild, the Frozen Hollow and the Thunder Rift**, each leading into the next.
+5. **Bosses:** Cinder, Rime and Calder, as bigger versions of the three mages with a twist each (the sheep
+   volley, the frozen lake, the triple blink and the crack).
+6. **Calder's head**, carried back, and the rift stone's way home.
+7. **The ending**: the King's last lines, and the credits over still pictures.

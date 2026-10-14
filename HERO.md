@@ -80,19 +80,25 @@ He doesn't know any of the above when he wakes. He's a few seconds old and has n
 pulls him north anyway.
 
 1. **The song.** From the moment he wakes he can feel the Old Mother's song in his toes, a deep slow purr
-   in the ground. In the Witchwood it's faint and sad. It gets louder the further north he goes, and
-   loudest of all in the crypt of St Mary's, where it sounds like crying. He follows it the way you'd
-   follow someone calling your name.
+   in the ground. In the Clearing it's faint and sad. Deeper in the Witchwood it gets louder, and at the
+   great crack in the Thunder Rift it sounds like crying. He follows it the way you'd follow someone
+   calling your name.
 2. **The wrong places.** Near a crack in the world, he feels *wrong*: cold in the middle, like a door left
    open. The Witchwood is full of them, and they're getting bigger. He doesn't know what they are, only
    that someone should close them, and nobody else seems to notice.
-3. **The note.** The Ranger asked. He's going to deliver it.
-4. **The people.** The first person in Kingsholm to be kind to him is **Wren Fell**, nine, who gives him a
+3. **The note.** The Ranger asked. He's going to deliver it, and when the woodwardens turn him back from
+   the deep woods and point him north to the King, he takes it to the King.
+4. **The King's errand.** King Osric reads the note, works out what this silent stone stranger is, and asks
+   him for the one thing the kingdom can't do for itself: go deep into the Witchwood and kill Calder. The
+   King picked well. A messenger with no mouth can't spread the rumours the Edict forbids, and a Pebbling
+   the Gloom can't see is the only one who can walk into its wood and come out again.
+5. **The people.** The first person in Kingsholm to be kind to him is **Wren Fell**, nine, who gives him a
    crust from her pocket and asks if he's seen her father. After that there's Meg at the window, Old
    Mother Larke squinting into his eyes and laughing, Pip Tansy lighting his way home, Joan Hollin's
    three-cut loaf, the Applebys' sheep who keeps staring at him like it knows something. He came out of the
-   wood with nothing. The city gives him things, and he's the sort who pays back.
-5. **What he's for.** Underneath all of it, Ael woke him for a reason. He was made to stand in the place
+   wood with nothing. The city gives him things, and he's the sort who pays back. Ending the city's
+   fear is the best thing he can give it.
+6. **What he's for.** Underneath all of it, Ael woke him for a reason. He was made to stand in the place
    where the dark gets in, and not let it.
 
 ## The mages he fights: the Greyed
@@ -108,9 +114,9 @@ through the Hush, and draw swords when you catch them. But they don't knock any 
 the eggs sent home. **They want the eggs to hatch where they are**, on top of the deepest crack in the
 valley, because a hatching would break the seal wide open and let the Gloom straight up into the world.
 
-When the Foreigner beats one, the mage doesn't bleed. The grey goes out of them all at once. Their robes
-fall empty, and a little spark of real fire, the last of the person they used to be, flies off south toward
-home, back into Ael, to rest.
+When the Foreigner beats one, the mage doesn't bleed. The grey goes out of them all at once, and what's
+left of them crumbles to grey stone, as Pebblings do when their fire is gone. A little spark of real fire,
+the last of the person they used to be, flies off south toward home, back into Ael, to rest.
 
 The **slimes** are the same story, smaller. Each one is a scrap of the people of Ul-Ael, stirred up by the
 Gloom coming close. When he pops one, its little bit of somebody goes peacefully back to sleep.
@@ -118,8 +124,10 @@ Gloom coming close. When he pops one, its little bit of somebody goes peacefully
 ### Their leader: Calder of the Storm
 
 **Calder** was the captain of the wardens, the best Storm mage of his age and Yssa of the Frost's favourite
-pupil. He held the biggest crack under the Witchwood alone for forty years. He went grey first, and
-deepest. Now he leads the others, and Umbrall's eye has opened all the way behind his face.
+pupil. He held the biggest crack under the Witchwood alone for forty years: **the great crack**, in the
+Thunder Rift, the deepest part of the forest. He went grey first, and deepest. Now he leads the
+others from there, he's prising the great crack open instead of holding it shut, and Umbrall's eye has
+opened all the way behind his face.
 
 Calder's plan is simple. On **Founder's Night**, the whole city gathers in the square to burn straw
 witches (twice as many this year, by the Marshal's order) while saying the scary names out loud. Names
@@ -137,21 +145,21 @@ His lieutenants:
 
 ## How he gets strong enough
 
-He starts with nothing, can barely punch, and has five hearts. By the end he takes on a mage captain in a
-burning church. Here's how, and how each piece of the game fits:
+He starts with nothing, can barely punch, and has five hearts. By the end he takes on a mage captain at
+the edge of the deepest crack in the valley. Here's how, and how each piece of the game fits:
 
 - **Levels are his heart-fire growing.** Every time he frees a greyed mage, some of the stolen fire passes
   through him on its way home, and a little of it stays. Every slime he pops is a bit of warmth returned.
   That's experience. Each level makes him a bit faster, every second level gives him another heart, and
   every fourth makes him hit harder, as the fire in him burns brighter, until his eyes shine like a
   lantern.
-- **Gear is the city arming him.** He gets swords, bows and armour from the Greyed he beats, from the
-  Hammonds' forge (and in the end, Nell Hammond's cold sword), and from the Garths' storehouse when the
-  Prince starts leaving doors unlocked. Every piece he wears shows on him, and the city can see the
-  Foreigner getting grander every time he walks in.
+- **Gear is the wood and the city arming him.** He gets swords, bows and armour from the Greyed he beats,
+  a hunter's bow from an abandoned hut in the Frozen Hollow, and a better sword from the Hammonds' forge
+  on the Prince's word. Every piece he wears shows on him. The sets, place by place, are in
+  [GEAR.md](GEAR.md).
 - **Potions** are Old Mother Larke's tea, in bottles. Two hearts' worth, and slightly fizzy.
 - **The dash and the jump** are Storm's get-up-and-go. **Swimming** is Frost: water doesn't scare him. The
-  **fishing pole** came from the Ranger's camp, and the Rudds teach him what to do with it.
+  **fishing pole** came from the Ranger's camp.
 - **The crits**, the one-in-ten hits that land twice as hard, are the moments Ael's heart beats under the
   valley. Once a year for Ael, but a lot more often for anyone standing as close to it as he is.
 - **He can't go grey and the Gloom can't see him.** That's the real reason he can win. The Greyed are
@@ -160,32 +168,32 @@ burning church. Here's how, and how each piece of the game fits:
 
 ## The whole game, in about an hour
 
-One short, complete adventure, about an hour on the straight story path, in three acts that each end in a
-fight with one of the Greyed:
+One short, complete adventure, about an hour on the straight story path:
 
-| Act | Story path | Ends with |
+| Part | Story path | What happens |
 |---|---|---|
-| I. The Witchwood | 0:00 to 0:15 | Cinder, the Ember lieutenant, in the Greywood at the cave mouth |
-| II. Kingsholm | 0:15 to 0:45 | Rime, the Frost lieutenant, on the frozen King's Bridge |
-| III. Founder's Night | 0:45 to 1:00 | Calder of the Storm in St Mary's crypt |
+| The King's errand | 0:00 to 0:20 | Wake in the Witchwood, find the way deeper barred, go north to Kingsholm, and take the King's quest |
+| Deep into the Witchwood | 0:20 to 0:55 | Through the Ashwild (Cinder), the Frozen Hollow (Rime) and up to the Thunder Rift (Calder) |
+| The ending | 0:55 to 1:00 | Calder's head at the King's feet, and the credits |
 
-Every beat, area, checkpoint and detour, minute by minute, is in [STORY.md](STORY.md).
+Every beat, area, checkpoint and detour, minute by minute, with the King's words, is in [STORY.md](STORY.md).
 
 ## The end
 
-When Calder falls, the grey goes out of him last of all. For a moment he's just a tired old Storm mage. He
-looks at the Foreigner and says, in Vael, *"Oh. He sent you. Good."* Then his spark goes home, and his
-robes fall empty on the crypt floor.
+When Calder falls at the edge of the great crack, the grey goes out of him last of all. For a moment he's
+just a tired old Storm mage. He looks at the Foreigner and says, in Vael, *"Oh. He sent you. Good."* Then his
+spark goes home, his body crumbles to grey stone, and the great crack groans shut. All that's left whole is
+his head, a round grey stone with the dark gone out of its face. The Foreigner carries it back to the King.
 
-The eggs hatch anyway. They've been warm too long to stop. Three baby dragons tumble out, one red, one
-white and one indigo, and the first thing they see is the Foreigner. They imprint on him on the spot.
+The King looks at it on the keep steps for a long time, says *"...You did it,"* and decides it's time to
+tell the city the rest. Then the credits roll, over how it all ends.
 
-Then the song changes. The hatchlings start to sing, very small and very off-key, and the **Old Mother**,
-arriving over Kingsholm at that moment, bigger than St Mary's and blotting out the moon, sings with them.
-The whole city hears her, Edict or no Edict. The little carved door swings shut. The eye behind it closes,
-and the seal under the valley is whole again, for good this time. It isn't a stone or an egg any more but
-three living dragons who have decided they like it here. Far above the city, the star that had been
-getting bigger blinks once and goes back to being an ordinary star.
+With Calder gone, the Greyed have no one to follow. Their sparks go home one by one, and the cracks under
+the Witchwood close. The Vael come north over the King's Bridge, openly and politely, and ask for their
+eggs. This time, the King gives them back. The eggs go home under the Greyspines and hatch beside the
+**Old Mother**, three baby dragons, one red, one white and one indigo, and their song with hers seals the
+valley whole again, for good. Far above the city, the star that had been getting bigger blinks once and
+goes back to being an ordinary star.
 
 ### Where everyone ends up
 
@@ -197,7 +205,7 @@ getting bigger blinks once and goes back to being an ordinary star.
 - **The Edict is torn up.** Wystan Fell and Jack Linnet walk out of the dungeon. Jack sings his song at
   the cross with the real words. Wystan goes home to the house with the grey cloak at the window, and Meg
   takes the cloak in for good.
-- **The Vael come north**, openly, for the first time in six hundred years. The southern road reopens, the
+- **The Vael come north**, openly, for the first time in six hundred years, and take their eggs home. The southern road reopens, the
   Ashcombes' cloth comes up it again, the Fitzwaren manors pay their rents (in Vael silver), and the
   Grisons decide to stay after all. So does Lucia's interest in the Prince.
 - **Founder's Night** becomes **the Night of the Return**. No more straw witches. Everyone puts out a bowl
@@ -209,10 +217,12 @@ getting bigger blinks once and goes back to being an ordinary star.
   the frost go at last. She walks over the King's Bridge, sets a bowl of milk at the foot of the fountain,
   and grows old very happily in Kingsholm, playing cards every Thursday with Widow Crane and the Dowager
   Queen. Widow Crane cheats. Yssa lets her.
+- **Tam Appleby** stopped being a sheep the moment Cinder fell, and has been eating turnips ever since.
 - **The slimes** stop bouncing. With the seal whole, the Frost order can finally unscramble Ul-Ael. Over
   the following year, the slimes of the Witchwood turn back into the people of the Deep Hall, and the first
   thing anyone hears is the little bell on the mayor's hat.
-- **Ael** sleeps soundly. The hatchlings' song is a lullaby, and it never needs to turn over again.
+- **Ael** sleeps soundly. The Old Mother and the hatchlings sing it a lullaby, and it never needs to turn
+  over again.
 
 **The city.**
 
@@ -222,12 +232,12 @@ getting bigger blinks once and goes back to being an ordinary star.
   retires from tattling, there being nothing left to tattle about.
 - **Little Prince Aldric**'s dreams of a great bird turn into dreams of a great bird singing to him, which
   is exactly what they were all along.
-- **Widow Crane** finally meets the Old Mother, awake this time. The Old Mother tells her she was right
-  about everything, and to eat her greens.
+- **Widow Crane** finally meets the Old Mother, who flies over Kingsholm once, on the Night of the Return,
+  so the city can see her. She tells the Widow she was right about everything, and to eat her greens.
 
 **The Foreigner.** Ael doesn't need to send him back to the stone again. He stays awake, for good. Meg Fell
-gives him the room at the top of the house with the grey cloak, and the three hatchlings sleep on the
-roof. On Lantern Night every house in Kingsholm hangs a lantern, and for the first time one of them is his.
+gives him the room at the top of the house with the grey cloak, and every spring three small dragons come
+up from the Greyspines to visit him. On Lantern Night every house in Kingsholm hangs a lantern, and for the first time one of them is his.
 The Vael call him Aelin. The city goes on calling him the Foreigner for a while, and then, without anyone
 deciding to, just calls him one of theirs.
 
