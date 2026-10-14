@@ -5,6 +5,7 @@
 import { T, type Rect } from "../data/world.ts";
 import { Rng } from "../core/rng.ts";
 import type { Prop } from "./area.ts";
+import { gravePlan } from "./solids.ts";
 import { FAMILIES, INSTITUTIONS, SURNAMES, householdsOf, type District, type Family, type Folk, type Household, type Stance, type Where } from "./people.ts";
 
 export interface Spot {
@@ -202,7 +203,27 @@ class Maker {
     return [a, b];
   }
 
-  first(rng: Rng, sex: "f" | "m") { return pick(rng, sex === "f" ? FEMALE : MALE); }
+  /** Every name given so far, living and dead: no two people in the city share one. */
+  readonly used = new Set<string>();
+
+  /** A first name for `surname` that nobody has yet (or, if every one's taken, "the Younger" and so on). */
+  nameFor(rng: Rng, sex: "f" | "m", surname: string): string {
+    const pool = sex === "f" ? FEMALE : MALE, start = rng.int(0, pool.length - 1);
+    for (let i = 0; i < pool.length; i++) {
+      const name = `${pool[(start + i) % pool.length]!} ${surname}`;
+      if (!this.used.has(name)) return this.claim(name);
+    }
+    const base = `${pool[start]!} ${surname}`;
+    for (const suffix of ["the Younger", "the Elder", "the Third", "the Fourth", "the Fifth"]) if (!this.used.has(`${base} ${suffix}`)) return this.claim(`${base} ${suffix}`);
+    let n = 6;
+    while (this.used.has(`${base} ${n}`)) n++;
+    return this.claim(`${base} ${n}`);
+  }
+
+  claim(name: string): string {
+    this.used.add(name);
+    return name;
+  }
 
   /** Where someone spends the day, from their job and age. */
   dayOf(rng: Rng, job: string, age: number, home: Spot): Spot {
@@ -247,7 +268,7 @@ function folkPeople(mk: Maker, rng: Rng, h: Household, f: Folk, n: number, homeN
   let left = f.size;
   const add = (sex: "f" | "m", age: number, job: string, role: string, floor: number, surname = f.surname) => {
     const home = place(floor);
-    mk.person(rng, { name: `${mk.first(rng, sex)} ${surname}`, sex, age, job, role, stance, home, day: mk.dayOf(rng, job, age, home) });
+    mk.person(rng, { name: mk.nameFor(rng, sex, surname), sex, age, job, role, stance, home, day: mk.dayOf(rng, job, age, home) });
     left--;
   };
   const headSex: "f" | "m" = rng.next() < 0.75 ? "m" : "f", headAge = rng.int(26, 62);
@@ -282,7 +303,7 @@ function familyPeople(mk: Maker, rng: Rng, f: Family, home: (floor: number) => S
     const sex: "f" | "m" = /maid|nurse|laundress|seamstress/.test(job) ? "f" : /valet|page|footman|boy|manservant/.test(job) ? "m" : pick(rng, ["f", "m"] as const);
     const age = /apprentice|page|boy/.test(job) ? rng.int(12, 18) : rng.int(17, 60);
     const spot = home(top);
-    mk.person(rng, { name: `${mk.first(rng, sex)} ${pick(rng, SURNAMES)}`, sex, age, job, role: f.rank === "craft" ? "apprentice" : f.rank === "labouring" ? "lodger" : "servant", family: f.id, stance: f.stance, home: spot, day: mk.dayOf(rng, f.rank === "craft" ? `${job} ${f.trade}` : job, age, spot) });
+    mk.person(rng, { name: mk.nameFor(rng, sex, pick(rng, SURNAMES)), sex, age, job, role: f.rank === "craft" ? "apprentice" : f.rank === "labouring" ? "lodger" : "servant", family: f.id, stance: f.stance, home: spot, day: mk.dayOf(rng, f.rank === "craft" ? `${job} ${f.trade}` : job, age, spot) });
   }
 }
 
@@ -292,6 +313,9 @@ function familyPeople(mk: Maker, rng: Rng, f: Family, home: (floor: number) => S
  */
 export function residentsOf(props: CityProps): Resident[] {
   const at = placesOf(props), mk = new Maker(at);
+  // The named are who they are; nobody else may have their names, nor the names on the notable graves.
+  for (const f of FAMILIES) for (const m of f.members) mk.used.add(m.name);
+  for (const d of NOTABLE_DEAD) mk.used.add(d.name);
 
   // The houses of each district.
   for (const district of ["capital", "castle"] as District[]) {
@@ -319,7 +343,7 @@ export function residentsOf(props: CityProps): Resident[] {
     const rng = new Rng(seed);
     for (let i = 0; i < count; i++) {
       const m = make(rng, i), sex = m.sex ?? (rng.next() < 0.5 ? "f" : "m");
-      mk.person(rng, { name: `${mk.first(rng, sex)} ${m.surname ?? pick(rng, SURNAMES)}`, sex, age: m.age, job: m.job, role: m.role, stance: m.stance ?? "quiet", home: m.home, day: mk.dayOf(rng, m.job, m.age, m.home) });
+      mk.person(rng, { name: mk.nameFor(rng, sex, m.surname ?? pick(rng, SURNAMES)), sex, age: m.age, job: m.job, role: m.role, stance: m.stance ?? "quiet", home: m.home, day: mk.dayOf(rng, m.job, m.age, m.home) });
     }
   };
   const room = (s: Spot, floor: number) => ({ ...s, floor });
@@ -345,4 +369,95 @@ export function residentsOf(props: CityProps): Resident[] {
     return { age: rng.int(16, 70), job: `${job}${job.startsWith("a quiet") ? "" : `, from ${pick(rng, PLACES_FROM)}`}`, role: "guest", stance: "whispering", home: { ...inn, place: `${inn.place} (a guest)`, floor: 2 } };
   });
   return mk.out;
+}
+
+// ---------- The dead ----------
+export interface Departed {
+  id: number;
+  name: string;
+  sex: "f" | "m";
+  born: number;
+  died: number;
+  /** What they did in life. */
+  was: string;
+  cause: string;
+  epitaph: string;
+  /** The named family they belonged to (FAMILIES id), if any. */
+  family?: string;
+  /** Their grave: its tile, and what marks it (see gravePlan: 3 is a chest tomb, 5 fresh earth under a wooden cross; -1 a crypt). */
+  grave: Spot & { marker: number };
+  note?: string;
+}
+
+type Notable = Omit<Departed, "id" | "grave"> & { marker?: "tomb" | "fresh" | "chapel" };
+/** The dead the city remembers, in the graves that suit them: the rich in chest tombs, this year's under wooden crosses. */
+const NOTABLE_DEAD: readonly Notable[] = [
+  { name: "Morwen Maddox", sex: "f", born: 318, died: 389, was: "Founder of the Crown inn", cause: "old age, behind her own bar", epitaph: "Drink under the Crown.", family: "maddox", marker: "tomb" },
+  { name: "Rhosyn Larke", sex: "f", born: 341, died: 412, was: "Herbwife", cause: "old age", epitaph: "She made the tea.", family: "larke", note: "Cured half the Wallside in the Fever Winter of 377 AF. Given a medal and accused of witchcraft in the same week." },
+  { name: "Edmund Ashcombe", sex: "m", born: 478, died: 551, was: "Mercer, who opened the cloth road through the Witchwood", cause: "a chill caught at Oswin's nineteen-day feast", epitaph: "He found the way to the reds.", family: "ashcombe", marker: "tomb" },
+  { name: "Gwenna Mabb", sex: "f", born: 437, died: 531, was: "Spinner, and Widow Crane's grandmother", cause: "old age, still talking", epitaph: "I saw it. I did.", family: "crane", note: "Saw the Summer the Sky Went Pink as a little girl, and a shadow longer than the river cross the Greyspines." },
+  { name: "Tom Rook", sex: "m", born: 504, died: 531, was: "Carter, Agnes Crane's first husband", cause: "a cart over on the south road", epitaph: "Gone on ahead.", family: "crane" },
+  { name: "Ned Willow", sex: "m", born: 500, died: 556, was: "Thatcher, Agnes Crane's second husband", cause: "fell off a roof he'd just finished", epitaph: "It didn't leak.", family: "crane" },
+  { name: "Gil Crane", sex: "m", born: 505, died: 579, was: "Cooper, Agnes Crane's third husband", cause: "old age", epitaph: "Third time lucky.", family: "crane" },
+  { name: "Wilfred Stott", sex: "m", born: 488, died: 560, was: "Butcher", cause: "old age", epitaph: "To the better butcher.", family: "stott", note: "Left his shop to 'the better butcher' without saying which. His children sawed it in half." },
+  { name: "Ralf Stott", sex: "m", born: 520, died: 589, was: "Butcher, Roger Stott's father", cause: "a bad winter cough", epitaph: "The good end of the counter.", family: "stott" },
+  { name: "Bartholomew Cleave", sex: "m", born: 515, died: 571, was: "Butcher, Ursula Cleave's husband", cause: "old age", epitaph: "He kept the good hooks.", family: "cleave" },
+  { name: "Aldwin Fell", sex: "m", born: 538, died: 585, was: "King's Ranger, Wystan's father", cause: "lost in a snowstorm in the Greyspines, found in the spring", epitaph: "He knew the way.", family: "fell" },
+  { name: "Kit Hammond the Elder", sex: "m", born: 524, died: 592, was: "Royal armourer, Walter's father", cause: "old age, at the forge", epitaph: "Struck while the iron was hot.", family: "hammond" },
+  { name: "Alys Hawke", sex: "f", born: 545, died: 590, was: "Falconer, Osmund Hawke's wife", cause: "a fever", epitaph: "She let the falcons go.", family: "hawke" },
+  { name: "Ann Kellet", sex: "f", born: 572, died: 596, was: "Glazier, Ralph Kellet's wife and Isabel's mother", cause: "the coughing fever", epitaph: "Light through glass.", family: "kellet" },
+  { name: "Rob Tansy", sex: "m", born: 568, died: 597, was: "Lamp-oil seller, Daisy and Pip's father", cause: "the Fever of 597", epitaph: "Keep the lamps lit.", family: "tansy" },
+  { name: "Lily Tansy", sex: "f", born: 570, died: 597, was: "Flower seller, Daisy and Pip's mother", cause: "the Fever of 597", epitaph: "Roses for Lily.", family: "tansy" },
+  { name: "Ambrose Leafwright the First", sex: "m", born: 390, died: 461, was: "Goldbeater, who brought the family from the coast", cause: "old age", epitaph: "Thin as leaf, bright as gold.", family: "leafwright", marker: "tomb" },
+  { name: "Oswin the Cheerful", sex: "m", born: 497, died: 553, was: "King of Aurenmark, Osric IV's father", cause: "in his sleep, the night after his nineteen-day feast", epitaph: "He threw a good party.", family: "aurel", marker: "chapel" },
+  { name: "Princess Eira", sex: "f", born: 573, died: 594, was: "Prince Edmund's wife, little Prince Aldric's mother", cause: "the coughing fever", epitaph: "Sing him the lullaby.", family: "aurel", marker: "chapel" },
+  { name: "Bartle Hayward", sex: "m", born: 509, died: 600, was: "Retired miller", cause: "in his sleep this spring, dreaming of pie", epitaph: "Gone to see the fountain king.", marker: "fresh" },
+];
+
+const WAS = ["Carter", "Spinner", "Cooper", "Weaver", "Baker", "Thatcher", "Laundress", "Brewer", "Fisher", "Tailor", "Glover", "Mason", "Miner", "Porter", "Chandler", "Dyer", "Midwife", "Shepherd", "Saddler", "Potter", "Town crier", "Night watchman", "Seamstress", "Apprentice", "Merchant", "Guard"] as const;
+const CAUSES = ["old age", "old age", "old age", "a bad winter cough", "a fever", "in their sleep, very old", "fell off a ladder", "a cart over on the south road", "a long illness", "a chill", "slipped on the ice by the fountain", "a bee sting, of all things", "a fall from the city wall"] as const;
+/** What carried people off in the years the chronicle remembers. */
+const CAUSE_IN: Record<number, string> = { 377: "the Fever Winter", 401: "the Long Frost", 445: "loud weather, in the Summer the Sky Went Pink", 553: "too much pie at Oswin's nineteen-day feast", 597: "the Fever of 597" };
+const EPITAPHS = [
+  "Rest now.", "Gone to see the fountain king.", "Loved, and a terrible cook.", "Mind the weather.", "Always had a crust in a pocket.",
+  "Sorely missed by the cats.", "Asleep at last.", "Kind to everyone, even the Bell.", "Here lies a good neighbour.", "Finally on time.",
+  "Sang loudest at Lantern Night.", "Owes nobody anything.", "Never once won the fountain race.", "Gone ahead to keep the fire warm.",
+  "Remembered on Lantern Night.", "Tried every pie in the city.", "Too stubborn to stay down long.", "Light a lantern for me.",
+] as const;
+
+/**
+ * Everyone buried in the city's churchyards, one to each grave (gravePlan), with nobody sharing a name with
+ * the living or each other. Pass the living (residentsOf) so their names stay theirs.
+ */
+export function departedOf(props: CityProps, living: readonly Resident[]): Departed[] {
+  const mk = new Maker(placesOf(props)), out: Departed[] = [];
+  for (const r of living) mk.used.add(r.name);
+  for (const d of NOTABLE_DEAD) mk.used.add(d.name);
+  const surnames = [...new Set(living.filter(r => !r.family).map(r => r.name.split(" ").pop()!).filter(n => /^[A-Z][a-z]+$/.test(n) && !/^(Younger|Elder|Third|Fourth|Fifth)$/.test(n)))];
+  const graves = (["capital", "castle"] as const).flatMap(area => props[area].flatMap(p => (p.kind === "graves" ? gravePlan(p.rect).map((g, i) => ({ area, g, i })) : [])));
+  const notable = [...NOTABLE_DEAD];
+  const take = (test: (n: Notable) => boolean) => { const i = notable.findIndex(test); return i < 0 ? undefined : notable.splice(i, 1)[0]; };
+  for (const { area, g, i } of graves) {
+    const rng = new Rng(Math.floor(g.x * 977 + g.z * 7919) + i + 1);
+    const grave = { area, x: Math.floor(g.x), y: Math.floor(g.z), marker: g.kind, place: "St Mary's churchyard" };
+    const known = g.kind === 3 ? take(n => n.marker === "tomb") : g.kind === 5 ? take(n => n.marker === "fresh") : take(n => !n.marker);
+    if (known) {
+      const { marker: _marker, ...d } = known;
+      out.push({ id: out.length + 1, ...d, grave });
+      continue;
+    }
+    const sex: "f" | "m" = rng.next() < 0.5 ? "f" : "m";
+    // Fresh earth is this year's; a chest tomb is old money; the rest are from any time since St Mary's was built.
+    const died = g.kind === 5 ? 600 : g.kind === 3 ? rng.int(120, 560) : rng.next() < 0.5 ? rng.int(480, 599) : rng.int(90, 479);
+    const age = g.kind === 5 ? rng.int(70, 96) : rng.int(19, 94), born = died - age;
+    const was = g.kind === 3 ? pick(rng, ["Merchant", "Guild master", "Goldsmith", "Alderman", "Wool merchant"]) : pick(rng, WAS);
+    const cause = CAUSE_IN[died] ?? (g.kind === 5 ? "old age, this year" : pick(rng, CAUSES));
+    out.push({ id: out.length + 1, name: mk.nameFor(rng, sex, pick(rng, rng.next() < 0.6 && surnames.length ? surnames : SURNAMES)), sex, born, died, was, cause, epitaph: pick(rng, EPITAPHS), grave });
+  }
+  // The royal dead lie in the castle chapel; anyone the churchyard has no room for, in St Mary's crypt.
+  for (const { marker, ...d } of notable) {
+    const at = marker === "chapel" ? { ...mk.at.chapel, place: "the crypt of the castle chapel" } : { ...mk.at.stMarys, place: "the crypt of St Mary's" };
+    out.push({ id: out.length + 1, ...d, grave: { ...at, marker: -1 } });
+  }
+  return out;
 }

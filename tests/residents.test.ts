@@ -6,13 +6,15 @@ import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { T } from "../src/data/world.ts";
 import { BEYOND_HOUSES, FAMILIES, householdsOf } from "../src/world/people.ts";
-import { residentsOf, type CityProps } from "../src/world/residents.ts";
+import { departedOf, residentsOf, type CityProps } from "../src/world/residents.ts";
+import { gravePlan } from "../src/world/solids.ts";
 
 const layouts = { capital: capital.build(), castle: castle.build(), kingsroad: kingsroad.build() };
 const props: CityProps = { capital: layouts.capital.props, castle: layouts.castle.props, kingsroad: layouts.kingsroad.props };
 const people = residentsOf(props);
 const households = (["capital", "castle"] as const).flatMap(d => householdsOf(d, props[d]));
 const gone = FAMILIES.flatMap(f => f.members.filter(m => m.gone));
+const dead = departedOf(props, people);
 
 describe("the residents of Kingsholm", () => {
   it("counts everyone the households and institutions hold, and the prisoners", () => {
@@ -51,7 +53,23 @@ describe("the residents of Kingsholm", () => {
     }
   });
 
+  it("never gives two people the same name, living or dead", () => {
+    const names = [...people, ...dead].map(r => r.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("buries someone in every grave, each born before they died", () => {
+    const graves = (["capital", "castle"] as const).flatMap(a => props[a].flatMap(p => (p.kind === "graves" ? gravePlan(p.rect) : [])));
+    expect(dead.filter(d => d.grave.marker >= 0)).toHaveLength(graves.length);
+    for (const d of dead) {
+      expect(d.born, d.name).toBeLessThan(d.died);
+      expect(d.died, d.name).toBeLessThanOrEqual(600);
+      if (d.grave.marker === 5) expect(d.died, `${d.name} is fresh`).toBe(600);
+    }
+  });
+
   it("makes the same people every time", () => {
     expect(residentsOf(props)).toEqual(people);
+    expect(departedOf(props, people)).toEqual(dead);
   });
 });

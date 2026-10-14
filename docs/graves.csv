@@ -1,0 +1,22 @@
+id,name,sex,born (AF),died (AF),age,was,cause,epitaph,family,grave,district,x,y,marker,note
+1,Rhosyn Larke,f,341,412,71,Herbwife,old age,She made the tea.,larke,St Mary's churchyard,Market Quarter,69,34,headstone,Cured half the Wallside in the Fever Winter of 377 AF. Given a medal and accused of witchcraft in the same week.
+2,Bartle Hayward,m,509,600,91,Retired miller,"in his sleep this spring, dreaming of pie",Gone to see the fountain king.,,St Mary's churchyard,Market Quarter,72,34,"wooden cross, fresh earth",
+3,Gwenna Mabb,f,437,531,94,"Spinner, and Widow Crane's grandmother","old age, still talking",I saw it. I did.,crane,St Mary's churchyard,Market Quarter,73,34,small stone,"Saw the Summer the Sky Went Pink as a little girl, and a shadow longer than the river cross the Greyspines."
+4,Tom Rook,m,504,531,27,"Carter, Agnes Crane's first husband",a cart over on the south road,Gone on ahead.,crane,St Mary's churchyard,Market Quarter,74,34,headstone,
+5,Ned Willow,m,500,556,56,"Thatcher, Agnes Crane's second husband",fell off a roof he'd just finished,It didn't leak.,crane,St Mary's churchyard,Market Quarter,76,34,headstone,
+6,Gil Crane,m,505,579,74,"Cooper, Agnes Crane's third husband",old age,Third time lucky.,crane,St Mary's churchyard,Market Quarter,77,34,cross,
+7,Wilfred Stott,m,488,560,72,Butcher,old age,To the better butcher.,stott,St Mary's churchyard,Market Quarter,78,34,headstone,Left his shop to 'the better butcher' without saying which. His children sawed it in half.
+8,Ralf Stott,m,520,589,69,"Butcher, Roger Stott's father",a bad winter cough,The good end of the counter.,stott,St Mary's churchyard,Market Quarter,80,34,headstone,
+9,Morwen Maddox,f,318,389,71,Founder of the Crown inn,"old age, behind her own bar",Drink under the Crown.,maddox,St Mary's churchyard,Market Quarter,81,34,chest tomb,
+10,Bartholomew Cleave,m,515,571,56,"Butcher, Ursula Cleave's husband",old age,He kept the good hooks.,cleave,St Mary's churchyard,Market Quarter,82,34,small stone,
+11,Aldwin Fell,m,538,585,47,"King's Ranger, Wystan's father","lost in a snowstorm in the Greyspines, found in the spring",He knew the way.,fell,St Mary's churchyard,Market Quarter,70,36,wheel cross,
+12,Kit Hammond the Elder,m,524,592,68,"Royal armourer, Walter's father","old age, at the forge",Struck while the iron was hot.,hammond,St Mary's churchyard,Market Quarter,71,36,headstone,
+13,Alys Hawke,f,545,590,45,"Falconer, Osmund Hawke's wife",a fever,She let the falcons go.,hawke,St Mary's churchyard,Market Quarter,75,36,headstone,
+14,Ann Kellet,f,572,596,24,"Glazier, Ralph Kellet's wife and Isabel's mother",the coughing fever,Light through glass.,kellet,St Mary's churchyard,Market Quarter,76,36,headstone,
+15,Rob Tansy,m,568,597,29,"Lamp-oil seller, Daisy and Pip's father",the Fever of 597,Keep the lamps lit.,tansy,St Mary's churchyard,Market Quarter,78,36,headstone,
+16,Lily Tansy,f,570,597,27,"Flower seller, Daisy and Pip's mother",the Fever of 597,Roses for Lily.,tansy,St Mary's churchyard,Market Quarter,79,36,small stone,
+17,Hob Rook,m,325,413,88,Mason,old age,Sang loudest at Lantern Night.,,St Mary's churchyard,Market Quarter,80,36,small stone,
+18,Edmund Ashcombe,m,478,551,73,"Mercer, who opened the cloth road through the Witchwood",a chill caught at Oswin's nineteen-day feast,He found the way to the reds.,ashcombe,the crypt of St Mary's,Market Quarter,77,30,crypt,
+19,Ambrose Leafwright the First,m,390,461,71,"Goldbeater, who brought the family from the coast",old age,"Thin as leaf, bright as gold.",leafwright,the crypt of St Mary's,Market Quarter,77,30,crypt,
+20,Oswin the Cheerful,m,497,553,56,"King of Aurenmark, Osric IV's father","in his sleep, the night after his nineteen-day feast",He threw a good party.,aurel,the crypt of the castle chapel,Castle,43,8,crypt,
+21,Princess Eira,f,573,594,21,"Prince Edmund's wife, little Prince Aldric's mother",the coughing fever,Sing him the lullaby.,aurel,the crypt of the castle chapel,Castle,43,8,crypt,
