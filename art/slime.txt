@@ -1,0 +1,20 @@
+# Moss Slime: first enemy. Shows the style on a non-humanoid.
+
+@idle 400
+........
+........
+...GG...
+..GGGG..
+.GWGGGv.
+.GkGkGv.
+GGGGGvvv
+.vvvvvv.
+
+........
+........
+........
+..GGGG..
+.GWGGGv.
+GGkGkGvv
+GGGGGvvv
+vvvvvvvv

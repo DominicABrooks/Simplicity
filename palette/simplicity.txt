@@ -1,0 +1,22 @@
+# Simplicity master palette: 16 colors plus one water alias.
+# Every sprite pixel must be one of these characters. "." is transparent.
+# Columns: char  hex  name  [flags]
+# Flag "nooutline": these pixels never get the black render outline.
+
+K  #14101e  ink
+k  #2b2438  void
+W  #f2ead8  bone
+w  #b8ad9c  stone
+R  #c8423a  ember
+r  #7a2433  blood
+O  #e8963a  amber
+Y  #f5d562  glow
+G  #5fb04a  moss
+v  #2f6e44  pine
+C  #6fd0e8  mana
+B  #3f6fd0  azure
+b  #263872  deep
+P  #8a4fc0  arcane
+N  #8b5a34  oak
+n  #4f3222  bark
+~  #6fd0e8  water  nooutline
