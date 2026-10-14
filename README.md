@@ -20,7 +20,9 @@ The game is already built: `game/sprites.js` is generated from `art/` and commit
 
 ## Play
 
-WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction.
+WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
+
+**Ember Mage:** once you've killed a few slimes, a rare red-robed twin of you may appear. It keeps its distance and throws fireballs: watch for the fireball growing in its hands, then dash or jump through the shot. It has twice a slime's health and always drops a magic or better item.
 
 **Sword:** every attack is a wide swipe that alternates direction and steps you forward. Pressing during a swipe queues the next one, so mashing chains smoothly, and a dash cancels a swipe's recovery. Hits briefly freeze the action and shake the camera.
 

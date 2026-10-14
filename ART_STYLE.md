@@ -52,6 +52,8 @@ The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a roun
 | Magic | `azure` / `deep` | `stone`, `bone` blade | soft `mana` |
 | Rare | `arcane` / dark purple | `glow` gold | strong `glow` |
 
+**Enemy tiers.** `ember` is an enemy-only tier (red cloth, amber trim, `blood` boots). The Ember Mage is the hero's own body dressed in it, with `amber` eyes instead of `glow`, so it reads instantly as a dark twin. Enemy tiers never roll as loot.
+
 New gear types must follow the same rule: a distinct silhouette per slot, with colour and glow from the tier.
 
 Tier colours live in one place, `game/tiers.js`, and both the 3D gear and the inventory icons read from it, so an item looks the same in the bag as it does worn. Item icons in `art/items/` are drawn in the magic (azure) colours; `ICON_SWAPS` in `tiers.js` maps each icon's pixels to tier colours. A new item type needs an entry there.
@@ -98,6 +100,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | hurt | Model blinks while invulnerable |
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |
 | fish | Koi just under the water surface: wander, wiggle their tails, turn back at the shore, dart away from the hero |
+| mage | Faces the hero; bobs as it walks. Casting: both hands come forward and a fireball grows between them for the whole 0.7 s charge (the telegraph), then flies as a spinning `glow` core in an additive `ember` shell, trailing embers, and bursts into `amber`/`ember` sparks |
 | fishing | Holding the button draws the pole back behind the head (trembling as it's held) and a spinning ring marks the landing spot, `mana` over water and faded `stone` over land; releasing swings it forward; the bobber arcs out on a sagging line; koi drift toward it; on a bite the bobber dips with a splash ring and a gold **!** pops over the hero; the catch leaps out of the water to the hero |
 
 ## UI and icons
