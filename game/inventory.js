@@ -54,12 +54,13 @@ export function makeItem(type, rarity = "normal", mods = {}, name) {
   return { id: nextId++, type, rarity, name: name || b.name, slot: b.slot, w: b.w, h: b.h, base: { ...b.base }, mods };
 }
 
-export function rollItem(rand) {
+export function rollItem(rand, minRarity = "normal") {
   const types = Object.keys(BASES).filter(t => !BASES[t].noLoot);
   const type = types[Math.floor(rand() * types.length)];
   const slot = BASES[type].slot;
   const r = rand();
-  const rarity = r < 0.12 ? "rare" : r < 0.45 ? "magic" : "normal";
+  let rarity = r < 0.12 ? "rare" : r < 0.45 ? "magic" : "normal";
+  if (minRarity === "magic" && rarity === "normal") rarity = "magic";
   const pool = Object.keys(AFFIXES).filter(k => AFFIXES[k].slots.includes(slot));
   const count = rarity === "rare" ? Math.min(3, pool.length) : rarity === "magic" ? 1 + Math.floor(rand() * 2) : 0;
   const mods = {};

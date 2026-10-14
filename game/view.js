@@ -348,6 +348,72 @@ export function createView(canvas, PAL, C) {
     } else if (leaper) { world.remove(leaper); leaper = null; leaperKey = null; }
   }
 
+  // ---------- Ember Mage ----------
+  // The same body as the hero, dressed in the red ember tier, with orange eyes.
+  const mageViews = new Map(), fireballViews = new Map();
+  const mageEyes = basic(PAL.O);
+  function makeFireballMesh() {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), basic(PAL.Y)));
+    g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 0), basic(PAL.R, { transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })));
+    return g;
+  }
+  function makeMageView() {
+    const m = makeHero();
+    dressHero(m, { helm: "ember", armor: "ember", boots: "ember", weapon: null, ring: null, amulet: null, weaponType: null });
+    m.eyes.forEach(e => { e.material = mageEyes; });
+    m.ripple.visible = false;
+    m.orb = makeFireballMesh(); m.orb.visible = false;
+    m.group.add(m.orb);
+    return m;
+  }
+  function updateMages(list, p, t, dt) {
+    syncSet(list, mageViews, makeMageView);
+    for (const [o, v] of mageViews) {
+      const [x, z] = toWorld(o.x, o.y);
+      v.group.position.set(x, 0, z);
+      const look = -Math.atan2(p.y - o.y, p.x - o.x);       // always face the hero
+      v.yaw = v.yaw === undefined ? look : turn(v.yaw, look, dt, 8);
+      v.group.rotation.y = v.yaw;
+      v.group.visible = !(o.flash > 0 && Math.floor(t * 30) % 2);
+      v.body.position.y = o.moving ? Math.abs(Math.sin(t * 10)) * 0.05 : 0;
+      v.body.scale.y = 1 + Math.sin(t * 2.5) * 0.025;
+      v.feet.forEach((f, i) => { f.position.x = v.footX + (o.moving ? Math.sin(t * 10 + i * Math.PI) * 0.08 : 0); });
+      // Casting: both hands come forward and a fireball grows between them (the telegraph).
+      const k = o.casting ? Math.min(1, o.castT / C.MAGE_CHARGE) : 0;
+      v.hands.forEach((h, i) => {
+        const side = i === 0 ? 1 : -1;
+        if (o.casting) h.position.set(0.32 + k * 0.08, 0.5 + k * 0.1, side * (0.22 - k * 0.08));
+        else h.position.set(0.12, 0.38 + Math.sin(t * 2.5 + i) * 0.02, side * 0.44);
+      });
+      v.orb.visible = o.casting;
+      v.orb.position.set(0.5, 0.58 + k * 0.08, 0);
+      v.orb.scale.setScalar(0.3 + k * 0.9 + Math.sin(t * 30) * 0.05 * k);
+      v.orb.rotation.set(t * 4, t * 5, 0);
+      v.shadow.position.set(x, 0.01, z);
+    }
+  }
+  function updateFireballViews(list, t, dt) {
+    syncSet(list, fireballViews, () => {
+      const group = makeFireballMesh();
+      const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.scale.setScalar(0.35); shadow.position.y = 0.01;
+      scene.add(group, shadow);
+      return { group, shadow };
+    });
+    for (const [f, v] of fireballViews) {
+      const [x, z] = toWorld(f.x - 4, f.y - 4);
+      v.group.position.set(x, 0.55 + Math.sin(t * 12 + f.x) * 0.03, z);
+      v.group.rotation.set(t * 6, t * 7, 0);
+      v.shadow.position.set(x, 0.01, z);
+      if (Math.random() < dt * 30) {                        // ember trail
+        const m = new THREE.Mesh(sparkGeo, Math.random() < 0.5 ? sparkMats.fire : sparkMats.ember);
+        m.position.set(x, 0.55, z);
+        m.userData = { vx: (Math.random() - 0.5) * 0.6, vz: (Math.random() - 0.5) * 0.6, vy: 0.8 + Math.random() * 0.6, life: 0.25 };
+        scene.add(m); sparks.push(m);
+      }
+    }
+  }
+
   // ---------- Sword swoosh ----------
   // A flat arc on the hero, from where the sweep began to where the blade is now, fading after the sweep.
   const swooshMat = basic(PAL.W, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
@@ -645,7 +711,7 @@ export function createView(canvas, PAL, C) {
     return { group, shadow };
   }
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
-  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C) };
+  const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G), water: basic(PAL.C), fire: basic(PAL.O), ember: basic(PAL.R) };
   let sparks = [];
   let ghosts = [], ghostTimer = 0, wasDashing = false;
   const dustMat = basic(PAL.w);
@@ -661,7 +727,7 @@ export function createView(canvas, PAL, C) {
 
   function syncSet(list, views, make) {
     const alive = new Set(list);
-    for (const [o, v] of views) if (!alive.has(o)) { scene.remove(v.group, v.shadow); views.delete(o); }
+    for (const [o, v] of views) if (!alive.has(o)) { scene.remove(v.group, v.shadow); if (v.ripple) scene.remove(v.ripple); views.delete(o); }
     for (const o of list) if (!views.has(o)) views.set(o, make(o));
   }
 
@@ -768,7 +834,9 @@ export function createView(canvas, PAL, C) {
     hero.ripple.material.opacity = 0.6 * (1 - (t * 1.5 % 1));
 
     // Slimes
-    syncSet(s.slimes, slimeViews, makeSlime);
+    updateMages(s.slimes.filter(o => o.kind === "mage"), p, t, dt);
+    updateFireballViews(s.fireballs, t, dt);
+    syncSet(s.slimes.filter(o => o.kind !== "mage"), slimeViews, makeSlime);
     for (const [o, v] of slimeViews) {
       const [x, z] = toWorld(o.x, o.y);
       const hop = o.hop > 0 ? Math.sin((1 - o.hop / 0.3) * Math.PI) : 0;
@@ -817,9 +885,9 @@ export function createView(canvas, PAL, C) {
       if (seenEffects.has(e)) continue;
       seenEffects.add(e);
       const [x, z] = toWorld(e.x - 4, e.y - 4);
-      for (let i = 0; i < (e.big ? 10 : 5); i++) {
-        const m = new THREE.Mesh(sparkGeo, e.big ? sparkMats.big : sparkMats.hit);
-        const a = Math.random() * Math.PI * 2, sp = e.big ? 2.5 : 3.5;
+      for (let i = 0; i < (e.big || e.fire ? 10 : 5); i++) {
+        const m = new THREE.Mesh(sparkGeo, e.fire ? (i % 2 ? sparkMats.fire : sparkMats.ember) : e.big ? sparkMats.big : sparkMats.hit);
+        const a = Math.random() * Math.PI * 2, sp = e.big || e.fire ? 2.5 : 3.5;
         m.position.set(x, 0.4, z);
         m.userData = { vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: 2 + Math.random() * 2, life: e.big ? 0.45 : 0.25 };
         scene.add(m); sparks.push(m);

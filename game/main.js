@@ -132,7 +132,7 @@ function randomGrassSpot(minDist) {
 }
 
 // ---------- State ----------
-let player, slimes, potions, loot, arrows, effects, kills, state, clock, spawnTimer;
+let player, slimes, potions, loot, arrows, fireballs, effects, kills, state, clock, spawnTimer;
 
 // ---------- Inventory ----------
 const inv = createInventory({
@@ -162,7 +162,7 @@ function reset() {
   view.setMap(map);
   seed = Date.now() % 100000 + 1;
   player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
-  slimes = []; potions = []; loot = []; arrows = []; effects = [];
+  slimes = []; potions = []; loot = []; arrows = []; fireballs = []; effects = [];
   // Start naked, with a plain starter set in the bag to put on.
   inv.reset([]);
   for (const [type, name] of [["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"], ["boots", "Worn Boots"], ["rod", "Old Fishing Pole"], ["bow", "Old Short Bow"]]) inv.add(makeItem(type, "normal", {}, name));
@@ -172,9 +172,68 @@ function reset() {
   view.snapCamera(player.x, player.y);
 }
 
+// `slimes` holds every enemy: slimes, plus the occasional Ember Mage (kind: "mage").
 function spawnSlime(minDist) {
   const p = randomGrassSpot(minDist);
-  if (p) slimes.push({ x: p.x, y: p.y, hp: 3, timer: 0.5 + rand(), hop: 0, dx: 0, dy: 0, face: 1, flash: 0, vx: 0, vy: 0 });
+  if (!p) return;
+  // Rarely, once you've proven yourself, a mage spawns instead. Never more than one at a time.
+  if (kills >= 3 && !slimes.some(s => s.kind === "mage") && rand() < 0.15) {
+    slimes.push({ kind: "mage", x: p.x, y: p.y, hp: MAGE.hp, timer: 1.5, casting: false, castT: 0, strafe: 1, strafeT: 0, face: 1, flash: 0, vx: 0, vy: 0, moving: false });
+    toast("An Ember Mage appears!");
+    return;
+  }
+  slimes.push({ kind: "slime", x: p.x, y: p.y, hp: 3, timer: 0.5 + rand(), hop: 0, dx: 0, dy: 0, face: 1, flash: 0, vx: 0, vy: 0 });
+}
+
+// ---------- Ember Mage ----------
+// Keeps a casting distance, telegraphs each fireball with a 0.7 s charge, then throws it at you.
+const MAGE = { hp: 6, speed: 20, near: 28, far: 64, sight: 100, charge: 0.7, every: [1.6, 2.8], fireSpeed: 70, fireLife: 2.4 };
+
+function updateMage(s, dt) {
+  const p = player, dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy) || 1;
+  s.face = dx >= 0 ? 1 : -1;
+  if (s.casting) {
+    s.castT += dt; s.moving = false;
+    if (s.castT >= MAGE.charge) {
+      const a = Math.atan2(dy, dx);
+      fireballs.push({ x: s.x + 4 + Math.cos(a) * 5, y: s.y + 4 + Math.sin(a) * 5, vx: Math.cos(a) * MAGE.fireSpeed, vy: Math.sin(a) * MAGE.fireSpeed, life: MAGE.fireLife });
+      s.casting = false; s.timer = MAGE.every[0] + rand() * (MAGE.every[1] - MAGE.every[0]);
+    }
+    return;
+  }
+  // Back off when crowded, close in when far, otherwise circle at casting range.
+  let mx = 0, my = 0;
+  if (d < MAGE.near) { mx = -dx / d; my = -dy / d; }
+  else if (d > MAGE.far && d < MAGE.sight * 1.5) { mx = dx / d; my = dy / d; }
+  else if (d <= MAGE.far) {
+    if ((s.strafeT -= dt) <= 0) { s.strafe = rand() < 0.5 ? 1 : -1; s.strafeT = 1 + rand() * 1.5; }
+    mx = -dy / d * s.strafe * 0.7; my = dx / d * s.strafe * 0.7;
+  }
+  if (mx || my) moveBy(s, mx * MAGE.speed * dt, my * MAGE.speed * dt, true);
+  s.moving = !!(mx || my);
+  if ((s.timer -= dt) <= 0 && d < MAGE.sight) { s.casting = true; s.castT = 0; }
+}
+
+// Fireballs explode on trees; a dash or a jump dodges through them.
+function updateFireballs(dt) {
+  const p = player;
+  for (const f of fireballs) {
+    f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
+    if (tileAt(f.x, f.y) === TREE) f.life = 0;
+    else if (p.hurt <= 0 && p.dash <= 0 && p.jump <= 0 && Math.hypot(p.x + 4 - f.x, p.y + 4 - f.y) < 5) { damagePlayer(f.x - 4, f.y - 4); f.life = 0; }
+    if (f.life <= 0) effects.push({ x: f.x, y: f.y, t: 0.3, fire: true });
+  }
+  fireballs = fireballs.filter(f => f.life > 0);
+}
+
+// One heart of damage from something at (sx, sy): knock back, cancel what you were doing.
+function damagePlayer(sx, sy) {
+  const p = player;
+  p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
+  shake = Math.max(shake, 0.3);
+  const d = Math.hypot(p.x - sx, p.y - sy) || 1;
+  p.vx = (p.x - sx) / d * 110; p.vy = (p.y - sy) / d * 110;
+  if (p.hp <= 0) setState("dead");
 }
 
 // ---------- Input ----------
@@ -484,6 +543,7 @@ function updateSlimes(dt) {
     s.flash = Math.max(0, s.flash - dt);
     moveBy(s, s.vx * dt, s.vy * dt, true);
     s.vx *= Math.pow(0.002, dt); s.vy *= Math.pow(0.002, dt);
+    if (s.kind === "mage") { updateMage(s, dt); continue; }
     if (s.hop > 0) {
       s.hop = Math.max(0, s.hop - dt);
       moveBy(s, s.dx * 46 * dt, s.dy * 46 * dt, true);
@@ -494,23 +554,24 @@ function updateSlimes(dt) {
       if (s.dx) s.face = Math.sign(s.dx);
       s.hop = 0.3; s.timer = 0.7 + rand() * 0.7;
     }
-    if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) {
-      p.hp--; p.hurt = 1; p.fishing = null; p.windup = null; p.draw = null; p.move = null; p.attack = 0;
-      shake = Math.max(shake, 0.3);
-      const d = Math.hypot(p.x - s.x, p.y - s.y) || 1;
-      p.vx = (p.x - s.x) / d * 110; p.vy = (p.y - s.y) / d * 110;
-      if (p.hp <= 0) setState("dead");
-    }
+    if (p.hurt <= 0 && p.jump <= 0 && p.dash <= 0 && overlap(p, s)) damagePlayer(s.x, s.y);
   }
   for (let i = slimes.length - 1; i >= 0; i--) {
     const s = slimes[i];
     if (s.hp <= 0) {
       kills++;
-      effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, big: true });
-      // One drop at most: 30% a healing potion, 40% an item, otherwise nothing.
-      const drop = rand();
-      if (drop < 0.3) potions.push({ x: s.x, y: s.y });
-      else if (drop < 0.7) loot.push({ x: s.x, y: s.y, item: rollItem(rand) });
+      if (s.kind === "mage") {
+        // The mage always drops an item of magic rarity or better, and sometimes a potion.
+        effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, fire: true });
+        loot.push({ x: s.x, y: s.y, item: rollItem(rand, "magic") });
+        if (rand() < 0.5) potions.push({ x: s.x + 6, y: s.y });
+      } else {
+        effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, big: true });
+        // One drop at most: 30% a healing potion, 40% an item, otherwise nothing.
+        const drop = rand();
+        if (drop < 0.3) potions.push({ x: s.x, y: s.y });
+        else if (drop < 0.7) loot.push({ x: s.x, y: s.y, item: rollItem(rand) });
+      }
       slimes.splice(i, 1);
     }
   }
@@ -520,7 +581,7 @@ function updateSlimes(dt) {
 
 // ---------- Render ----------
 // The world is drawn in 3D by view.js. Only the pixel HUD is drawn here, in 2D.
-const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME });
+const view = createView(document.getElementById("screen"), PAL, { WATER, FLOWER, TREE, JUMP_TIME, ATTACK_TIME, DASH_TIME, CAST_TIME, DRAW_TIME, MAGE_CHARGE: MAGE.charge });
 const hudCanvas = document.getElementById("hudCanvas");
 const hg = hudCanvas.getContext("2d");
 let pixelSize = 3;
@@ -534,7 +595,7 @@ function resize() {
 addEventListener("resize", resize);
 
 function render(dt) {
-  view.render({ player, slimes, potions, loot, arrows, effects, clock, shake }, hitstop > 0 ? 0 : dt);
+  view.render({ player, slimes, potions, loot, arrows, fireballs, effects, clock, shake }, hitstop > 0 ? 0 : dt);
   hg.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
   for (let i = 0; i < player.maxHp; i++) {
     const h = i < player.hp ? ART.heart.full : ART.heart.empty;
@@ -590,6 +651,7 @@ function loop(now) {
     updateResetHold(dt);
     updatePlayer(dt);
     if (state === "play") { updateArrows(dt); updateSlimes(dt); }
+    if (state === "play") updateFireballs(dt);
     for (const e of effects) e.t -= dt;
     effects = effects.filter(e => e.t > 0);
   }
@@ -598,7 +660,7 @@ function loop(now) {
 }
 
 // Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
-window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, inv, view };
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, get arrows() { return arrows; }, get fireballs() { return fireballs; }, inv, view };
 
 resize();
 reset();

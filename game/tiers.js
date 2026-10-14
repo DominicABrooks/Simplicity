@@ -24,6 +24,14 @@ export const TIERS = {
     boot: "#5a2f86", bootDark: "#3d1f5c", glow: 0.6,
     fishMain: PAL.Y, fishAccent: PAL.O,
   },
+  // Enemy-only tier: the Ember Mage's red robes. Never rolled as loot.
+  ember: {
+    cloth: PAL.R, dark: PAL.r, light: "#e0705f", trim: PAL.O, accent: PAL.Y,
+    metal: PAL.O, metalDark: PAL.r, gem: PAL.O,
+    blade: PAL.W, bladeDark: PAL.w, guard: PAL.O, guardDark: PAL.r,
+    boot: PAL.r, bootDark: "#4a1620", glow: 0.4,
+    fishMain: PAL.R, fishAccent: PAL.O,
+  },
 };
 
 // Which icon pixels (palette chars in art/items/*.txt) take which tier colour.
