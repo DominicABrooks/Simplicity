@@ -14,7 +14,7 @@
     --title: "Cinzel", Georgia, serif;
     --ui: system-ui, "Segoe UI", sans-serif;
   }
-  html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; cursor: crosshair; }
+  html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; cursor: crosshair; user-select: none; -webkit-user-select: none; }  /* clicks and drags never select text */
   canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
   #hudCanvas { pointer-events: none; }
   .hud { position: fixed; top: 12px; right: 16px; color: var(--bone); font: bold 16px ui-monospace, Consolas, monospace; text-shadow: 2px 2px 0 var(--ink); text-align: right; }

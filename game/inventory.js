@@ -29,7 +29,7 @@ export function makeFish(rarity) {
 export const SLOTS = {
   helm:   { label: "Helm",   x: 4, y: 0, w: 2, h: 2 },
   amulet: { label: "Amulet", x: 6, y: 1, w: 1, h: 1 },
-  weapon: { label: "Weapon", x: 2, y: 2, w: 1, h: 3 },
+  weapon: { label: "Weapon", x: 1, y: 2, w: 2, h: 3 },   // wide enough for a 2x3 bow
   armor:  { label: "Armor",  x: 4, y: 2, w: 2, h: 3 },
   ring:   { label: "Ring",   x: 7, y: 3, w: 1, h: 1 },
   boots:  { label: "Boots",  x: 4, y: 5, w: 2, h: 2 },
@@ -142,7 +142,9 @@ export function createInventory({ icons, onChange, onDrop, onUse }) {
       box.className = "slot";
       Object.assign(box.style, { left: `${s.x * CELL}px`, top: `${s.y * CELL}px`, width: `${s.w * CELL}px`, height: `${s.h * CELL}px` });
       if (equip[slot]) {
-        const el = itemEl(equip[slot], 0, 0);
+        // Centre items narrower or shorter than the slot (a 1x3 blade in the 2x3 weapon slot).
+        const it = equip[slot];
+        const el = itemEl(it, (s.w - it.w) / 2, (s.h - it.h) / 2);
         box.append(el);
       } else {                                              // empty slot: faded silhouette of what goes there
         const ghost = new Image(); ghost.src = icons[SLOT_ICON[slot]].normal; ghost.alt = s.label; ghost.className = "ghost"; ghost.draggable = false;
