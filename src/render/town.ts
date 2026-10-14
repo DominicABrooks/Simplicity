@@ -235,7 +235,10 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
       if (floor === 0 && Math.abs(x - doorX) < 0.5) continue;
       windowAt(x, y + (floor === 0 ? 0.75 : 0.6), front, false);
     }
-    if (floor > 0) for (const s of [-1, 1]) windowAt(s * (w / 2 + out + 0.02), y + 0.6, 0, true);
+    if (floor > 0) {
+      for (const s of [-1, 1]) windowAt(s * (w / 2 + out + 0.02), y + 0.6, 0, true);
+      for (let x = -w / 2 + 0.9; x < w / 2 - 0.5; x += 1.3) windowAt(x, y + 0.6, -front, false);   // and a few at the back
+    }
     y += h;
   }
   const top = y, outTop = (storeys - 1) * jetty;
@@ -247,7 +250,8 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   ridge.position.y = top + roofH;
   if (!along) { roof.rotation.y = Math.PI / 2; ridge.rotation.y = Math.PI / 2; }
   g.add(roof, ridge);
-  // A door facing the street (south, toward the camera), with a lintel and a step.
+  // A door onto the street, with a lintel and a step. (Built on the south face; a house whose street is
+  // to the north is turned around.)
   const front = d / 2 + 0.02;
   const door = new THREE.Mesh(box(0.5, 1.35, 0.06), lambert(DARK_WOOD));
   door.position.set(doorX, 0.675, front);
@@ -264,6 +268,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   }
   const cx = (p.rect.x + p.rect.w / 2) / T, cz = (p.rect.y + p.rect.h / 2) / T;
   g.position.set(cx, 0, cz);
+  if (p.doorSide === "north") g.rotation.y = Math.PI;
   parent.add(g);
   return { occluders: [occluder(g, cx, cz, w + outTop * 2 + 0.7, d + outTop * 2 + 0.7, top + roofH)] };
 }
@@ -363,10 +368,12 @@ export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ke
     win.position.set(x, y, front);
     g.add(win);
   }
-  root.position.set((p.rect.x + p.rect.w / 2) / T, 0, (p.rect.y + p.rect.h / 2) / T);
+  const cx = (p.rect.x + p.rect.w / 2) / T, cz = (p.rect.y + p.rect.h / 2) / T;
+  root.position.set(cx, 0, cz);
   parent.add(root);
   return {
     update(t) { flags.forEach((f, i) => { f.rotation.y = Math.sin(t * 3 + i) * 0.4; }); },   // flapping in the wind
+    occluders: [occluder(root, cx, cz + back, baseW + 1, baseD + 1, P + H + 4.2 + 3.6)],
   };
 }
 
@@ -538,6 +545,7 @@ export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf
         particles.spawn("water", cx + Math.cos(a) * 0.46, 1.42, cz + Math.sin(a) * 0.46, Math.cos(a) * 0.55, 0.7, Math.sin(a) * 0.55, 0.5);
       }
     },
+    occluders: [occluder(g, cx, cz, 2, 2, 1.9)],
   };
 }
 

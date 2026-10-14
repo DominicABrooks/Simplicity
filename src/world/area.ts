@@ -45,7 +45,8 @@ export type Prop =
       height: number;
       tower: { radius: number; height: number; roof: string };
     }
-  | { kind: "house"; rect: Rect; roof: string; storeys?: number }
+  /** A town house; its door is on the `doorSide` face (south by default), onto the street. */
+  | { kind: "house"; rect: Rect; roof: string; storeys?: number; doorSide?: "north" | "south" }
   /** The castle keep, raised on a rocky crag `plinth` high with a stair up to its door. */
   | { kind: "keep"; rect: Rect; plinth: number }
   /** A cathedral: a long nave running east-west, a bell tower with a spire at its west end. */

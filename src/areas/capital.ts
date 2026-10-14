@@ -1,10 +1,14 @@
 // Capital City: the seat of the greatest kingdom left, up the cave from Witchwood.
 //
 // Laid out like a real castle town. A moat rings an oval town wall with a tower every few dozen paces;
-// you cross a bridge to the gatehouse. Inside, a winding main street climbs past packed town houses to
+// you cross a bridge to the gatehouse. Inside, the streets come first: a ring road inside the wall, lanes
+// running east-west, cross streets, and a winding high street climbing from the gate to
 // the market square (a fountain, stalls, the guildhall and the cathedral), then a straight road leads to
 // the castle: an inner ward with taller walls and its own gatehouse, and the keep on a rocky crag in the
 // middle. Nothing hostile lives here.
+//
+// Between each pair of lanes, terraces of houses stand back to back, each with its door onto a street, and
+// what's left behind them is yards and gardens.
 //
 // Everything built is a prop (drawn by src/render/props.ts) standing on Wall tiles, which block movement.
 // The town's houses are placed by a deterministic generator, so the layout is the same every time.
@@ -55,14 +59,31 @@ const wardPoints = (): Point[] => [
   { x: WARD.x1 + 0.5, y: (WARD.y0 + WARD.y1) / 2 + 0.5 },
 ];
 
-/** The main street's west edge (tile column) at each row from the gate up to the square: it winds. */
+/** The high street's west-middle column at each row from the gate up to the square: it winds. */
 const streetX = (y: number) => MID - 1 + Math.round(2.5 * Math.sin((64 - y) / 4.5));
+/** The lanes run east-west, two tiles wide, every LANES rows from LANE0; houses fill the blocks between. */
+const LANE0 = 5, LANES = 8;
+const isLane = (y: number) => (((y - LANE0) % LANES) + LANES) % LANES < 2;
+/** Cross streets, two tiles wide, starting at these columns. */
+const CROSS = [17, 29, 57, 69];
+
+/** Is (x, y) a street? (Before the castle, square and buildings are laid over them.) */
+function isStreet(x: number, y: number, gateY: number): boolean {
+  const d = ovalDistance(x + 0.5, y + 0.5);
+  return isLane(y) || CROSS.some(c => x === c || x === c + 1) ||
+    (d > 0.85 && d < 0.9) ||                                                          // the ring road
+    (y > SQUARE.y1 && Math.abs(x - streetX(y) - 0.5) < 2) ||                          // the high street
+    (y > WARD.y1 && y < SQUARE.y0 && Math.abs(x - MID + 0.5) < 2) ||                  // the castle road
+    (x >= WARD.x0 - 2 && x <= WARD.x1 + 2 && y >= WARD.y0 - 2 && y <= WARD.y1 + 2) || // round the castle
+    (y >= SQUARE.y0 - 1 && y <= SQUARE.y1 + 1 && x >= SQUARE.x0 - 1 && x <= SQUARE.x1 + 1) ||
+    (y >= gateY - 4 && Math.abs(x - MID + 0.5) < 3.5);                                // inside the gate
+}
 
 interface Town {
   map: TileMap;
   gateY: number;
   bridge: TileRect;
-  houses: { rect: TileRect; roof: string; storeys: number }[];
+  houses: { rect: TileRect; roof: string; storeys: number; doorSide: "north" | "south" }[];
   lamps: Point[];
   stalls: { rect: TileRect; awning: string }[];
 }
@@ -84,7 +105,7 @@ function buildTown(): Town {
   // Outside: meadows and the moat, thickening into forest toward the map's edges.
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const d = ovalDistance(x + 0.5, y + 0.5), edge = Math.min(x, y, W - 1 - x, H - 1 - y);
-    if (d < 1) set(x, y, Tile.Cobble);                       // the town, paved
+    if (d < 1) { if (hash(x, y, 3) < 0.04) set(x, y, Tile.Flower); }   // the town: yards, until it's built on
     else if (d > 1.06 && d < 1.15) set(x, y, Tile.Water);    // the moat
     else if (edge === 0 || (edge < 3 && hash(x, y, 1) < 0.7 - edge * 0.15)) set(x, y, Tile.Tree);
     else if (d > 1.22 && Math.abs(x + 0.5 - MID) > 4 && hash(x, y, 2) < 0.1) set(x, y, Tile.Tree);
@@ -108,6 +129,10 @@ function buildTown(): Town {
     if (at(x, y) !== Tile.Cobble && at(x, y) !== Tile.Wall) set(x, y, Tile.Path);
   }
 
+  // The streets.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (ovalDistance(x + 0.5, y + 0.5) < 0.97 && at(x, y) !== Tile.Wall && isStreet(x, y, gateY)) set(x, y, Tile.Cobble);
+
   // The castle: an inner ward with its own taller wall, towers and gate; a dirt courtyard inside.
   fill([WARD.x0, WARD.y0, WARD.x1 - WARD.x0 + 1, WARD.y1 - WARD.y0 + 1], Tile.Path);
   const ward = wardPoints();
@@ -121,46 +146,47 @@ function buildTown(): Town {
   fill(STABLES, Tile.Wall);
   for (const [x, y] of [[34, 14], [54, 14], [35, 19], [53, 19]]) set(x!, y!, Tile.Tree);
 
-  // The market square and its buildings.
+  // The market square and its buildings, with paving in front of their doors.
+  fill([CATHEDRAL[0] - 1, CATHEDRAL[1] + CATHEDRAL[3], CATHEDRAL[2] + 2, 2], Tile.Cobble);
+  fill([GUILDHALL[0] - 1, GUILDHALL[1] + GUILDHALL[3], GUILDHALL[2] + 2, 2], Tile.Cobble);
   fill(FOUNTAIN, Tile.Wall);
   fill(CATHEDRAL, Tile.Wall);
   fill(GUILDHALL, Tile.Wall);
   const stalls: Town["stalls"] = [[38, 40], [48, 40], [38, 46], [48, 46], [41, 40], [45, 46]].map(([x, y], i) => ({ rect: [x!, y!, 2, 1] as TileRect, awning: AWNINGS[i]! }));
   for (const s of stalls) fill(s.rect, Tile.Wall);
 
-  // Keep the streets clear: the main street, the castle road, the square and the ward's surroundings.
-  const reserved = (x: number, y: number) =>
-    (y >= SQUARE.y0 - 1 && y <= SQUARE.y1 + 1 && x >= SQUARE.x0 - 1 && x <= SQUARE.x1 + 1) ||
-    (x >= WARD.x0 - 2 && x <= WARD.x1 + 2 && y >= WARD.y0 - 2 && y <= WARD.y1 + 2) ||
-    (y > SQUARE.y1 && Math.abs(x - streetX(y) - 0.5) < 3.5) ||
-    (y > WARD.y1 && y < SQUARE.y0 && Math.abs(x - MID + 0.5) < 3.5) ||
-    (y >= gateY - 4 && Math.abs(x - MID + 0.5) < 4.5);
-
-  // The town: terraces of houses packed along each street, one-tile alleys between them, varied in
-  // width, depth, roof and height, with the odd garden.
+  // The houses: in each block between two lanes, a terrace along the north side with doors onto the lane
+  // above, and one along the south side with doors onto the lane below, back to back. A house only goes
+  // where its whole frontage is street, so every door opens onto one.
   const houses: Town["houses"] = [];
-  const fits = (x: number, y: number, w: number, h: number) => {
-    if (ovalDistance(x + w / 2, y + h / 2) > 0.93) return false;
-    for (let j = y - 1; j <= y + h; j++) for (let i = x - 1; i <= x + w; i++) if (at(i, j) !== Tile.Cobble || reserved(i, j)) return false;
+  const open = (t: Tile | undefined) => t === Tile.Grass || t === Tile.Flower;
+  const fits = (x: number, y: number, w: number, h: number, front: number) => {
+    for (let i = x; i < x + w; i++) {
+      if (at(i, front) !== Tile.Cobble) return false;
+      for (let j = y; j < y + h; j++) if (!open(at(i, j)) || ovalDistance(i + 0.5, j + 0.5) > 0.9) return false;
+    }
     return true;
   };
-  for (let y = 6; y < H - 8; y += 4) {
-    for (let x = 4; x < W - 6;) {
-      const w = 3 + Math.floor(hash(x, y, 11) * 2.4), h = hash(x, y, 15) < 0.35 ? 3 : 2;
-      if (!fits(x, y, w, h)) { x++; continue; }
-      if (hash(x, y, 12) < 0.08) {                           // a garden: grass and a tree
-        fill([x, y, 2, 2], Tile.Grass);
-        set(x, y, Tile.Tree);
-        x += 3;
-        continue;
-      }
+  for (let lane = LANE0; lane < H; lane += LANES) for (const side of ["north", "south"] as const) {
+    for (let x = 1; x < W - 1;) {
+      const k = x * 7 + lane + (side === "north" ? 0 : 1000);
+      const w = 3 + Math.floor(hash(k, lane, 11) * 2.4), h = hash(k, lane, 15) < 0.4 ? 3 : 2;
+      const y = side === "north" ? lane + 2 : lane + LANES - h, front = side === "north" ? y - 1 : y + h;
+      if (!fits(x, y, w, h, front)) { x++; continue; }
       fill([x, y, w, h], Tile.Wall);
-      houses.push({ rect: [x, y, w, h], roof: ROOFS[Math.floor(hash(x, y, 13) * ROOFS.length)]!, storeys: hash(x, y, 14) < 0.22 ? 3 : 2 });
-      x += w + 1 + (hash(x, y, 16) < 0.2 ? 1 : 0);
+      houses.push({ rect: [x, y, w, h], roof: ROOFS[Math.floor(hash(k, lane, 13) * ROOFS.length)]!, storeys: hash(k, lane, 14) < 0.22 ? 3 : 2, doorSide: side });
+      x += w + (hash(k, lane, 16) < 0.45 ? 1 : 0);           // terraced, with the odd alley through to the yards
     }
   }
+  // The yards behind them: grass, and here and there a tree, clear of doors and alleys.
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    if (!open(at(x, y)) || ovalDistance(x + 0.5, y + 0.5) > 0.85 || hash(x, y, 20) > 0.14) continue;
+    let clear = true;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (!open(at(x + i, y + j)) && at(x + i, y + j) !== Tile.Wall) clear = false;
+    if (clear) set(x, y, Tile.Tree);
+  }
 
-  // Lamps along the main street (alternating sides), round the square, up the castle road, and at the bridge.
+  // Lamps along the high street (alternating sides), round the square, up the castle road, and at the bridge.
   const lamps: Point[] = [];
   for (let y = SQUARE.y1 + 3; y < gateY - 2; y += 4) lamps.push({ x: (y % 8 < 4 ? streetX(y) - 1 : streetX(y) + 2) * T + HALF, y: y * T + HALF });
   for (const [x, y] of [[SQUARE.x0, SQUARE.y0], [SQUARE.x1, SQUARE.y0], [SQUARE.x0, SQUARE.y1], [SQUARE.x1, SQUARE.y1], [MID - 3, 31], [MID + 2, 31], [MID - 3, 35], [MID + 2, 35], [MID - 3, bridgeBottom + 2], [MID + 2, bridgeBottom + 2]])
@@ -186,7 +212,7 @@ function props(town: Town): Prop[] {
     { kind: "house", rect: px(BARRACKS), roof: "#a8473a", storeys: 2 },
     { kind: "house", rect: px(STABLES), roof: "#a8473a", storeys: 2 },
   ];
-  for (const h of town.houses) out.push({ kind: "house", rect: px(h.rect), roof: h.roof, storeys: h.storeys });
+  for (const h of town.houses) out.push({ kind: "house", rect: px(h.rect), roof: h.roof, storeys: h.storeys, doorSide: h.doorSide });
   for (const s of town.stalls) out.push({ kind: "stall", rect: px(s.rect), awning: s.awning });
   for (const l of town.lamps) out.push({ kind: "lamp", x: l.x, y: l.y });
   return out;

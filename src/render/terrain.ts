@@ -1,10 +1,12 @@
-// The world's static scenery, built once per map: ground and flower quads, water with a sunken bed
-// and earthen banks, a ring of mountains past the map edge, instanced trees and undergrowth.
+// The world's static scenery, built once per map: grass with paths and paving blended over it, flowers,
+// water with a sunken bed and earthen banks, a ring of mountains past the map edge, instanced trees and
+// undergrowth.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { Tile, isSolidTile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
 import { BED_Y, WATER_Y, type RenderContext } from "./context.ts";
+import { blendLayer } from "./groundLayers.ts";
 
 type V3 = [number, number, number];
 interface Quad { p: V3[]; uv: [number, number][] }
@@ -25,11 +27,17 @@ export const hash = (x: number, z: number, k: number): number => {
   return s - Math.floor(s);
 };
 
-export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
+/** The trees, as instanced meshes (trunk and two leaf clusters) and where each one stands, so they can fade. */
+export interface TreeSet {
+  meshes: THREE.InstancedMesh[];
+  items: { x: number; z: number; scale: number; y: number }[];
+}
+
+export function buildTerrain(ctx: RenderContext, map: TileMap): { group: THREE.Group; trees: TreeSet } {
   const { lambert, tex } = ctx, world = new THREE.Group();
   const { width: W, height: H, tiles } = map;
   const isWater = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y]![x] === Tile.Water;
-  const paths: Quad[] = [], cobbles: Quad[] = [], ground: Quad[] = [], flowers: Quad[] = [], water: Quad[] = [], bed: Quad[] = [], shore: Quad[] = [], trees: [number, number][] = [];
+  const ground: Quad[] = [], flowers: Quad[] = [], water: Quad[] = [], bed: Quad[] = [], shore: Quad[] = [], treeTiles: [number, number][] = [];
   const unitUV: [number, number][] = [[0, 0], [0, 1], [1, 1], [1, 0]];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = tiles[y]![x]!;
@@ -47,17 +55,17 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
         uv: [[0, 1], [0, 0], [1, 0], [1, 1]],
       });
     } else {
-      if (t === Tile.Path) paths.push({ p: corners(0), uv: worldUV(4) });
-      else if (t === Tile.Cobble || t === Tile.Wall) cobbles.push({ p: corners(0), uv: worldUV(2) });   // paving, under buildings too
-      else ground.push({ p: corners(0), uv: worldUV(4) });
+      ground.push({ p: corners(0), uv: worldUV(4) });         // grass everywhere; paths and paving blend over it
       if (t === Tile.Flower) flowers.push({ p: corners(0.01), uv: unitUV });
-      if (t === Tile.Tree) trees.push([x + 0.5, y + 0.5]);
+      if (t === Tile.Tree) treeTiles.push([x + 0.5, y + 0.5]);
     }
   }
   const side = { side: THREE.DoubleSide };
   world.add(new THREE.Mesh(quadGeometry(ground), lambert("#ffffff", { map: tex.grass, ...side })));
-  world.add(new THREE.Mesh(quadGeometry(paths), lambert("#ffffff", { map: tex.path, ...side })));
-  world.add(new THREE.Mesh(quadGeometry(cobbles), lambert("#ffffff", { map: tex.cobble, ...side })));
+  // Paving (under buildings too) and dirt paths, their edges blending into the grass.
+  const paving = blendLayer(ctx, map, t => t === Tile.Cobble || t === Tile.Wall, { texture: tex.cobble, repeat: 2, lift: 0.004, wobble: 0.45, seed: 1 });
+  const dirt = blendLayer(ctx, map, t => t === Tile.Path, { texture: tex.path, repeat: 4, lift: 0.008, wobble: 0.6, seed: 2 });
+  for (const layer of [paving, dirt]) if (layer) world.add(layer);
   world.add(new THREE.Mesh(quadGeometry(flowers), lambert("#ffffff", { map: tex.flower, alphaTest: 0.5, ...side })));
   world.add(new THREE.Mesh(quadGeometry(bed), lambert(PAL.b, side)));
   world.add(new THREE.Mesh(quadGeometry(shore), lambert("#ffffff", { map: tex.earth, ...side })));
@@ -107,7 +115,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
 
   // Trees: map trees (nudged off the grid) plus a band of trees climbing the foothills.
   const placed: [number, number, number, number][] = [];   // [x, z, scale, y]
-  for (const [x, z] of trees) {
+  for (const [x, z] of treeTiles) {
     placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45, 0]);
   }
   for (let y = -4; y < H + 4; y++) for (let x = -4; x < W + 4; x++) {
@@ -127,6 +135,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
       inst.setColorAt(i, colorFor(x, z));
     });
     world.add(inst);
+    return inst;
   };
   // Leaves vary a little in hue and brightness; trees on the foothills are a little darker.
   const leafColor = (x: number, z: number) => {
@@ -134,9 +143,14 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
     const b = (0.78 + hash(x, z, 10) * 0.35) * deep;
     return new THREE.Color(b * (0.92 + hash(x, z, 11) * 0.12), b, b * (0.9 + hash(x, z, 12) * 0.1));
   };
-  instanced(new THREE.CylinderGeometry(0.11, 0.17, 0.62, 5).translate(0, 0.31, 0), lambert("#ffffff", { map: tex.bark }), placed, () => new THREE.Color(1, 1, 1));
-  instanced(new THREE.IcosahedronGeometry(0.52, 0).translate(0, 0.92, 0), lambert("#ffffff", { map: tex.leaf }), placed, leafColor);
-  instanced(new THREE.IcosahedronGeometry(0.36, 0).translate(0.08, 1.34, 0.04), lambert("#ffffff", { map: tex.leaf }), placed, leafColor);
+  const trees: TreeSet = {
+    meshes: [
+      instanced(new THREE.CylinderGeometry(0.11, 0.17, 0.62, 5).translate(0, 0.31, 0), lambert("#ffffff", { map: tex.bark }), placed, () => new THREE.Color(1, 1, 1)),
+      instanced(new THREE.IcosahedronGeometry(0.52, 0).translate(0, 0.92, 0), lambert("#ffffff", { map: tex.leaf }), placed, leafColor),
+      instanced(new THREE.IcosahedronGeometry(0.36, 0).translate(0.08, 1.34, 0.04), lambert("#ffffff", { map: tex.leaf }), placed, leafColor),
+    ],
+    items: placed.map(([x, z, scale, y]) => ({ x, z, scale, y })),
+  };
 
   // Undergrowth: bushes and rocks on tree tiles that face the clearing, softening the treeline.
   const bushes: [number, number, number][] = [], rocks: [number, number, number][] = [];
@@ -153,5 +167,5 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
   instanced(new THREE.IcosahedronGeometry(0.24, 0).translate(0, 0.14, 0).scale(1.2, 0.8, 1.2), lambert("#ffffff", { map: tex.leaf }), bushes, leafColor);
   instanced(new THREE.DodecahedronGeometry(0.16, 0).translate(0, 0.08, 0).scale(1.3, 0.75, 1), lambert(PAL.w), rocks,
     (x, z) => { const b = 0.75 + hash(x, z, 19) * 0.3; return new THREE.Color(b, b, b); });
-  return world;
+  return { group: world, trees };
 }

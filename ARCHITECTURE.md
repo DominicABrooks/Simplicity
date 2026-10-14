@@ -103,7 +103,9 @@ The world is a graph of **areas** joined by **exits** (caves, for now). Each are
 Props are data too: each kind (a camp, a cave, a curtain wall around any polygon, a house, a keep,
 a cathedral, a bridge, a fountain, a market stall, a lamp) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built stands on
 `Wall` tiles, which block movement like trees, so collision stays a tile lookup however many buildings
-an area has. A new kind of building is a `Prop` variant plus one builder.
+an area has. A new kind of building is a `Prop` variant plus one builder. A builder can return
+`occluders` (boxes around anything tall); `src/render/occlusion.ts` fades whichever of them, and
+whichever trees, stand between the camera and the hero or the ground just around them.
 
 Built to scale to thousands of areas:
 
@@ -131,7 +133,9 @@ Entities are drawn through a **registry** (`src/render/views.ts`): each `rendera
 `create`, `update` and `remove`. The render system (`renderSystem.ts`) creates a view when an entity
 appears, updates it every frame and removes it when the entity is destroyed. The hero has its own view
 (`hero.ts`) for its pose, weapons, hands, swoosh, sheep form, ice block and dash afterimages. Terrain,
-koi, fishing visuals, ambience and effects are their own modules.
+koi, fishing visuals, ambience and effects are their own modules. Grass covers all the ground; paths
+and paving are overlays (`groundLayers.ts`) whose edges follow a noisy field instead of the tile grid,
+so they blend into it while collision stays on tiles.
 
 Rendering reads the game and never writes to it, except draining the effects queue.
 
