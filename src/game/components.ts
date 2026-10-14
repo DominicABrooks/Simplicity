@@ -234,23 +234,36 @@ export interface Dummy {
   facing: number;
 }
 
+/** What one of the townsfolk is out to do (see src/game/townsfolk.ts). */
+export type Errand = "work" | "shop" | "chat" | "drink" | "church" | "errand" | "play" | "home";
+
 /** One of the census's people out in the streets (see src/game/townsfolk.ts). Paths are in tiles. */
 export interface Walker {
   /** Who they are: their id in the census (src/world/residents.ts). */
   id: number;
+  /** What they're out to do, and so where they're going and how long they'll stay. */
+  plan: Errand;
   /** The tiles still to walk through, the next one first. */
   path: (readonly [number, number])[];
   /** Their own line along a street: a small offset from the middle of each tile, px. */
   lane: [number, number];
   speed: number;
   moving: boolean;
-  /** Seconds left standing about, or waiting for the hero to get out of the way. */
+  /** Seconds left at what they're doing there, or waiting for the hero to get out of the way. */
   wait: number;
   blockedFor: number;
-  /** What they do on getting there: go in (home, or on out of the area), stand at their work, or stop a while. */
-  then: "in" | "work" | "stop";
-  /** Which way they face (a game angle). */
+  /** Go in on getting there (home, the church, or on out of the area). */
+  goIn: boolean;
+  /** Which way they face (a game angle), and which way to face once they're there. */
   facing: number;
+  face: number | null;
+  /** A child keeping with someone: their parent, or the oldest of a band of children; the nth of them. */
+  follow: { leader: Entity; slot: number } | null;
+  /** Where a leader has walked lately (px, centres), for those following to walk in their steps. */
+  trail: [number, number][];
+  /** Where a band of children plays (tile), once they're there; where each is running to now (px). */
+  playAt: readonly [number, number] | null;
+  runTo: [number, number] | null;
 }
 
 /** The hero talking to someone (see src/game/talk.ts). */
