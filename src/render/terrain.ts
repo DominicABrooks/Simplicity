@@ -56,7 +56,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): { group: THREE.G
       });
     } else {
       ground.push({ p: corners(0), uv: worldUV(4) });         // grass everywhere; paths and paving blend over it
-      if (t === Tile.Flower) flowers.push({ p: corners(0.01), uv: unitUV });
+      if (t === Tile.Flower) flowers.push({ p: corners(0.002), uv: unitUV });   // under the paths and paving, whose edges may spill over them
       if (t === Tile.Tree) treeTiles.push([x + 0.5, y + 0.5]);
     }
   }

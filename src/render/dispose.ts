@@ -11,7 +11,11 @@ export function disposeTree(root: THREE.Object3D, keep: ReadonlySet<unknown> = n
     if (o instanceof THREE.InstancedMesh) o.dispose();
     if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points || o instanceof THREE.Sprite) {
       if (!keep.has(o.geometry)) o.geometry.dispose();
-      for (const m of [o.material].flat() as THREE.Material[]) if (!keep.has(m)) m.dispose();
+      for (const m of [o.material].flat() as THREE.Material[]) {
+        if (keep.has(m)) continue;
+        m.dispose();
+        (m.userData.maskTex as THREE.Texture | undefined)?.dispose();   // a ground layer's own mask (see groundLayers.ts)
+      }
     }
   });
 }

@@ -43,17 +43,34 @@ export function tiledCylinder(r: number, h: number, segments = 8, unit = 1, open
 
 /**
  * A gabled roof: ridge along X, `w` long and `d` deep, `h` high, sitting on y = 0. Its UVs run along
- * the ridge and down the slopes, so shingle rows lie parallel to the eaves.
+ * the ridge and down the slopes, so shingle rows lie parallel to the eaves. With `ends`, its ends are
+ * closed by triangles of roof; without, it's just the two slopes, for a building whose gable walls
+ * (gableGeometry) close it.
  */
-export function roofGeometry(w: number, d: number, h: number): THREE.BufferGeometry {
+export function roofGeometry(w: number, d: number, h: number, ends = true): THREE.BufferGeometry {
   const a = [-w / 2, 0, d / 2], b = [w / 2, 0, d / 2], c = [w / 2, 0, -d / 2], e = [-w / 2, 0, -d / 2];
   const r1 = [-w / 2, h, 0], r2 = [w / 2, h, 0];
-  const tris = [a, b, r2, a, r2, r1, c, e, r1, c, r1, r2, e, a, r1, b, c, r2];
+  const tris = [a, b, r2, a, r2, r1, c, e, r1, c, r1, r2, ...(ends ? [e, a, r1, b, c, r2] : [])];
   const slope = Math.hypot(h, d / 2), SHINGLE = 0.55;          // world units per texture repeat
   const uv = tris.flatMap(([x, , z]) => [x! / SHINGLE, ((d / 2 - Math.abs(z!)) / (d / 2)) * (slope / SHINGLE)]);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(tris.flat(), 3));
   geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
+ * A gable wall: the end of a building under its roof, in the plane x = 0 (facing ±x), from the wall's
+ * top (y = 0) up to the roof's underside. The wall is `halfSpan` either side of the ridge line; the roof
+ * overhangs to `roofHalf` and rises `h` at the ridge, so the gable's sides follow its slopes.
+ */
+export function gableGeometry(halfSpan: number, roofHalf: number, h: number, unit = 1.15): THREE.BufferGeometry {
+  const eave = Math.max(0, h * (1 - halfSpan / roofHalf) - 0.02), apex = h - 0.05;
+  const pts: [number, number][] = [[-halfSpan, 0], [halfSpan, 0], [halfSpan, eave], [-halfSpan, 0], [halfSpan, eave], [-halfSpan, eave], [-halfSpan, eave], [halfSpan, eave], [0, apex]];
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pts.flatMap(([z, y]) => [0, y, z]), 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(pts.flatMap(([z, y]) => [z / unit, y / unit]), 2));
   geo.computeVertexNormals();
   return geo;
 }
@@ -263,20 +280,16 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   const top = y, outTop = (storeys - 1) * jetty;
   // The roof: its ridge runs along the deeper side, so a narrow, deep house shows its gable to the street.
   const along = w >= d, roofH = Math.min(2.4, (along ? d : w) * 0.55 + 0.4), span = (along ? d : w) + outTop * 2 + 0.7, length = (along ? w : d) + outTop * 2 + 0.5;
-  const roof = new THREE.Mesh(roofGeometry(length, span, roofH), lambert(p.roof, { map: tex.shingles, side: THREE.DoubleSide }));
+  const roof = new THREE.Mesh(roofGeometry(length, span, roofH, false), lambert(p.roof, { map: tex.shingles, side: THREE.DoubleSide }));
   roof.position.y = top;
   const ridge = new THREE.Mesh(box(length + 0.05, 0.1, 0.12), frame);
   ridge.position.y = top + roofH;
-  // The gable ends, timbered like the walls.
-  const gable = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-span / 2 + 0.35, 0, 0), new THREE.Vector3(span / 2 - 0.35, 0, 0), new THREE.Vector3(0, roofH - 0.18, 0)]);
-  gable.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, span / 1.15, 0, span / 2.3, roofH / 1.15], 2));
-  gable.computeVertexNormals();
-  // (Just outside the roof's own end triangles, a little smaller, so the roof's edge frames them.)
+  // The gable ends, timbered like the walls, flush with the top floor and up under the roof.
+  const gable = gableGeometry((along ? d : w) / 2 + outTop, span / 2, roofH);
   const gableMat = lambert("#ffffff", { map: tex.timber, side: THREE.DoubleSide }), roofGroup = new THREE.Group();
   for (const s of [-1, 1]) {
     const m = new THREE.Mesh(gable, gableMat);
-    m.position.set(s * (length / 2 + 0.01), top, 0);
-    m.rotation.y = Math.PI / 2;
+    m.position.set(s * ((along ? w : d) / 2 + outTop), top, 0);
     roofGroup.add(m);
   }
   roofGroup.add(roof, ridge);

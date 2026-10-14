@@ -202,9 +202,13 @@ export function createAmbient(ctx: RenderContext): Ambient {
         else if (t === Tile.Tree && (near(x, y, Tile.Grass) || near(x, y, Tile.Flower))) treeTiles.push([x, y]);
       }
 
-      // Grass tufts across the meadows.
+      // Grass tufts across the meadows: not right beside a path or paving, whose ragged edge may spill
+      // onto the tile (a tuft would stand up out of the road).
+      const paved = (x: number, y: number) => { const t = tile(x, y); return t === Tile.Path || t === Tile.Cobble || t === Tile.Wall; };
+      const byRoad = (x: number, y: number) => { for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (paved(x + i, y + j)) return true; return false; };
       const tufts: Decor[] = [];
       for (const [x, y] of landTiles) {
+        if (byRoad(x, y)) continue;
         for (let i = 0; i < 2; i++) {
           if (hash(x, y, 50 + i) > 0.38) continue;
           const shade = 0.75 + hash(x, y, 60 + i) * 0.4;

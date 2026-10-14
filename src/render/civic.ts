@@ -13,7 +13,7 @@ import { put } from "./castle.ts";
 import type { Occluder } from "./occlusion.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
-import { DARK_WOOD, DOORWAY, LIT, SLATE, banner, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
+import { DARK_WOOD, DOORWAY, LIT, SLATE, banner, gableGeometry, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
 
 const LEAD = "#5a6470", TRIM = "#8a8378";
 const GLASS = ["#3f6fd0", "#c8423a", "#f5d562", "#5fb04a", "#8a4fc0"] as const;
@@ -66,9 +66,12 @@ export function buildChurch(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
   const naveL = c.chancelX0 - c.naveX0, chancelL = c.W / 2 - c.chancelX0;
   // Nave and chancel, each under its own roof.
   put(body, tiledBox(naveL, c.naveH, c.naveD, 0.8), stone, c.naveX0 + naveL / 2, c.naveH / 2, 0);
-  put(body, roofGeometry(naveL + 0.3, c.naveD + 0.6, c.naveD * 0.55), lead, c.naveX0 + naveL / 2, c.naveH, 0);
+  put(body, roofGeometry(naveL + 0.3, c.naveD + 0.6, c.naveD * 0.55, false), lead, c.naveX0 + naveL / 2, c.naveH, 0);
   put(body, tiledBox(chancelL, c.chancelH, c.chancelD, 0.8), stone, c.chancelX0 + chancelL / 2, c.chancelH / 2, 0);
-  put(body, roofGeometry(chancelL + 0.3, c.chancelD + 0.5, c.chancelD * 0.55), lead, c.chancelX0 + chancelL / 2, c.chancelH, 0);
+  put(body, roofGeometry(chancelL + 0.3, c.chancelD + 0.5, c.chancelD * 0.55, false), lead, c.chancelX0 + chancelL / 2, c.chancelH, 0);
+  const stoneGable = lambert("#ffffff", { map: tex.stone, side: THREE.DoubleSide });
+  for (const x of [c.naveX0, c.chancelX0]) put(body, gableGeometry(c.naveD / 2, c.naveD / 2 + 0.3, c.naveD * 0.55, 0.8), stoneGable, x, c.naveH, 0);
+  put(body, gableGeometry(c.chancelD / 2, c.chancelD / 2 + 0.25, c.chancelD * 0.55, 0.8), stoneGable, c.W / 2, c.chancelH, 0);
   const glass = (i: number) => basic(GLASS[i % GLASS.length]!);
   for (let x = c.naveX0 + 1.2, i = 0; x < c.chancelX0 - 0.6; x += 1.8, i++) for (const s of [-1, 1]) {
     const w = lancet(glass(i), 0.45, 2.4);
@@ -182,8 +185,12 @@ export function buildHall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ha
     roofTop = top + rh + 0.7;
   } else {
     const along = w >= d, span = (along ? d : w) + 0.6, length = (along ? w : d) + 0.4, rh = span * 0.48;
-    const roof = put(g, roofGeometry(length, span, rh), roofMat, 0, top, 0);
-    if (!along) roof.rotation.y = Math.PI / 2;
+    const roofGroup = new THREE.Group();
+    put(roofGroup, roofGeometry(length, span, rh, false), roofMat, 0, top, 0);
+    const gableMat = lambert("#ffffff", { map: p.stone ? tex.stone : tex.timber, side: THREE.DoubleSide });
+    for (const s of [-1, 1]) put(roofGroup, gableGeometry((along ? d : w) / 2, span / 2, rh, p.stone ? 0.8 : 1.15), gableMat, s * (along ? w : d) / 2, top, 0);
+    if (!along) roofGroup.rotation.y = Math.PI / 2;
+    g.add(roofGroup);
     roofTop = top + rh;
   }
   for (let i = 0; i < (p.chimneys ?? 0); i++) {
