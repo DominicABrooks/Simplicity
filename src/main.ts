@@ -23,6 +23,7 @@ import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
 import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
+import { updateChatter } from "./game/chatter.ts";
 import { startPetting, updatePetting } from "./game/petting.ts";
 import { startResting, updateResting } from "./game/resting.ts";
 import { enterPets } from "./game/pets.ts";
@@ -119,6 +120,7 @@ function frame(now: number): void {
   step(g, dt);
   updateTalk(g, dt);
   updateTownsfolk(g, g.hitstop > 0 ? 0 : dt);
+  updateChatter(g, g.hitstop > 0 ? 0 : dt);              // and people who know each other stop for a word
   updatePetting(g, g.hitstop > 0 ? 0 : dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
   menu.setActive(MENU.inventory, inventory.isOpen());
