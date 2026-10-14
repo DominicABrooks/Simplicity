@@ -29,7 +29,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
   const { lambert, tex } = ctx, world = new THREE.Group();
   const { width: W, height: H, tiles } = map;
   const isWater = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y]![x] === Tile.Water;
-  const ground: Quad[] = [], flowers: Quad[] = [], water: Quad[] = [], bed: Quad[] = [], shore: Quad[] = [], trees: [number, number][] = [];
+  const paths: Quad[] = [], ground: Quad[] = [], flowers: Quad[] = [], water: Quad[] = [], bed: Quad[] = [], shore: Quad[] = [], trees: [number, number][] = [];
   const unitUV: [number, number][] = [[0, 0], [0, 1], [1, 1], [1, 0]];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = tiles[y]![x]!;
@@ -47,13 +47,15 @@ export function buildTerrain(ctx: RenderContext, map: TileMap): THREE.Group {
         uv: [[0, 1], [0, 0], [1, 0], [1, 1]],
       });
     } else {
-      ground.push({ p: corners(0), uv: worldUV(4) });
+      if (t === Tile.Path) paths.push({ p: corners(0), uv: worldUV(4) });
+      else ground.push({ p: corners(0), uv: worldUV(4) });
       if (t === Tile.Flower) flowers.push({ p: corners(0.01), uv: unitUV });
       if (t === Tile.Tree) trees.push([x + 0.5, y + 0.5]);
     }
   }
   const side = { side: THREE.DoubleSide };
   world.add(new THREE.Mesh(quadGeometry(ground), lambert("#ffffff", { map: tex.grass, ...side })));
+  world.add(new THREE.Mesh(quadGeometry(paths), lambert("#ffffff", { map: tex.path, ...side })));
   world.add(new THREE.Mesh(quadGeometry(flowers), lambert("#ffffff", { map: tex.flower, alphaTest: 0.5, ...side })));
   world.add(new THREE.Mesh(quadGeometry(bed), lambert(PAL.b, side)));
   world.add(new THREE.Mesh(quadGeometry(shore), lambert("#ffffff", { map: tex.earth, ...side })));

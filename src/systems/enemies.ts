@@ -64,6 +64,7 @@ export function deathSystem(g: Game): void {
 
 /** Every few seconds, top the enemies up. The cap grows with kills. */
 export function spawnerSystem(g: Game, dt: number): void {
+  if (!g.area.def.life?.enemies) return;                    // only where enemies live
   const cap = Math.min(SPAWNING.maxCap, SPAWNING.baseCap + Math.floor(g.kills / SPAWNING.killsPerCap));
   if ((g.spawnTimer -= dt) > 0) return;
   g.spawnTimer = SPAWNING.every;

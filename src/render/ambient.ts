@@ -6,6 +6,7 @@ import { PAL } from "../data/palette.ts";
 import { Tile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
 import { WATER_Y, col, type RenderContext } from "./context.ts";
+import { disposeTree } from "./dispose.ts";
 import { hash } from "./terrain.ts";
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
@@ -38,7 +39,8 @@ interface Frog { g: THREE.Group; body: THREE.Group; x: number; z: number; hop: H
 type Decor = [number, number, number, number, number, THREE.Color?];   // x, y, z, scale, rotY, colour
 
 export interface Ambient {
-  setMap(map: TileMap): void;
+  /** Build an area's decor and critters (or none, with `enabled` false). */
+  setMap(map: TileMap, enabled?: boolean): void;
   update(dt: number, t: number, heroX: number, heroZ: number): void;
   /** For the debug handle: where the critters are. */
   critters(): { bunnies: Bunny[]; birds: Bird[]; butterflies: Butterfly[]; frogs: Frog[] };
@@ -54,7 +56,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
     const tx = Math.floor(x), tz = Math.floor(z);
     return !map || tx < 0 || tz < 0 || tx >= W || tz >= H ? Tile.Tree : map.tiles[tz]![tx]!;
   };
-  const isLand = (x: number, z: number) => { const t = tile(x, z); return t === Tile.Grass || t === Tile.Flower; };
+  const isLand = (x: number, z: number) => { const t = tile(x, z); return t === Tile.Grass || t === Tile.Flower || t === Tile.Path; };
   const isWater = (x: number, z: number) => tile(x, z) === Tile.Water;
 
   // Instanced static decor.
@@ -143,6 +145,9 @@ export function createAmbient(ctx: RenderContext): Ambient {
   const leafGeo = new THREE.PlaneGeometry(0.08, 0.05);
   const leafMats = [basic(PAL.G, { side: THREE.DoubleSide, transparent: true }), basic(PAL.O, { side: THREE.DoubleSide, transparent: true }), basic("#86c46a", { side: THREE.DoubleSide, transparent: true })];
   const splashGeo = new THREE.RingGeometry(0.08, 0.13, 10).rotateX(-Math.PI / 2);
+  /** Made once and reused across areas: never disposed. */
+  const shared = new Set<unknown>([tuftGeo, reedGeo, cattailGeo, padGeo, lilyGeo, stemGeo, capGeo, logGeo,
+    shadowGeo, shadowMat, dark, cloudMat, leafGeo, ...leafMats, splashGeo]);
 
   let bunnies: Bunny[] = [], birds: Bird[] = [], butterflies: Butterfly[] = [], frogs: Frog[] = [];
   let clouds: THREE.Mesh[] = [], leaves: { mesh: THREE.Mesh; life: number; sway: number }[] = [];
@@ -177,9 +182,13 @@ export function createAmbient(ctx: RenderContext): Ambient {
   }
 
   return {
-    setMap(m) {
+    setMap(m, enabled = true) {
       map = m; H = m.height; W = m.width;
+      disposeTree(group, shared);                            // free the last area's decor and critters
       group.clear();
+      bunnies = []; birds = []; butterflies = []; frogs = []; clouds = []; leaves = []; splashes = [];
+      landTiles = []; flowerTiles = []; shoreTiles = []; treeTiles = [];
+      if (!enabled) return;
       landTiles = []; flowerTiles = []; shoreTiles = []; treeTiles = [];
       const waterTiles: [number, number][] = [];
       const near = (x: number, y: number, t: Tile) => DIRS.some(([dx, dy]) => tile(x + dx, y + dy) === t);

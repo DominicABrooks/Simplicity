@@ -6,6 +6,7 @@ import { PAL } from "../data/palette.ts";
 import { Tile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
 import { col, type RenderContext } from "./context.ts";
+import { disposeTree } from "./dispose.ts";
 
 const FISH_COLORS: [string, string][] = [[PAL.O, PAL.W], [PAL.R, PAL.W], [PAL.W, PAL.O], [PAL.Y, PAL.O], [PAL.O, PAL.R]];
 
@@ -35,16 +36,20 @@ const koiGeo = () => (geos ??= {
 interface Koi { group: KoiMesh; x: number; z: number; heading: number; speed: number; phase: number; turn: number; dart: number }
 
 export interface KoiPond {
-  setMap(map: TileMap, parent: THREE.Group): void;
+  setMap(map: TileMap): void;
   /** bobber: a line in the water (world X/Z) that draws the fish in. */
   update(dt: number, t: number, heroX: number, heroZ: number, bobber: { x: number; z: number } | null): void;
 }
 
 export function createKoiPond(ctx: RenderContext): KoiPond {
   let fish: Koi[] = [], isWaterAt = (_x: number, _z: number) => false;
+  const pond = new THREE.Group();
+  ctx.scene.add(pond);
 
   return {
-    setMap(map, parent) {
+    setMap(map) {
+      disposeTree(pond, new Set(Object.values(koiGeo())));    // the last area's fish (the koi shapes are shared)
+      pond.clear();
       isWaterAt = (x, z) => {
         const tx = Math.floor(x), tz = Math.floor(z);
         return tx >= 0 && tz >= 0 && tx < map.width && tz < map.height && map.tiles[tz]![tx] === Tile.Water;
@@ -57,7 +62,7 @@ export function createKoiPond(ctx: RenderContext): KoiPond {
         const [main, accent] = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)]!;
         const group = makeKoiMesh(ctx, main, accent);
         group.scale.setScalar(1.4 + Math.random() * 0.6);
-        parent.add(group);
+        pond.add(group);
         fish.push({ group, x: x + 0.5, z: y + 0.5, heading: Math.random() * Math.PI * 2, speed: 0.4, phase: Math.random() * 10, turn: 0, dart: 0 });
       }
     },

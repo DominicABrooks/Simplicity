@@ -7,6 +7,8 @@ import { HALF } from "../data/world.ts";
 import type { Game } from "../game/game.ts";
 import { createAmbient } from "./ambient.ts";
 import { buildCamp, type Camp } from "./camp.ts";
+import { buildCave } from "./cave.ts";
+import { disposeTree } from "./dispose.ts";
 import { PX_PER_TILE, createContext, toWorld } from "./context.ts";
 import { createFishingView } from "./fishing.ts";
 import { createFxView } from "./fx.ts";
@@ -24,6 +26,8 @@ export interface Renderer extends Projector {
   render(g: Game, dt: number): void;
   /** Debug: the ambient critters. */
   critters(): unknown;
+  /** Debug: live GPU resources (to check nothing leaks as you travel). */
+  memory(): { geometries: number; textures: number };
 }
 
 const CAM_OFFSET = new THREE.Vector3(0, 11.5, 8.5);
@@ -56,13 +60,23 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   let camp: Camp | null = null;
   const targetRing = createTargetRing(ctx);
 
-  // A new run: rebuild the scenery and jump the camera to the hero.
-  g.events.on("reset", ({ map }) => {
-    world.clear();
-    world.add(buildTerrain(ctx, map));
-    camp = buildCamp(ctx, world);
-    koi.setMap(map, world);
-    ambient.setMap(map);
+  // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
+  // the hero. Only one area's scenery is ever in memory.
+  let scenery = new THREE.Group();
+  world.add(scenery);
+  g.events.on("area", ({ def, layout }) => {
+    world.remove(scenery);
+    disposeTree(scenery);
+    scenery = new THREE.Group();
+    world.add(scenery);
+    scenery.add(buildTerrain(ctx, layout.map));
+    camp = null;
+    for (const prop of layout.props) {
+      if (prop.kind === "camp") camp = buildCamp(ctx, scenery, prop);
+      else buildCave(ctx, scenery, prop);
+    }
+    koi.setMap(layout.map);
+    ambient.setMap(layout.map, !!def.life?.ambient);
     const p = g.world.need(g.player, "transform");
     const [x, z] = toWorld(p.x, p.y);
     camTarget.set(x, 0, z);
@@ -117,5 +131,6 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     },
 
     critters: () => ambient.critters(),
+    memory: () => ({ ...renderer.info.memory }),
   };
 }

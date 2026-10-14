@@ -8,7 +8,7 @@ import { byId } from "./dom.ts";
 export function bindOverlay(g: Game): void {
   const overlay = byId("overlay"), message = byId("message");
   g.events.on("state", ({ state }) => {
-    overlay.hidden = state === "play";
+    overlay.hidden = state !== "title" && state !== "dead";
     if (state === "dead") message.textContent = "Press R to rise again.";
   });
 }
@@ -35,4 +35,10 @@ export function createResetBar(g: Game): { draw(): void } {
       fill.style.width = `${Math.min(100, (g.resetHold / RESET_HOLD) * 100)}%`;
     },
   };
+}
+
+/** Fade to black while travelling between areas, and back in on arrival. */
+export function bindFade(g: Game): void {
+  const el = byId("fade");
+  g.events.on("state", ({ state }) => el.classList.toggle("on", state === "travel"));
 }

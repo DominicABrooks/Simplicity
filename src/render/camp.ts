@@ -2,7 +2,7 @@
 // with flickering flames, a warm light and rising embers, and a log to sit on.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
-import { CAMP } from "../data/world.ts";
+import type { Prop } from "../world/area.ts";
 import { PX_PER_TILE, toWorld, type RenderContext } from "./context.ts";
 import { hash } from "./terrain.ts";
 
@@ -71,16 +71,16 @@ function softDisc(): THREE.CanvasTexture {
 /** Ground decals sit on the floor: pull them toward the camera in depth so they never flicker against it. */
 const DECAL = { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 } as const;
 
-export function buildCamp(ctx: RenderContext, parent: THREE.Group): Camp {
+export function buildCamp(ctx: RenderContext, parent: THREE.Group, camp: Extract<Prop, { kind: "camp" }>): Camp {
   const { lambert, basic, particles, tex } = ctx;
 
   // Tent: centred on its footprint, the doorway facing the camera (south).
   const tent = buildTent(ctx);
-  tent.position.set((CAMP.tent.x + CAMP.tent.w / 2) / PX_PER_TILE, 0, (CAMP.tent.y + CAMP.tent.h / 2) / PX_PER_TILE);
+  tent.position.set((camp.tent.x + camp.tent.w / 2) / PX_PER_TILE, 0, (camp.tent.y + camp.tent.h / 2) / PX_PER_TILE);
   parent.add(tent);
 
   // Campfire: scorched ground, a ring of stones, a tipi of logs and three nested flames.
-  const [fx, fz] = toWorld(CAMP.fire.x, CAMP.fire.y);
+  const [fx, fz] = toWorld(camp.fire.x, camp.fire.y);
   const fire = new THREE.Group();
   fire.position.set(fx, 0, fz);
   const disc = softDisc(), quad = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2);
@@ -125,7 +125,7 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group): Camp {
   parent.add(fire);
 
   // A log to sit on, beside the fire.
-  const [sx, sz] = toWorld(CAMP.seat.x, CAMP.seat.y);
+  const [sx, sz] = toWorld(camp.seat.x, camp.seat.y);
   const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.75, 6).rotateZ(Math.PI / 2), lambert("#ffffff", { map: tex.bark }));
   seat.position.set(sx, 0.1, sz);
   seat.rotation.y = -0.5;

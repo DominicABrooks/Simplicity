@@ -1,7 +1,7 @@
 // Simplicity: a tiny top-down fantasy RPG. Gameplay is 2D (src/game, src/systems); the 3D view only
 // draws it. This file wires the pieces together and runs the loop.
 import "./styles.css";
-import { createGame, setState } from "./game/game.ts";
+import { createGame, setState, toast } from "./game/game.ts";
 import { dropItem, eatItem } from "./game/actions.ts";
 import { resetGame } from "./game/reset.ts";
 import { bindInput } from "./input/input.ts";
@@ -12,7 +12,9 @@ import { byId } from "./ui/dom.ts";
 import { createHud } from "./ui/hud.ts";
 import { createInventoryView } from "./ui/inventory.ts";
 import { createLabels } from "./ui/labels.ts";
-import { bindOverlay, bindToasts, createResetBar } from "./ui/screens.ts";
+import { bindFade, bindOverlay, bindToasts, createResetBar } from "./ui/screens.ts";
+import { loadArea } from "./areas/index.ts";
+import { arrive } from "./game/travel.ts";
 import { bakeItemIcons } from "./ui/sprites.ts";
 import { createJournal } from "./ui/journal.ts";
 import { createMenuBar } from "./ui/menuBar.ts";
@@ -30,6 +32,7 @@ const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
 bindOverlay(g);
 bindToasts(g);
+bindFade(g);
 const MENU = { inventory: 0, map: 1, journal: 2 } as const;
 const menu = createMenuBar([
   { icon: "bag", label: "Inventory", key: "I", onClick: () => inventory.toggle() },
@@ -43,6 +46,27 @@ const toggleJournal = () => { if (FEATURES.journal) journal.toggle(); };
 const closePanels = () => { inventory.close(); journal.close(); map.close(); };
 g.events.on("reset", () => inventory.close());
 g.events.on("state", ({ state }) => { if (state === "dead") closePanels(); });
+
+// Walking into a cave: fade out, load the next area (its module is downloaded on the first visit),
+// arrive, fade back in. The fade takes at least TRAVEL_FADE ms, so it reads even when loading is instant.
+const TRAVEL_FADE = 300;
+g.events.on("state", ({ state }) => {
+  const to = g.travel;
+  if (state !== "travel" || !to) return;
+  closePanels();
+  Promise.all([loadArea(to.area), new Promise(r => setTimeout(r, TRAVEL_FADE))])
+    .then(([def]) => arrive(g, def))
+    .catch(err => {
+      // Couldn't get there (say the connection dropped): step back out of the exit and stay put.
+      console.error(err);
+      const here = g.area.layout.entries, back = Object.keys(here)[0]!;
+      const p = g.world.need(g.player, "transform");
+      Object.assign(p, here[back]);
+      g.travel = null;
+      setState(g, "play");
+      toast(g, "The way is blocked");
+    });
+});
 const input = bindInput(g, { toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels });
 
 function resize(): void {
@@ -79,7 +103,7 @@ function frame(now: number): void {
 // Debug handle for the browser console in development: simplicity.world, simplicity.hero(), ...
 if (import.meta.env.DEV) {
   Object.assign(window, {
-    simplicity: { game: g, view, world: g.world, hero: () => g.world.need(g.player, "transform"), critters: () => view.critters() },
+    simplicity: { game: g, view, world: g.world, hero: () => g.world.need(g.player, "transform"), critters: () => view.critters(), memory: () => view.memory() },
   });
 }
 

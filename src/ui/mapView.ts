@@ -1,8 +1,8 @@
-// The map (M): the area drawn on parchment, with you and the camp marked. The terrain is drawn once
-// per map; the markers are redrawn every frame while the map is open.
+// The map (M): the area you're in, drawn on parchment, with you, camps and caves marked. The terrain
+// is drawn once per area; the markers are redrawn every frame while the map is open.
 import { PAL } from "../data/palette.ts";
-import { AREA_NAME, CAMP, HALF, T, Tile } from "../data/world.ts";
-import type { Game } from "../game/game.ts";
+import { HALF, T, Tile } from "../data/world.ts";
+import type { CurrentArea, Game } from "../game/game.ts";
 import type { TileMap } from "../world/map.ts";
 import { byId, markHandled } from "./dom.ts";
 
@@ -13,6 +13,7 @@ const INK = {
   paper: "#e8dcc0",
   ground: "#cbc493",
   groundDot: "#bdb682",
+  path: "#b39a6a",
   water: "#86a7c4",
   shore: "#5f7fa0",
   tree: "#7d8f5a",
@@ -54,6 +55,9 @@ function drawTerrain(c: HTMLCanvasElement, map: TileMap): void {
       g.fillRect(px, py, S, S);
       g.fillStyle = INK.treeDot;                             // a scatter of canopy dots
       g.fillRect(px + Math.floor(hash(x, y) * S), py + Math.floor(hash(y, x) * S), 1, 1);
+    } else if (t === Tile.Path) {
+      g.fillStyle = INK.path;
+      g.fillRect(px, py, S, S);
     } else {
       g.fillStyle = INK.ground;
       g.fillRect(px, py, S, S);
@@ -70,18 +74,22 @@ function drawTerrain(c: HTMLCanvasElement, map: TileMap): void {
 
 export function createMapView(g: Game): MapView {
   const panel = byId("map"), base = byId<HTMLCanvasElement>("mapBase"), marks = byId<HTMLCanvasElement>("mapMarks");
-  byId("mapTitle").textContent = AREA_NAME.toUpperCase();
+  const title = byId("mapTitle"), frame = panel.querySelector<HTMLElement>(".map-frame")!;
   const mg = marks.getContext("2d")!;
   /** A game position (cell top-left) -> map pixels, at the cell's centre. */
   const toMap = (x: number, y: number) => [((x + HALF) / T) * S, ((y + HALF) / T) * S] as const;
 
-  const setMap = (map: TileMap) => {
-    drawTerrain(base, map);
+  const setArea = ({ def, layout }: CurrentArea) => {
+    title.textContent = def.name.toUpperCase();
+    drawTerrain(base, layout.map);
     marks.width = base.width;
     marks.height = base.height;
+    // One UI pixel per map pixel, whatever the area's size.
+    frame.style.width = `calc(var(--u) * ${base.width})`;
+    frame.style.height = `calc(var(--u) * ${base.height})`;
   };
-  setMap(g.map);
-  g.events.on("reset", ({ map }) => setMap(map));
+  setArea(g.area);
+  g.events.on("area", setArea);
 
   /** A filled shape with a 1px ink outline. */
   const shape = (points: (readonly [number, number])[], fill: string) => {
@@ -97,12 +105,21 @@ export function createMapView(g: Game): MapView {
 
   function drawMarks(): void {
     mg.clearRect(0, 0, marks.width, marks.height);
-    // The camp: a little tent, and the fire beside it.
-    const [tx, ty] = toMap(CAMP.tent.x + CAMP.tent.w / 2 - HALF, CAMP.tent.y + CAMP.tent.h / 2 - HALF);
-    shape([[tx - 3.5, ty + 2.5], [tx, ty - 3.5], [tx + 3.5, ty + 2.5]], "#d8c8a0");
-    const [fx, fy] = toMap(CAMP.fire.x, CAMP.fire.y);
-    mg.fillStyle = PAL.K; mg.fillRect(Math.round(fx) - 2, Math.round(fy) - 2, 4, 4);
-    mg.fillStyle = PAL.O; mg.fillRect(Math.round(fx) - 1, Math.round(fy) - 1, 2, 2);
+    for (const prop of g.area.layout.props) {
+      if (prop.kind === "camp") {
+        // A camp: a little tent, and the fire beside it.
+        const [tx, ty] = toMap(prop.tent.x + prop.tent.w / 2 - HALF, prop.tent.y + prop.tent.h / 2 - HALF);
+        shape([[tx - 3.5, ty + 2.5], [tx, ty - 3.5], [tx + 3.5, ty + 2.5]], "#d8c8a0");
+        const [fx, fy] = toMap(prop.fire.x, prop.fire.y);
+        mg.fillStyle = PAL.K; mg.fillRect(Math.round(fx) - 2, Math.round(fy) - 2, 4, 4);
+        mg.fillStyle = PAL.O; mg.fillRect(Math.round(fx) - 1, Math.round(fy) - 1, 2, 2);
+      } else {
+        // A cave: a dark arch in a grey rock.
+        const cx = (prop.x / T) * S, cy = Math.min(marks.height - 3, Math.max(3, (prop.y / T) * S));
+        shape([[cx - 5, cy + 2], [cx - 4, cy - 3], [cx, cy - 5], [cx + 4, cy - 3], [cx + 5, cy + 2]], "#8a8378");
+        shape([[cx - 2, cy + 2], [cx - 2, cy - 1], [cx, cy - 2.5], [cx + 2, cy - 1], [cx + 2, cy + 2]], "#14101e");
+      }
+    }
     // You: a gold arrow pointing the way you're facing, gently pulsing.
     const p = g.world.get(g.player, "transform"), motion = g.world.get(g.player, "motion");
     if (!p || !motion) return;

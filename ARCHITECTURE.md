@@ -90,6 +90,32 @@ Systems never touch the DOM or three.js. They talk outward in two ways:
 Combat numbers (`game.floaters`) are game state, since they age with game time and freeze during hitstop.
 The HUD draws them.
 
+## Areas
+
+The world is a graph of **areas** joined by **exits** (caves, for now). Each area is one module in
+`src/areas/`, named after its id, exporting an `AreaDef` (`src/world/area.ts`):
+
+- `build()` returns its `AreaLayout`: the tile map (and solid boxes such as a tent), named arrival
+  points (`entries`), `exits` (a box that takes you to an area and entry), and scenery `props`
+  (a camp, a cave mouth). It must be deterministic.
+- `life` says what lives there (enemies, potions, critters and decor). Leave it out for an empty area.
+
+Built to scale to thousands of areas:
+
+- **Only one area is ever built.** `enterArea()` (`src/game/travel.ts`) destroys every entity but the
+  hero, builds the new layout and fills it. The renderer frees the last area's geometry and materials
+  (`src/render/dispose.ts`) before building the next, so GPU memory stays flat however far you travel.
+  Layouts of the last few areas are cached (`src/world/layouts.ts`).
+- **Only the home area ships with the game.** Every other area is its own chunk
+  (`import.meta.glob` in `src/areas/index.ts`), downloaded the first time you go there. Listing every
+  area's id costs nothing.
+- **Links are checked, not trusted.** `tests/areas.test.ts` runs over every area: ids match file names,
+  layouts are deterministic, arrival points are on open ground and outside exits, every exit leads to
+  a real area and entry, and every exit can be walked to from every arrival point.
+
+Travelling: walking into an exit sets `game.travel` and the `travel` state, which holds the world still.
+`main.ts` fades out, loads the next area, calls `arrive()`, and fades back in.
+
 ## Rendering
 
 `src/render/renderer.ts` owns the three.js scene, the camera and the low-res canvas. Builders get a
@@ -127,6 +153,10 @@ mapping in `ICON_SWAPS` (`src/data/tiers.ts`). If it's worn, dress it in `dressB
 **Add a spell.** Add it to `SPELLS` (and a school in `SCHOOLS` if it's a school's signature) in
 `src/data/enemies.ts`, then handle its release in `releaseSpell()` in `src/systems/mage.ts`. Bolts reuse the
 `bolt` component; a new ground effect is an entity with its own component, system and view.
+
+**Add an area.** Make `src/areas/<id>.ts` exporting `area: AreaDef` (copy `uncharted.ts` for an empty
+one). Give it entries, and exits that point at other areas' entries, and add the matching exits there.
+`npm test` checks every link. Nothing else needs registering.
 
 **Add a system.** Write `(g: Game, dt: number) => void`, put it in the list in `src/systems/index.ts` at the
 point in the order where its inputs are ready, and add a test in `tests/`.

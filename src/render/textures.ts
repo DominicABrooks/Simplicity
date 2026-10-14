@@ -11,6 +11,8 @@ export interface Textures {
   earth: THREE.CanvasTexture;
   bark: THREE.CanvasTexture;
   leaf: THREE.CanvasTexture;
+  /** Trodden earth, for paths. */
+  path: THREE.CanvasTexture;
   /** Gear cloth: vertical folds, trim along the hem. Tiers decide the colours. */
   cloth(tier: TierName): THREE.CanvasTexture;
   mantle(tier: TierName): THREE.CanvasTexture;
@@ -69,6 +71,12 @@ export function createTextures(): Textures {
     dots(g, 0, 14, 14, PAL.v, 16, 2, 2);
     dots(g, 0, 15, 15, "#8fd06e", 10, 1, 1);
   }, true);
+  const path = paint(32, 32, g => {
+    g.fillStyle = "#8b6a44"; g.fillRect(0, 0, 32, 32);
+    dots(g, 0, 31, 31, "#6f5236", 26, 2, 1);                 // ruts and shadow
+    dots(g, 0, 32, 32, "#a8875c", 18, 1, 1);                 // dry earth
+    dots(g, 0, 31, 31, PAL.w, 7, 1, 1);                      // pebbles
+  }, true);
 
   const cache = new Map<string, THREE.CanvasTexture>();
   const cached = (key: string, make: () => THREE.CanvasTexture) => {
@@ -78,7 +86,7 @@ export function createTextures(): Textures {
   };
 
   return {
-    grass, flower, water, earth, bark, leaf,
+    grass, flower, water, earth, bark, leaf, path,
     cloth: tier => cached(`cloth/${tier}`, () => paint(16, 16, g => {
       const T = TIERS[tier];
       g.fillStyle = T.cloth; g.fillRect(0, 0, 16, 16);

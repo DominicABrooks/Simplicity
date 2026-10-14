@@ -3,7 +3,7 @@ import type { Entity } from "../core/ecs.ts";
 import { MAGE, MAGE_TARGET, MAGE_MIN_KILLS, SLIME_TARGET, SCHOOLS, SCHOOL_ORDER, SLIME, mageCap, mageChance, mageHp, type BoltKind } from "../data/enemies.ts";
 import { LOOT_DESPAWN } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
-import { CAMP, CAMPFIRE_TARGET, SPAWN } from "../data/world.ts";
+import { CAMPFIRE_TARGET } from "../data/world.ts";
 import type { Item } from "../items/items.ts";
 import { randomGroundSpot } from "../world/collision.ts";
 import type { Game } from "./game.ts";
@@ -11,7 +11,7 @@ import { toast } from "./game.ts";
 
 export function createHero(g: Game): Entity {
   return g.world.create({
-    transform: { x: SPAWN.x, y: SPAWN.y },
+    transform: { x: 0, y: 0 },                             // placed when it enters an area
     knockback: { vx: 0, vy: 0 },
     health: { hp: BASE_HP, maxHp: BASE_HP },
     hero: { level: 1, xp: 0, damage: 1, speedMul: 1, dashMul: 1, gear: null },
@@ -63,9 +63,9 @@ export function spawnEnemy(g: Game, minDist: number): void {
   });
 }
 
-/** The camp's campfire. It's drawn with the camp scenery; as an entity it can be targeted. */
-export function spawnCampfire(g: Game): Entity {
-  return g.world.create({ transform: { x: CAMP.fire.x, y: CAMP.fire.y }, targetable: { hostile: false, ...CAMPFIRE_TARGET } });
+/** A camp's campfire. It's drawn with the camp scenery; as an entity it can be targeted. */
+export function spawnCampfire(g: Game, x: number, y: number): Entity {
+  return g.world.create({ transform: { x, y }, targetable: { hostile: false, ...CAMPFIRE_TARGET } });
 }
 
 export function spawnPotion(g: Game, x: number, y: number): Entity {

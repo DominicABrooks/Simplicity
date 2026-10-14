@@ -8,11 +8,21 @@ import { BASE_HP } from "../data/player.ts";
 import { levelBonus } from "../data/progression.ts";
 import { Inventory, type InventoryStats } from "../items/inventory.ts";
 import type { Point } from "../world/collision.ts";
-import { makeMap, type TileMap } from "../world/map.ts";
+import { HOME } from "../areas/index.ts";
+import type { AreaDef, AreaLayout, Destination } from "../world/area.ts";
+import { layoutOf } from "../world/layouts.ts";
+import type { TileMap } from "../world/map.ts";
 import type { Components } from "./components.ts";
 import type { Fx } from "./fx.ts";
 
-export type GameState = "title" | "play" | "dead";
+/** "travel": walking through an exit; the world holds still until the next area is ready. */
+export type GameState = "title" | "play" | "dead" | "travel";
+
+/** The area you're in, and its built layout. */
+export interface CurrentArea {
+  def: AreaDef;
+  layout: AreaLayout;
+}
 
 /** Controls, as gameplay sees them. The input layer fills this in; systems consume the presses. */
 export interface Input {
@@ -43,15 +53,22 @@ export interface Floater {
 export interface GameEvents {
   toast: { text: string; good: boolean };
   state: { state: GameState };
-  /** A new run started: the map was rebuilt and the hero is back at the spawn. */
-  reset: { map: TileMap };
+  /** A new run started: a fresh hero and bag, back home. */
+  reset: Record<string, never>;
+  /** You arrived in an area (a new run arrives home too): its ground and scenery are ready to build. */
+  area: CurrentArea;
   /** An enemy was killed: its journal count went up. `first` when that kind was just discovered. */
   journal: { id: BestiaryId; first: boolean };
 }
 
 export interface Game {
   world: World<Components>;
+  /** The area you're in. Only this area is built; every other area is just an id until you go there. */
+  area: CurrentArea;
+  /** The current area's tiles (the same as area.layout.map). */
   map: TileMap;
+  /** Set when you walk into an exit; the area is swapped once the next one is loaded. */
+  travel: Destination | null;
   rng: Rng;
   input: Input;
   inventory: Inventory;
@@ -79,9 +96,12 @@ export interface Game {
 }
 
 export function createGame(): Game {
+  const home = { def: HOME, layout: layoutOf(HOME) };
   const g: Game = {
     world: new World<Components>(),
-    map: makeMap(),
+    area: home,
+    map: home.layout.map,
+    travel: null,
     rng: new Rng(),
     input: { keys: new Set(), attackPressed: false, attackReleased: false, jumpPressed: false, dashRequest: null, pointer: null },
     inventory: new Inventory(() => levelBonus(g.world.get(g.player, "hero")?.level ?? 1)),

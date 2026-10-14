@@ -1,0 +1,66 @@
+// Moving between areas. Only one area is ever built: arriving somewhere clears the last area's
+// entities (the hero carries on, gear and all) and builds the new one from its definition.
+import { SPAWNING } from "../data/enemies.ts";
+import type { AreaDef } from "../world/area.ts";
+import { randomGroundSpot } from "../world/collision.ts";
+import { layoutOf } from "../world/layouts.ts";
+import { cancelActions } from "./combat.ts";
+import { setState, toast, type Game } from "./game.ts";
+import { spawnCampfire, spawnEnemy, spawnPotion } from "./spawn.ts";
+
+/** Put the hero at an arrival point in an area, and fill the area with what lives there. */
+export function enterArea(g: Game, def: AreaDef, entry: string): void {
+  const layout = layoutOf(def), at = layout.entries[entry];
+  if (!at) throw new Error(`Area "${def.id}" has no entry "${entry}"`);
+  for (const e of g.world.entities()) if (e !== g.player) g.world.destroy(e);
+  g.area = { def, layout };
+  g.map = layout.map;
+  g.travel = null;
+  g.fx = [];
+  g.floaters = [];
+  g.target = null;
+  g.spawnTimer = 0;
+
+  // The hero arrives standing still, whatever they were doing.
+  const pos = g.world.need(g.player, "transform"), kb = g.world.need(g.player, "knockback"), motion = g.world.need(g.player, "motion");
+  pos.x = at.x; pos.y = at.y;
+  kb.vx = kb.vy = 0;
+  motion.dash = motion.jump = 0;
+  cancelActions(g.world.need(g.player, "actions"));
+
+  for (const prop of layout.props) if (prop.kind === "camp") spawnCampfire(g, prop.fire.x, prop.fire.y);
+  const life = def.life;
+  if (life?.enemies) for (let i = 0; i < SPAWNING.startSlimes; i++) spawnEnemy(g, 80);
+  if (life?.potions) {
+    for (let i = 0; i < SPAWNING.startPotions; i++) {
+      const p = randomGroundSpot(g.map, g.rng, pos, 40);
+      if (p) spawnPotion(g, p.x, p.y);
+    }
+  }
+  g.events.emit("area", g.area);
+}
+
+/** Has the hero walked into one of the area's exits? Then hold still and ask to travel. */
+export function travelSystem(g: Game): void {
+  if (g.travel) return;
+  const p = g.world.need(g.player, "transform");
+  // The hero's feet box, as everywhere else.
+  const fx = p.x + 1, fy = p.y + 4, fw = 6, fh = 4;
+  for (const exit of g.area.layout.exits) {
+    const r = exit.rect;
+    if (fx < r.x + r.w && r.x < fx + fw && fy < r.y + r.h && r.y < fy + fh) {
+      g.travel = exit.to;
+      setState(g, "travel");
+      return;
+    }
+  }
+}
+
+/** The next area is loaded: go there, and pick up where you left off. */
+export function arrive(g: Game, def: AreaDef): void {
+  const to = g.travel;
+  if (!to || to.area !== def.id) throw new Error(`Not travelling to "${def.id}"`);
+  enterArea(g, def, to.entry);
+  setState(g, "play");
+  toast(g, def.name, true);
+}

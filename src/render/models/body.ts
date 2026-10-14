@@ -7,6 +7,7 @@ import { PAL } from "../../data/palette.ts";
 import { TIERS, type TierName } from "../../data/tiers.ts";
 import type { Slot } from "../../data/items.ts";
 import { addShadow, box, col, type RenderContext } from "../context.ts";
+import { disposeTree } from "../dispose.ts";
 import { makeArrowMesh } from "./projectiles.ts";
 
 /** What a body wears: a tier per slot (null when empty) and the weapon type. */
@@ -75,8 +76,12 @@ export function dressBody(ctx: RenderContext, h: Body, g: Partial<Outfit>): void
   if (key === h.key) return;
   h.key = key;
   const { lambert, basic, lathe, tex } = ctx;
-  h.gear.clear(); h.sword.clear(); h.ring.clear();
-  h.feet.forEach(f => { const nub = f.userData.nub as THREE.Mesh; f.clear(); f.add(nub); nub.visible = true; });
+  for (const part of [h.gear, h.sword, h.ring]) { disposeTree(part); part.clear(); }
+  h.feet.forEach(f => {
+    const nub = f.userData.nub as THREE.Mesh;
+    for (const c of f.children) if (c !== nub) disposeTree(c);   // old boots
+    f.clear(); f.add(nub); nub.visible = true;
+  });
 
   if (g.armor) {
     const T = g.armor;
@@ -162,4 +167,6 @@ export function dressBody(ctx: RenderContext, h: Body, g: Partial<Outfit>): void
 /** Take a body out of the scene. */
 export function removeBody(ctx: RenderContext, h: Body): void {
   ctx.scene.remove(h.group, h.shadow, h.ripple);
+  const keep = new Set<unknown>([ctx.shadowGeo, ctx.shadowMat]);
+  for (const o of [h.group, h.shadow, h.ripple]) disposeTree(o, keep);
 }

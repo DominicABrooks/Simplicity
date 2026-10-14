@@ -92,6 +92,11 @@ export class World<C extends object> {
     return out;
   }
 
+  /** Every live entity (a snapshot, so destroying while iterating is safe). */
+  entities(): Entity[] {
+    return [...this.alive];
+  }
+
   /** Remove every entity. */
   clear(): void {
     this.alive.clear();

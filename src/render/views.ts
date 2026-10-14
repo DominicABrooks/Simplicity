@@ -12,6 +12,7 @@ import type { RenderKind, Transform } from "../game/components.ts";
 import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
 import { PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
+import { disposeTree } from "./dispose.ts";
 import { dressBody, removeBody, type Body } from "./models/body.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
@@ -32,7 +33,12 @@ export interface EntityView<S> {
 
 /** Views made of a group and a blob shadow. */
 interface Simple { group: THREE.Object3D; shadow: THREE.Object3D }
-const removeSimple = (ctx: RenderContext, v: Simple) => ctx.scene.remove(v.group, v.shadow);
+const removeSimple = (ctx: RenderContext, v: Simple) => {
+  ctx.scene.remove(v.group, v.shadow);
+  const keep = new Set<unknown>([ctx.shadowGeo, ctx.shadowMat]);
+  disposeTree(v.group, keep);
+  disposeTree(v.shadow, keep);
+};
 const facing = (from: Transform, to: Transform) => -Math.atan2(to.y - from.y, to.x - from.x);
 
 // ---------- Slime ----------

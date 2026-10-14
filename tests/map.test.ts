@@ -1,30 +1,31 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MAP_H, MAP_W, SPAWN, T, Tile } from "../src/data/world.ts";
-import { isOpenGround, makeMap, reachableFrom } from "../src/world/map.ts";
+import { CAMP_SOLIDS, SPAWN, buildMap } from "../src/areas/greenhollow.ts";
+import { T, Tile } from "../src/data/world.ts";
+import { blocked } from "../src/world/collision.ts";
+import { isOpenGround, reachableFrom } from "../src/world/map.ts";
 
-describe("makeMap", () => {
-  const map = makeMap();
+describe("Greenhollow's map", () => {
+  const map = buildMap();
 
-  it("matches the world captured from the original game, tile for tile", () => {
+  it("matches the fixture tile for tile (the original world, plus the path to the cave)", () => {
     const fixture = readFileSync(new URL("./fixtures/map.txt", import.meta.url), "utf8").trim().split(/\r?\n/);
     expect(map.tiles.map(r => r.join(""))).toEqual(fixture);
   });
 
-  it("is the expected size and sealed by forest on every edge", () => {
-    expect(map.width).toBe(MAP_W);
-    expect(map.height).toBe(MAP_H);
-    for (let x = 0; x < MAP_W; x++) {
-      expect(map.tiles[0]![x]).toBe(Tile.Tree);
-      expect(map.tiles[MAP_H - 1]![x]).toBe(Tile.Tree);
+  it("is sealed by forest on every edge, except where the path reaches the cave", () => {
+    for (let x = 0; x < map.width; x++) {
+      expect([Tile.Tree, Tile.Path]).toContain(map.tiles[0]![x]);
+      expect(map.tiles[map.height - 1]![x]).toBe(Tile.Tree);
     }
+    expect(map.tiles[0]!.filter(t => t === Tile.Path)).toHaveLength(2);
   });
 
   it("leaves no open ground you can't walk to from the spawn", () => {
     const reached = reachableFrom(map, SPAWN.x / T, SPAWN.y / T);
-    for (let y = 0; y < MAP_H; y++)
-      for (let x = 0; x < MAP_W; x++)
-        if (isOpenGround(map.tiles[y]![x]!)) expect(reached.has(y * MAP_W + x)).toBe(true);
+    for (let y = 0; y < map.height; y++)
+      for (let x = 0; x < map.width; x++)
+        if (isOpenGround(map.tiles[y]![x]!)) expect(reached.has(y * map.width + x)).toBe(true);
   });
 
   it("keeps the spawn clear", () => {
@@ -32,16 +33,14 @@ describe("makeMap", () => {
   });
 
   it("is deterministic", () => {
-    expect(makeMap().tiles).toEqual(map.tiles);
+    expect(buildMap().tiles).toEqual(map.tiles);
   });
 });
 
 describe("the camp", () => {
-  const map = makeMap();
+  const map = buildMap();
 
-  it("stands on open ground near the spawn, and the spawn is free to move", async () => {
-    const { CAMP_SOLIDS } = await import("../src/data/world.ts");
-    const { blocked } = await import("../src/world/collision.ts");
+  it("stands on open ground near the spawn, and the spawn is free to move", () => {
     for (const r of CAMP_SOLIDS)
       for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++)
         expect(isOpenGround(map.tiles[Math.floor(y / T)]![Math.floor(x / T)]!)).toBe(true);

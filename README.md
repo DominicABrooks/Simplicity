@@ -34,7 +34,9 @@ CI runs lint, typecheck, tests and the build on every push and pull request; a p
 
 WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. The buttons in the bottom-right open your inventory (I) and the map (M). Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
 
-**Map:** press M (or the map button) for a parchment map of Greenhollow, the one area so far, showing where you are and which way you're facing, and the camp.
+**Map:** press M (or the map button) for a parchment map of the area you're in, showing where you are and which way you're facing, the camp and the caves.
+
+**Areas:** a dirt path leads north from the camp through the woods to a cave. Walk in to travel to the land beyond (blank for now), and back through it to return. Your gear and level go with you; each area keeps its own creatures.
 
 **Journal (coming soon):** greyed out on the menu bar for now; it's built and switched off in `src/data/features.ts`. A bestiary of every enemy. Each starts as a black silhouette; kill one and its page fills in with its portrait, a little about it, its health, experience, abilities and drops, and how many you've defeated. Your discoveries are saved in the browser and kept across runs. The book button glows when there's a new entry.
 
@@ -65,7 +67,8 @@ The game is TypeScript with an entity-component-system design; see [ARCHITECTURE
 - `src/main.ts`: wires everything together and runs the loop
 - `src/core/`: the ECS (`World`), a typed event bus, the seeded RNG and math helpers
 - `src/data/`: tuning and content as typed tables: player, enemies and spells, items and affixes, tiers, progression
-- `src/world/`: map generation and collision
+- `src/areas/`: the areas, one module each (the world map is the links between them)
+- `src/world/`: areas, tile maps and collision
 - `src/items/`: items, loot rolls and the inventory model
 - `src/game/`: components, entity factories and shared combat rules
 - `src/systems/`: gameplay systems (hero, weapons, enemies, mages, spells), run in order by `step()`
