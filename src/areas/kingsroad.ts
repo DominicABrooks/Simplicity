@@ -56,7 +56,7 @@ function build(): AreaLayout {
   town.add({ kind: "cave", x: MID * T, y: H * T, facing: "north" });
 
   // Ships moored either side of the bridge.
-  for (const [x, y, facing] of [[4.5, WALL_Y + 6.5, "east"], [26.5, WALL_Y + 14.5, "west"]] as const) town.add({ kind: "boat", x: x * T, y: y * T, facing, size: "cog" });
+  for (const [x, y, facing] of [[5, WALL_Y + 6.5, "east"], [26, WALL_Y + 14.5, "west"]] as const) town.add({ kind: "boat", x: x * T, y: y * T, facing, size: "cog" });
   for (const [x, y, facing] of [[6.5, WALL_Y + 17.5, "west"], [24.5, WALL_Y + 5.5, "east"]] as const) town.add({ kind: "boat", x: x * T, y: y * T, facing, size: "rowing" });
 
   return town.layout(
