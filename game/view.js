@@ -158,31 +158,70 @@ export function createView(canvas, PAL, C) {
     world.add(new THREE.Mesh(quadGeometry(water), lambert("#ffffff", { map: waterTex, transparent: true, opacity: 0.82, ...side })));
 
     // Ground beyond the map edge: four strips around it, so they never cover the sunken water.
-    const R = 60, outerMat = lambert("#ffffff", { map: grassTex, ...side });
+    // Tinted darker: it's forest floor under the canopy.
+    const R = 60, outerMat = lambert("#9db29d", { map: grassTex, ...side });
     const strip = (x0, z0, x1, z1) => ({ p: [[x0, 0, z0], [x0, 0, z1], [x1, 0, z1], [x1, 0, z0]], uv: [[x0 / 4, z0 / 4], [x0 / 4, z1 / 4], [x1 / 4, z1 / 4], [x1 / 4, z0 / 4]] });
     world.add(new THREE.Mesh(quadGeometry([
       strip(-R, -R, W + R, 0), strip(-R, H, W + R, H + R), strip(-R, 0, 0, H), strip(W, 0, W + R, H),
     ]), outerMat));
 
-    // Trees: three instanced parts so ~300 trees cost three draw calls.
-    const parts = [
+    // Deterministic per-position noise so the forest looks the same every run.
+    const hash = (x, z, k) => { const s = Math.sin(x * 127.1 + z * 311.7 + k * 74.7) * 43758.5453; return s - Math.floor(s); };
+    const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && map[y][x] !== C.TREE;
+
+    // Trees: map trees (nudged off the grid) plus a dense decorative forest around the map, fading into fog.
+    const placed = [];                                      // [x, z, scale]
+    for (const [x, z] of trees) {
+      placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45]);
+    }
+    const RING = 9;
+    for (let y = -RING; y < H + RING; y++) for (let x = -RING; x < W + RING; x++) {
+      if (x >= 0 && y >= 0 && x < W && y < H) continue;
+      if (hash(x, y, 4) > 0.72) continue;                   // a few gaps so it isn't a solid carpet
+      const big = 0.95 + hash(x, y, 5) * 0.6;              // outer forest grows taller than the treeline
+      placed.push([x + 0.5 + (hash(x, y, 6) - 0.5) * 0.7, y + 0.5 + (hash(x, y, 7) - 0.5) * 0.7, big]);
+    }
+    const treeParts = [
       [new THREE.CylinderGeometry(0.11, 0.17, 0.62, 5).translate(0, 0.31, 0), lambert("#ffffff", { map: barkTex })],
       [new THREE.IcosahedronGeometry(0.52, 0).translate(0, 0.92, 0), lambert("#ffffff", { map: leafTex })],
       [new THREE.IcosahedronGeometry(0.36, 0).translate(0.08, 1.34, 0.04), lambert("#ffffff", { map: leafTex })],
     ];
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-    for (const [geo, mat] of parts) {
-      const inst = new THREE.InstancedMesh(geo, mat, trees.length);
-      trees.forEach(([x, z], i) => {
-        const k = 0.85 + ((x * 7.3 + z * 3.1) % 1) * 0.35;
-        q.setFromAxisAngle(up, (x * 1.7 + z * 2.3) % (Math.PI * 2));
-        m.compose(new THREE.Vector3(x, 0, z), q, s.set(k, k, k));
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    const instanced = (geo, mat, list, colorFor) => {
+      const inst = new THREE.InstancedMesh(geo, mat, list.length);
+      list.forEach(([x, z, k], i) => {
+        q.setFromAxisAngle(up, hash(x, z, 8) * Math.PI * 2);
+        m.compose(new THREE.Vector3(x, 0, z), q, sc.set(k, k * (0.9 + hash(x, z, 9) * 0.25), k));
         inst.setMatrixAt(i, m);
-        const shade = 0.8 + ((x * 3.7 + z * 5.9) % 1) * 0.35;
-        inst.setColorAt(i, new THREE.Color(shade, shade, shade));
+        inst.setColorAt(i, colorFor(x, z));
       });
       world.add(inst);
+    };
+    // Leaves vary a little in hue and brightness; outer trees are darker, like deeper woods.
+    const leafColor = (x, z) => {
+      const deep = x < 0 || z < 0 || x > W || z > H ? 0.78 : 1;
+      const b = (0.78 + hash(x, z, 10) * 0.35) * deep;
+      return new THREE.Color(b * (0.92 + hash(x, z, 11) * 0.12), b, b * (0.9 + hash(x, z, 12) * 0.1));
+    };
+    instanced(treeParts[0][0], treeParts[0][1], placed, () => new THREE.Color(1, 1, 1));
+    instanced(treeParts[1][0], treeParts[1][1], placed, leafColor);
+    instanced(treeParts[2][0], treeParts[2][1], placed, leafColor);
+
+    // Undergrowth: bushes and rocks on tree tiles that face the clearing, softening the treeline.
+    const bushes = [], rocks = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (map[y][x] !== C.TREE) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!walkable(x + dx, y + dy) || hash(x * 3 + dx, y * 3 + dy, 13) > 0.55) continue;
+        const bx = x + 0.5 + dx * 0.32 + (hash(x, y, 14 + dx) - 0.5) * 0.4;
+        const bz = y + 0.5 + dy * 0.32 + (hash(x, y, 15 + dy) - 0.5) * 0.4;
+        if (hash(x + dx, y + dy, 16) < 0.18) rocks.push([bx, bz, 0.7 + hash(x, y, 17) * 0.6]);
+        else bushes.push([bx, bz, 0.7 + hash(x, y, 18) * 0.5]);
+      }
     }
+    instanced(new THREE.IcosahedronGeometry(0.24, 0).translate(0, 0.14, 0).scale(1.2, 0.8, 1.2), lambert("#ffffff", { map: leafTex }), bushes, leafColor);
+    instanced(new THREE.DodecahedronGeometry(0.16, 0).translate(0, 0.08, 0).scale(1.3, 0.75, 1), lambert(PAL.w), rocks,
+      (x, z) => { const b = 0.75 + hash(x, z, 19) * 0.3; return new THREE.Color(b, b, b); });
   }
 
   // ---------- Models ----------

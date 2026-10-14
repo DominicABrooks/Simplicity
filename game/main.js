@@ -88,6 +88,16 @@ function makeMap() {
     if (edge && map[y][x] !== WATER) map[y][x] = TREE;
     else if (!nearSpawn && map[y][x] !== WATER && rand() < 0.08) map[y][x] = TREE;
   }
+  // Ragged forest edge: depth wanders between 1 and 4 tiles along each side (water stays open).
+  const depth = (i, k) => Math.max(1, Math.min(4, Math.round(2 + 1.1 * Math.sin(i * 0.41 + k) + 0.7 * Math.sin(i * 1.13 + k * 2.3))));
+  for (let x = 0; x < MAP_W; x++) {
+    for (let y = 0; y < depth(x, 1); y++) if (map[y][x] !== WATER) map[y][x] = TREE;
+    for (let y = MAP_H - depth(x, 2); y < MAP_H; y++) if (map[y][x] !== WATER) map[y][x] = TREE;
+  }
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < depth(y, 3); x++) if (map[y][x] !== WATER) map[y][x] = TREE;
+    for (let x = MAP_W - depth(y, 4); x < MAP_W; x++) if (map[y][x] !== WATER) map[y][x] = TREE;
+  }
   for (let x = 0; x < MAP_W; x++) map[0][x] = map[MAP_H - 1][x] = TREE;   // seal the river mouth
 }
 
