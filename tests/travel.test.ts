@@ -53,10 +53,10 @@ describe("travel", () => {
     expect(g.inventory.equip.weapon?.rarity).toBe("rare");
   });
 
-  it("the new area is empty, and stays empty", async () => {
+  it("the new area is peaceful: nobody there but its guards, and no enemies ever come", async () => {
     const g = playing();
     enterArea(g, await loadArea("capital"), "cave");
-    expect(g.world.entities()).toEqual([g.player]);
+    expect(g.world.entities().filter(e => e !== g.player && !g.world.has(e, "sentry"))).toEqual([]);
     for (let t = 0; t < 10; t += DT) step(g, DT);           // long enough for several spawn ticks
     expect(g.world.count("enemy")).toBe(0);
   });

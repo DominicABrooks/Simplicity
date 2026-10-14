@@ -75,8 +75,8 @@ order, and **order matters**: each system sees what the ones before it did this 
 4. `fishing`, `rod`, `bow`, `sword`, `thrust`: weapons. Each consumes the attack press it uses, so the
    thrust (punch, or the rod's bonk) only gets presses no weapon took.
 5. `clearPresses`, then `pickups`.
-6. Then, while the hero is alive: `arrows`, `enemyPhysics`, `mage`, `slime`, `deaths`, `spawner`, and the
-   spell hazards, `bolts` and `strikes`.
+6. Then, while the hero is alive: `arrows`, `enemyPhysics`, `mage`, `slime`, `deaths`, `spawner`, `sentry` (guards
+   keeping watch, turning to watch the hero who comes close), and the spell hazards, `bolts` and `strikes`.
 7. `floaters` (combat numbers drift and fade).
 
 During hitstop the world holds still for a few frames; only the camera shake decays.

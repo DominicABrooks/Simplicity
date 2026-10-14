@@ -1,14 +1,12 @@
-// What you'd find in a castle: guards at the gates (the hero's own body, in the kingdom's livery), braziers by the keep's stair, a training yard (archery
+// What you'd find in a castle (its guards are game entities: see spawnGuard and the guard view), braziers by the keep's stair, a training yard (archery
 // butts, practice dummies, a weapon rack), a smithy at its forge, a covered well, a trebuchet, and a
 // horse at a trough by the stables with a hay cart. Low-poly and hand-painted like the rest of the town,
 // at the hero's scale (about 1.1 units tall). Each is built facing south (+z) and turned to its facing.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
-import { SHADOW_Y, box, type RenderContext } from "./context.ts";
-import { disposeTree } from "./dispose.ts";
+import { box, type RenderContext } from "./context.ts";
 import { STRAW, TURN, at, centreOf } from "./market.ts";
-import { dressSoldier, makeBody } from "./models/body.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 import { CLAY, DARK_WOOD, IRON, WOOD, occluder, roofGeometry, tiledBox, tiledCylinder, type PropOf } from "./town.ts";
@@ -29,41 +27,6 @@ function place(parent: THREE.Group, g: THREE.Group, x: number, z: number, facing
   g.position.set(x, 0, z);
   g.rotation.y = TURN[facing];
   parent.add(g);
-}
-
-// ---------- Guard ----------
-/**
- * A guard: the same body as the hero (and the mages), in a soldier's kit of the kingdom's colours (see
- * dressSoldier): helm and plume, mail and surcoat, spear and shield. Standing watch: breathing, blinking,
- * now and then glancing about.
- */
-export function buildGuard(ctx: RenderContext, parent: THREE.Group, p: PropOf<"guard">): PropView {
-  const b = makeBody(ctx);
-  // makeBody puts a body straight into the scene; a guard belongs to the area's scenery instead (so it's
-  // freed when you leave), and never swims, so it has no use for a ripple.
-  ctx.scene.remove(b.group, b.shadow, b.ripple);
-  disposeTree(b.ripple);
-  dressSoldier(ctx, b, "guard");
-  const [x, z] = at(p), k = hash(x, z, 700) * 10;
-  b.group.position.set(x, 0, z);
-  b.group.rotation.y = TURN[p.facing] - Math.PI / 2;        // a body faces +x at no turn
-  b.shadow.position.set(x, SHADOW_Y, z);
-  b.feet.forEach(f => { f.position.x = b.footX; });
-  parent.add(b.group, b.shadow);
-  const grip = new THREE.Vector3();
-  return {
-    update(t) {
-      const s = t + k;
-      b.body.scale.y = 1 + Math.sin(s * 2.5) * 0.025;                                  // breathing
-      b.eyes.forEach(e => { e.scale.y = s % 3.4 < 0.15 ? 0.15 : 1; });                  // blinking
-      b.sword.position.set(0.16, 0.45, 0.4);                                           // the spear, grounded at the side
-      b.sword.rotation.set(0, 0, 0.04 + Math.sin(s * 1.7) * 0.015);
-      b.sword.updateMatrix();
-      b.hands[0]!.position.copy(grip.set(0, b.gripY + 0.05 * Math.sin(s * 2.5), 0).applyMatrix4(b.sword.matrix));   // its hand on the shaft
-      b.hands[1]!.position.set(0.14, 0.4 + Math.sin(s * 2.5 + 1) * 0.02, -0.42);       // the shield at the other side
-      b.group.rotation.y = TURN[p.facing] - Math.PI / 2 + (Math.sin(s * 0.4) > 0.85 ? Math.sin(s * 2) * 0.4 : 0);   // now and then, a glance
-    },
-  };
 }
 
 // ---------- Brazier ----------

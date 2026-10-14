@@ -13,7 +13,7 @@ import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
 import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
-import { dressBody, removeBody, type Body } from "./models/body.ts";
+import { dressBody, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
@@ -272,7 +272,41 @@ const strike: EntityView<StrikeView> = {
   remove: removeSimple,
 };
 
+// ---------- Guard ----------
+/**
+ * A guard: the hero's body in a soldier's kit of the kingdom's colours (see dressSoldier), facing where
+ * the sentry system has them looking. At rest like the hero: breathing, blinking, shifting their weight
+ * now and then, the spear grounded in one hand and the shield at the other.
+ */
+interface GuardView extends Body { k: number }
+const guardGrip = new THREE.Vector3();
+const guard: EntityView<GuardView> = {
+  create(ctx, e, g) {
+    const b = makeBody(ctx);
+    dressSoldier(ctx, b, "guard");
+    b.ripple.visible = false;
+    b.feet.forEach(f => { f.position.x = b.footX; });
+    const t = g.world.need(e, "transform");
+    return Object.assign(b, { k: (t.x * 7 + t.y * 13) % 10 });
+  },
+  update(_ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), s = g.world.need(e, "sentry"), [x, z] = toWorld(o.x, o.y), t = f.t + v.k;
+    v.group.position.set(x, 0, z);
+    v.group.rotation.y = -s.look;                             // game angle a is yaw -a: a body faces +x at no turn
+    v.shadow.position.set(x, SHADOW_Y, z);
+    v.body.scale.y = 1 + Math.sin(t * 2.5) * 0.025;           // breathing
+    v.body.rotation.x = Math.sin(t * 0.35) * 0.035;           // shifting their weight, slowly
+    v.eyes.forEach(eye => { eye.scale.y = t % 3.7 < 0.15 ? 0.15 : 1; });
+    v.sword.position.set(0.16, 0.45, 0.4);                    // the spear, grounded at the side
+    v.sword.rotation.set(0, 0, 0.04);
+    v.sword.updateMatrix();
+    v.hands[0]!.position.copy(guardGrip.set(0, v.gripY + Math.sin(t * 2.5) * 0.02, 0).applyMatrix4(v.sword.matrix));
+    v.hands[1]!.position.set(0.14, 0.4 + Math.sin(t * 2.5 + 1) * 0.02, -0.42);
+  },
+  remove: removeBody,
+};
+
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard } satisfies { [K in ViewKind]: EntityView<object> };

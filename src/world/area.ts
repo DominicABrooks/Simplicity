@@ -73,7 +73,7 @@ export type Prop =
   /** Flagstones over a rect, with a kerb round the edge and rings of paving round `centre` (not solid). */
   | { kind: "plaza"; rect: Rect; centre: Point }
   // What you'd find in a castle (src/render/castle.ts). Long things lie along their rect's long side.
-  /** A guard with a spear, standing watch toward `facing`. */
+  /** A guard at their post, keeping watch toward `facing`. A game entity (a friendly target), not scenery. */
   | { kind: "guard"; x: number; y: number; facing: Facing }
   /** A fire bowl on a tripod. */
   | { kind: "brazier"; x: number; y: number }
@@ -99,6 +99,8 @@ export type Prop =
   | { kind: "lamp"; x: number; y: number };
 
 export type Facing = "north" | "south" | "east" | "west";
+/** A facing as a game angle (0 east, PI/2 south: y grows southward). */
+export const FACING_ANGLE: Record<Facing, number> = { east: 0, south: Math.PI / 2, west: Math.PI, north: -Math.PI / 2 };
 export type Goods = "produce" | "bread" | "cloth" | "pottery" | "fish" | "flowers";
 
 /** Everything about an area's ground, built once (deterministically) when you enter it. */

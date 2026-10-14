@@ -3,6 +3,7 @@ import type { Entity } from "../core/ecs.ts";
 import { MAGE, MAGE_TARGET, MAGE_MIN_KILLS, SLIME_TARGET, SCHOOLS, SCHOOL_ORDER, SLIME, mageCap, mageChance, mageHp, type BoltKind } from "../data/enemies.ts";
 import { LOOT_DESPAWN } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
+import { GUARD } from "../data/npcs.ts";
 import { CAMPFIRE_TARGET } from "../data/world.ts";
 import type { Item } from "../items/items.ts";
 import { randomGroundSpot } from "../world/collision.ts";
@@ -66,6 +67,16 @@ export function spawnEnemy(g: Game, minDist: number): void {
 /** A camp's campfire. It's drawn with the camp scenery; as an entity it can be targeted. */
 export function spawnCampfire(g: Game, x: number, y: number): Entity {
   return g.world.create({ transform: { x, y }, targetable: { hostile: false, ...CAMPFIRE_TARGET } });
+}
+
+/** A guard at their post, facing `post` (a game angle): a friendly target that keeps watch. */
+export function spawnGuard(g: Game, x: number, y: number, post: number): Entity {
+  return g.world.create({
+    transform: { x, y },
+    targetable: { hostile: false, name: GUARD.name, radius: GUARD.radius, height: GUARD.height },
+    sentry: { post, look: post, want: post, next: GUARD.glance[0] * (0.5 + g.rng.next()) },
+    renderable: { kind: "guard" },
+  });
 }
 
 export function spawnPotion(g: Game, x: number, y: number): Entity {

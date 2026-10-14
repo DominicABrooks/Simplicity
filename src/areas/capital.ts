@@ -176,9 +176,10 @@ function garrison(): { solid: TileRect[]; props: Prop[] } {
   one(52, 16, { kind: "well", x: 53 * T, y: 17 * T });
   solid.push([52, 16, 2, 2]);
   rect([52, 19, 3, 2], r => ({ kind: "trebuchet", rect: r, facing: "west" }));
-  // Guards either side of the castle's gate, inside, and of the town gate, inside.
-  for (const x of [MID - 2, MID + 1]) one(x, WARD.y1 - 1, { kind: "guard", ...tileCentre(x, WARD.y1 - 1), facing: "south" });
-  for (const x of [MID - 3, MID + 2]) one(x, 62, { kind: "guard", ...tileCentre(x, 62), facing: "south" });
+  // Guards either side of the castle's gate, outside it, looking down the King's Way; and either side
+  // of the town gate, outside on the bank, looking down the road to the bridge.
+  for (const x of [MID - 3, MID + 2]) one(x, WARD.y1 + 2, { kind: "guard", ...tileCentre(x, WARD.y1 + 2), facing: "south" });
+  for (const x of [MID - 2, MID + 1]) one(x, 67, { kind: "guard", ...tileCentre(x, 67), facing: "south" });
   return { solid, props };
 }
 

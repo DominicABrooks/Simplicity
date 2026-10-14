@@ -214,7 +214,18 @@ export interface Targetable {
   height: number;
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike";
+/** A guard at their post (see src/systems/sentry.ts). Angles are game angles (0 east, PI/2 south). */
+export interface Sentry {
+  /** Which way their post faces. */
+  post: number;
+  /** Where they're looking now, and where they're turning to look. */
+  look: number;
+  want: number;
+  /** Seconds until they next glance somewhere else. */
+  next: number;
+}
+
+export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -239,4 +250,5 @@ export interface Components {
   renderable: Renderable;
   despawn: Despawn;
   targetable: Targetable;
+  sentry: Sentry;
 }

@@ -1,12 +1,13 @@
 // Moving between areas. Only one area is ever built: arriving somewhere clears the last area's
 // entities (the hero carries on, gear and all) and builds the new one from its definition.
 import { SPAWNING } from "../data/enemies.ts";
-import type { AreaDef } from "../world/area.ts";
+import { HALF } from "../data/world.ts";
+import { FACING_ANGLE, type AreaDef } from "../world/area.ts";
 import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
-import { spawnCampfire, spawnEnemy, spawnPotion } from "./spawn.ts";
+import { spawnCampfire, spawnEnemy, spawnGuard, spawnPotion } from "./spawn.ts";
 
 /** Put the hero at an arrival point in an area, and fill the area with what lives there. */
 export function enterArea(g: Game, def: AreaDef, entry: string): void {
@@ -28,7 +29,10 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   motion.dash = motion.jump = 0;
   cancelActions(g.world.need(g.player, "actions"));
 
-  for (const prop of layout.props) if (prop.kind === "camp") spawnCampfire(g, prop.fire.x, prop.fire.y);
+  for (const prop of layout.props) {
+    if (prop.kind === "camp") spawnCampfire(g, prop.fire.x, prop.fire.y);
+    if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
+  }
   const life = def.life;
   if (life?.enemies) for (let i = 0; i < SPAWNING.startSlimes; i++) spawnEnemy(g, 80);
   if (life?.potions) {

@@ -10,6 +10,7 @@ import { clearPressesSystem, heroMoveSystem, heroStatusSystem, resetHoldSystem }
 import { mageSystem } from "./mage.ts";
 import { travelSystem } from "../game/travel.ts";
 import { despawnSystem, pickupSystem } from "./pickups.ts";
+import { sentrySystem } from "./sentry.ts";
 import { swordSystem } from "./sword.ts";
 import { thrustSystem } from "./thrust.ts";
 
@@ -33,7 +34,7 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [arrowSystem, enemyPhysicsSystem, mageSystem, slimeSystem, deathSystem, spawnerSystem],
+  [arrowSystem, enemyPhysicsSystem, mageSystem, slimeSystem, deathSystem, spawnerSystem, sentrySystem],
   [boltSystem, strikeSystem],
 ];
 
