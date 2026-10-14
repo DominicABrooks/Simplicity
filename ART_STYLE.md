@@ -71,7 +71,7 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 
 ## UI and icons
 
-UI panels (inventory, tooltips, ground labels) are dark `void`/`ink` panels with an `bark` border and an `oak` inner line, titled in Cinzel caps in `glow`. Item rarity is colour-coded everywhere: normal in `bone`, magic in soft azure (#7fa6ff), rare in `glow`. On the ground, magic items get a short light beam and rares a tall one.
+UI panels (inventory, tooltips, ground labels) are dark `void`/`ink` panels with a `bark` border and an `oak` inner line, titled in Cinzel caps in `glow`. Item rarity is colour-coded everywhere: normal in `bone`, magic in soft azure (#7fa6ff), rare in `glow`. On the ground, magic items get a short light beam and rares a tall one.
 
 Item icons are pixel art in `art/items/`, 8 px per inventory cell (a 1×3 blade is 8×24), outlined like every other icon. Empty equipment slots show the slot's icon as a faded grey silhouette.
 
