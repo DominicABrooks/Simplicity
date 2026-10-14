@@ -100,8 +100,8 @@ The world is a graph of **areas** joined by **exits** (caves, for now). Each are
   (a camp, a cave mouth). It must be deterministic.
 - `life` says what lives there (enemies, potions, critters and decor). Leave it out for an empty area.
 
-Props are data too: each kind (a camp, a cave, a city wall, a house, a keep, a fountain, a market
-stall, a lamp) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built stands on
+Props are data too: each kind (a camp, a cave, a curtain wall around any polygon, a house, a keep,
+a cathedral, a bridge, a fountain, a market stall, a lamp) has one builder in `PROP_BUILDERS` (`src/render/props.ts`). Anything built stands on
 `Wall` tiles, which block movement like trees, so collision stays a tile lookup however many buildings
 an area has. A new kind of building is a `Prop` variant plus one builder.
 

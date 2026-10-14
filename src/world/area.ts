@@ -34,16 +34,24 @@ export type Prop =
       /** The way the opening faces (and you walk in from the opposite side of it). */
       facing: "north" | "south";
     }
-  // Town buildings. Rects and points are game px; their footprints should be Wall tiles in the map.
+  // Town buildings. Rects and points are game px (heights are world units, one tile each); their
+  // footprints should be Wall tiles in the map.
   | {
-      kind: "cityWall";
-      /** The outer edge of the wall (a ring one tile thick), with round towers at the corners. */
-      rect: Rect;
-      /** The gap for the gate in the south side, flanked by the gatehouse towers. */
-      gate: { x: number; w: number };
+      /** A defensive wall around a polygon, with a round tower at every corner. */
+      kind: "curtainWall";
+      points: Point[];
+      /** The gate: a gap `width` wide centred at `x` on edge `edge` (from points[edge] to the next), with a gatehouse. */
+      gate: { edge: number; x: number; width: number };
+      height: number;
+      tower: { radius: number; height: number; roof: string };
     }
-  | { kind: "house"; rect: Rect; roof: string }
-  | { kind: "keep"; rect: Rect }
+  | { kind: "house"; rect: Rect; roof: string; storeys?: number }
+  /** The castle keep, raised on a rocky crag `plinth` high with a stair up to its door. */
+  | { kind: "keep"; rect: Rect; plinth: number }
+  /** A cathedral: a long nave running east-west, a bell tower with a spire at its west end. */
+  | { kind: "cathedral"; rect: Rect }
+  /** A plank bridge over water, running north-south. */
+  | { kind: "bridge"; rect: Rect }
   | { kind: "fountain"; x: number; y: number }
   | { kind: "stall"; rect: Rect; awning: string }
   /** A street lamp (not solid: you walk past it). */

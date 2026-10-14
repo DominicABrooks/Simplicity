@@ -7,7 +7,7 @@ import { buildCamp } from "./camp.ts";
 import { buildCave } from "./cave.ts";
 import type { RenderContext } from "./context.ts";
 import type { Occluder } from "./occlusion.ts";
-import { buildCityWall, buildFountain, buildHouse, buildKeep, buildLamp, buildStall } from "./town.ts";
+import { buildBridge, buildCathedral, buildCurtainWall, buildFountain, buildHouse, buildKeep, buildLamp, buildStall } from "./town.ts";
 
 /** What a built prop gives back: a per-frame update if it animates, and occluders if it's tall. */
 export type PropView = { update?(t: number, dt: number): void; occluders?: Occluder[] } | void;
@@ -17,7 +17,9 @@ type Builder<K extends Prop["kind"]> = (ctx: RenderContext, parent: THREE.Group,
 export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   camp: buildCamp,
   cave: buildCave,
-  cityWall: buildCityWall,
+  curtainWall: buildCurtainWall,
+  cathedral: buildCathedral,
+  bridge: buildBridge,
   house: buildHouse,
   keep: buildKeep,
   fountain: buildFountain,
