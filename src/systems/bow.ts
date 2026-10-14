@@ -2,7 +2,9 @@
 // so range, grows with draw time. Only a full draw does real damage: a power shot with +1 damage. The bow never swings.
 import { BOW } from "../data/player.ts";
 import { Tile } from "../data/world.ts";
-import { hitEnemy, stagger } from "../game/combat.ts";
+import { COMBAT_COLORS } from "../data/ui.ts";
+import { combatText, hitEnemy, stagger } from "../game/combat.ts";
+import type { Arrow, Transform } from "../game/components.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts, weaponOf } from "../game/hero.ts";
 import { spawnArrow } from "../game/spawn.ts";
@@ -44,7 +46,8 @@ export function arrowSystem(g: Game, dt: number): void {
     }
     p.x += a.vx * dt; p.y += a.vy * dt; a.life -= dt;
     if (tileAt(g.map, p.x + 4, p.y + 4) === Tile.Tree) { a.stuck = BOW.stuckTime; a.vx = a.vy = 0; continue; }
-    if (a.dud) {                                             // harmless: lands and lies there for a moment
+    if (a.dud) {                                             // harmless: glances off enemies, lands, lies there a moment
+      if (!a.bounced) glanceOffEnemy(g, p, a);
       if (a.life <= 0) { a.stuck = BOW.stuckTime; a.grounded = true; a.vx = a.vy = 0; }
       continue;
     }
@@ -58,5 +61,25 @@ export function arrowSystem(g: Game, dt: number): void {
       break;
     }
     if (hit || a.life <= 0) w.destroy(e);
+  }
+}
+
+/** A dud that reaches an enemy bounces off it: no damage (a grey 0), a flicker and a spark, and it tumbles to the ground. */
+function glanceOffEnemy(g: Game, p: Transform, a: Arrow): void {
+  for (const [, { transform: t, enemy }] of g.world.query("enemy", "transform")) {
+    const dx = p.x - t.x, dy = p.y - t.y, d = Math.hypot(dx, dy);
+    if (d >= BOW.hitRadius) continue;
+    // Back off the way it came (away from the enemy), knocked a little to one side.
+    const { speed, minSpeed, spread, flightTime } = BOW.glance;
+    const away = d > 0.01 ? Math.atan2(dy, dx) : Math.atan2(-a.vy, -a.vx);
+    const angle = away + (g.rng.next() - 0.5) * 2 * spread, v = Math.max(minSpeed, Math.hypot(a.vx, a.vy) * speed);
+    a.vx = Math.cos(angle) * v;
+    a.vy = Math.sin(angle) * v;
+    a.life = a.flight = flightTime;
+    a.bounced = true;
+    enemy.flash = Math.max(enemy.flash, 0.08);
+    combatText(g, t.x, t.y, "0", COMBAT_COLORS.glance);
+    g.fx.push({ type: "hit", x: p.x, y: p.y });
+    return;
   }
 }

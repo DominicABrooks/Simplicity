@@ -85,7 +85,7 @@ export function dropLoot(g: Game, x: number, y: number, item: Item, ignore = fal
 export function spawnArrow(g: Game, x: number, y: number, vx: number, vy: number, life: number, damage: number, power: boolean, dud = false): Entity {
   return g.world.create({
     transform: { x, y },
-    arrow: { vx, vy, life, flight: life, damage, power, dud, stuck: 0, grounded: false },
+    arrow: { vx, vy, life, flight: life, damage, power, dud, stuck: 0, grounded: false, bounced: false },
     renderable: { kind: "arrow" },
   });
 }

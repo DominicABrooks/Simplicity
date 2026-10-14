@@ -178,6 +178,8 @@ export interface Arrow {
   stuck: number;
   /** It's lying on the ground (a dud that landed), not in a tree. */
   grounded: boolean;
+  /** A dud that glanced off an enemy (it tumbles as it falls, and can't bounce again). */
+  bounced: boolean;
 }
 
 /** A mage's spell bolt in flight. */

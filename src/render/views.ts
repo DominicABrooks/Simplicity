@@ -226,7 +226,7 @@ const arrow: EntityView<ArrowView> = {
     } else if (a.dud) {                                      // a weak shot: arcs down, nose dipping, to the ground
       const k = 1 - Math.max(0, a.life) / a.flight;
       v.group.position.set(x, 0.5 * (1 - k * k), z);
-      v.group.rotation.set(0, v.yaw, -k * 0.8);
+      v.group.rotation.set(0, v.yaw, a.bounced ? -k * 5 : -k * 0.8);   // a glanced arrow tumbles end over end
     } else {
       v.group.position.set(x, 0.5, z);
       v.group.rotation.set(0, v.yaw, 0);

@@ -91,8 +91,36 @@ describe("bow damage", () => {
     });
     landing(0.3);
     expect(g.world.need(slime, "health").hp).toBe(3);
+    expect(g.world.need(slime, "knockback")).toEqual({ vx: 0, vy: 0 });
     run(g, BOW.stuckTime + 0.1);
     expect(g.world.query("arrow")).toHaveLength(0);
+  });
+});
+
+describe("glancing arrows", () => {
+  it("a dud that reaches an enemy bounces back off it, harmlessly, and lands", () => {
+    const g = playing();
+    g.inventory.reset([makeItem("bow")]);
+    const p = hero(g).pos;
+    hero(g).motion.aim = 0;
+    const slime = g.world.create({
+      transform: { x: p.x + 16, y: p.y }, knockback: { vx: 0, vy: 0 }, health: { hp: 3, maxHp: 3 },
+      enemy: { kind: "slime", flash: 0, face: 1 }, slime: { timer: 99, hop: 0, dx: 0, dy: 0 },
+    });
+    const fx: string[] = [];
+    g.world.need(g.player, "actions").cooldown = 0;
+    g.input.attackPressed = true;
+    run(g, 0.3);                                             // a half draw: a dud that would land past the slime
+    g.input.attackReleased = true;
+    step(g, DT);
+    const [e, { arrow }] = g.world.query("arrow")[0]!;
+    for (let t = 0; t < 0.6; t += DT) { step(g, DT); fx.push(...g.fx.map(f => f.type)); g.fx = []; }
+    expect(arrow.bounced).toBe(true);
+    expect(arrow.grounded).toBe(true);
+    expect(g.world.need(e, "transform").x).toBeLessThan(p.x + 16);   // it came back off the slime
+    expect(g.world.need(slime, "health").hp).toBe(3);
+    expect(g.floaters.map(f => [f.text, f.crit])).toEqual([["0", false]]);
+    expect(fx).toContain("hit");
   });
 });
 
