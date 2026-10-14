@@ -88,7 +88,7 @@ export function createOcclusion(scene: THREE.Scene): Occlusion {
       mesh.instanceMatrix.needsUpdate = true;
       const part = new THREE.Mesh(mesh.geometry, ghostMaterials[k]!);
       part.matrixAutoUpdate = false;
-      part.matrix.copy(original);
+      part.matrix.multiplyMatrices(mesh.matrixWorld, original);   // the ghost stands in the scene; the tree, in the terrain (which may be offset)
       ghost.add(part);
       return original;
     });
