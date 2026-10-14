@@ -348,6 +348,48 @@ export function createView(canvas, PAL, C) {
     } else if (leaper) { world.remove(leaper); leaper = null; leaperKey = null; }
   }
 
+  // ---------- Hands ----------
+  const grip = new THREE.Vector3(), handTarget = new THREE.Vector3();
+  const lerp = (a, b, k) => a + (b - a) * k;
+  function animateHands(p, t, dt) {
+    const h = hero, sw = h.sword;
+    // A new attack starts when the timer jumps up; alternate punching hands.
+    if (p.attack > h.lastAttack + 1e-4) h.punchSide ^= 1;
+    h.lastAttack = p.attack;
+    h.body.rotation.y = 0;
+    h.hands.forEach((hand, i) => {
+      const side = i === 0 ? 1 : -1;
+      // Resting: hovering at the sides, breathing with the body.
+      let x = 0.12, y = 0.38 + Math.sin(t * 2.5 + i) * 0.02, z = side * 0.44;
+      if (p.swimming) {                                     // paddle at the surface
+        const a = t * 5 + i * Math.PI;
+        x = 0.15 + Math.cos(a) * 0.12; y = 0.44 + Math.sin(a) * 0.05; z = side * 0.38;
+      } else if (p.dash > 0) { x = -0.22; y = 0.45; }         // trail behind
+      else if (p.jump > 0) { x = 0.05; y = 0.75; z = side * 0.42; }   // up in the air
+      else if (p.moving) { x = 0.12 + Math.sin(t * 12 + i * Math.PI) * 0.12; y += Math.abs(Math.sin(t * 12)) * 0.04; }
+
+      if (i === 0 && sw.visible) {                          // front hand holds the weapon's grip
+        sw.updateMatrix();
+        grip.set(0, h.gripY, 0).applyMatrix4(sw.matrix);
+        hand.position.copy(grip);
+        return;
+      }
+      if (!sw.visible && p.attack > 0 && i === h.punchSide) {   // unarmed: punch
+        const k = 1 - p.attack / C.ATTACK_TIME;
+        if (k < 0.34) { const u = k / 0.34; x = lerp(x, -0.06, u); y = lerp(y, 0.44, u); }          // pull back
+        else if (k < 0.6) {                                                                          // jab
+          const u = 1 - Math.pow(1 - (k - 0.34) / 0.26, 3);
+          x = lerp(-0.06, 0.62, u); y = 0.47; z = lerp(z, side * 0.12, u);
+          h.body.rotation.y = side * 0.25 * u;              // twist into the punch
+        } else { const u = (k - 0.6) / 0.4; x = lerp(0.62, x, u); y = lerp(0.47, y, u); z = lerp(side * 0.12, z, u); }
+        hand.position.set(x, y, z);
+        return;
+      }
+      handTarget.set(x, y, z);
+      hand.position.lerp(handTarget, 1 - Math.exp(-dt * 20));
+    });
+  }
+
   function updateFish(dt, t, px, pz) {
     for (const f of fish) {
       // Wander: drift the turn rate, and occasionally pick a new one.
@@ -407,11 +449,16 @@ export function createView(canvas, PAL, C) {
     });
     body.add(wrap, head, face, ...eyes, ...feet);
     const gear = new THREE.Group(); body.add(gear);
+    // Floating hands (no arms). [0] is the front hand on the camera side, [1] the back hand.
+    const handGeo = new THREE.IcosahedronGeometry(0.1, 0).scale(1.1, 0.9, 1);
+    const handMat = lambert("#8f8578");                       // a shade darker than the body so they read
+    const hands = [1, -1].map(s => { const m = new THREE.Mesh(handGeo, handMat); m.position.set(0.12, 0.38, s * 0.44); return m; });
+    group.add(...hands);
 
     const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.position.y = 0.01;
     const ripple = new THREE.Mesh(new THREE.RingGeometry(0.38, 0.5, 10).rotateX(-Math.PI / 2), basic(PAL.C, { transparent: true, opacity: 0.6, depthWrite: false }));
     scene.add(group, shadow, ripple);
-    return { group, body, gear, sword, ring, eyes, feet, shadow, ripple, footX: 0.14, key: null };
+    return { group, body, gear, sword, ring, eyes, feet, hands, shadow, ripple, footX: 0.14, gripY: 0, key: null, punchSide: 0, lastAttack: 0 };
   }
 
   function dressHero(h, g) {
@@ -473,12 +520,14 @@ export function createView(canvas, PAL, C) {
       const tip = new THREE.Object3D(); tip.position.y = 1.25;
       h.sword.add(pole, grip, reel, tip);
       h.rodTip = tip;
+      h.gripY = -0.05;
     } else if (g.weapon) {
       const T = TIERS[g.weapon];
       const blade = lambert(T.blade, { emissive: col(g.weapon === "rare" ? PAL.Y : PAL.C), emissiveIntensity: T.glow });
       const guard = lambert(T.guard);
       const parts = [[box(0.05, 0.62, 0.12), blade, 0.45], [box(0.08, 0.06, 0.32), guard, 0.12], [box(0.05, 0.16, 0.05), lambert(PAL.N), 0.02], [box(0.08, 0.08, 0.08), guard, -0.08]];
       for (const [geo, m, y] of parts) { const p = new THREE.Mesh(geo, m); p.position.y = y; h.sword.add(p); }
+      h.gripY = 0.02;
     }
   }
 
@@ -628,6 +677,8 @@ export function createView(canvas, PAL, C) {
       sw.position.set(0.12, 0.5 + Math.sin(t * 3) * 0.05, 0.46);
       sw.rotation.set(0, 0, 0.15 + Math.sin(t * 1.7) * 0.06);
     }
+
+    animateHands(p, t, dt);
 
     hero.shadow.visible = !p.swimming;
     hero.shadow.position.set(px, 0.01, pz);

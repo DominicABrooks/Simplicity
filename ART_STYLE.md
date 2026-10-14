@@ -27,7 +27,8 @@ These limits are the look. Don't remove them to make things "cleaner".
 
 - **Low poly, flat shaded.** Build from primitives: lathes and cones with 5–7 sides, level-0 icosahedrons, boxes. Budgets: characters about 300 triangles, props about 150.
 - **WoW proportions.** Heads, hoods, weapons and trims are oversized. Silhouettes are bold and readable from above.
-- **Creatures, not people.** No skin tones, hands or mouths. A face is a `void` opening with two glowing eyes (unlit material, so they always shine). Weapons float beside the body.
+- **Creatures, not people.** No skin tones, arms or mouths. A face is a `void` opening with two glowing eyes (unlit material, so they always shine).
+- **Floating hands.** Rayman-style mitts with no arms, a shade darker than the body so they read from above. The front hand holds the weapon's grip; unarmed, the hands punch.
 - Models are built facing **+X** (screen right). The hero turns to face the aim (the cursor, or the movement direction without a mouse); enemies face the way they're moving.
 
 ## The hero and gear
@@ -39,7 +40,7 @@ The hero starts **naked**, WoW-style: a small stone (`stone`) spirit with a roun
 | Helm | Hood with a backward-leaning tip; the eyes move forward into its opening |
 | Armor | Robe and mantle; the feet move forward to peek out from under the hem |
 | Boots | Chunky boots with a trim cuff replace the stub feet |
-| Weapon | The floating sword, or a fishing pole (oak pole, grip and reel) |
+| Weapon | A sword or a fishing pole, held by the front hand |
 | Amulet | A chain and a glowing pendant on the chest |
 | Ring | A small glowing ring orbiting the body |
 
@@ -91,7 +92,8 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 | swim | Sunk so only the hood shows, gentle bob, ripple ring |
 | jump | Squash on take-off, stretch in the air, blob shadow shrinks |
 | dash | Hard forward lean and stretch, a dust puff on take-off, fading `mana` afterimages |
-| attack | Weapon winds up behind, then thrusts forward exactly when the hit lands in game logic |
+| attack | Weapon winds up behind, then thrusts forward exactly when the hit lands in game logic. Unarmed: alternating punches (pull back, jab with a body twist, recover) on the same timing |
+| hands | Hover at the sides and breathe; swing opposite the feet when walking; trail behind on a dash; go up on a jump; paddle while swimming |
 | hurt | Model blinks while invulnerable |
 | hit enemy | White flash plus a burst of tumbling octahedron sparks |
 | fish | Koi just under the water surface: wander, wiggle their tails, turn back at the shore, dart away from the hero |
