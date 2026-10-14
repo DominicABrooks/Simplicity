@@ -7,6 +7,7 @@ import { smooth, turn } from "../core/math.ts";
 import { SLIME, SPELLS, type BoltKind, type School, type SpellName } from "../data/enemies.ts";
 import { PAL } from "../data/palette.ts";
 import { RARITY_COLOR } from "../data/tiers.ts";
+import { CRAFTS } from "../data/crafts.ts";
 import { HALF } from "../data/world.ts";
 import type { RenderKind, Transform } from "../game/components.ts";
 import { blinkVisible } from "../game/despawn.ts";
@@ -370,9 +371,44 @@ const dummy: EntityView<DummyView> = {
  * One of the census's people out in the streets (see src/game/townsfolk.ts): the hero's body in their own
  * clothes, kept on them in the census (Resident.dress: see src/world/wardrobe.ts), children smaller and the
  * old a little stooped. They walk like the hero, stand breathing when they stop, and face whoever they're
- * talking to.
+ * talking to. At work out in the open they show it: the smith hammers at the anvil, sparks flying off it at
+ * every stroke; the minstrel strums his lute.
  */
-interface FolkView extends Body { k: number; size: number; stoop: number }
+interface FolkView extends Body {
+  k: number; size: number; stoop: number;
+  /** Made the first time they're needed: a hammer in the right hand, a lute held across the body. */
+  hammer: THREE.Group | null; lute: THREE.Group | null;
+  /** The hammer stroke last struck (so each one throws its sparks once). */
+  stroke: number;
+}
+
+/** A smith's hammer, its head at the top of the handle, to sit in a hand. */
+function makeHammer(ctx: RenderContext): THREE.Group {
+  const g = new THREE.Group();
+  const handle = new THREE.Mesh(box(0.04, 0.3, 0.04), ctx.lambert("#6b4a2e")); handle.position.y = 0.1;
+  const head = new THREE.Mesh(box(0.14, 0.07, 0.07), ctx.lambert("#4a4a52")); head.position.set(0.03, 0.25, 0);
+  g.add(handle, head);
+  return g;
+}
+
+/** A lute: a round-backed body, a neck and a bent-back pegbox, held across the chest neck-up to the left. */
+function makeLute(ctx: RenderContext): THREE.Group {
+  const g = new THREE.Group(), inner = new THREE.Group(), wood = ctx.lambert("#a8642e"), dark = ctx.lambert("#5a3a22");
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.14, 7, 5).scale(1, 1.25, 0.55), wood);
+  const rose = new THREE.Mesh(new THREE.CircleGeometry(0.035, 6), ctx.basic("#2a1a10")); rose.position.set(0, 0.03, 0.078);
+  const neck = new THREE.Mesh(box(0.05, 0.26, 0.03), dark); neck.position.y = 0.28;
+  const pegs = new THREE.Mesh(box(0.05, 0.09, 0.03), dark); pegs.position.set(0, 0.43, -0.03); pegs.rotation.x = -0.9;
+  inner.add(bowl, rose, neck, pegs);
+  inner.rotation.y = Math.PI / 2;                            // its face (the rose) to the front
+  g.add(inner);
+  return g;
+}
+
+/** Is this one at their work out in the open, at it right now (there, facing it, not turned to talk)? */
+function atTask(w: { plan: string; task?: string | null; moving: boolean; path: readonly unknown[]; face: number | null; facing: number }): string | null {
+  if (w.plan !== "work" || !w.task || w.moving || w.path.length || w.face === null) return null;
+  return Math.abs(Math.atan2(Math.sin(w.facing - w.face), Math.cos(w.facing - w.face))) < 0.3 ? w.task : null;
+}
 const townsfolk: EntityView<FolkView> = {
   create(ctx, e, g) {
     const b = makeBody(ctx), w = g.world.need(e, "walker"), r = residentById(w.id), age = r?.age ?? 30;
@@ -382,9 +418,9 @@ const townsfolk: EntityView<FolkView> = {
     b.sword.visible = false;
     b.group.scale.setScalar(size);
     b.shadow.scale.setScalar(size);
-    return Object.assign(b, { k: (w.id * 0.37) % 10, size, stoop });
+    return Object.assign(b, { k: (w.id * 0.37) % 10, size, stoop, hammer: null, lute: null, stroke: 0 });
   },
-  update(_ctx, v, e, g, f) {
+  update(ctx, v, e, g, f) {
     const o = g.world.need(e, "transform"), w = g.world.need(e, "walker"), [x, z] = toWorld(o.x, o.y), t = f.t + v.k;
     v.group.position.set(x, 0, z);
     v.group.rotation.y = turn(v.group.rotation.y, -w.facing, f.dt, 8);
@@ -404,6 +440,30 @@ const townsfolk: EntityView<FolkView> = {
       v.feet.forEach(foot => { foot.position.x = v.footX; });
       v.hands.forEach((hand, i) => { hand.position.set(0.14, 0.36 + Math.sin(t * 2.3 + i) * 0.015, (i ? -1 : 1) * 0.4); });
     }
+    const task = atTask(w), [right, left] = v.hands as [THREE.Mesh, THREE.Mesh];
+    if (task === "anvil") {                                  // hammering: up slowly, down hard, the left hand holding the work on the anvil
+      if (!v.hammer) { v.hammer = makeHammer(ctx); right.add(v.hammer); }
+      const beat = f.t / CRAFTS.hammer, k = beat % 1, up = k < 0.15 ? 0 : k < 0.75 ? (k - 0.15) / 0.6 : 1 - (k - 0.75) / 0.25;
+      right.position.set(0.42 - up * 0.12, 0.62 + up * 0.45, 0.16);
+      v.hammer.rotation.z = -0.6 + up * 1.4;
+      left.position.set(0.48, 0.64, -0.14);
+      b.rotation.z -= 0.08 + up * 0.04;
+      const stroke = Math.floor(beat);
+      if (stroke !== v.stroke) {                             // the hammer comes down: sparks fly off the anvil in front of him
+        v.stroke = stroke;
+        const ax = x + Math.cos(w.facing) * 0.62 * v.size, az = z + Math.sin(w.facing) * 0.62 * v.size;
+        for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2; ctx.particles.spawn("hit", ax, 0.72, az, Math.cos(a) * 0.8, 0.8 + Math.random(), Math.sin(a) * 0.8, 0.35); }
+      }
+    } else if (task === "lute") {                            // playing: the lute across him, strumming with the right, fingering the neck with the left
+      if (!v.lute) { v.lute = makeLute(ctx); v.group.add(v.lute); }
+      v.lute.position.set(0.32, 0.4, 0.08);
+      v.lute.rotation.set(-0.95, 0, 0);                      // neck up to his left
+      right.position.set(0.44, 0.4 + Math.sin(t * 14) * 0.04, 0.12);
+      left.position.set(0.38, 0.6, -0.2 + Math.sin(t * 3) * 0.02);
+      b.rotation.z += Math.sin(t * 2.4) * 0.04;              // swaying to it
+    }
+    if (v.hammer) v.hammer.visible = task === "anvil";
+    if (v.lute) v.lute.visible = task === "lute";
     v.eyes.forEach(eye => { eye.scale.y = t % 4.1 < 0.15 ? 0.15 : 1; });
   },
   remove: removeBody,

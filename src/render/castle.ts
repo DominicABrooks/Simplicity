@@ -12,6 +12,7 @@ import { STRAW, TURN, at, centreOf } from "./market.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 import { barbicanPlan } from "../world/plans.ts";
+import { anvilOf } from "../world/workplaces.ts";
 import { CLAY, DARK_WOOD, DOORWAY, GOLD, IRON, MARBLE, SLATE, WOOD, merlons, occluder, roofGeometry, tiledBox, tiledCylinder, tower, type PropOf } from "./town.ts";
 
 const STEEL = "#9aa3ad", BURLAP = "#b89a6a";
@@ -149,7 +150,11 @@ export function buildWell(ctx: RenderContext, parent: THREE.Group, p: PropOf<"we
 }
 
 // ---------- Smithy ----------
-/** A lean-to forge: a stone hearth with glowing coals and a hood, an anvil on a stump, a grindstone and a quench barrel. */
+/**
+ * A lean-to forge: a stone hearth with glowing coals and a hood, an anvil on a stump, a grindstone and a quench
+ * barrel. The anvil stands out front in the yard, beside the smith's spot (anvilOf); its sparks fly only when
+ * he's there hammering (the townsfolk view throws them).
+ */
 export function buildSmithy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"smithy">): PropView {
   const { lambert, basic, tex, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON), wood = lambert(DARK_WOOD);
   const w = p.rect.w / T - 0.2, d = p.rect.h / T - 0.2;
@@ -163,8 +168,8 @@ export function buildSmithy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
   put(g, new THREE.CylinderGeometry(0.15, 0.5, 0.45, 4, 1, true), lambert("#77706a", { side: THREE.DoubleSide }), hx, 1.25, -d / 2 + 0.45, 0, Math.PI / 4);
   put(g, tiledBox(0.3, 1.2, 0.3, 0.5), lambert("#ffffff", { map: tex.stone }), hx, 1.95, -d / 2 + 0.45);
   put(g, box(0.4, 0.2, 0.25), lambert("#7a4a2a"), hx + 0.62, 0.5, -d / 2 + 0.45, 0, 0, 0.3);   // the bellows
-  // The anvil on its stump, out front.
-  const ax = 0.2, az = d / 2 - 0.45;
+  // The anvil on its stump, out in the yard in front, the smith's spot just west of it.
+  const [cx, cz] = centreOf(p.rect), anvilAt = anvilOf(p.rect), ax = anvilAt.x - cx, az = anvilAt.y - cz;
   put(g, new THREE.CylinderGeometry(0.2, 0.22, 0.45, 8), lambert(WOOD), ax, 0.225, az);
   put(g, box(0.18, 0.12, 0.16), iron, ax, 0.51, az);
   put(g, box(0.42, 0.1, 0.2), iron, ax, 0.62, az);
@@ -175,22 +180,17 @@ export function buildSmithy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
   const gx = w / 2 - 0.4;
   for (const s of [-1, 1]) put(g, box(0.06, 0.6, 0.06), wood, gx + s * 0.18, 0.3, -0.1);
   put(g, new THREE.CylinderGeometry(0.28, 0.28, 0.1, 12), lambert("#a8a090"), gx, 0.6, -0.1, 0, 0, Math.PI / 2);
-  put(g, new THREE.CylinderGeometry(0.22, 0.2, 0.5, 9), lambert(WOOD), gx, 0.25, az);
-  put(g, new THREE.CircleGeometry(0.2, 9), lambert("#ffffff", { map: tex.water }), gx, 0.49, az, -Math.PI / 2);
-  const [x, z] = centreOf(p.rect);
+  const bz = d / 2 - 0.45;
+  put(g, new THREE.CylinderGeometry(0.22, 0.2, 0.5, 9), lambert(WOOD), gx, 0.25, bz);
+  put(g, new THREE.CircleGeometry(0.2, 9), lambert("#ffffff", { map: tex.water }), gx, 0.49, bz, -Math.PI / 2);
+  const [x, z] = [cx, cz];
   place(parent, g, x, z);
-  // Where things are in the world (the smithy faces south, unturned).
-  const hearth = { x: x + hx, z: z - d / 2 + 0.45 }, anvil = { x: x + ax, z: z + az };
-  let ring = 0;
+  // Where the hearth is in the world (the smithy faces south, unturned).
+  const hearth = { x: x + hx, z: z - d / 2 + 0.45 };
   return {
     update(t, dt) {
       (coals.material as THREE.MeshBasicMaterial).color.setHSL(0.05, 0.85, 0.5 + Math.sin(t * 3) * 0.06);   // the coals breathe
       if (Math.random() < dt * 4) particles.spawn("ember", hearth.x + (Math.random() - 0.5) * 0.5, 0.85, hearth.z, 0, 0.9, 0, 0.7);
-      ring -= dt;                                                                  // the smith's hammer, every so often
-      if (ring <= 0) {
-        ring = 1.2 + Math.random() * 1.5;
-        for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2; particles.spawn("hit", anvil.x, 0.7, anvil.z, Math.cos(a) * 0.8, 0.8 + Math.random(), Math.sin(a) * 0.8, 0.35); }
-      }
     },
     occluders: [occluder(g, x, z, w, d, 2.0)],
   };

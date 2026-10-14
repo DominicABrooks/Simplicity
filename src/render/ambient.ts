@@ -3,6 +3,7 @@
 // butterflies scatter and frogs dive into the water. In town, rats scurry along the foot of the walls and duck
 // into a gap when the hero comes near, pigeons peck about the paving, and weeds grow where the walls meet the street.
 import * as THREE from "three";
+import { SUNRISE, SUNSET } from "../data/daylight.ts";
 import { PAL } from "../data/palette.ts";
 import { Tile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
@@ -41,13 +42,15 @@ interface Rat {
   /** The wall-foot spots still to run through, and the dash to the next. */
   route: number[]; dash: Hop | null; spot: number; fleeing: boolean; phase: number;
 }
+interface Firefly { mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>; halo: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>; x: number; z: number; phase: number; rate: number }
 interface Frog { g: THREE.Group; body: THREE.Group; x: number; z: number; hop: Hop | null; gone: number; phase: number; yaw: number; diving: boolean }
 type Decor = [number, number, number, number, number, THREE.Color?];   // x, y, z, scale, rotY, colour
 
 export interface Ambient {
   /** Build an area's decor and critters (or none, with `enabled` false). */
   setMap(map: TileMap, enabled?: boolean): void;
-  update(dt: number, t: number, heroX: number, heroZ: number): void;
+  /** `hour` is the time of day: fireflies come out at dusk. */
+  update(dt: number, t: number, heroX: number, heroZ: number, hour?: number): void;
   /** For the debug handle: where the critters are. */
   critters(): { bunnies: Bunny[]; birds: Bird[]; butterflies: Butterfly[]; frogs: Frog[]; rats: Rat[] };
 }
@@ -88,6 +91,10 @@ export function createAmbient(ctx: RenderContext): Ambient {
   const stemGeo = new THREE.CylinderGeometry(0.025, 0.03, 0.1, 5).translate(0, 0.05, 0);
   const capGeo = new THREE.SphereGeometry(0.07, 6, 3, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.7, 1).translate(0, 0.09, 0);
   const logGeo = new THREE.CylinderGeometry(0.13, 0.15, 1.1, 6).rotateZ(Math.PI / 2).translate(0, 0.13, 0);
+  // A fern: fronds splaying out from the middle, each a flattened sliver tipped over and turned round.
+  const fernGeo = merge(Array.from({ length: 6 }, (_, i) => new THREE.ConeGeometry(0.045, 0.34, 3).scale(1, 1, 0.35)
+    .translate(0, 0.17, 0).rotateZ(-0.95 - (i % 2) * 0.25).rotateY(i * Math.PI / 3 + (i % 2) * 0.3)));
+  const fireflyGeo = new THREE.IcosahedronGeometry(0.045, 0), haloGeo = new THREE.CircleGeometry(0.16, 8);
   const weedGeo = merge([-0.03, 0.02, 0.05].map((o, i) => new THREE.ConeGeometry(0.018, 0.12 - i * 0.025, 3).translate(o, 0.06 - i * 0.012, (i - 1) * 0.025).rotateZ(o * 4)));
   const ratBodyGeo = new THREE.IcosahedronGeometry(0.06, 0).scale(1.6, 0.8, 0.85);
   const ratHeadGeo = new THREE.ConeGeometry(0.035, 0.08, 5).rotateZ(-Math.PI / 2);
@@ -175,11 +182,11 @@ export function createAmbient(ctx: RenderContext): Ambient {
   const leafMats = [basic(PAL.G, { side: THREE.DoubleSide, transparent: true }), basic(PAL.O, { side: THREE.DoubleSide, transparent: true }), basic("#86c46a", { side: THREE.DoubleSide, transparent: true })];
   const splashGeo = new THREE.RingGeometry(0.08, 0.13, 10).rotateX(-Math.PI / 2);
   /** Made once and reused across areas: never disposed. */
-  const shared = new Set<unknown>([tuftGeo, reedGeo, cattailGeo, padGeo, lilyGeo, stemGeo, capGeo, logGeo, weedGeo,
+  const shared = new Set<unknown>([tuftGeo, fernGeo, fireflyGeo, haloGeo, reedGeo, cattailGeo, padGeo, lilyGeo, stemGeo, capGeo, logGeo, weedGeo,
     ratBodyGeo, ratHeadGeo, ratNoseGeo, ratEarGeo, ratEyeGeo, ratTailGeo,
     shadowGeo, shadowMat, dark, cloudMat, leafGeo, ...leafMats, splashGeo]);
 
-  let bunnies: Bunny[] = [], birds: Bird[] = [], butterflies: Butterfly[] = [], frogs: Frog[] = [], rats: Rat[] = [];
+  let bunnies: Bunny[] = [], birds: Bird[] = [], butterflies: Butterfly[] = [], frogs: Frog[] = [], rats: Rat[] = [], fireflies: Firefly[] = [];
   /** Where each flock of birds comes back down: the meadows, or for pigeons the paving. */
   let flockHomes: [number, number][][] = [];
   /** Spots along the foot of the walls (where, and the way to the wall), and which spots are next to which. */
@@ -187,6 +194,8 @@ export function createAmbient(ctx: RenderContext): Ambient {
   let clouds: THREE.Mesh[] = [], leaves: { mesh: THREE.Mesh; life: number; sway: number }[] = [];
   let splashes: { mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>; life: number }[] = [];
   let landTiles: [number, number][] = [], flowerTiles: [number, number][] = [], shoreTiles: [number, number][] = [], treeTiles: [number, number][] = [];
+  /** Open ground right at the foot of the trees, where the fireflies come out. */
+  let edgeTiles: [number, number][] = [];
   let leafTimer = 0;
 
   const placeOn = (list: [number, number][]): [number, number] => { const [x, z] = pick(list); return [x + rnd(0.2, 0.8), z + rnd(0.2, 0.8)]; };
@@ -240,9 +249,9 @@ export function createAmbient(ctx: RenderContext): Ambient {
       map = m; H = m.height; W = m.width;
       disposeTree(group, shared);                            // free the last area's decor and critters
       group.clear();
-      bunnies = []; birds = []; butterflies = []; frogs = []; rats = []; clouds = []; leaves = []; splashes = [];
+      bunnies = []; birds = []; butterflies = []; frogs = []; rats = []; fireflies = []; clouds = []; leaves = []; splashes = [];
       flockHomes = []; wallFoot = []; footNext = [];
-      landTiles = []; flowerTiles = []; shoreTiles = []; treeTiles = [];
+      landTiles = []; flowerTiles = []; shoreTiles = []; treeTiles = []; edgeTiles = [];
       if (!enabled) return;
       landTiles = []; flowerTiles = []; shoreTiles = []; treeTiles = [];
       const waterTiles: [number, number][] = [];
@@ -253,6 +262,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
           landTiles.push([x, y]);
           if (t === Tile.Flower) flowerTiles.push([x, y]);
           if (near(x, y, Tile.Water)) shoreTiles.push([x, y]);
+          if (near(x, y, Tile.Tree)) edgeTiles.push([x, y]);
         } else if (t === Tile.Water) waterTiles.push([x, y]);
         else if (t === Tile.Tree && (near(x, y, Tile.Grass) || near(x, y, Tile.Flower))) treeTiles.push([x, y]);
       }
@@ -310,6 +320,17 @@ export function createAmbient(ctx: RenderContext): Ambient {
         }
         if (hash(x, y, 140) < 0.03) logs.push([x + 0.5, 0, y + 0.5, 1, hash(x, y, 141) * Math.PI]);
       }
+      // Ferns at the foot of the treeline, leaning out into the light.
+      const ferns: Decor[] = [];
+      for (const [x, y] of treeTiles) {
+        const out = DIRS.filter(([dx, dy]) => isLand(x + dx + 0.5, y + dy + 0.5));
+        if (!out.length || hash(x, y, 160) > 0.45) continue;
+        const [dx, dy] = out[Math.floor(hash(x, y, 161) * out.length)]!, along = (hash(x, y, 162) - 0.5) * 0.6;
+        const shade = 0.7 + hash(x, y, 163) * 0.35;
+        ferns.push([x + 0.5 + dx * 0.4 + along * Math.abs(dy), 0, y + 0.5 + dy * 0.4 + along * Math.abs(dx), 0.9 + hash(x, y, 164) * 0.6,
+          hash(x, y, 165) * 6, new THREE.Color(shade * 0.8, shade, shade * 0.7)]);
+      }
+      instanced(fernGeo, lambert("#4f8a3a"), ferns);
       instanced(stemGeo, lambert(PAL.W), stems);
       instanced(capGeo, lambert("#ffffff"), caps);
       instanced(logGeo, lambert(PAL.N), logs);
@@ -364,6 +385,16 @@ export function createAmbient(ctx: RenderContext): Ambient {
         placeRat(r);
         return r;
       }) : [];
+      fireflies = edgeTiles.length ? Array.from({ length: 26 }, () => {
+        const glow = { transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending };
+        const mesh = new THREE.Mesh(fireflyGeo, basic("#efffa0", glow));
+        const halo = new THREE.Mesh(haloGeo, basic("#b8f060", glow));   // a soft glow around it, facing the camera
+        halo.rotation.x = -0.94;
+        mesh.add(halo);
+        mesh.visible = false;
+        group.add(mesh);
+        return { mesh, halo, x: -99, z: -99, phase: Math.random() * 10, rate: rnd(1.2, 2.4) };
+      }) : [];
       frogs = shoreTiles.length ? Array.from({ length: 6 }, () => { const f = makeFrog(); [f.x, f.z] = placeOn(shoreTiles); return f; }) : [];
 
       // Cloud shadows drifting across the land.
@@ -377,7 +408,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
       leaves = []; splashes = [];
     },
 
-    update(dt, t, hx, hz) {
+    update(dt, t, hx, hz, hour = 12) {
       if (!map) return;
       const dist = (x: number, z: number) => Math.hypot(x - hx, z - hz);
 
@@ -517,6 +548,25 @@ export function createAmbient(ctx: RenderContext): Ambient {
         f.g.position.set(f.x, y, f.z);
         f.g.rotation.y = f.yaw;
         f.body.scale.y = f.hop ? 1.15 : 1 + Math.max(0, Math.sin(t * 3 + f.phase)) * 0.08;   // throat puffing
+      }
+
+      // Fireflies: out from dusk to dawn, drifting and blinking at the foot of the trees around the hero. One
+      // that falls far behind turns up again by trees nearer.
+      const dusk = Math.min(1, Math.max(0, (hour - (SUNSET - 1)) / 1.5) + Math.max(0, (SUNRISE + 0.5 - hour) / 1.5));
+      for (const f of fireflies) {
+        f.mesh.visible = dusk > 0;
+        if (!f.mesh.visible) continue;
+        if (Math.abs(f.x - hx) > 9 || Math.abs(f.z - hz) > 7) {
+          const near = edgeTiles.filter(([x, z]) => Math.abs(x - hx) < 8 && Math.abs(z - hz) < 6);
+          if (!near.length) { f.mesh.visible = false; continue; }
+          [f.x, f.z] = placeOn(near);
+        }
+        f.x += Math.sin(t * 0.7 + f.phase) * dt * 0.25;
+        f.z += Math.cos(t * 0.53 + f.phase * 1.3) * dt * 0.2;
+        const glow = Math.max(0, Math.sin(t * f.rate + f.phase));
+        f.mesh.position.set(f.x, 0.5 + Math.sin(t * 1.1 + f.phase) * 0.25, f.z);
+        f.mesh.material.opacity = dusk * glow * glow;
+        f.halo.material.opacity = dusk * glow * glow * 0.5;
       }
 
       for (const c of clouds) {

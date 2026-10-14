@@ -7,19 +7,21 @@ import type { AreaDef, AreaLayout } from "../world/area.ts";
 import { isOpenGround, reachableFrom, type TileMap } from "../world/map.ts";
 import type { Shape } from "../world/shapes.ts";
 
-const W = 64, H = 44, SEED = 7;
+const W = 80, H = 56, SEED = 7;
+/** How far the original clearing's features sit in from the top-left, now that the woods around it are deeper. */
+const OX = 8, OY = 6;
 
 /** Where you start a run (cell top-left, game px). */
-export const SPAWN = { x: 22 * T, y: 18 * T } as const;
+export const SPAWN = { x: (OX + 22) * T, y: (OY + 18) * T } as const;
 
 /**
  * The camp around the spawn: a tent to the north-west, a campfire to the north-east with a log to sit
  * on. The tent and the fire are solid.
  */
 export const CAMP = {
-  tent: { x: 19 * T, y: 15 * T, w: 2 * T, h: 2 * T },
-  fire: { x: 24 * T, y: 16 * T },
-  seat: { x: 25 * T + 3, y: 17 * T + 2 },
+  tent: { x: (OX + 19) * T, y: (OY + 15) * T, w: 2 * T, h: 2 * T },
+  fire: { x: (OX + 24) * T, y: (OY + 16) * T },
+  seat: { x: (OX + 25) * T + 3, y: (OY + 17) * T + 2 },
 } as const;
 
 export const CAMP_SOLIDS: readonly Extract<Shape, { kind: "box" }>[] = [
@@ -28,10 +30,10 @@ export const CAMP_SOLIDS: readonly Extract<Shape, { kind: "box" }>[] = [
 ];
 
 /** The path's column under the cave mouth: it runs straight for the last few rows, up to the cave. */
-const CAVE_TX = 22;
+const CAVE_TX = OX + 22;
 /** The path from the camp to the cave: the tile column of its west edge, per row (it's 2 tiles wide). */
-const pathX = (y: number) => (y <= 2 ? CAVE_TX : 22 + Math.round(1.6 * Math.sin((14 - y) * 0.5)));
-const PATH_END = 14;                                         // the row where it meets the camp clearing
+const pathX = (y: number) => (y <= 2 ? CAVE_TX : CAVE_TX + Math.round(1.6 * Math.sin((PATH_END - y) * 0.5)));
+const PATH_END = OY + 14;                                        // the row where it meets the camp clearing
 /** The cave mouth, at the top of the map where the path ends. */
 const CAVE_X = (CAVE_TX + 1) * T;
 
@@ -52,7 +54,7 @@ export function buildMap(): TileMap {
   const set = (x: number, y: number, t: Tile) => { if (x >= 0 && y >= 0 && x < W && y < H) tiles[y]![x] = t; };
 
   // Organic clearing: everything outside the wobbly ellipse is forest.
-  const cx = W / 2, cy = H / 2 + 1.5, rx = W / 2 - 2, ry = H / 2 - 1;
+  const cx = W / 2, cy = H / 2 + 1.5, rx = W / 2 - 4, ry = H / 2 - 3;
   const wobble = (a: number) => 0.93 + 0.11 * Math.sin(3 * a + 0.7) + 0.07 * Math.sin(5 * a + 2.1) + 0.04 * Math.sin(11 * a + 4.2);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
@@ -60,11 +62,23 @@ export function buildMap(): TileMap {
   }
 
   // Groves: clumps where a smooth noise peaks, plus a few lone trees in the meadows.
-  const grove = (x: number, y: number) =>
+  const grove = (gx: number, gy: number, x = gx - OX, y = gy - OY) =>
     Math.sin(x * 0.33 + 1.3) * Math.sin(y * 0.41 + 0.4) + 0.55 * Math.sin((x + y) * 0.19 + 2.0) + 0.35 * Math.sin(x * 0.71 - y * 0.53);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     if (at(x, y) === Tile.Tree) continue;
     if (grove(x, y) > 0.92 || rng.next() < 0.03) set(x, y, Tile.Tree);
+  }
+
+  // A glade deep in the north-west woods, thick with flowers, and a deer trail winding out to it from
+  // the clearing. The trail steps one axis at a time so it never joins up only at a corner.
+  const glade = { x: 11, y: 8 };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const dx = (x + 0.5 - glade.x) / 4.4, dy = (y + 0.5 - glade.y) / 3.2, a = Math.atan2(dy, dx);
+    if (Math.hypot(dx, dy) < 1 + 0.12 * Math.sin(5 * a + 1.1)) set(x, y, rng.next() < 0.3 ? Tile.Flower : Tile.Grass);
+  }
+  for (let x = glade.x + 2, y = glade.y + 1, i = 0; x !== 16 || y !== 13; i++) {
+    set(x, y, Tile.Path);
+    if (x !== 16 && (y === 13 || (i + Math.floor(i / 3)) % 2 === 0)) x += Math.sign(16 - x); else y += Math.sign(13 - y);
   }
 
   // Water: a lake, a pond, and a river winding north from the lake through the forest.
@@ -72,10 +86,10 @@ export function buildMap(): TileMap {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
       if (((x - ex) / erx) ** 2 + ((y - ey) / ery) ** 2 <= 1) set(x, y, Tile.Water);
   };
-  ellipse(42, 25, 8, 5.5);
-  ellipse(17, 31, 4.5, 3);
-  for (let y = 0; y <= 21; y++) {
-    const riverX = 41 + Math.round(2.5 * Math.sin(y / 3.2));
+  ellipse(OX + 42, OY + 25, 8, 5.5);
+  ellipse(OX + 17, OY + 31, 4.5, 3);
+  for (let y = 0; y <= OY + 21; y++) {
+    const riverX = OX + 41 + Math.round(2.5 * Math.sin((y - OY) / 3.2));
     set(riverX, y, Tile.Water); set(riverX + 1, y, Tile.Water);
   }
 

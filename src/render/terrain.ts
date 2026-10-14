@@ -133,25 +133,32 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     world.add(new THREE.Mesh(geo, lambert("#ffffff", { vertexColors: true, side: THREE.DoubleSide })));
   }
 
-  // Trees: map trees (nudged off the grid) plus a band of trees climbing the foothills.
-  const placed: [number, number, number, number][] = [];   // [x, z, scale, y]
+  // Trees: map trees (nudged off the grid) plus a band of trees climbing the foothills. Some are firs:
+  // a few along the treeline, more in the deep woods and up the slopes.
+  const placed: [number, number, number, number, boolean][] = [];   // [x, z, scale, y, fir]
+  const openNear = (x: number, y: number, r: number) => {
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (walkable(x + i, y + j)) return true;
+    return false;
+  };
   for (const [x, z] of treeTiles) {
-    placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45, 0]);
+    const fir = hash(x, z, 20) < (openNear(x - 0.5, z - 0.5, 2) ? 0.2 : 0.55);
+    placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45, 0, fir]);
   }
   if (!indoors) for (let y = -4; y < H + 4; y++) for (let x = -4; x < W + 4; x++) {
     if (x >= 0 && y >= 0 && x < W && y < H) continue;
     const tx = x + 0.5 + (hash(x, y, 6) - 0.5) * 0.7, tz = y + 0.5 + (hash(x, y, 7) - 0.5) * 0.7;
     const d = outside(tx, tz);
     if (d > 3 || hash(x, y, 4) > 0.65 - d * 0.18) continue;   // thinning out as the slope climbs
-    placed.push([tx, tz, 0.9 + hash(x, y, 5) * 0.5, mountainHeight(tx, tz) - 0.05]);
+    placed.push([tx, tz, 0.9 + hash(x, y, 5) * 0.5, mountainHeight(tx, tz) - 0.05, hash(x, y, 20) < 0.3 + d * 0.15]);
   }
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  const instanced = (geo: THREE.BufferGeometry, mat: THREE.Material, list: [number, number, number, number?][], colorFor: (x: number, z: number) => THREE.Color) => {
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), none = new THREE.Matrix4().makeScale(0, 0, 0);
+  /** One instance per entry; `shown` false draws it at zero size (each tree has a slot in every part, so a tree's index is the same in all of them). */
+  const instanced = (geo: THREE.BufferGeometry, mat: THREE.Material, list: [number, number, number, number?, boolean?][], colorFor: (x: number, z: number) => THREE.Color, shown = (_fir: boolean) => true) => {
     const inst = new THREE.InstancedMesh(geo, mat, list.length);
-    list.forEach(([x, z, k, y = 0], i) => {
+    list.forEach(([x, z, k, y = 0, fir = false], i) => {
       q.setFromAxisAngle(up, hash(x, z, 8) * Math.PI * 2);
       m.compose(new THREE.Vector3(x, y, z), q, sc.set(k, k * (0.9 + hash(x, z, 9) * 0.25), k));
-      inst.setMatrixAt(i, m);
+      inst.setMatrixAt(i, shown(fir) ? m : none);
       inst.setColorAt(i, colorFor(x, z));
     });
     world.add(inst);
@@ -163,11 +170,21 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     const b = (0.78 + hash(x, z, 10) * 0.35) * deep;
     return new THREE.Color(b * (0.92 + hash(x, z, 11) * 0.12), b, b * (0.9 + hash(x, z, 12) * 0.1));
   };
+  // Firs are darker and bluer than the broadleaves.
+  const needleColor = (x: number, z: number) => { const c = leafColor(x, z); return c.setRGB(c.r * 0.45, c.g * 0.64, c.b * 0.62); };
+  const broad = (fir: boolean) => !fir, fir = (f: boolean) => f;
+  const bark = lambert("#ffffff", { map: tex.bark }), leaf = lambert("#ffffff", { map: tex.leaf });
+  const white = () => new THREE.Color(1, 1, 1);
   const trees: TreeSet = {
     meshes: [
-      instanced(new THREE.CylinderGeometry(0.11, 0.17, 0.62, 5).translate(0, 0.31, 0), lambert("#ffffff", { map: tex.bark }), placed, () => new THREE.Color(1, 1, 1)),
-      instanced(new THREE.IcosahedronGeometry(0.52, 0).translate(0, 0.92, 0), lambert("#ffffff", { map: tex.leaf }), placed, leafColor),
-      instanced(new THREE.IcosahedronGeometry(0.36, 0).translate(0.08, 1.34, 0.04), lambert("#ffffff", { map: tex.leaf }), placed, leafColor),
+      instanced(new THREE.CylinderGeometry(0.11, 0.17, 0.62, 5).translate(0, 0.31, 0), bark, placed, white, broad),
+      instanced(new THREE.IcosahedronGeometry(0.52, 0).translate(0, 0.92, 0), leaf, placed, leafColor, broad),
+      instanced(new THREE.IcosahedronGeometry(0.36, 0).translate(0.08, 1.34, 0.04), leaf, placed, leafColor, broad),
+      // A fir: a slim trunk and three stacked tiers of needles, narrowing to a point.
+      instanced(new THREE.CylinderGeometry(0.07, 0.12, 0.5, 5).translate(0, 0.25, 0), bark, placed, white, fir),
+      instanced(new THREE.ConeGeometry(0.58, 0.72, 7).translate(0, 0.66, 0), leaf, placed, needleColor, fir),
+      instanced(new THREE.ConeGeometry(0.44, 0.6, 7).translate(0, 1.04, 0).rotateY(0.45), leaf, placed, needleColor, fir),
+      instanced(new THREE.ConeGeometry(0.28, 0.52, 6).translate(0, 1.4, 0).rotateY(0.9), leaf, placed, needleColor, fir),
     ],
     items: placed.map(([x, z, scale, y]) => ({ x: x + origin.x, z: z + origin.y, scale, y })),
   };

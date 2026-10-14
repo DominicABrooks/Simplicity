@@ -9,6 +9,7 @@ import {
   FACING_YAW, FURNITURE, TOWER_FLARE, roomWalls, barbicanPlan, cathedralPlan, churchPlan, cloisterPlan, hallBody, houseBody, keepPlan, local, stallBody, wallPlan, type XZ,
 } from "./plans.ts";
 import type { Shape } from "./shapes.ts";
+import { anvilOf } from "./workplaces.ts";
 
 /** How deep a lion's plinth is, along its facing (it's 1.2 across). */
 export const LION_PLINTH = 1.5;
@@ -86,7 +87,8 @@ export function propSolids(p: Prop): Shape[] {
     case "guard": case "brazier": case "dummy": return [circle(p.x / T, p.y / T, 0.3)];
     case "target": return [box(p.x / T, p.y / T, 0.95, 0.95)];
     case "well": return [circle(p.x / T, p.y / T, 0.72)];
-    case "rack": case "smithy": case "trebuchet": case "cart": case "trough": return [inset(p.rect, 0.15)];
+    case "smithy": { const anvil = anvilOf(p.rect); return [inset(p.rect, 0.15), box(anvil.x, anvil.y, 0.55, 0.45)]; }   // and its anvil, out front
+    case "rack": case "trebuchet": case "cart": case "trough": return [inset(p.rect, 0.15)];
     case "horse": { const c = rectCentre(p.rect); return [p.rect.w >= p.rect.h ? box(c.x, c.z, 1.3, 0.5) : box(c.x, c.z, 0.5, 1.3)]; }
     case "windmill": return [circle(p.x / T, p.y / T, 1.3)];
     case "crane": return [circle(p.x / T, p.y / T, 0.9)];

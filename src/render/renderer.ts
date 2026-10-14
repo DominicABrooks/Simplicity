@@ -121,7 +121,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       hero.updateTrail(g, dt);
       const bobber = fishing.update(hero.body, pos, g.world.need(g.player, "actions"), t);
       koi.update(dt, t, px, pz, bobber);
-      ambient.update(dt, t, px, pz);
+      ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
       occlusion.update(px, pz, CAM_OFFSET, dt);
       targetRing.update(g, t);

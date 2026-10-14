@@ -239,6 +239,9 @@ export interface Dummy {
 export type Errand = "work" | "shop" | "chat" | "drink" | "church" | "errand" | "play" | "home" | "answer";
 
 /** One of the census's people out in the streets (see src/game/townsfolk.ts). Paths are in tiles. */
+/** Work done standing in the open, with something to show for it (see Walker.task). */
+export type Task = "anvil" | "lute";
+
 export interface Walker {
   /** Who they are: their id in the census (src/world/residents.ts). */
   id: number;
@@ -258,6 +261,8 @@ export interface Walker {
   /** Which way they face (a game angle), and which way to face once they're there. */
   facing: number;
   face: number | null;
+  /** What they do with their hands once they're at work there: hammer at the anvil, or play the lute. */
+  task?: Task | null;
   /** A child keeping with someone: their parent, or the oldest of a band of children; the nth of them. */
   follow: { leader: Entity; slot: number } | null;
   /** Where a leader has walked lately (px, centres), for those following to walk in their steps. */
