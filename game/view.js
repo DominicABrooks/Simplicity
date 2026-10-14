@@ -237,12 +237,30 @@ export function createView(canvas, PAL, C) {
     return { group, shadow };
   }
 
+  const RARITY = { normal: PAL.w, magic: "#7fa6ff", rare: PAL.Y };
+  function makeLoot(item) {
+    const group = new THREE.Group();
+    const c = RARITY[item.rarity];
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.15, 0), lambert(c, { emissive: col(c), emissiveIntensity: 0.5 }));
+    gem.position.y = 0.3;
+    group.add(gem);
+    if (item.rarity !== "normal") {                         // light beam: short for magic, tall for rare
+      const hgt = item.rarity === "rare" ? 3 : 1.2;
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.12, hgt, 5, 1, true).translate(0, hgt / 2, 0),
+        basic(c, { transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
+      group.add(beam);
+    }
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.position.y = 0.01; shadow.scale.setScalar(0.5);
+    scene.add(group, shadow);
+    return { group, shadow, gem };
+  }
+
   const hero = makeWanderer();
   const reticle = new THREE.Mesh(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0.18, 0, 0), new THREE.Vector3(-0.1, 0, -0.14), new THREE.Vector3(-0.1, 0, 0.14)]),
     basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
   scene.add(reticle);
-  const slimeViews = new Map(), potionViews = new Map();
+  const slimeViews = new Map(), potionViews = new Map(), lootViews = new Map();
   const sparkGeo = new THREE.OctahedronGeometry(0.07, 0);
   const sparkMats = { hit: basic(PAL.Y), big: basic(PAL.G) };
   let sparks = [];
@@ -261,7 +279,7 @@ export function createView(canvas, PAL, C) {
   function syncSet(list, views, make) {
     const alive = new Set(list);
     for (const [o, v] of views) if (!alive.has(o)) { scene.remove(v.group, v.shadow); views.delete(o); }
-    for (const o of list) if (!views.has(o)) views.set(o, make());
+    for (const o of list) if (!views.has(o)) views.set(o, make(o));
   }
 
   const toWorld = (x, y) => [(x + 4) / PX_PER_TILE, (y + 4) / PX_PER_TILE];
@@ -311,7 +329,7 @@ export function createView(canvas, PAL, C) {
 
     // Sword: floats at the side, winds up, then thrusts forward (matches the 2D hit timing).
     const sw = hero.sword;
-    sw.visible = !p.swimming;
+    sw.visible = !p.swimming && p.hasWeapon;
     if (p.attack > 0) {
       const windup = p.attack > C.ATTACK_TIME * 0.66;
       if (windup) { sw.position.set(-0.05, 0.75, 0.42); sw.rotation.set(0, 0, 0.7); }
@@ -351,6 +369,16 @@ export function createView(canvas, PAL, C) {
       const [x, z] = toWorld(o.x, o.y);
       v.group.position.set(x, 0.06 + Math.sin(t * 3 + o.x) * 0.06, z);
       v.group.rotation.y = t * 1.5 + o.x;
+      v.shadow.position.set(x, 0.01, z);
+    }
+
+    // Loot on the ground
+    const lootByItem = new Map(s.loot.map(l => [l.item, l]));
+    syncSet([...lootByItem.keys()], lootViews, makeLoot);
+    for (const [item, v] of lootViews) {
+      const l = lootByItem.get(item), [x, z] = toWorld(l.x, l.y);
+      v.group.position.set(x, 0, z);
+      v.gem.rotation.y = t * 2; v.gem.position.y = 0.3 + Math.sin(t * 3 + l.x) * 0.05;
       v.shadow.position.set(x, 0.01, z);
     }
 
@@ -421,5 +449,14 @@ export function createView(canvas, PAL, C) {
     return { x: hit.x * PX_PER_TILE, y: hit.z * PX_PER_TILE };
   }
 
-  return { setMap, render, resize, snapCamera, screenToGame };
+  // Game pixel coordinates (cell top-left) plus a height -> CSS pixels on screen.
+  const proj = new THREE.Vector3();
+  function gameToScreen(x, y, height = 0) {
+    const [wx, wz] = toWorld(x, y);
+    proj.set(wx, height, wz).project(camera);
+    const r = canvas.getBoundingClientRect();
+    return { x: r.left + (proj.x + 1) / 2 * r.width, y: r.top + (1 - proj.y) / 2 * r.height };
+  }
+
+  return { setMap, render, resize, snapCamera, screenToGame, gameToScreen };
 }

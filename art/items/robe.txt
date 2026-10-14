@@ -1,0 +1,27 @@
+# Robe icon: 2x3 inventory cells.
+
+@idle 1000
+................
+......kkkk......
+....BBkkkkBb....
+..YYBBBkkBBbYY..
+.YYYBBBBBBBbYYY.
+.BBBBBBBBBBbbbb.
+.BBBBBBBBBBbbbb.
+..BBBBBBBBBbbb..
+..BBBBBYBBBbbb..
+..BBBBBYBBBbbb..
+..BBBBBYBBBbbb..
+..BBBBBYBBBbbb..
+..BBBBBYBBBbbb..
+..BBBBBYBBBbbb..
+.BBBBBBYBBBbbbb.
+.BBBBBBYBBBbbbb.
+.BBBBBBYBBBbbbb.
+.BBBBBBYBBBbbbb.
+BBBBBBBYBBBbbbbb
+BBBBBBBYBBBbbbbb
+BBBBBBBYBBBbbbbb
+YYYYYYYYYYYYYYYY
+YOYYOYYOYYOYYOYY
+................

@@ -1,0 +1,27 @@
+# Blade icon: 1x3 inventory cells.
+
+@idle 1000
+....W...
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+...WWw..
+.YYYYYO.
+..OYYO..
+...Nn...
+...Nn...
+...Nn...
+...Nn...
+..YYYO..
+...YO...

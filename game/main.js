@@ -1,4 +1,5 @@
 import { createView } from "./view.js";
+import { createInventory, makeItem, rollItem } from "./inventory.js";
 // Simplicity: a tiny top-down fantasy RPG. All art comes from sprites.js (built from art/).
 
 const T = 8;                    // tile and sprite cell size, in game pixels
@@ -44,6 +45,9 @@ for (const [name, spr] of Object.entries(SPRITES.sprites)) {
     };
   }
 }
+
+// Item icons for the inventory: outlined pixel art as data URLs.
+const ICONS = Object.fromEntries(["blade", "hood", "robe", "boots", "ring", "amulet"].map(t => [t, ART[t].idle.frames[0].r.toDataURL()]));
 
 // ---------- Seeded randomness ----------
 let seed = 7;
@@ -112,14 +116,32 @@ function randomGrassSpot(minDist) {
 }
 
 // ---------- State ----------
-let player, slimes, potions, effects, kills, state, clock, spawnTimer;
+let player, slimes, potions, loot, effects, kills, state, clock, spawnTimer;
+
+// ---------- Inventory ----------
+const inv = createInventory({
+  icons: ICONS,
+  onChange: applyStats,
+  onDrop: item => loot.push({ x: player.x, y: player.y, item, ignore: true }),
+});
+// Equipment totals feed straight into gameplay numbers.
+function applyStats(st) {
+  if (!player) return;
+  player.damage = st.damage;
+  player.maxHp = MAX_HP + st.life;
+  player.hp = Math.min(player.hp, player.maxHp);
+  player.speedMul = 1 + st.speed / 100;
+  player.dashMul = 1 - st.dash / 100;
+  player.hasWeapon = st.hasWeapon;
+}
 
 function reset() {
   makeMap();
   view.setMap(map);
   seed = Date.now() % 100000 + 1;
   player = { x: SPAWN.x, y: SPAWN.y, face: 1, aim: 0, swingAim: 0, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, hp: MAX_HP, hurt: 0, jump: 0, attack: 0, cooldown: 0, hit: false, moving: false, swimming: false, vx: 0, vy: 0 };
-  slimes = []; potions = []; effects = [];
+  slimes = []; potions = []; loot = []; effects = [];
+  inv.reset([makeItem("blade", "normal", {}, "Rusty Blade")]);
   kills = 0; clock = 0; spawnTimer = 0;
   for (let i = 0; i < 8; i++) spawnSlime(80);
   for (let i = 0; i < 5; i++) { const p = randomGrassSpot(40); if (p) potions.push(p); }
@@ -145,6 +167,8 @@ addEventListener("keydown", e => {
     if (state === "title" || (state === "dead" && k === "r")) { reset(); setState("play"); }
     return;
   }
+  if (k === "i" || k === "tab") { e.preventDefault(); if (!e.repeat) inv.toggle(); return; }
+  if (k === "escape") { inv.close(); return; }
   if (!e.repeat) {
     if (k === "j" || k === "enter") attackPressed = true;
     if (k === " ") jumpPressed = true;
@@ -157,7 +181,10 @@ addEventListener("keydown", e => {
   keys.add(k);
 });
 addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
-addEventListener("mousedown", () => { if (state === "play") attackPressed = true; });
+addEventListener("mousedown", e => {
+  if (state !== "play" || e.button !== 0 || e.simplicityHandled || inv.owns(e.target)) return;
+  attackPressed = true;
+});
 // Aiming: the cursor sets the aim once the mouse has moved; until then the aim follows movement.
 let mouse = null;
 addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; });
@@ -168,6 +195,7 @@ const overlay = document.getElementById("overlay"), message = document.getElemen
 function setState(s) {
   state = s;
   overlay.hidden = s === "play";
+  if (s === "dead") inv.close();
   if (s === "dead") message.textContent = `You fell after defeating ${kills} slime${kills === 1 ? "" : "s"}. Press R to rise again.`;
 }
 
@@ -192,10 +220,10 @@ function updatePlayer(dt) {
   else if (ix || iy) p.aim = Math.atan2(iy, ix);
   p.face = Math.cos(p.attack > 0 ? p.swingAim : p.aim) >= 0 ? 1 : -1;
   const len = Math.hypot(ix, iy) || 1;
-  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1);
+  const speed = (p.swimming ? SWIM_SPEED : PLAYER_SPEED) * (p.attack > 0 ? 0.35 : 1) * p.speedMul;
   p.moving = ix !== 0 || iy !== 0;
   if (dashRequest && p.dash <= 0 && p.dashCooldown <= 0 && !p.swimming && p.jump <= 0 && p.attack <= 0) {
-    p.dash = DASH_TIME; p.dashCooldown = DASH_COOLDOWN; [p.dashX, p.dashY] = dashRequest;
+    p.dash = DASH_TIME; p.dashCooldown = DASH_COOLDOWN * p.dashMul; [p.dashX, p.dashY] = dashRequest;
   }
   if (p.dash > 0) {                                        // dashing overrides walking; trees stop it, water ends it
     p.dash = Math.max(0, p.dash - dt);
@@ -219,7 +247,7 @@ function updatePlayer(dt) {
         const dx = s.x - p.x, dy = s.y - p.y;
         const along = dx * ax + dy * ay, across = Math.abs(dx * ay - dy * ax);
         if (along > 1 && along < 20 && across < 7) {
-          s.hp--; s.flash = 0.15; s.vx = ax * 90; s.vy = ay * 90; s.timer = 0.6;
+          s.hp -= p.damage; s.flash = 0.15; s.vx = ax * 90; s.vy = ay * 90; s.timer = 0.6;
           effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
         }
       }
@@ -228,7 +256,15 @@ function updatePlayer(dt) {
   attackPressed = jumpPressed = false; dashRequest = null;
 
   for (let i = potions.length - 1; i >= 0; i--) {
-    if (overlap(p, potions[i]) && p.hp < MAX_HP) { p.hp = Math.min(MAX_HP, p.hp + 2); potions.splice(i, 1); }
+    if (overlap(p, potions[i]) && p.hp < p.maxHp) { p.hp = Math.min(p.maxHp, p.hp + 2); potions.splice(i, 1); }
+  }
+  // Walk over loot to pick it up. Dropped items wait until you step off them.
+  for (let i = loot.length - 1; i >= 0; i--) {
+    const l = loot[i];
+    if (!overlap(p, l)) { l.ignore = false; continue; }
+    if (l.ignore) continue;
+    if (inv.add(l.item)) loot.splice(i, 1);
+    else { l.ignore = true; toast("Inventory full"); }
   }
 }
 
@@ -261,6 +297,7 @@ function updateSlimes(dt) {
       kills++;
       effects.push({ x: s.x + 4, y: s.y + 4, t: 0.3, big: true });
       if (rand() < 0.3) potions.push({ x: s.x, y: s.y });
+      if (rand() < 0.4) loot.push({ x: s.x, y: s.y, item: rollItem(rand) });
       slimes.splice(i, 1);
     }
   }
@@ -284,13 +321,39 @@ function resize() {
 addEventListener("resize", resize);
 
 function render(dt) {
-  view.render({ player, slimes, potions, effects, clock }, dt);
+  view.render({ player, slimes, potions, loot, effects, clock }, dt);
   hg.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
-  for (let i = 0; i < MAX_HP; i++) {
+  for (let i = 0; i < player.maxHp; i++) {
     const h = i < player.hp ? ART.heart.full : ART.heart.empty;
-    hg.drawImage(h.frames[0].r, 3 + i * 10, 3);
+    hg.drawImage(h.frames[0].r, 3 + (i % 10) * 10, 3 + Math.floor(i / 10) * 10);
   }
+  renderLabels();
   hud.textContent = `Slimes ${kills}`;
+}
+
+// Item labels float over loot on the ground, coloured by rarity (PoE style).
+const labelLayer = document.getElementById("labels"), labelEls = new Map();
+function renderLabels() {
+  const alive = new Set(loot.map(l => l.item.id));
+  for (const [id, el] of labelEls) if (!alive.has(id)) { el.remove(); labelEls.delete(id); }
+  for (const l of loot) {
+    let el = labelEls.get(l.item.id);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = `label rarity-${l.item.rarity}`;
+      el.textContent = l.item.name;
+      labelLayer.append(el); labelEls.set(l.item.id, el);
+    }
+    const s = view.gameToScreen(l.x, l.y, 0.55);
+    el.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`;
+  }
+}
+
+const toastEl = document.getElementById("toast");
+let toastTimer;
+function toast(text) {
+  toastEl.textContent = text; toastEl.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 1500);
 }
 
 // ---------- Loop ----------
@@ -309,7 +372,7 @@ function loop(now) {
 }
 
 // Debug handle for the browser console: simplicity.player, simplicity.slimes, ...
-window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; } };
+window.simplicity = { get player() { return player; }, get slimes() { return slimes; }, get potions() { return potions; }, get loot() { return loot; }, inv };
 
 resize();
 reset();

@@ -71,6 +71,11 @@ Animation is procedural in `view.js`, driven by game state and timers. Keep it s
 
 ## UI and icons
 
+UI panels (inventory, tooltips, ground labels) are dark `void`/`ink` panels with an `bark` border and an `oak` inner line, titled in Cinzel caps in `glow`. Item rarity is colour-coded everywhere: normal in `bone`, magic in soft azure (#7fa6ff), rare in `glow`. On the ground, magic items get a short light beam and rares a tall one.
+
+Item icons are pixel art in `art/items/`, 8 px per inventory cell (a 1×3 blade is 8×24), outlined like every other icon. Empty equipment slots show the slot's icon as a faded grey silhouette.
+
+
 The HUD stays as 8×8 pixel icons with a 1 px `ink` outline, drawn from `art/*.txt` by `tools/build.py` (hearts today). Pixel UI over a low-poly world is period-correct. The rules for those icons:
 
 - 8×8 cells, faces right, outline added at render time, 3–4 colours (5 at most), lit from the top-left.

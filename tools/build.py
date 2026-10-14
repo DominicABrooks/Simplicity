@@ -44,8 +44,8 @@ def load_sprite(path, pal):
         if frame:
             if current is None:
                 raise ValueError(f"{path.name}: frame before any @anim line")
-            if len(frame) != CELL:
-                raise ValueError(f"{path.name} @{current}: frame has {len(frame)} rows, needs {CELL}")
+            if not frame or len(frame) % CELL:
+                raise ValueError(f"{path.name} @{current}: frame has {len(frame)} rows, needs a multiple of {CELL}")
             if len({len(r) for r in frame}) != 1 or len(frame[0]) % CELL:
                 raise ValueError(f"{path.name} @{current}: rows must share a width that is a multiple of {CELL}")
             for r in frame:
@@ -117,11 +117,12 @@ def build():
 
     for name, (kind, anims) in sprites.items():
         width = max(sum(len(f[0]) for f in frames) for _, frames in anims.values())
-        sheet = Image.new("RGBA", (width, CELL * len(anims)), (0, 0, 0, 0))
+        heights = [max(len(f) for f in frames) for _, frames in anims.values()]
+        sheet = Image.new("RGBA", (width, sum(heights)), (0, 0, 0, 0))
         for r, (anim, (ms, frames)) in enumerate(anims.items()):
-            x = 0
+            x, y = 0, sum(heights[:r])
             for f in frames:
-                sheet.paste(raw_image(f, pal), (x, r * CELL))
+                sheet.paste(raw_image(f, pal), (x, y))
                 x += len(f[0])
             ims = [preview(f, kind) for f in frames]
             w = max(i.width for i in ims)
@@ -138,14 +139,15 @@ def build():
             for kind, anims in sprites.values() for _, frames in anims.values()]
     swatches = [c for c in pal if c not in no_outline]
     width = max(max(sum(i.width + 2 for i in r) for r in rows), len(swatches) * 6) + 2
-    height = len(rows) * (CELL + 4) + 8
-    sheet = Image.new("RGBA", (width, height), BG)
+    row_h = [max(i.height for i in r) + 2 for r in rows]
+    sheet = Image.new("RGBA", (width, sum(row_h) + 10), BG)
+    y = 2
     for r, ims in enumerate(rows):
         x = 2
         for im in ims:
-            sheet.alpha_composite(im, (x, 2 + r * (CELL + 4)))
+            sheet.alpha_composite(im, (x, y))
             x += im.width + 2
-    y = len(rows) * (CELL + 4) + 2
+        y += row_h[r]
     for i, c in enumerate(swatches):
         sheet.paste(Image.new("RGBA", (5, 5), pal[c]), (2 + i * 6, y))
     scale(sheet, SHEET_SCALE).save(out / "contact_sheet.png")
