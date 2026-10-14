@@ -23,6 +23,7 @@ import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
 import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
+import { startPetting, updatePetting } from "./game/petting.ts";
 import { startResting, updateResting } from "./game/resting.ts";
 import { enterPets } from "./game/pets.ts";
 
@@ -83,7 +84,7 @@ const input = bindInput(g, {
   talkClick: at => {
     if (talking(g)) { advanceTalk(g); return true; }
     const hit = pickTarget(g, view, at);
-    return knock(g, hit) || startResting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; someone: talk
+    return knock(g, hit) || startResting(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; a dog or cat: pet it; someone: talk
   },
   talkKey: k => {
     if (talking(g)) {
@@ -91,7 +92,7 @@ const input = bindInput(g, {
       if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
       return false;
     }
-    return k === "e" && (knock(g, g.target) || startResting(g, g.target) || startTalk(g, g.target));
+    return k === "e" && (knock(g, g.target) || startResting(g, g.target) || startPetting(g, g.target) || startTalk(g, g.target));
   },
 });
 
@@ -118,6 +119,7 @@ function frame(now: number): void {
   step(g, dt);
   updateTalk(g, dt);
   updateTownsfolk(g, g.hitstop > 0 ? 0 : dt);
+  updatePetting(g, g.hitstop > 0 ? 0 : dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
   menu.setActive(MENU.inventory, inventory.isOpen());
   menu.setActive(MENU.map, map.isOpen());
