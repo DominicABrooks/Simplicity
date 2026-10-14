@@ -67,9 +67,10 @@ export function createContext(scene: THREE.Scene): RenderContext {
  * little more than the one below (polygonOffset) and sits a hair higher, so none flickers against
  * another or vanishes under a road: the paving, then dirt paths, the plaza's flagstones and rings, then
  * stains (cloud shadows, scorch marks), blob shadows, and on top the markers you need to see: the aim
- * arrow, the target ring, spell circles. Overlays stay at or below y = 0.012; marks start at 0.02.
+ * arrow, the target ring, spell circles (a rug indoors goes between the plaza's rings and the stains). Overlays stay at or
+ * below y = 0.012; marks start at 0.02.
  */
-export const GROUND = { paving: 1, path: 2, plaza: 3, plazaRings: 4, stain: 6, shadow: 7, marker: 9 } as const;
+export const GROUND = { paving: 1, path: 2, plaza: 3, plazaRings: 4, rug: 5, stain: 6, shadow: 7, marker: 9 } as const;
 export const onGround = (layer: number) => ({ polygonOffset: true, polygonOffsetFactor: -layer, polygonOffsetUnits: -4 * layer });
 /** How high blob shadows and markers sit. */
 export const SHADOW_Y = 0.02, MARKER_Y = 0.03;

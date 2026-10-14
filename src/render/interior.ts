@@ -24,7 +24,7 @@ export function buildRoom(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ro
   const planks = p.floor === "planks";
   const floor = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), uv = floor.attributes.uv!;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * w) / (planks ? 3 : 1.4), (uv.getY(i) * d) / (planks ? 3 : 1.4));
-  put(g, floor, lambert(planks ? PLANK : FLAGS, { map: planks ? tex.timber : tex.stone, ...onGround(GROUND.plaza) }), x0 + w / 2, 0.01, z0 + d / 2);
+  put(g, floor, lambert(planks ? PLANK : FLAGS, { ...(planks ? {} : { map: tex.stone }), ...onGround(GROUND.plaza) }), x0 + w / 2, 0.01, z0 + d / 2);
   if (planks) for (let z = z0 + 0.5; z < z0 + d; z += 0.5) put(g, box(w, 0.005, 0.03), lambert(DARK_WOOD, onGround(GROUND.plazaRings)), x0 + w / 2, 0.012, z);
   // The walls, a beam along their tops, and the open door.
   const wall = lambert(p.wall, { map: planks ? tex.timber : tex.stone }), beam = lambert(DARK_WOOD), H = ROOM_WALL.high;
@@ -43,6 +43,39 @@ export function buildRoom(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ro
   leaf.rotation.y = (along ? 0 : Math.PI / 2) + (p.door === "south" || p.door === "west" ? 1.2 : -1.2);
   g.add(leaf);
   parent.add(g);
+}
+
+// ---------- Rugs ----------
+/**
+ * A rug's weave, as a little pixel texture (one per pattern): a border round the field, and on it either a
+ * diamond with a light heart and a small diamond either side, or two bands across each end. Drawn as one flat
+ * piece, so nothing in the pattern fights over which is on top (see GROUND.rug).
+ */
+const rugs = new Map<string, THREE.CanvasTexture>();
+function rugTexture(edge: string, field: string, diamond: boolean): THREE.CanvasTexture {
+  const key = [edge, field, diamond].join("/"), made = rugs.get(key);
+  if (made) return made;
+  const W = 38, H = 24, c = document.createElement("canvas"), x = c.getContext("2d")!, light = "#e8dcc4";
+  c.width = W; c.height = H;
+  x.fillStyle = edge; x.fillRect(0, 0, W, H);
+  x.fillStyle = field; x.fillRect(2, 2, W - 4, H - 4);
+  const lozenge = (cx: number, cy: number, r: number, colour: string) => {
+    x.fillStyle = colour;
+    for (let dy = -r; dy <= r; dy++) { const half = r - Math.abs(dy); x.fillRect(cx - half, cy + dy, half * 2 + 1, 1); }
+  };
+  if (diamond) {
+    lozenge(W / 2 - 1, H / 2 - 1, 6, edge);
+    lozenge(W / 2 - 1, H / 2 - 1, 3, light);
+    for (const s of [-1, 1]) lozenge(W / 2 - 1 + s * 11, H / 2 - 1, 2, light);
+  } else for (const s of [-1, 1]) {
+    x.fillStyle = edge; x.fillRect(W / 2 - 1 + s * 6 - (s < 0 ? 1 : 0), 2, 2, H - 4);
+    x.fillStyle = light; x.fillRect(W / 2 - 1 + s * 10 - (s < 0 ? 1 : 0), 2, 1, H - 4);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = tex.minFilter = THREE.NearestFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  rugs.set(key, tex);
+  return tex;
 }
 
 // ---------- Furniture ----------
@@ -171,18 +204,12 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
     }
     case "workbench": put(g, box(w, 0.1, d), wood, 0, 0.8, 0); legs(0.75, w / 2 - 0.1, d / 2 - 0.1, 0.09); put(g, box(0.05, 0.05, 0.3), dark, 0.3, 0.88, 0); put(g, box(0.15, 0.08, 0.08), lambert(IRON), 0.3, 0.88, -0.15); put(g, box(0.4, 0.08, 0.15), lambert("#c8a070"), -0.4, 0.89, 0.1); break;
     case "anvil": put(g, new THREE.CylinderGeometry(0.22, 0.26, 0.45, 8), dark, 0, 0.22, 0); put(g, box(w, 0.2, d), lambert(IRON), 0, 0.55, 0); put(g, new THREE.ConeGeometry(0.1, 0.3, 5), lambert(IRON), w / 2 + 0.12, 0.58, 0, 0, 0, -Math.PI / 2); break;
-    case "rug": {                                             // just underfoot: a woven rug, a border round its field, a diamond or bands across it, and fringed ends
-      const c = BLANKETS[Math.floor(seed * BLANKETS.length)]!, edge = RUG_EDGES[Math.floor(seed * 13.7) % RUG_EDGES.length]!, L = 1.9, Wd = 1.2;
-      const flat = (pw: number, pl: number, colour: string, layer: number, y: number, x = 0, z = 0, turn = 0) =>
-        put(g, new THREE.PlaneGeometry(pw, pl).rotateX(-Math.PI / 2).rotateY(turn), lambert(colour, onGround(layer)), x, y, z);
-      flat(L, Wd, edge, GROUND.plaza, 0.016);                                                            // the border
-      flat(L - 0.22, Wd - 0.22, c, GROUND.plazaRings, 0.018);                                            // the field
-      if (seed < 0.5) {
-        flat(0.42, 0.42, edge, GROUND.stain, 0.02, 0, 0, Math.PI / 4);                                   // a diamond in the middle
-        flat(0.22, 0.22, "#e8dcc4", GROUND.shadow, 0.021, 0, 0, Math.PI / 4);
-        for (const s of [-1, 1]) flat(0.16, 0.16, "#e8dcc4", GROUND.stain, 0.02, s * 0.55, 0, Math.PI / 4);
-      } else for (const s of [-1, 1]) for (const k of [0.32, 0.5]) flat(0.06, Wd - 0.22, k === 0.32 ? edge : "#e8dcc4", GROUND.stain, 0.02, s * k, 0);   // bands across
-      for (const s of [-1, 1]) for (let i = 0; i < 9; i++) put(g, box(0.1, 0.012, 0.03), lambert("#e8dcc4", onGround(GROUND.plaza)), s * (L / 2 + 0.04), 0.017, -Wd / 2 + 0.1 + (i * (Wd - 0.2)) / 8);   // the fringe
+    case "rug": {                                             // just underfoot: one woven piece over the floor, its pattern painted on, and fringed ends
+      const field = BLANKETS[Math.floor(seed * BLANKETS.length)]!, edge = RUG_EDGES[Math.floor(seed * 13.7) % RUG_EDGES.length]!, L = 1.9, Wd = 1.2;
+      const weave = lambert("#ffffff", { map: rugTexture(edge, field, seed < 0.5), ...onGround(GROUND.rug) });
+      put(g, new THREE.PlaneGeometry(L, Wd).rotateX(-Math.PI / 2), weave, 0, 0.015, 0);
+      const fringe = lambert("#e8dcc4", onGround(GROUND.rug));
+      for (const s of [-1, 1]) for (let i = 0; i < 9; i++) put(g, new THREE.PlaneGeometry(0.1, 0.03).rotateX(-Math.PI / 2), fringe, s * (L / 2 + 0.05), 0.015, -Wd / 2 + 0.1 + (i * (Wd - 0.2)) / 8);
       break;
     }
     case "cradle": {                                        // a wooden box on rockers, a little quilt in it
