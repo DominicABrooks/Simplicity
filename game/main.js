@@ -246,6 +246,15 @@ const DASH_TIME = 0.18, DASH_SPEED = 160, DASH_COOLDOWN = 0.6;   // ~29px, about
 const CAST_TIME = 0.4, BITE_WINDOW = 0.9, CAST_MIN = 10, CAST_MAX = 40;   // reach: about 5 tiles
 // Bow: hold to draw (full power at DRAW_TIME), release to shoot. Drawn, you move at DRAW_SLOW speed.
 const DRAW_TIME = 0.6, DRAW_SLOW = 0.45, ARROW_LIFE = 0.45, BOW_COOLDOWN = 0.25;
+// Sword swing: the blade sweeps an arc of +-SWING_ARC radians around the aim, reaching SWING_REACH px.
+// Phases of the attack timer (0..1): wind up to one side, sweep across, recover. Swings alternate sides.
+const SWING_ARC = 1.25, SWING_REACH = 20, SWEEP_START = 0.25, SWEEP_END = 0.6;
+function swingRel(side, k) {
+  if (k < SWEEP_START) return side * SWING_ARC * (0.4 + 0.6 * (k / SWEEP_START));
+  if (k < SWEEP_END) { const u = (k - SWEEP_START) / (SWEEP_END - SWEEP_START); return side * SWING_ARC * (1 - 2 * u * u * (3 - 2 * u)); }
+  return -side * SWING_ARC * (1 - (k - SWEEP_END) / (1 - SWEEP_END));
+}
+const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 // Where a cast would land: exactly at the cursor, pulled in to the pole's reach.
 // Without a mouse it goes 3 tiles along the aim.
@@ -346,8 +355,33 @@ function updatePlayer(dt) {
       else if (attackReleased) { shootArrow(p); p.draw = null; p.cooldown = BOW_COOLDOWN; }
     }
   }
-  if (attackPressed && p.cooldown <= 0 && !p.swimming) { p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim; }
-  if (p.attack > 0) {
+  if (attackPressed && p.cooldown <= 0 && !p.swimming) {
+    p.attack = ATTACK_TIME; p.cooldown = 0.38; p.hit = false; p.swingAim = p.aim;
+    p.swingSide = -(p.swingSide || -1); p.swingHits = new Set();
+  }
+  const sword = p.gear && p.gear.weaponType === "blade";
+  if (p.attack > 0 && sword) {
+    // Sweep: anything inside the reach whose direction the blade passed through this frame gets hit once.
+    const kPrev = 1 - p.attack / ATTACK_TIME;
+    p.attack = Math.max(0, p.attack - dt);
+    const kNow = 1 - p.attack / ATTACK_TIME;
+    p.swingK = kNow; p.swingRel = swingRel(p.swingSide, kNow);
+    if (kNow > SWEEP_START && kPrev < SWEEP_END) {
+      const a0 = swingRel(p.swingSide, Math.max(kPrev, SWEEP_START)), a1 = swingRel(p.swingSide, Math.min(kNow, SWEEP_END));
+      const lo = Math.min(a0, a1) - 0.3, hi = Math.max(a0, a1) + 0.3;   // 0.3 rad of slack for the slime's size
+      for (const s of slimes) {
+        if (p.swingHits.has(s)) continue;
+        const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
+        if (d > SWING_REACH) continue;
+        const rel = d < 2 ? 0 : angleDiff(Math.atan2(dy, dx), p.swingAim);
+        if (rel < lo || rel > hi) continue;
+        p.swingHits.add(s);
+        const nx = d < 2 ? Math.cos(p.swingAim) : dx / d, ny = d < 2 ? Math.sin(p.swingAim) : dy / d;
+        s.hp -= p.damage; s.flash = 0.15; s.vx = nx * 90; s.vy = ny * 90; s.timer = 0.6;
+        effects.push({ x: s.x + 4, y: s.y + 4, t: 0.18 });
+      }
+    }
+  } else if (p.attack > 0) {
     p.attack = Math.max(0, p.attack - dt);
     if (!p.hit && p.attack < ATTACK_TIME * 0.66) {          // thrust frame: same reach as before (1..20px ahead, 7px either side), along the aim
       p.hit = true;

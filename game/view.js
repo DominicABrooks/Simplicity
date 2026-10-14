@@ -348,6 +348,26 @@ export function createView(canvas, PAL, C) {
     } else if (leaper) { world.remove(leaper); leaper = null; leaperKey = null; }
   }
 
+  // ---------- Sword swoosh ----------
+  // A flat arc on the hero, from where the sweep began to where the blade is now, fading after the sweep.
+  const swooshMat = basic(PAL.W, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  const swoosh = new THREE.Mesh(new THREE.BufferGeometry(), swooshMat);
+  swoosh.position.y = 0.5;
+  const SWOOSH_COLOR = { normal: PAL.W, magic: PAL.C, rare: PAL.Y };
+  function updateSwoosh(p) {
+    if (!swoosh.parent) hero.group.add(swoosh);             // hero is created later in this file
+    const k = p.swingK, active = p.attack > 0 && p.gear && p.gear.weaponType === "blade" && k > 0.25 && k < 0.85;
+    swoosh.visible = !!active;
+    if (!active) return;
+    const start = p.swingSide * 1.25, now = p.swingRel;
+    const from = Math.min(-start, -now), len = Math.abs(now - start);
+    if (len < 0.02) { swoosh.visible = false; return; }
+    swoosh.geometry.dispose();
+    swoosh.geometry = new THREE.RingGeometry(0.3, 0.95, 10, 1, from, len).rotateX(-Math.PI / 2);
+    swooshMat.color.set(SWOOSH_COLOR[p.gear.weapon] || PAL.W);
+    swooshMat.opacity = k < 0.6 ? 0.45 : 0.45 * (1 - (k - 0.6) / 0.25);
+  }
+
   // ---------- Hands ----------
   const grip = new THREE.Vector3(), handTarget = new THREE.Vector3();
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -723,6 +743,10 @@ export function createView(canvas, PAL, C) {
     } else if (rod && p.attack <= 0) {
       sw.position.set(0.1, 0.4 + Math.sin(t * 3) * 0.03, 0.4);
       sw.rotation.set(0, 0, -0.35 + Math.sin(t * 1.7) * 0.04);
+    } else if (p.attack > 0 && p.gear && p.gear.weaponType === "blade" && p.swingRel !== undefined) {
+      const r = p.swingRel;
+      sw.position.set(Math.cos(r) * 0.3, 0.5, Math.sin(r) * 0.3);
+      sw.rotation.set(0, -r, -Math.PI / 2);
     } else if (p.attack > 0) {
       const windup = p.attack > C.ATTACK_TIME * 0.66;
       if (windup) { sw.position.set(-0.05, 0.75, 0.42); sw.rotation.set(0, 0, 0.7); }
@@ -733,6 +757,7 @@ export function createView(canvas, PAL, C) {
     }
 
     animateHands(p, t, dt);
+    updateSwoosh(p);
 
     hero.shadow.visible = !p.swimming;
     hero.shadow.position.set(px, 0.01, pz);
