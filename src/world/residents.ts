@@ -6,6 +6,7 @@ import { T, type Rect } from "../data/world.ts";
 import { Rng } from "../core/rng.ts";
 import type { Prop } from "./area.ts";
 import { gravePlan } from "./solids.ts";
+import { dressFor, type Dress } from "./wardrobe.ts";
 import { FAMILIES, INSTITUTIONS, SURNAMES, householdsOf, type District, type Family, type Folk, type Household, type Stance, type Where } from "./people.ts";
 
 export interface Spot {
@@ -36,6 +37,8 @@ export interface Resident {
   note?: string;
   /** Locked in the dungeon, not at home. */
   prisoner?: true;
+  /** How they dress (see wardrobe.ts), from who they are. */
+  dress: Dress;
 }
 
 /** Every area's props, as built: the city's districts and the King's Bridge. */
@@ -100,14 +103,14 @@ const SPOUSE_JOB = {
   craft: ["works in the shop", "spins wool", "brews ale for the house", "keeps the shop's books", "sews for the neighbours"],
   labouring: ["takes in washing", "spins wool", "sells eggs in the square", "carries water", "mends nets", "scrubs the Bell's floors"],
 } as const;
-const SERVANT_JOB = ["maid", "cook", "footman", "nurse", "scullion", "manservant", "laundress", "kitchen boy"] as const;
+const SERVANT_JOB = ["maid", "cook", "footman", "nurse", "kitchen hand", "manservant", "laundress", "kitchen boy"] as const;
 const ROYAL_SERVANT_JOB = [
   "chamberlain", "steward of the keep", "royal cook", "pastry cook", "lady's maid", "valet", "page", "page", "chambermaid", "chambermaid",
-  "royal laundress", "scullion", "scullion", "cupbearer", "royal nurse", "candle-keeper", "kitchen boy", "groom of the chamber",
+  "royal laundress", "royal kitchen hand", "royal kitchen hand", "cupbearer", "royal nurse", "candle-keeper", "kitchen boy", "groom of the chamber",
   "seamstress", "royal tutor", "jester", "musician", "doorkeeper", "fire-tender",
 ] as const;
 const COURT_JOB = ["courtier", "lady-in-waiting", "royal clerk", "herald", "falconer's boy", "messenger", "keeper of the wardrobe", "royal physician"] as const;
-const CASTLE_SERVANT_JOB = ["castle cook", "kitchen maid", "scullion", "castle laundress", "castle pot-boy", "castle baker", "castle brewer", "chambermaid", "castle porter", "candle-keeper"] as const;
+const CASTLE_SERVANT_JOB = ["castle cook", "kitchen maid", "castle kitchen hand", "castle laundress", "castle pot-boy", "castle baker", "castle brewer", "chambermaid", "castle porter", "candle-keeper"] as const;
 const GUEST_JOB = [
   "pilgrim", "pilgrim", "carter", "carter", "peddler", "petitioner to the King", "wool buyer from the coast", "minstrel", "tinker",
   "travelling cobbler", "fishmonger from Saltmouth", "knife-grinder", "storyteller", "a quiet traveller in a grey hood",
@@ -185,12 +188,13 @@ class Maker {
   readonly out: Resident[] = [];
   constructor(readonly at: Places) {}
 
-  person(rng: Rng, r: Omit<Resident, "id" | "traits" | "quirk"> & { traits?: readonly [string, string] }): Resident {
+  person(rng: Rng, r: Omit<Resident, "id" | "traits" | "quirk" | "dress"> & { traits?: readonly [string, string] }): Resident {
     const pool = TRAITS;
     const a = pick(rng, pool);
     let b = pick(rng, pool);
     while (b === a) b = pick(rng, pool);
-    const res: Resident = { id: this.out.length + 1, ...r, traits: r.traits ?? [a, b], quirk: pick(rng, QUIRKS) };
+    const traits = r.traits ?? [a, b], quirk = pick(rng, QUIRKS);
+    const res: Resident = { id: this.out.length + 1, ...r, traits, quirk, dress: dressFor({ ...r, traits }) };   // their clothes draw no random numbers
     this.out.push(res);
     return res;
   }
@@ -229,7 +233,7 @@ class Maker {
   dayOf(rng: Rng, job: string, age: number, home: Spot): Spot {
     const at = this.at, j = job.toLowerCase();
     if (age < 6) return home;
-    if (age < 14 && !/apprentice|page|errand|boy|bread|scullion|choir/.test(j)) return rng.next() < 0.4 ? { ...at.stMarys, place: "the song school at St Mary's" } : { ...at.square, place: "playing on the market square" };
+    if (age < 14 && !/apprentice|page|errand|boy|bread|kitchen|choir/.test(j)) return rng.next() < 0.4 ? { ...at.stMarys, place: "the song school at St Mary's" } : { ...at.square, place: "playing on the market square" };
     if (age >= 75 && !/king|queen|dean|widow/.test(j)) return home;
     const rules: [RegExp, () => Spot][] = [
       [/bridge watch|watchman/, () => at.bridgeGate],
@@ -237,7 +241,7 @@ class Maker {
       [/priest|dean|deacon|choir|sexton|treasurer|librarian|mason|chandler/, () => at.stMarys],
       [/chaplain/, () => at.stGiles],
       [/clerk|alderman|lawyer|notary|proctor|scrivener/, () => at.guildhall],
-      [/royal cook|pastry|castle cook|kitchen|scullion|castle pot-boy|castle baker|castle brewer/, () => at.kitchen],
+      [/royal cook|royal kitchen|pastry|castle cook|castle kitchen|kitchen maid|castle pot-boy|castle baker|castle brewer/, () => at.kitchen],
       [/king|queen|prince|princess|courtier|lady-in-waiting|herald|chamberlain|steward of the keep|valet|lady's maid|chambermaid|page|cupbearer|wardrobe|royal physician|tutor|jester|musician|doorkeeper|fire-tender|chamber|marshal|candle-keeper/, () => at.keep],
       [/armourer|blacksmith|(^| )smith|farrier|fletcher|(^| )bowyer|harness/, () => at.smithy],
       [/storekeeper|castle porter|storehouse/, () => at.storehouse],
@@ -355,14 +359,14 @@ export function residentsOf(props: CityProps): Resident[] {
   crew(107, inst("The court"), (rng, i) => {
     const courtier = i < 14, job = courtier ? COURT_JOB[i % COURT_JOB.length]! : pick(rng, CASTLE_SERVANT_JOB);
     return { age: courtier ? rng.int(20, 66) : rng.int(13, 58), job, role: courtier ? "courtier" : "servant", stance: courtier ? "loyal" : "whispering",
-      home: courtier ? room(at.lodgings, rng.int(0, 2)) : /cook|kitchen|scullion|pot-boy|baker|brewer/.test(job) ? room(at.kitchen, 0) : room(at.greatHall, 1) };
+      home: courtier ? room(at.lodgings, rng.int(0, 2)) : /cook|kitchen|pot-boy|baker|brewer/.test(job) ? room(at.kitchen, 0) : room(at.greatHall, 1) };
   });
   crew(109, inst("The priests"), (rng, i) => {
     const job = i < 6 ? "priest of St Mary's" : i < 8 ? "deacon" : "choirboy";
     return { sex: i < 8 ? pick(rng, ["f", "m"] as const) : "m", age: job === "choirboy" ? rng.int(8, 14) : rng.int(24, 70), job, role: job === "choirboy" ? "choir" : "clergy", stance: "quiet", home: { ...at.stMarys, place: "the clergy house and song school, St Mary's", floor: rng.int(0, 1) } };
   });
   crew(113, inst("The masons"), (rng, i) => ({ sex: rng.next() < 0.75 ? "m" : "f", age: rng.int(15, 58), job: i < 5 ? "journeyman mason" : "mason's labourer", role: "lodger", stance: "defiant", home: { ...at.stMarys, place: "the masons' lodge by St Mary's", floor: 0 } }));
-  crew(127, inst("The almshouse"), (rng, i) => ({ age: i === 0 ? rng.int(40, 55) : rng.int(66, 92), job: i === 0 ? "warden and chaplain of St Giles'" : pick(rng, ["almsfolk, once a weaver", "almsfolk, once a carter", "almsfolk, once a cook", "almsfolk, once a sailor", "almsfolk"]), role: i === 0 ? "warden" : "almsfolk", stance: "whispering", home: room(at.almshouse, rng.int(0, 1)) }));
+  crew(127, inst("The almshouse"), (rng, i) => ({ age: i === 0 ? rng.int(40, 55) : rng.int(66, 92), job: i === 0 ? "warden and chaplain of St Giles'" : pick(rng, ["retired weaver, living at the almshouse", "retired carter, living at the almshouse", "retired cook, living at the almshouse", "retired sailor, living at the almshouse", "pensioner, living at the almshouse"]), role: i === 0 ? "warden" : "almsfolk", stance: "whispering", home: room(at.almshouse, rng.int(0, 1)) }));
   const inns = mk.out.filter(r => r.family === "maddox" || r.family === "pike").map(r => r.home);
   crew(131, inst("Guests"), (rng, i) => {
     const inn = inns.length ? inns[i % inns.length]! : at.square, job = pick(rng, GUEST_JOB);

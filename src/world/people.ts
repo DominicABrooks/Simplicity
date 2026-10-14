@@ -849,13 +849,13 @@ export const SURNAMES = [
 const TRADES: Record<District, Record<"merchant" | "craft" | "labouring", readonly string[]>> = {
   capital: {
     merchant: ["wine merchant", "wool merchant", "spice merchant", "goldsmith", "draper", "lawyer", "physician", "guild alderman"],
-    craft: ["cooper", "glover", "saddler", "cordwainer", "tailor", "brewer", "carpenter", "dyer", "pewterer", "ironmonger", "barber-surgeon", "tanner"],
+    craft: ["cooper", "glover", "saddler", "shoemaker", "tailor", "brewer", "carpenter", "dyer", "pewterer", "ironmonger", "barber-surgeon", "tanner"],
     labouring: ["carter", "porter", "laundress", "water-carrier", "rag-picker", "day labourer", "rat-catcher", "spinner", "sweep"],
   },
   castle: {
     merchant: ["courtier's steward", "royal clerk", "knight of the household", "royal physician", "keeper of the wardrobe"],
     craft: ["fletcher", "bowyer", "farrier", "royal cook", "saddler", "harness-maker", "kennelman", "huntsman", "castle carpenter"],
-    labouring: ["garrison washerwoman", "groom", "scullion", "washerwoman", "wood-carrier", "dung-carter"],
+    labouring: ["garrison washerwoman", "groom", "kitchen hand", "washerwoman", "wood-carrier", "dung-carter"],
   },
 };
 

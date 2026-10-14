@@ -8,11 +8,11 @@ export const TALK = { reach: 26, leave: 40, charsPerSecond: 60 } as const;
 /** A guard's lines. */
 export const GUARD_TALK = {
   greet: [
-    "Hail, traveller.",
-    "Well met.",
+    "Hello there.",
+    "Can I help you?",
     "Move along, nothing to see. Oh, you want something?",
-    "Mind yourself. The King's peace holds here.",
-    "Aye? Make it quick, I'm on watch.",
+    "Behave yourself. The King's law applies here.",
+    "Yes? Make it quick, I'm on watch.",
   ],
   /** Something about their post, by area id; `any` for anywhere else. */
   post: {
@@ -22,13 +22,13 @@ export const GUARD_TALK = {
       "Those lions are real gold, they say. Touch them and you'll find out how real my spear is.",
     ],
     capital: [
-      "The market opens at first bell. Pay your stall fees and nobody gets hurt.",
-      "Keep your purse close in the square. Quick fingers about.",
+      "The market opens at the first bell. Pay your stall fees and nobody gets hurt.",
+      "Keep your purse close in the square. There are pickpockets about.",
       "Castle Street runs north, up to the King's gate. They won't let just anyone in.",
     ],
     castle: [
-      "This is the King's ward. Keep your blade sheathed near the keep.",
-      "Want to swing at something that can't swing back? The yard's got a dummy and the butts.",
+      "This is the King's courtyard. Keep your sword put away near the keep.",
+      "Want to hit something that can't hit back? The yard's got a training dummy and archery targets.",
       "Twelve hours on this wall and not a thing has happened. Not that I'm complaining.",
     ],
     any: [
@@ -46,26 +46,26 @@ export const GUARD_TALK = {
   bye: [
     "Stay out of trouble.",
     "Off you go, then.",
-    "Safe roads.",
-    "Back to it.",
+    "Safe travels.",
+    "Back to work.",
   ],
 } as const;
 
 /** The townsfolk's lines: a greeting (they say who they are and what they do), their quirk, and the Edict. */
 export const FOLK_TALK = {
-  greet: ["Morning!", "Hello there.", "Oh! You gave me a start.", "Good day to you.", "Mind the puddles.", "Can't stop long, but hello."],
+  greet: ["Morning!", "Hello there.", "Oh! You gave me a start.", "Nice to meet you.", "Mind the puddles.", "Can't stop long, but hello."],
   child: ["Mum says I'm not to talk to strangers.", "Are you a knight? You look like a knight.", "I can run faster than you. Probably."],
   /** Before their quirk, said about themselves by name. */
   quirk: ["Ask anyone round here:", "My neighbours will tell you", "Everyone knows"],
   quirkAfter: ["It's true.", "Can't help it.", "Don't laugh.", "There are worse things."],
   /** What they'll say about the Edict of the Quiet Tongue (no talk of witches, sorcerers or dragons), by where they stand on it. */
   edict: {
-    denies: ["Witches? Dragons? Old wives' tales, the lot of it."],
-    loyal: ["The King knows best. Long may he reign.", "The Edict keeps folk calm. Good thing too."],
+    denies: ["Witches? Dragons? Fairy tales, all of it."],
+    loyal: ["The King knows best. Long live the King.", "The Edict keeps people calm. Good thing too."],
     quiet: ["I keep my head down and my mouth shut. Safest that way.", "Best not to talk about... you know. The Edict."],
     whispering: [],
-    defiant: ["The Edict? Nonsense. Folk should be able to say what they've seen.", "They can't lock up the whole city for talking."],
+    defiant: ["The Edict? Nonsense. People should be able to say what they've seen.", "They can't lock up the whole city for talking."],
     informer: ["Heard anything interesting lately? You can tell me. I won't tell a soul.", "Funny, the things people say when they think nobody's listening."],
   } as Record<string, readonly string[]>,
-  bye: ["Well, I'd best be off.", "Mind how you go.", "Nice talking to you.", "Back to it, then."],
+  bye: ["Well, I'd better go.", "Take care.", "Nice talking to you.", "Back to work, then."],
 } as const;
