@@ -359,22 +359,20 @@ const doors = new Map<Entity, Door>();
 /** What a house is called, from where its people live: "the Mallow house" is The Mallow house, "The Crown, on the square..." the Crown. */
 const houseName = (place: string) => { const n = place.split(",")[0]!.replace(/ \(a guest\)$/, ""); return n.charAt(0).toUpperCase() + n.slice(1); };
 
-/** Every house door with a household behind it becomes something to target (and knock at), named for the house. */
+/** Every house with people living in it gets its front door as something to target (and knock at), named for the house. */
 function hangDoors(g: Game, s: Streets, people: readonly Resident[]): void {
   doors.clear();
-  const byDoor = new Map<string, { tile: TileXY; household: Resident[] }>();
-  for (const r of people) {
-    if (r.home.area !== s.area || r.prisoner) continue;
-    const px = (r.home.x + 0.5) * T, py = (r.home.y + 0.5) * T;
-    if (!s.props.some(p => p.kind === "house" && px >= p.rect.x && py >= p.rect.y && px <= p.rect.x + p.rect.w && py <= p.rect.y + p.rect.h)) continue;
-    const tile = doorOf(s.ways, s.props, r.home.x, r.home.y);
+  for (const house of s.props) {
+    if (house.kind !== "house") continue;
+    const r = house.rect, inside = (p: Resident) => {
+      const px = (p.home.x + 0.5) * T, py = (p.home.y + 0.5) * T;
+      return p.home.area === s.area && px >= r.x && py >= r.y && px <= r.x + r.w && py <= r.y + r.h;
+    };
+    const household = people.filter(p => !p.prisoner && inside(p));      // everyone who lives here, and only them
+    if (!household.length) continue;
+    const tile = doorOf(s.ways, s.props, Math.floor((r.x + r.w / 2) / T), Math.floor((r.y + r.h / 2) / T));
     if (!tile) continue;
-    const at = byDoor.get(keyOf(tile)) ?? { tile, household: [] };
-    at.household.push(r);
-    byDoor.set(keyOf(tile), at);
-  }
-  for (const { tile, household } of byDoor.values()) {
-    const name = houseName(household.find(r => r.role === "head" || r.role === "family")?.home.place ?? household[0]!.home.place);
+    const name = houseName(household.find(p => p.role === "head" || p.role === "family")?.home.place ?? household[0]!.home.place);
     const e = g.world.create({ transform: { x: tile[0] * T, y: tile[1] * T }, targetable: { hostile: false, name, radius: 4, height: 1.6 } });
     doors.set(e, { tile, name, household, knocked: 0, who: null });
   }
@@ -383,12 +381,30 @@ function hangDoors(g: Game, s: Streets, people: readonly Resident[]): void {
 /** Is this a door? */
 export const isDoor = (e: Entity | null): e is Entity => e !== null && doors.has(e);
 
-/** Who'd come to the door: someone of the house who's in (not out, not at work), a grown-up if there is one; at a noble house, a servant. */
-function answererOf(s: Streets, door: Door): Resident | null {
-  const home = door.household.filter(r => !s.out.has(r.id) && !s.atWork.has(r.id) && r.age >= 10 && (isCommoner(r) || r.role === "servant"));
-  const serving = home.filter(r => r.role === "servant");
-  const grown = home.filter(r => r.age >= 16 && isCommoner(r));
-  const pool = door.household.some(r => r.role === "family" && !isCommoner(r)) && serving.length ? serving : grown.length ? grown : home;
+/**
+ * Is someone at home right now? Not if they're out in the streets, or gone in to work somewhere; nor, in
+ * the hours they spend somewhere else (work for the grown-ups, school or the square for children), if they
+ * spend them somewhere else. Otherwise, yes: in the evening, at night, or if they work from home.
+ */
+function homeNow(g: Game, s: Streets, r: Resident): boolean {
+  if (r.prisoner || s.out.has(r.id) || s.atWork.has(r.id)) return false;
+  const h = hourOf(g), H = TOWNSFOLK.hours;
+  const elsewhere = r.day.area !== r.home.area || r.day.x !== r.home.x || r.day.y !== r.home.y;
+  return !(elsewhere && h >= H.workFrom && h < (r.age < 14 ? H.kidsIn : H.workTo));
+}
+
+/** Who's at home behind a door right now (none, if it isn't a door). */
+export function whoIsHome(g: Game, e: Entity): Resident[] {
+  const s = here, door = doors.get(e);
+  return s && door ? door.household.filter(r => homeNow(g, s, r)) : [];
+}
+
+/** Who'd come to the door, of those at home: at a noble house a servant, otherwise a grown-up, otherwise anyone old enough; nobody if nobody's in. */
+function answererOf(g: Game, s: Streets, door: Door): Resident | null {
+  const home = door.household.filter(r => r.age >= 10 && homeNow(g, s, r));
+  const serving = home.filter(r => r.role === "servant"), grown = home.filter(r => r.age >= 16);
+  const noble = door.household.some(r => r.role === "family" && !isCommoner(r));
+  const pool = noble && serving.length ? serving : grown.length ? grown : home;
   return pool.length ? pool[s.rng.int(0, pool.length - 1)]! : null;
 }
 
@@ -402,7 +418,7 @@ export function knock(g: Game, e: Entity | null): boolean {
   if (door.knocked > 0 || door.household.some(r => { const w = s.out.get(r.id); return w !== undefined && g.world.get(w, "walker")?.plan === "answer"; })) return true;
   combatText(g, dx - HALF, dy - HALF - 4, "Knock knock", "#e8dcc4");
   const h = hourOf(g), night = h >= TOWNSFOLK.hours.bedtime || h < 6;
-  door.who = night && s.rng.next() < TOWNSFOLK.knock.asleep ? null : answererOf(s, door);
+  door.who = night && s.rng.next() < TOWNSFOLK.knock.asleep ? null : answererOf(g, s, door);
   door.knocked = TOWNSFOLK.knock.answer;
   return true;
 }
@@ -413,7 +429,7 @@ function answerDoors(g: Game, s: Streets, dt: number): void {
     if (door.knocked <= 0 || (door.knocked -= dt) > 0) continue;
     door.knocked = 0;
     const r = door.who;
-    if (!r || s.out.has(r.id)) {
+    if (!r || !homeNow(g, s, r)) {
       const h = hourOf(g);
       toast(g, h >= TOWNSFOLK.hours.bedtime || h < 6 ? `No answer at ${door.name}. They must be asleep.` : `No answer at ${door.name}.`);
       continue;

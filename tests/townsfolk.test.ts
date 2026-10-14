@@ -9,7 +9,7 @@ import { HALF, T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { startTalk, talking } from "../src/game/talk.ts";
-import { isCommoner, isDoor, knock, populate, residentById, setCensus, updateTownsfolk, walkersOf } from "../src/game/townsfolk.ts";
+import { isCommoner, isDoor, knock, populate, residentById, setCensus, updateTownsfolk, walkersOf, whoIsHome } from "../src/game/townsfolk.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { FAMILIES } from "../src/world/people.ts";
 import { residentsOf } from "../src/world/residents.ts";
@@ -169,27 +169,61 @@ describe("knocking at doors", () => {
     expect(all.some(d => /^The (Crown|Bell)/.test(g.world.need(d, "targetable").name))).toBe(true);
   });
 
-  it("brings someone who's home to the door, who stands there facing you, and goes back in when you go", async () => {
+  it("only ever brings someone who lives there and is home right now; an empty house, nobody", async () => {
     const g = await inArea("capital", 12), said = toasts(g);
-    let answered: Entity | null = null;
+    let answered = 0, empty = 0;
     for (const door of doorsOf(g)) {
+      const out = new Set(folk(g).map(([, { walker }]) => walker.id)), home = whoIsHome(g, door), name = g.world.need(door, "targetable").name;
+      for (const r of home) {
+        expect(out.has(r.id)).toBe(false);                                         // not out in the streets
+        expect(r.day.area === r.home.area && r.day.x === r.home.x && r.day.y === r.home.y).toBe(true);   // at noon, only those who spend the day at home
+      }
       const before = new Set(folk(g).map(([e]) => e));
       standAt(g, door);
-      expect(knock(g, door)).toBe(true);
+      knock(g, door);
+      run(g, TOWNSFOLK.knock.answer + 0.1);
+      const came = folk(g).find(([e, { walker }]) => !before.has(e) && walker.plan === "answer");
+      if (came) {
+        answered++;
+        expect(home.map(r => r.id)).toContain(came[1].walker.id);                  // one of the household, at home
+      } else if (!home.some(r => r.age >= 10)) {
+        empty++;
+        expect(said[said.length - 1]).toBe(`No answer at ${name}.`);                // nobody in: nobody comes
+      }
+      g.world.need(g.player, "transform").y += 60;                                // walk off; whoever came goes back in
+      run(g, 0.2);
+    }
+    expect(answered).toBeGreaterThan(0);
+    expect(empty).toBeGreaterThan(0);
+  });
+
+  it("brings them to stand in the doorway facing you, and they go back in when you go", async () => {
+    const g = await inArea("capital", 20), said = toasts(g);                    // evening: most are in
+    let answered: Entity | null = null;
+    for (const door of doorsOf(g)) {
+      if (!whoIsHome(g, door).length) continue;
+      const before = new Set(folk(g).map(([e]) => e));
+      standAt(g, door);
+      knock(g, door);
       run(g, TOWNSFOLK.knock.answer + 0.1);
       answered = folk(g).find(([e, { walker }]) => !before.has(e) && walker.plan === "answer")?.[0] ?? null;
       if (answered) break;
     }
     expect(answered).not.toBeNull();
-    const w = g.world.need(answered!, "walker"), t = g.world.need(answered!, "transform"), hero = g.world.need(g.player, "transform");
+    const w = g.world.need(answered!, "walker"), t = { ...g.world.need(answered!, "transform") }, hero = g.world.need(g.player, "transform");
     expect(g.target).toBe(answered);
     expect(said.some(s => s.endsWith("comes to the door."))).toBe(true);
     run(g, 1);
-    expect(g.world.need(answered!, "transform")).toEqual(t);                // stays in the doorway
+    expect(g.world.need(answered!, "transform")).toEqual(t);                     // stays in the doorway
     expect(w.facing).toBeCloseTo(Math.atan2(hero.y - t.y, hero.x - t.x));
-    hero.y += 60;                                                          // walk off
+    hero.y += 60;
     run(g, 0.2);
     expect(g.world.isAlive(answered!)).toBe(false);
+  });
+
+  it("knows who's out: nobody walking the streets is at home", async () => {
+    const g = await inArea("capital", 12), out = new Set(folk(g).map(([, { walker }]) => walker.id));
+    for (const door of doorsOf(g)) for (const r of whoIsHome(g, door)) expect(out.has(r.id)).toBe(false);
   });
 
   it("can't be done from afar, and late at night mostly gets no answer", async () => {
