@@ -855,16 +855,21 @@ const alertEl = document.getElementById("alert");
 // WoW-style XP bar along the bottom, and "+10 XP" floating up from kills.
 // The bar is pixel art on the HUD canvas, like the hearts: palette colours, 1px ink outline,
 // a bark-and-oak frame, 20 notched segments, and the level in a gold-rimmed badge with a 3x5 pixel font.
-const DIGITS = ["111101101101111", "010110010010111", "111001111100111", "111001111001111", "101101111001001",
-  "111100111001111", "111100111101111", "111001010010010", "111101111101111", "111101111001111"];
+// Canvas text uses the same glyphs as the page font (font/pixel.txt -> game/font.js).
+const FONT = window.PIXEL_FONT;
+// Each glyph is 5 rows of "0"/"1" at its own width, with a one-pixel gap between glyphs.
+const glyphOf = ch => FONT[ch.toUpperCase()];
+const pixelTextWidth = (text, scale = 1) =>
+  [...String(text)].reduce((w, ch) => w + ((glyphOf(ch) || ["0"])[0].length + 1) * scale, -scale);
 function pixelText(g, text, x, y, color) {
   for (const ch of String(text)) {
-    const bits = DIGITS[+ch];
-    for (let i = 0; i < 15; i++) if (bits[i] === "1") {
-      g.fillStyle = PAL.K; g.fillRect(x + (i % 3), y + Math.floor(i / 3) + 1, 1, 1);       // drop shadow
+    const rows = glyphOf(ch);
+    if (!rows) { x += 2; continue; }
+    for (const [fill, dy] of [[PAL.K, 1], [color, 0]]) {        // drop shadow, then the glyph
+      g.fillStyle = fill;
+      rows.forEach((r, ry) => { for (let rx = 0; rx < r.length; rx++) if (r[rx] === "1") g.fillRect(x + rx, y + ry + dy, 1, 1); });
     }
-    for (let i = 0; i < 15; i++) if (bits[i] === "1") { g.fillStyle = color; g.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1); }
-    x += 4;
+    x += rows[0].length + 1;
   }
 }
 function pixelDisc(g, cx, cy, r, color) {
@@ -900,27 +905,26 @@ function drawXPBar(g, W, H) {
   pixelDisc(g, cx, cy, 5.2, PAL.O);
   pixelDisc(g, cx, cy, 4.4, PAL.k);
   const label = String(p.level);
-  pixelText(g, label, cx - Math.floor((label.length * 4 - 1) / 2), cy - 3, PAL.Y);
+  pixelText(g, label, cx - Math.floor(pixelTextWidth(label) / 2), cy - 3, PAL.Y);
 }
 
-// 3x5 pixel glyphs for combat text, outlined in ink like every other sprite.
-const GLYPHS = Object.assign(Object.fromEntries(DIGITS.map((b, i) => [String(i), b])), {
-  "+": "000010111010000", "-": "000000111000000", "!": "010010010000010",
-  "X": "101101010101101", "P": "110101110100100", " ": "000000000000000",
-});
+// Combat text: the shared pixel font, outlined in ink like every other sprite.
 function drawGlyphs(g, text, x, y, color, scale) {
   for (const pass of ["outline", "fill"]) {
     g.fillStyle = pass === "outline" ? PAL.K : color;
     let cx = x;
     for (const ch of text) {
-      const bits = GLYPHS[ch] || GLYPHS[" "];
-      for (let i = 0; i < 15; i++) {
-        if (bits[i] !== "1") continue;
-        const px = cx + (i % 3) * scale, py = y + Math.floor(i / 3) * scale;
-        if (pass === "outline") g.fillRect(px - 1, py - 1, scale + 2, scale + 2);
-        else g.fillRect(px, py, scale, scale);
-      }
-      cx += 4 * scale;
+      const rows = glyphOf(ch);
+      if (!rows) { cx += 2 * scale; continue; }
+      rows.forEach((r, ry) => {
+        for (let rx = 0; rx < r.length; rx++) {
+          if (r[rx] !== "1") continue;
+          const px = cx + rx * scale, py = y + ry * scale;
+          if (pass === "outline") g.fillRect(px - 1, py - 1, scale + 2, scale + 2);
+          else g.fillRect(px, py, scale, scale);
+        }
+      });
+      cx += (rows[0].length + 1) * scale;
     }
   }
 }
@@ -930,7 +934,7 @@ function renderCombatText(g) {
     const k = 1 - f.t;                                        // 0 -> 1 over the number's life
     const s = view.gameToScreen(f.x, f.y, 0.9 + k * 0.9);
     const scale = f.crit ? (k < 0.12 ? 3 : 2) : 1;          // crits pop in big, then settle
-    const w = f.text.length * 4 * scale - scale;
+    const w = pixelTextWidth(f.text, scale);
     const x = Math.round(s.x * W / innerWidth - w / 2) + f.jx, y = Math.round(s.y * H / innerHeight) - 5 * scale;
     g.globalAlpha = Math.min(1, f.t * 3);
     drawGlyphs(g, f.text, x, y, f.color, scale);

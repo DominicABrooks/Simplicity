@@ -4,7 +4,7 @@ A fantasy RPG that plays in 2D and looks like a late-90s 3D game: chunky low-pol
 
 ## Quick start
 
-You need **Python 3** and an internet connection (three.js and the UI font load from CDNs). Nothing else to install to play.
+You need **Python 3** and an internet connection (three.js loads from a CDN). Nothing else to install to play.
 
 1. Open a terminal in this folder (the one with this README).
 2. Run the dev server:
@@ -53,10 +53,17 @@ Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inven
 - `game/inventory.js`: items, loot rolls, the inventory grid and equipment
 - `game/tiers.js`: rarity colours shared by worn gear and inventory icons
 - `tools/serve.py`: no-cache dev server
+- `font/pixel.txt` and `tools/build_font.py`: the game's pixel font (builds `game/fonts/simplicity-pixel.ttf` and `game/font.js`)
 
 After editing anything in `art/`, rebuild:
 
 ```
 pip install pillow
 python tools/build.py
+```
+
+After editing `font/pixel.txt`, rebuild the font (no extra packages needed):
+
+```
+python tools/build_font.py
 ```
