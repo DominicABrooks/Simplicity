@@ -21,7 +21,7 @@ export interface HeroView {
 }
 
 /** How bright the glow about the hero is, for how dark it is (see ctx.nightGlow). */
-const AURA = 5;
+const AURA = 9;
 
 export function createHeroView(ctx: RenderContext): HeroView {
   const { scene, lambert, basic, particles } = ctx;
@@ -50,9 +50,10 @@ export function createHeroView(ctx: RenderContext): HeroView {
 
   // ---------- A light about him ----------
   // After dark, a faint warm glow about the hero, lighting him and the ground at his feet, so he's never lost on a
-  // dark street. Always there (at nothing by day), so the scene's shaders don't change as night falls.
-  const aura = new THREE.PointLight(0xffd8a0, 0, 2.8, 1.4);
-  aura.position.set(0, 1.1, 0);
+  // dark street. Always there (at nothing by day, or indoors, where there's firelight), so the scene's shaders don't
+  // change as night falls. It hangs well above him: any closer and it burns a white spot on top of his head.
+  const aura = new THREE.PointLight(0xffd8a0, 0, 4.5, 1.2);
+  aura.position.set(0, 2.6, 0);
   hero.group.add(aura);
 
   // ---------- Hands ----------
@@ -198,7 +199,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
   return {
     body: hero,
     update(g, t, dt) {
-      aura.intensity = ctx.nightGlow.value * AURA;
+      aura.intensity = g.area.def.indoors ? 0 : ctx.nightGlow.value * AURA;
       const h = heroParts(g), { pos, hero: stats, motion: m, status, actions: a } = h;
       const [px, pz] = toWorld(pos.x, pos.y);
       const hz = m.jump > 0 ? Math.sin((1 - m.jump / JUMP_TIME) * Math.PI) * 1.0 : 0;
