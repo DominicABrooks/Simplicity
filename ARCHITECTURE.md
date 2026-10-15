@@ -195,3 +195,11 @@ point in the order where its inputs are ready, and add a test in `tests/`.
 `npm test` runs Vitest in Node. The map, loot rolls, sprites and font are checked against fixtures captured
 from the original game, so generation can't drift. Gameplay tests drive `step()` directly: build a game,
 place entities, set the `Input`, and step.
+
+`npm run e2e` plays the real game in headless Chromium (Playwright, `e2e/`): the moments that are tedious to
+reach by hand, such as the road north, the King's audience, the Grey Ringer's fight and knocking at doors, and that
+nothing leaks as you travel. It builds the site with `--mode e2e`, which keeps the debug handle
+(`window.simplicity`, src/debug.ts) that specs use to set a scene up: where the hero stands, the hour. What's
+under test goes through the keyboard, the mouse and the page. Waits count the game's own clock (`play()` in
+`e2e/game.ts`), not the wall clock, because CI renders WebGL in software at a few frames a second. CI runs
+them as their own job, and the deploy waits on both.

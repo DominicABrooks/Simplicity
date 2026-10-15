@@ -23,6 +23,7 @@ Then open http://localhost:8123/Simplicity/. The dev server reloads as you edit.
 | `npm run build` | Type-check, then build the site into `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
 | `npm test` | Run the tests (Vitest) |
+| `npm run e2e` | Play the story's big beats in headless Chromium (Playwright); the first time, `npx playwright install chromium` |
 | `npm run typecheck` | TypeScript, strict |
 | `npm run lint` | ESLint |
 | `npm run format` | Prettier |
@@ -82,6 +83,7 @@ The game is TypeScript with an entity-component-system design; see [ARCHITECTURE
 - `src/render/`: the low-poly three.js view, from terrain to critters, with one view per kind of entity
 - `src/ui/`: HUD, inventory panel, tooltip, labels, toasts and overlay
 - `tests/`: Vitest specs, with fixtures captured from the original game
+- `e2e/`: Playwright specs that play the real game in a browser: the road to the King, his audience, the ghost fight, knocking at doors
 - `tools/`: asset builders (`build-sprites.ts`, `build-font.ts`), run with `npm run assets`
 - `tools/lineup/`: the townsfolk outfit lineup, every garment, over-garment, hat and carry (or the census's real people) one to a cell, for checking clothes by eye. With `npm run dev`, open `/Simplicity/lineup.html?set=over&cam=back&pose=walk` (`set`: garment, over, head, carry, pattern, census&n=0; `cam`: three, front, side, back, game, top)
 - `art/`, `palette/`, `font/`: sprite, palette and font sources as text; [ART_STYLE.md](ART_STYLE.md) has the rules
