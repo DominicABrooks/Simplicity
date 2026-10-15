@@ -84,7 +84,7 @@ export function createWeatherView(ctx: RenderContext, lights: Lights): WeatherVi
       const n = Math.round(DROPS * w.rain);
       rain.visible = n > 0;
       rainMat.opacity = 0.35 + 0.3 * w.rain;
-      rainMat.color.setHex(0xbfd4f0).multiplyScalar(0.4 + 0.6 * Math.min(1, fill.intensity / 0.8));   // unlit, so dim it by night ourselves
+      rainMat.color.setHex(0xbfd4f0).multiplyScalar(0.3 + 0.7 * ctx.light.value);   // unlit, so dim it by night ourselves, as the flat colours are
       splashMat.color.copy(rainMat.color);
       for (let i = 0; i < n; i++) {
         const k = i * 3;
