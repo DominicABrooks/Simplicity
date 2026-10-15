@@ -2,6 +2,7 @@
 // Nothing here touches the DOM or three.js, so the whole simulation runs in tests.
 import { World, type Entity } from "../core/ecs.ts";
 import { EventBus } from "../core/events.ts";
+import type { Sfx } from "./sfx.ts";
 import { Rng } from "../core/rng.ts";
 import { emptyJournal, type BestiaryId, type Journal } from "../data/bestiary.ts";
 import { BASE_HP } from "../data/player.ts";
@@ -77,6 +78,8 @@ export interface Game {
   events: EventBus<GameEvents>;
   /** Effects raised this frame, for the renderer to consume. */
   fx: Fx[];
+  /** Sounds raised this frame, for the audio player to consume. */
+  sfx: Sfx[];
   floaters: Floater[];
   state: GameState;
   player: Entity;
@@ -113,6 +116,7 @@ export function createGame(): Game {
     inventory: new Inventory(() => levelBonus(g.world.get(g.player, "hero")?.level ?? 1)),
     events: new EventBus<GameEvents>(),
     fx: [],
+    sfx: [],
     floaters: [],
     state: "title",
     player: 0,

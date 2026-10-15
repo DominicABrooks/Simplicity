@@ -6,6 +6,9 @@
 // line is said. Each person gives at most once a run, and only offers if it'll fit in the bag.
 import type { Entity } from "../core/ecs.ts";
 import { TALK } from "../data/dialogue.ts";
+import { KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../data/king.ts";
+import { isGhostRumour } from "../data/ghost.ts";
+import type { GiftKind } from "../data/items.ts";
 import { GIFT_OF } from "../data/voices.ts";
 import { T } from "../data/world.ts";
 import type { Resident } from "../world/residents.ts";
@@ -14,7 +17,9 @@ import { folkLines, guardLines, type CanGive } from "./conversation.ts";
 
 export { jobLine } from "./conversation.ts";
 import { residentById } from "./townsfolk.ts";
+import { dropItem } from "./actions.ts";
 import { toast, type Game } from "./game.ts";
+import { heardRumour } from "./ghost.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -35,13 +40,17 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   if (Math.hypot(hero.x - them.x, hero.y - them.y) > TALK.reach) { toast(g, "Too far away to talk"); return true; }
   const name = g.world.need(e, "targetable").name;
   const who = g.world.get(e, "walker"), resident = who && residentById(who.id);
-  // Who this is, to remember them by: a townsperson by their census id, a guard by their post.
-  const key = resident ? `folk:${resident.id}` : `guard:${g.area.def.id}:${Math.round(them.x / T)},${Math.round(them.y / T)}`;
+  // Who this is, to remember them by: the King, a townsperson by their census id, a guard by their post.
+  const isKing = g.world.get(e, "renderable")?.kind === "king";
+  const key = isKing ? "king" : resident ? `folk:${resident.id}` : `guard:${g.area.def.id}:${Math.round(them.x / T)},${Math.round(them.y / T)}`;
   const visits = chatsWith(g).get(key) ?? 0;
   chatsWith(g).set(key, visits + 1);
   // They only offer something if they haven't given the hero anything yet and it'll fit in the bag.
   const gives: CanGive = kind => !giftsFrom(g).has(key) && g.inventory.freeSpot(makeGift(kind)) !== null;
-  const lines = resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
+  // The King gives you your task the first time, and reminds you of it after.
+  if (isKing && visits === 0) toast(g, KINGS_TASK, true);
+  const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!])
+    : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
   g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0 });
   said(g);
   return true;
@@ -59,14 +68,40 @@ export function giftsFrom(g: Game): Set<string> {
   return given;
 }
 
-/** A line has just begun: if it hands something over, into the bag it goes (or, if the bag filled up meanwhile, it doesn't). */
+/**
+ * A line has just begun: if it passes on the ghost story, the hero's heard it once more; if it hands something over,
+ * into the bag it goes (or, if the bag filled up meanwhile, it doesn't).
+ */
 function said(g: Game): void {
-  const c = talking(g), kind = c && GIFT_OF.get(c.lines[c.line]!);
-  if (!c || !kind || giftsFrom(g).has(c.key)) return;
+  const c = talking(g);
+  if (c && isGhostRumour(c.lines[c.line]!)) heardRumour(g);
+  const kind = c && GIFT_OF.get(c.lines[c.line]!);
+  if (c && kind) receive(g, c.key, kind);
+}
+
+/**
+ * `key` hands the hero a gift, once: into the bag, or if it's full, "Inventory full" and they'll give it
+ * another time. The King's writ is too important for that: with no room, it's put down at the hero's feet.
+ */
+export function receive(g: Game, key: string, kind: GiftKind): void {
+  if (giftsFrom(g).has(key)) return;
   const item = makeGift(kind);
-  if (!g.inventory.add(item)) { toast(g, "Inventory full"); return; }
-  giftsFrom(g).add(c.key);
+  if (!g.inventory.add(item)) {
+    if (kind !== "writ") { toast(g, "Inventory full"); return; }
+    dropItem(g, item);
+    giftsFrom(g).add(key);
+    toast(g, `Inventory full: ${item.name} is at your feet`, true);
+    return;
+  }
+  giftsFrom(g).add(key);
   toast(g, `Received ${item.name}`, true);
+}
+
+/** Someone says `lines` to the hero, wherever he is (a cutscene's speech): a conversation like any other. */
+export function speak(g: Game, e: Entity, key: string, lines: readonly string[]): void {
+  g.target = e;
+  g.world.add(g.player, "conversation", { with: e, name: g.world.need(e, "targetable").name, key, lines: [...lines], line: 0, t: 0 });
+  said(g);
 }
 
 /**

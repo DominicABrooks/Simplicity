@@ -5,6 +5,7 @@ import { COMBAT_COLORS } from "../data/ui.ts";
 import { combatText, hitEnemy, stagger } from "../game/combat.ts";
 import type { Arrow, Transform } from "../game/components.ts";
 import type { Game } from "../game/game.ts";
+import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf } from "../game/hero.ts";
 import { spawnArrow } from "../game/spawn.ts";
 import { solidAt } from "../world/collision.ts";
@@ -26,9 +27,11 @@ export function bowSystem(g: Game, dt: number): void {
   if (damage < 1) {
     const { minRange, maxRange, flightTime } = BOW.dud, speed = (minRange + (maxRange - minRange) * charge) / flightTime;
     spawnArrow(g, x, y, cos * speed, sin * speed, flightTime, 0, false, true);
+    sound(g, "dud");
   } else {
     const speed = BOW.minSpeed + BOW.maxSpeedBonus * charge;
     spawnArrow(g, x, y, cos * speed, sin * speed, BOW.arrowLife, damage, power);
+    sound(g, power ? "powerShot" : "bowRelease");
   }
   a.draw = null;
   a.cooldown = BOW.cooldown;

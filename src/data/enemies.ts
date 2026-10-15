@@ -9,7 +9,8 @@ export const SLIME = { hp: 3, hopTime: 0.3, hopSpeed: 46, sight: 72, drag: 0.002
 export const SPAWNING = { startSlimes: 12, startPotions: 8, every: 3, baseCap: 12, maxCap: 20, killsPerCap: 5 } as const;
 
 export type School = "ember" | "frost" | "storm";
-export type BoltKind = "fire" | "frost" | "spark" | "poly";
+/** Bolts: the mages' four, and the Grey Ringer's wisps. */
+export type BoltKind = "fire" | "frost" | "spark" | "poly" | "wisp";
 export type SpellName = BoltKind | "nova" | "strike";
 
 /** Three schools share one body and one brain; each has its own bolt and a signature spell. */
@@ -41,6 +42,7 @@ export const SPELLS: Record<SpellName, Spell> = {
   poly:   { charge: 1.0, speed: 85, homing: 1.8, cooldown: 12, chance: 0.45, sheep: 5 },
   nova:   { charge: 0.6, cooldown: 9, radius: 30, freeze: 1.6 },        // cast when you get close
   strike: { charge: 0.6, cooldown: 7, chance: 0.5, delay: 0.9, radius: 7, count: 3 },
+  wisp:   { charge: 0.75, speed: 46, homing: 0.9 },                     // the ghost's: slow, in a fan
 };
 
 export const CHILL_SLOW = 0.55;

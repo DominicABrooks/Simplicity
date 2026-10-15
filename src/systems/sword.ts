@@ -4,10 +4,12 @@
 import { SWIPE } from "../data/player.ts";
 import { hitEnemy, stagger } from "../game/combat.ts";
 import type { Game } from "../game/game.ts";
+import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf, type HeroParts } from "../game/hero.ts";
 import { relativeAngle, sweptThrough, swingRel } from "../game/swing.ts";
 
-function startSwipe(h: HeroParts): void {
+function startSwipe(g: Game, h: HeroParts): void {
+  sound(g, "swing");
   const { knockback: kb, motion: m, actions: a } = h;
   m.dashCooldown = 0;                                        // a swing resets the dash cooldown
   a.swingSide = -(a.swingSide || -1);
@@ -22,7 +24,7 @@ export function swordSystem(g: Game, dt: number): void {
   if (weaponOf(h) !== "blade") { a.swipe = null; return; }
   if (m.swimming || m.jump > 0) a.swipe = null;
   if (input.attackPressed && !m.swimming) {
-    if (!a.swipe && a.cooldown <= 0) startSwipe(h);
+    if (!a.swipe && a.cooldown <= 0) startSwipe(g, h);
     else if (a.swipe) a.swipe.queued = true;
     input.attackPressed = false;
   }
@@ -53,6 +55,6 @@ export function swordSystem(g: Game, dt: number): void {
   if (s.t >= SWIPE.dur) {
     a.swipe = null;
     a.attack = 0;
-    if (s.queued) startSwipe(h);
+    if (s.queued) startSwipe(g, h);
   }
 }

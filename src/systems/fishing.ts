@@ -4,6 +4,7 @@ import { CATCH_ODDS, type Rarity } from "../data/items.ts";
 import { FISHING } from "../data/player.ts";
 import { HALF, Tile } from "../data/world.ts";
 import { toast, type Game } from "../game/game.ts";
+import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf, type HeroParts } from "../game/hero.ts";
 import { dropLoot } from "../game/spawn.ts";
 import { makeFish } from "../items/items.ts";
@@ -31,13 +32,14 @@ export function fishingSystem(g: Game, dt: number): void {
     f.biteAt = FISHING.biteMin + g.rng.next() * FISHING.biteRange;
   } else if (f.phase === "wait") {
     if (input.attackPressed) a.fishing = null;               // reeled in too early
-    else if (f.t >= f.biteAt) { f.phase = "bite"; f.t = 0; }
+    else if (f.t >= f.biteAt) { f.phase = "bite"; f.t = 0; sound(g, "bite", f); }
   } else if (f.phase === "bite") {
     if (input.attackPressed) {
       const r = g.rng.next();
       const rarity: Rarity = r < CATCH_ODDS.rare ? "rare" : r < CATCH_ODDS.magic ? "magic" : "normal";
       const item = makeFish(rarity);
       if (!g.inventory.add(item)) dropLoot(g, pos.x, pos.y, item, true);
+      sound(g, "catch");
       a.catchAnim = { x: f.x, y: f.y, t0: g.clock, rarity };
       toast(g, `Caught a ${item.name}!`, true);
       a.fishing = null;
@@ -70,6 +72,7 @@ export function rodSystem(g: Game, dt: number): void {
     if (w.water) {
       a.fishing = { phase: "cast", x: target.x, y: target.y, t: 0, biteAt: 0 };
       a.cooldown = FISHING.castCooldown;
+      sound(g, "castLine");
     } else input.attackPressed = true;                       // over land: bonk (the thrust system takes the press)
     a.windup = null;
   }

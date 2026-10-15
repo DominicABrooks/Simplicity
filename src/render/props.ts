@@ -46,6 +46,7 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   torch: buildTorch,
   stable: buildStable,
   guard: () => undefined,                                   // a game entity (see spawnGuard), drawn by its view
+  king: () => undefined,                                    // a game entity too (see spawnKing)
   brazier: buildBrazier,
   dummy: () => undefined,                                   // a game entity (see spawnDummy), drawn by its view
   target: () => undefined,                                  // a game entity (see spawnTraining), drawn by its view

@@ -84,7 +84,7 @@ export function propSolids(p: Prop): Shape[] {
     case "stall": { const s = stallBody(p.rect); return [box(s.x, s.z, s.w, s.d)]; }
     case "stock": return [circle(p.x / T, p.y / T, 0.45)];
     case "standard": return [box(p.x / T, p.y / T, 0.4, 0.4)];
-    case "guard": case "brazier": case "dummy": return [circle(p.x / T, p.y / T, 0.3)];
+    case "guard": case "king": case "brazier": case "dummy": return [circle(p.x / T, p.y / T, 0.3)];
     case "target": return [box(p.x / T, p.y / T, 0.95, 0.95)];
     case "well": return [circle(p.x / T, p.y / T, 0.72)];
     case "smithy": { const anvil = anvilOf(p.rect); return [inset(p.rect, 0.15), box(anvil.x, anvil.y, 0.55, 0.45)]; }   // and its anvil, out front

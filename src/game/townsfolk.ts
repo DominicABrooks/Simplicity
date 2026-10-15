@@ -8,10 +8,13 @@
 // in their steps and standing at their side, or in a band of children near their own age, off to play in
 // the square. Royalty, nobles and the court stay indoors; the guards are guards (see spawnGuard). And you can
 // knock at anyone's door: someone who's home comes and stands in the doorway, and you can talk to them.
+// When the Grey Ringer rises in St Mary's churchyard (src/game/ghost.ts), everyone near her runs for home or
+// out of the quarter, and nobody comes out until she's gone.
 import type { Entity } from "../core/ecs.ts";
 import { Rng } from "../core/rng.ts";
 import { loadArea } from "../areas/index.ts";
 import { CRAFTS } from "../data/crafts.ts";
+import { GHOST, GHOST_SAYS } from "../data/ghost.ts";
 import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { HALF, T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
@@ -601,9 +604,14 @@ export function updateTownsfolk(g: Game, dt: number): void {
   if (talkingTo !== lastTalk) { lastTalk = talkingTo; if (talkingTo !== undefined) talkStarted(g, s, talkingTo); }
   const cap = capOf(s, hourOf(g)), crowded = s.out.size > cap * 1.15;
   answerDoors(g, s, dt);
+  const ghost = g.world.query("ghost", "transform")[0]?.[1].transform;
   for (const [id, e] of [...s.out]) {
     const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
     if (!w || !t) { s.out.delete(id); release(s, e); tunes.delete(e); continue; }
+    if (ghost && !w.fleeing && Math.hypot(ghost.x - t.x, ghost.y - t.y) < GHOST.scare) {
+      flee(g, s, e, w, t);
+      if (!g.world.has(e, "walker")) continue;
+    }
     if (talkingTo === e && g.world.get(g.player, "conversation")) {                     // they stop to talk
       w.moving = false; w.runTo = null; w.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
       if (w.leaving > 0 && (w.leaving -= dt) <= 0) { g.world.remove(g.player, "conversation"); w.catchingUp = true; }   // said it: off they run
@@ -636,7 +644,7 @@ export function updateTownsfolk(g: Game, dt: number): void {
     }
     walk(g, s, e, w, t, dt, hero);
   }
-  if (s.out.size < cap && (s.timer -= dt) <= 0) {
+  if (!ghost && s.out.size < cap && (s.timer -= dt) <= 0) {
     s.timer = between(s.rng, TOWNSFOLK.every);
     comeOut(g, s);
   }
@@ -656,7 +664,7 @@ function walk(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: numb
   const [px, py] = centre(next), tx = px + w.lane[0], ty = py + w.lane[1], dx = tx - cx, dy = ty - cy, d = Math.hypot(dx, dy);
   // The hero right in front of them: they wait a moment, then carry on.
   const hx = hero.x - t.x, hy = hero.y - t.y, hd = Math.hypot(hx, hy);
-  if (hd < TOWNSFOLK.personal && d > 0 && (hx * dx + hy * dy) / (hd * d || 1) > 0.3 && w.blockedFor < TOWNSFOLK.patience) { w.blockedFor += dt; return; }
+  if (!w.fleeing && hd < TOWNSFOLK.personal && d > 0 && (hx * dx + hy * dy) / (hd * d || 1) > 0.3 && w.blockedFor < TOWNSFOLK.patience) { w.blockedFor += dt; return; }
   if (hd >= TOWNSFOLK.personal) w.blockedFor = 0;
   const step = w.speed * dt;
   if (d <= step) { t.x = tx - HALF; t.y = ty - HALF; w.path.shift(); }
@@ -664,6 +672,26 @@ function walk(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: numb
   if (d > 0.01) w.facing = Math.atan2(dy, dx);
   const last = w.trail[w.trail.length - 1];                  // breadcrumbs, for any children following
   if (!last || Math.hypot(last[0] - t.x - HALF, last[1] - t.y - HALF) >= 3) { w.trail.push([t.x + HALF, t.y + HALF]); if (w.trail.length > 40) w.trail.shift(); }
+}
+
+/**
+ * The ghost is out: drop everything, shout, and run for home (or out of the quarter, for those who live elsewhere).
+ * A child runs with whoever they're with, and takes them along.
+ */
+function flee(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: number }): void {
+  w.fleeing = true;
+  if (g.world.get(g.player, "conversation")?.with === e) g.world.remove(g.player, "conversation");
+  answering.delete(e);
+  combatText(g, t.x, t.y - 4, GHOST_SAYS.scream[s.rng.int(0, GHOST_SAYS.scream.length - 1)]!, "#e8dcc4");
+  w.speed *= GHOST.run;
+  Object.assign(w, { holdFor: null, leaving: 0, task: null, playAt: null, runTo: null });
+  if (w.follow) {
+    const lw = g.world.get(w.follow.leader, "walker"), lt = g.world.get(w.follow.leader, "transform");
+    if (lw && lt && !lw.fleeing) flee(g, s, w.follow.leader, lw, lt);
+    return;
+  }
+  const r = byId.get(w.id), at = nearestWalkable(s.ways, (t.x + HALF) / T - 0.5, (t.y + HALF) / T - 0.5, 2);
+  if (!r || !at || !setOff(s, e, w, r, "home", at)) goIn(g, s, e, w);
 }
 
 /** Done here: what next, and off they go (or, if there's nowhere to get to from here, they stay a while longer). */

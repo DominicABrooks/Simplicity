@@ -12,11 +12,15 @@ import { HALF } from "../data/world.ts";
 import type { RenderKind, Transform } from "../game/components.ts";
 import { blinkVisible } from "../game/despawn.ts";
 import type { Game } from "../game/game.ts";
+import type { Dress } from "../world/wardrobe.ts";
+import { DAIS_HIGH } from "../world/plans.ts";
 import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
 import { residentById } from "../game/townsfolk.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
+import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
+import { GHOST } from "../data/ghost.ts";
 import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
 import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
@@ -75,7 +79,7 @@ const slime: EntityView<SlimeView> = {
 // The same body as the hero, dressed in its school's tier, with glowing eyes.
 const SCHOOL_SPARKS: Record<School, SparkPair> = { ember: "fire", frost: "frost", storm: "spark" };
 /** Which orb a mage holds while charging each spell. */
-const CAST_ORB: Record<SpellName, BoltKind> = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark" };
+const CAST_ORB: Record<SpellName, BoltKind> = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark", wisp: "wisp" };
 
 interface MageView extends Body {
   orbs: Record<BoltKind, THREE.Group>;
@@ -235,7 +239,7 @@ const arrow: EntityView<ArrowView> = {
 };
 
 // ---------- Spell bolt ----------
-const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark" };
+const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost" };
 const bolt: EntityView<Simple> = {
   create(ctx, e, g) {
     const group = makeOrbMesh(ctx, g.world.need(e, "bolt").kind);
@@ -306,6 +310,55 @@ const guard: EntityView<GuardView> = {
     v.sword.updateMatrix();
     v.hands[0]!.position.copy(guardGrip.set(0, v.gripY + Math.sin(t * 2.5) * 0.02, 0).applyMatrix4(v.sword.matrix));
     v.hands[1]!.position.set(0.14, 0.4 + Math.sin(t * 2.5 + 1) * 0.02, -0.42);
+  },
+  remove: removeBody,
+};
+
+// ---------- The King ----------
+/** King Osric's robes: crimson banded with ermine, a gold-trimmed cloak, grey hair, a brooch, and his sceptre. */
+const KING_DRESS: Dress = {
+  garment: "robe", pattern: "banded", cloth: "#8a1f2e", second: "#f2ead8", trim: "#d9a83a", over: "cloak", head: "bare",
+  hair: "#b8b2a8", longHair: false, hose: "#8a1f2e", feather: false, pouch: false, brooch: true, shoes: "#3a2418", carry: "staff",
+};
+
+/**
+ * The King: the hero's body in royal robes (dressed like the townsfolk, see dressCommoner), with a gold
+ * crown set with rubies on his head. He stands on the dais before his throne, turned to watch whoever
+ * comes up the hall (the sentry system, as for the guards), breathing, blinking, a little stately sway.
+ */
+interface KingView extends Body { k: number }
+const king: EntityView<KingView> = {
+  create(ctx, e, g) {
+    const b = makeBody(ctx);
+    dressCommoner(ctx, b, KING_DRESS);
+    b.ripple.visible = false;
+    b.sword.visible = false;
+    const gold = ctx.lambert("#e8b84a", { emissive: col("#5a3a08") }), ruby = ctx.basic("#e0303a");
+    const crown = new THREE.Group();
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.2, 0.09, 10, 1, true), gold);
+    band.material.side = THREE.DoubleSide;
+    crown.add(band);
+    for (let i = 0; i < 5; i++) {                             // five points, a ruby at each one's foot
+      const a = (i / 5) * Math.PI * 2, point = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.12, 4), gold);
+      point.position.set(Math.cos(a) * 0.2, 0.1, Math.sin(a) * 0.2);
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.028, 0), ruby);
+      gem.position.set(Math.cos(a) * 0.212, 0.0, Math.sin(a) * 0.212);
+      crown.add(point, gem);
+    }
+    crown.position.set(0, 1.0, 0);
+    b.gear.add(crown);
+    b.feet.forEach(f => { f.position.x = b.footX; });
+    const t = g.world.need(e, "transform");
+    return Object.assign(b, { k: (t.x * 5 + t.y * 11) % 10 });
+  },
+  update(_ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), s = g.world.need(e, "sentry"), [x, z] = toWorld(o.x, o.y), t = f.t + v.k;
+    v.group.position.set(x, DAIS_HIGH, z);                    // up on the dais
+    v.group.rotation.y = -s.look;
+    v.shadow.position.set(x, DAIS_HIGH + SHADOW_Y, z);
+    v.body.scale.y = 1 + Math.sin(t * 2) * 0.02;              // breathing, slowly: he's a king
+    v.body.rotation.x = Math.sin(t * 0.3) * 0.03;
+    v.eyes.forEach(eye => { eye.scale.y = t % 4.3 < 0.15 ? 0.15 : 1; });
   },
   remove: removeBody,
 };
@@ -545,7 +598,69 @@ const pet: EntityView<PetView> = {
   remove: removeSimple,
 };
 
+// ---------- The Grey Ringer ----------
+/**
+ * Wenna's ghost (see makeGhostModel), floating and bobbing, always turned to the hero. She rises out of the
+ * ground, raises her bell and rings it (its reach marked on the ground, filling as she winds up), throws her
+ * arms out to wail, and fades clean away and back. Pale wisps trail off her hem.
+ */
+interface GhostView extends GhostModel { shadow: THREE.Object3D; ring: THREE.Group; fill: THREE.Mesh; edge: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>; yaw: number | null; seen: number }
+const ghost: EntityView<GhostView> = {
+  create(ctx) {
+    const m = makeGhostModel(ctx), shadow = addShadow(ctx, 1.1);
+    const R = GHOST.toll.radius / PX_PER_TILE, ring = new THREE.Group();
+    const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.glow("#9ff0e0", { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.glow("#9ff0e0", { transparent: true, opacity: 0.22, depthWrite: false, ...onGround(GROUND.marker) }));
+    ring.add(edge, fill);
+    ring.position.y = 0.03;
+    m.group.add(ring);
+    ctx.scene.add(m.group, shadow);
+    return { ...m, shadow, ring, edge, fill, yaw: null, seen: 0 };
+  },
+  update(ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), b = g.world.need(e, "ghost"), flash = g.world.get(e, "enemy")?.flash ?? 0, { t, dt } = f;
+    const [x, z] = toWorld(o.x, o.y);
+    v.group.position.set(x, 0, z);
+    v.shadow.position.set(x, SHADOW_Y, z);
+    const look = facing(o, f.hero);
+    v.yaw = v.yaw === null ? look : turn(v.yaw, look, dt, 4);
+    v.body.rotation.y = v.yaw;
+    // How much of her is there: rising out of the ground, faded away, or here.
+    const rising = b.act === "rise" ? Math.min(1, b.t / GHOST.rise) : 1;
+    v.seen = smooth(v.seen, b.hidden ? 0 : rising, dt, b.hidden ? 14 : 6);
+    v.group.visible = v.seen > 0.02 && !(flash > 0 && Math.floor(t * 30) % 2);
+    v.robe.opacity = 0.8 * v.seen; v.hood.opacity = 0.88 * v.seen; v.shell.opacity = 0.16 * v.seen * (b.angry ? 1.6 : 1);
+    v.robe.emissive.set(flash > 0 ? 0xffffff : 0x2f4a46);
+    v.shadow.visible = v.seen > 0.3;
+    v.body.position.y = 0.22 + Math.sin(t * 2.1) * 0.07 - (1 - rising) * 1.3;
+    for (const eye of v.eyes) eye.material = b.angry ? v.angry : v.calm;
+    // What her arms are doing: the bell raised and shaking for the toll, both arms flung out for the wail, else held out before her.
+    const k = b.act === "toll" ? Math.min(1, b.t / (b.angry ? GHOST.toll.angryCharge : GHOST.toll.charge)) : 0;
+    const wail = b.act === "wail" ? Math.min(1, b.t / GHOST.wail.charge) : 0;
+    v.bellArm.rotation.set(0, 0, smooth(v.bellArm.rotation.z, b.act === "toll" ? 2.5 + Math.sin(t * 38) * 0.18 * k : wail ? 1.3 : 0.9 + Math.sin(t * 1.7) * 0.12, dt, 10));
+    v.reachArm.rotation.set(wail ? -0.6 : 0, 0, smooth(v.reachArm.rotation.z, wail ? 1.5 : b.act === "toll" ? 0.4 : 1.15 + Math.sin(t * 1.3 + 1) * 0.1, dt, 8));
+    v.bellArm.rotation.x = wail ? 0.6 : 0;
+    v.bell.rotation.z = Math.sin(t * (k ? 30 : 3)) * (k ? 0.5 : 0.25);
+    v.head.rotation.z = smooth(v.head.rotation.z, wail ? 0.45 : 0, dt, 8);
+    v.ring.visible = k > 0;
+    v.fill.scale.setScalar(Math.max(0.01, k));
+    v.edge.material.opacity = 0.55 + Math.sin(t * 30) * 0.3;
+    // Pale wisps trailing off her hem.
+    if (v.seen > 0.5 && Math.random() < dt * 14) {
+      ctx.particles.spawn(Math.random() < 0.5 ? "ice" : "snow", x + (Math.random() - 0.5) * 0.6, 0.15 + Math.random() * 0.3, z + (Math.random() - 0.5) * 0.6,
+        (Math.random() - 0.5) * 0.3, 0.4 + Math.random() * 0.5, (Math.random() - 0.5) * 0.3, 0.7);
+    }
+  },
+  remove(ctx, v) {
+    ctx.scene.remove(v.group, v.shadow);
+    const keep = new Set<unknown>([ctx.shadowGeo, ctx.shadowMat]);
+    disposeTree(v.group, keep);
+    disposeTree(v.shadow, keep);
+    v.angry.dispose(); v.calm.dispose();                    // one of them isn't on a mesh just now
+  },
+};
+
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, bolt, strike, slime, potion, arrow, loot, guard, dummy, townsfolk, pet } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet } satisfies { [K in ViewKind]: EntityView<object> };

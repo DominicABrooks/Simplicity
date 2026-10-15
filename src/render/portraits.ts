@@ -7,6 +7,7 @@ import type { BoltKind, School } from "../data/enemies.ts";
 import { PAL } from "../data/palette.ts";
 import { createContext, type RenderContext } from "./context.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
+import { makeGhostModel } from "./models/ghost.ts";
 import { makeOrbMesh } from "./models/projectiles.ts";
 
 /** Portrait size in pixels (shown scaled up, pixelated). */
@@ -54,6 +55,19 @@ const POSES: Record<BestiaryId, Pose> = {
   ember: magePose("ember"),
   frost: magePose("frost"),
   storm: magePose("storm"),
+  ghost: {
+    build(ctx) {
+      const m = makeGhostModel(ctx);
+      m.body.position.y = 0.15;
+      m.bellArm.rotation.z = 2.3;                             // her bell raised to ring
+      m.reachArm.rotation.z = 1.2;
+      m.bell.rotation.z = 0.4;
+      ctx.scene.add(m.group);
+      return m.group;
+    },
+    lookY: 0.9,
+    distance: 4.2,
+  },
 };
 
 /** Render every portrait. Returns PNG data URLs by bestiary id. */

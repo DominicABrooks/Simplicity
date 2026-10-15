@@ -5,6 +5,7 @@ import { Tile } from "../data/world.ts";
 import { resetGame } from "../game/reset.ts";
 import { setState, type Game } from "../game/game.ts";
 import { heroParts } from "../game/hero.ts";
+import { sound } from "../game/sfx.ts";
 import { moveBy, tileAt } from "../world/collision.ts";
 
 /** Hold R to restart the run. A reset needs R released before another can start. */
@@ -63,6 +64,7 @@ export function heroMoveSystem(g: Game, dt: number): void {
     m.dashCooldown = DASH.cooldown * hero.dashMul;
     [m.dashX, m.dashY] = input.dashRequest;
     a.cooldown = 0;                                          // a dash resets the swing cooldown
+    sound(g, "dash");
   }
   if (m.dash > 0) {                                          // dashing overrides walking; trees stop it, water ends it
     m.dash = Math.max(0, m.dash - dt);
@@ -74,7 +76,7 @@ export function heroMoveSystem(g: Game, dt: number): void {
   kb.vx *= Math.pow(MOVE.drag, dt);
   kb.vy *= Math.pow(MOVE.drag, dt);
 
-  if (input.jumpPressed && m.jump <= 0 && !m.swimming && a.attack <= 0) m.jump = JUMP_TIME;
+  if (input.jumpPressed && m.jump <= 0 && !m.swimming && a.attack <= 0) { m.jump = JUMP_TIME; sound(g, "jump"); }
   if (m.jump > 0) m.jump = Math.max(0, m.jump - dt);
 }
 

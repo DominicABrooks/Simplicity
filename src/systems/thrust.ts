@@ -3,12 +3,14 @@
 import { THRUST } from "../data/player.ts";
 import { hitEnemy, stagger } from "../game/combat.ts";
 import type { Game } from "../game/game.ts";
+import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf } from "../game/hero.ts";
 
 export function thrustSystem(g: Game, dt: number): void {
   const h = heroParts(g), { pos, hero, motion: m, actions: a } = h;
   if (g.input.attackPressed && a.cooldown <= 0 && !m.swimming) {
     a.attack = THRUST.time; a.cooldown = THRUST.cooldown; a.hit = false; a.swingAim = m.aim;
+    sound(g, "punch");
   }
   if (a.attack <= 0 || weaponOf(h) === "blade") return;
   a.attack = Math.max(0, a.attack - dt);

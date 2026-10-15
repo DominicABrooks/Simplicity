@@ -51,6 +51,14 @@ export function createFxView(ctx: RenderContext): FxView {
             particles.burst(SPARK_PAIRS.frost, 10, x, 0.4, z, 2.5, rise, 0.25);
             break;
           }
+          case "toll": {
+            // The Grey Ringer's bell: a pale ring of sound breaking outward, and a second, fainter one behind it.
+            const R = f.radius / PX_PER_TILE;
+            add(new THREE.Mesh(new THREE.RingGeometry(R * 0.82, R, 28).rotateX(-Math.PI / 2), additive("#bff8ec", onGround(GROUND.marker))), x, 0.05, z, 0.45, { grow: true });
+            add(new THREE.Mesh(new THREE.RingGeometry(R * 0.5, R * 0.62, 28).rotateX(-Math.PI / 2), additive("#6fd3c0", onGround(GROUND.marker))), x, 0.06, z, 0.6, { grow: true });
+            particles.burst(SPARK_PAIRS.frost, 14, x, 0.6, z, 3, rise, 0.4);
+            break;
+          }
           case "bolt":
             add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.14, 5, 5).translate(0, 2.5, 0), additive("#fff6c8", { opacity: 1 })), x, 0, z, 0.18);
             particles.burst(SPARK_PAIRS.spark, 10, x, 0.4, z, 2.5, rise, 0.25);

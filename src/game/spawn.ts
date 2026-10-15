@@ -3,6 +3,7 @@ import type { Entity } from "../core/ecs.ts";
 import { MAGE, MAGE_TARGET, MAGE_MIN_KILLS, SLIME_TARGET, SCHOOLS, SCHOOL_ORDER, SLIME, mageCap, mageChance, mageHp, type BoltKind } from "../data/enemies.ts";
 import { LOOT_DESPAWN } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
+import { KING } from "../data/king.ts";
 import { GUARD, TRAINING, TRAINING_HP, type TrainingKind } from "../data/npcs.ts";
 import { CAMPFIRE_TARGET } from "../data/world.ts";
 import type { Item } from "../items/items.ts";
@@ -76,6 +77,16 @@ export function spawnGuard(g: Game, x: number, y: number, post: number): Entity 
     targetable: { hostile: false, name: GUARD.name, radius: GUARD.radius, height: GUARD.height },
     sentry: { post, look: post, want: post, next: GUARD.glance[0] * (0.5 + g.rng.next()) },
     renderable: { kind: "guard" },
+  });
+}
+
+/** The King on his throne, looking out along `post` (a game angle): someone to talk to, who watches you as you come. */
+export function spawnKing(g: Game, x: number, y: number, post: number): Entity {
+  return g.world.create({
+    transform: { x, y },
+    targetable: { hostile: false, name: KING.name, radius: KING.radius, height: KING.height },
+    sentry: { post, look: post, want: post, next: GUARD.glance[0] * (0.5 + g.rng.next()) },
+    renderable: { kind: "king" },
   });
 }
 

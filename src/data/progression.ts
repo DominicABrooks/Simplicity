@@ -1,6 +1,6 @@
 // WoW-flavoured progression: kills give XP, each level needs a bit more, levels grant raw stats.
 
-export const XP = { slime: 10, mage: 50, maxLevel: 20 } as const;
+export const XP = { slime: 10, mage: 50, ghost: 150, maxLevel: 20 } as const;
 
 export const xpToNext = (level: number): number => 50 + (level - 1) * 40;
 

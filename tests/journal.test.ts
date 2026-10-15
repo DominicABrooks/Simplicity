@@ -39,7 +39,7 @@ describe("journal", () => {
     kill(g, "slime");
     kill(g, "slime");
     kill(g, "frost");
-    expect(g.journal).toEqual({ slime: 2, ember: 0, frost: 1, storm: 0 });
+    expect(g.journal).toEqual({ slime: 2, ember: 0, frost: 1, storm: 0, ghost: 0 });
     expect(events).toEqual([{ id: "slime", first: true }, { id: "slime", first: false }, { id: "frost", first: true }]);
     // Discoveries are announced only while the journal is switched on.
     expect(toasts.filter(t => t.startsWith("New journal entry")))

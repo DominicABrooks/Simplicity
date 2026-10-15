@@ -8,7 +8,7 @@ import { layoutOf } from "../world/layouts.ts";
 import { doorStep } from "../world/townkit.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
-import { spawnCampfire, spawnEnemy, spawnGuard, spawnPotion, spawnTraining } from "./spawn.ts";
+import { spawnCampfire, spawnEnemy, spawnGuard, spawnKing, spawnPotion, spawnTraining } from "./spawn.ts";
 
 /** Put the hero at an arrival point in an area, and fill the area with what lives there. */
 export function enterArea(g: Game, def: AreaDef, entry: string): void {
@@ -19,6 +19,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   g.map = layout.map;
   g.travel = null;
   g.fx = [];
+  g.sfx = [];
   g.floaters = [];
   g.target = null;
   g.spawnTimer = 0;
@@ -33,6 +34,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   for (const prop of layout.props) {
     if (prop.kind === "camp") spawnCampfire(g, prop.fire.x, prop.fire.y);
     if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
+    if (prop.kind === "king") spawnKing(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
     if (prop.kind === "dummy" || prop.kind === "target") spawnTraining(g, prop.kind === "dummy" ? "dummy" : "butt", prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
   }
   const life = def.life;

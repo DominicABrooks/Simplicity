@@ -7,6 +7,7 @@ import { COMBAT_COLORS } from "../data/ui.ts";
 import { SPELLS } from "../data/enemies.ts";
 import type { Actions } from "./components.ts";
 import { setState, toast, type Game } from "./game.ts";
+import { sound } from "./sfx.ts";
 
 /** Floating combat text at a game position. */
 export function combatText(g: Game, x: number, y: number, text: string, color: string, crit = false, life = crit ? 1.1 : 0.85): void {
@@ -20,6 +21,7 @@ export function hitEnemy(g: Game, e: Entity, damage: number): number {
   const dealt = crit ? damage * CRIT.multiplier : damage;
   health.hp -= dealt;
   enemy.flash = crit ? 0.22 : 0.15;
+  sound(g, crit ? "crit" : "hit", at);
   combatText(g, at.x, at.y, crit ? `${dealt}!` : `${dealt}`, crit ? COMBAT_COLORS.crit : COMBAT_COLORS.hit, crit);
   if (crit) {
     g.hitstop = Math.max(g.hitstop, CRIT.hitstop);
@@ -48,19 +50,20 @@ export function cancelActions(a: Actions): void {
   a.attack = 0;
 }
 
-/** One heart of damage from something at (sx, sy): knock back, cancel what you were doing. */
-export function damagePlayer(g: Game, sx: number, sy: number): void {
+/** Hearts of damage (one, unless said) from something at (sx, sy): knock back, cancel what you were doing. */
+export function damagePlayer(g: Game, sx: number, sy: number, amount = 1): void {
   const w = g.world, e = g.player;
   const p = w.need(e, "transform"), kb = w.need(e, "knockback"), health = w.need(e, "health"), status = w.need(e, "status");
   status.sheep = 0;                                          // any damage breaks a polymorph
-  health.hp--;
+  health.hp -= amount;
   status.hurt = HURT.invulnerable;
   cancelActions(w.need(e, "actions"));
-  combatText(g, p.x, p.y, "-1", COMBAT_COLORS.taken);
+  combatText(g, p.x, p.y, `-${amount}`, COMBAT_COLORS.taken);
   g.shake = Math.max(g.shake, HURT.shake);
   const d = Math.hypot(p.x - sx, p.y - sy) || 1;
   kb.vx = ((p.x - sx) / d) * HURT.knock;
   kb.vy = ((p.y - sy) / d) * HURT.knock;
+  sound(g, health.hp <= 0 ? "death" : "hurt");
   if (health.hp <= 0) setState(g, "dead");
 }
 
@@ -85,6 +88,7 @@ export function grantXP(g: Game, amount: number, x: number, y: number): void {
     if (health.hp < health.maxHp) combatText(g, p.x, p.y, `+${health.maxHp - health.hp}`, COMBAT_COLORS.heal);
     health.hp = health.maxHp;                               // a level-up fully heals, as in WoW
     g.fx.push({ type: "levelUp", x: p.x, y: p.y });
+    sound(g, "levelUp");
     toast(g, `Level ${hero.level}!`, true);
   }
   if (hero.level >= XP.maxLevel) hero.xp = 0;

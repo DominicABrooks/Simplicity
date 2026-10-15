@@ -5,10 +5,11 @@ import type { Bolt } from "../game/components.ts";
 import { damagePlayer, polymorph } from "../game/combat.ts";
 import type { BurstPalette } from "../game/fx.ts";
 import type { Game } from "../game/game.ts";
+import { sound } from "../game/sfx.ts";
 import { heroParts } from "../game/hero.ts";
 import { solidAt, type Point } from "../world/collision.ts";
 
-const BOLT_BURST: Record<BoltKind, BurstPalette> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark" };
+const BOLT_BURST: Record<BoltKind, BurstPalette> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost" };
 /** Bolt hit radius, px between cell positions. */
 const BOLT_HIT = 5;
 
@@ -43,6 +44,7 @@ export function boltSystem(g: Game, dt: number): void {
     }
     if (bolt.life <= 0) {
       g.fx.push({ type: "burst", x: f.x, y: f.y, palette: BOLT_BURST[bolt.kind] });
+      sound(g, "boltPop", f);
       w.destroy(e);
     }
   }
@@ -55,6 +57,7 @@ export function strikeSystem(g: Game, dt: number): void {
     strike.t -= dt;
     if (strike.t > 0) continue;
     g.fx.push({ type: "bolt", x: s.x, y: s.y });
+    sound(g, "thunder", s);
     if (status.hurt <= 0 && motion.dash <= 0 && Math.hypot(p.x - s.x, p.y - s.y) < SPELLS.strike.radius!) damagePlayer(g, s.x, s.y);
     w.destroy(e);
   }

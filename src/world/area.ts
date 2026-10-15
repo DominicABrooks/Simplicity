@@ -131,6 +131,8 @@ export type Prop =
   /** Flagstones over a rect, with a kerb round the edge and rings of paving round `centre` (not solid). */
   | { kind: "plaza"; rect: Rect; centre: Point }
   // What you'd find in a castle (src/render/castle.ts). Long things lie along their rect's long side.
+  /** The King, on his throne, looking toward `facing`. A game entity (a friendly target you can talk to), not scenery. */
+  | { kind: "king"; x: number; y: number; facing: Facing }
   /** A guard at their post, keeping watch toward `facing`. A game entity (a friendly target), not scenery. */
   | { kind: "guard"; x: number; y: number; facing: Facing }
   /** A fire bowl on a tripod. */
@@ -154,13 +156,14 @@ export type Prop =
   /** A water trough. */
   | { kind: "trough"; rect: Rect }
   // Inside a house (src/render/interior.ts): the room, and what's in it.
-  /** A room: its floor (planks, or flagstones in a stone house), low walls round it (so the camera sees in) and a doorway in one, doorAt tiles along it. */
-  | { kind: "room"; rect: Rect; floor: "planks" | "flags"; wall: string; door: Facing; doorAt: number }
+  /** A room: its floor (planks, flagstones in a stone house, or the throne room's marble), low walls round it (so the camera sees in) and a doorway in one, doorAt tiles along it. */
+  | { kind: "room"; rect: Rect; floor: "planks" | "flags" | "marble"; wall: string; door: Facing; doorAt: number }
   /** A piece of furniture, centred at (x, y), its front toward its facing. */
   | { kind: "furniture"; item: FurnitureItem; x: number; y: number; facing: Facing };
 
-/** What furnishes a house. */
-export type FurnitureItem = "hearth" | "table" | "bench" | "bed" | "chest" | "shelf" | "barrel" | "counter" | "loom" | "workbench" | "anvil" | "rug" | "cradle";
+/** What furnishes a house, and the throne room (from "throne" on). */
+export type FurnitureItem = "hearth" | "table" | "bench" | "bed" | "chest" | "shelf" | "barrel" | "counter" | "loom" | "workbench" | "anvil" | "rug" | "cradle"
+  | "throne" | "dais" | "carpet" | "pillar" | "tapestry" | "candelabra" | "chandelier" | "urn" | "window";
 
 export type Facing = "north" | "south" | "east" | "west";
 /** A facing as a game angle (0 east, PI/2 south: y grows southward). */

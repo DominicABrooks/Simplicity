@@ -167,8 +167,16 @@ export function roomWalls(p: PropOf<"room">): { x: number; z: number; w: number;
   return out;
 }
 
-/** Each piece of furniture's footprint (world units): across its front, and front to back. Rugs are no footprint. */
+/** How high the throne room's dais stands (world units): the King and his throne stand on it. */
+export const DAIS_HIGH = 0.22;
+
+/**
+ * Each piece of furniture's footprint (world units): across its front, and front to back. Underfoot and
+ * overhead things (rugs, the carpet, the dais you step up on, chandeliers, windows in the wall) have none.
+ */
 export const FURNITURE: Record<FurnitureItem, readonly [number, number]> = {
   hearth: [1.7, 0.8], table: [1.7, 0.9], bench: [1.5, 0.35], bed: [0.95, 1.8], chest: [0.8, 0.5], shelf: [1.3, 0.35],
   barrel: [0.6, 0.6], counter: [2.8, 0.7], loom: [1.4, 0.8], workbench: [1.7, 0.7], anvil: [0.65, 0.4], rug: [0, 0], cradle: [0.6, 0.9],
+  throne: [1.3, 1.0], dais: [7, 3.6], carpet: [0, 0], pillar: [0.75, 0.75], tapestry: [1.6, 0.15], candelabra: [0.45, 0.45], chandelier: [0, 0],
+  urn: [0.55, 0.55], window: [0, 0],
 };

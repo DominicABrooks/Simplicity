@@ -16,7 +16,7 @@ export function makeArrowMesh(ctx: RenderContext, power = false): THREE.Group & 
 }
 
 /** Spell orbs: a solid core in a glowing shell. Mages hold them while charging; bolts fly as them. */
-export const ORB_COLORS: Record<BoltKind, [string, string]> = { fire: [PAL.Y, PAL.R], poly: ["#e6d2ff", PAL.P], frost: [PAL.W, PAL.C], spark: ["#ffffff", PAL.Y] };
+export const ORB_COLORS: Record<BoltKind, [string, string]> = { fire: [PAL.Y, PAL.R], poly: ["#e6d2ff", PAL.P], frost: [PAL.W, PAL.C], spark: ["#ffffff", PAL.Y], wisp: ["#eafff8", "#6fd3c0"] };
 
 export function makeOrbMesh(ctx: RenderContext, kind: BoltKind = "fire"): THREE.Group {
   const g = new THREE.Group(), [core, shell] = ORB_COLORS[kind];

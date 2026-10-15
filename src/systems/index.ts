@@ -6,6 +6,8 @@ import type { Game } from "../game/game.ts";
 import { arrowSystem, bowSystem } from "./bow.ts";
 import { deathSystem, enemyPhysicsSystem, slimeSystem, spawnerSystem } from "./enemies.ts";
 import { fishingSystem, rodSystem } from "./fishing.ts";
+import { ghostSystem } from "./ghost.ts";
+import { hauntSystem } from "../game/ghost.ts";
 import { boltSystem, strikeSystem } from "./hazards.ts";
 import { clearPressesSystem, heroMoveSystem, heroStatusSystem, resetHoldSystem } from "./hero.ts";
 import { mageSystem } from "./mage.ts";
@@ -37,7 +39,7 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [arrowSystem, enemyPhysicsSystem, mageSystem, slimeSystem, deathSystem, spawnerSystem, sentrySystem, petSystem],
+  [arrowSystem, enemyPhysicsSystem, hauntSystem, mageSystem, ghostSystem, slimeSystem, deathSystem, spawnerSystem, sentrySystem, petSystem],
   [boltSystem, strikeSystem],
 ];
 

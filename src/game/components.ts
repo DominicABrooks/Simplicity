@@ -113,7 +113,7 @@ export interface Actions {
   catchAnim: CatchAnim | null;
 }
 
-export type EnemyKind = "slime" | "mage" | "dummy";
+export type EnemyKind = "slime" | "mage" | "dummy" | "ghost";
 
 export interface Enemy {
   kind: EnemyKind;
@@ -155,6 +155,24 @@ export interface MageBrain {
   swingSide: number;
   swingK: number;
   swingRel: number;
+}
+
+/** What the Grey Ringer is doing (see src/systems/ghost.ts). */
+export type GhostAct = "rise" | "drift" | "toll" | "wail" | "fade" | "return";
+
+/** The ghost of St Mary's churchyard. */
+export interface GhostBrain {
+  /** Where her grave is (px): she won't go further than her leash from it. */
+  home: Transform;
+  act: GhostAct;
+  /** Seconds into what she's doing. */
+  t: number;
+  /** Seconds to her next attack. */
+  next: number;
+  /** Below half health she's angry: faster, more wisps, and she fades away and back. */
+  angry: boolean;
+  /** Faded out: not there to hit (her enemy and target are taken away until she's back). */
+  hidden: boolean;
 }
 
 /** Something on the ground to walk over: a healing potion, or an item. */
@@ -275,6 +293,8 @@ export interface Walker {
   /** One of a party who's been left behind: seconds till they run off after them (saying so), then running to catch up, too busy to talk. */
   leaving: number;
   catchingUp: boolean;
+  /** Running from the ghost: home, or out of the area, as fast as they can go. */
+  fleeing?: boolean;
 }
 
 /** How a dog or cat is holding itself: up on its feet, nose down sniffing, sitting, or lying down. */
@@ -306,6 +326,18 @@ export interface Pet {
   calm: number;
 }
 
+/** A cutscene playing (see src/game/cutscene.ts): control is taken away until it's over or skipped. */
+export interface Cutscene {
+  /** Which scene (src/data/cutscenes.ts), the beat it's at, and seconds into the beat (after any walking). */
+  scene: string;
+  beat: number;
+  t: number;
+  /** Whether this beat's lines have been started. */
+  spoken: boolean;
+  /** What the camera's to look at (px, centres) and how close (1 the usual distance, less is closer). */
+  cam: { x: number; y: number; zoom: number };
+}
+
 /** The hero sitting by a campfire, getting his health back (see src/game/resting.ts). */
 export interface Resting {
   fire: Entity;
@@ -327,7 +359,7 @@ export interface Conversation {
   t: number;
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "dummy" | "townsfolk" | "pet";
+export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -345,6 +377,7 @@ export interface Components {
   enemy: Enemy;
   slime: SlimeBrain;
   mage: MageBrain;
+  ghost: GhostBrain;
   pickup: Pickup;
   arrow: Arrow;
   bolt: Bolt;
@@ -356,6 +389,7 @@ export interface Components {
   dummy: Dummy;
   conversation: Conversation;
   resting: Resting;
+  cutscene: Cutscene;
   walker: Walker;
   pet: Pet;
 }

@@ -134,6 +134,27 @@ Nobody says *witch* or *dragon* out loud any more. Everyone just talks about the
 - **New gargoyles.** St Mary's masons have started carving the new gargoyles as robed mages holding
   fireballs. Asked about it, they say "devils, Your Grace" with completely straight faces.
 
+### The Grey Ringer
+
+**Ismay Tollen** rang St Mary's bells for forty-one years, the curfew bell at nine every night of them. On
+the last night before the Edict, she saw lights moving in the Witchwood from the bell loft: robed folk
+carrying fire, frost and lightning. She rang the great bell at midnight and shouted down to the sleeping
+city that the witches had come back. The Marshal's men went up the tower to quiet her. Nobody says what
+happened on the stair; Ismay came down it faster than they did. The Dean buried her that same night in
+the far east corner of the churchyard, with no stone and no bell, so there would be nothing to talk
+about, and the next morning the Edict was read at the market cross.
+
+So people whisper it instead, and that is what keeps her. A ghost is made of what's said about her: every
+time the story goes round, she gets a little plainer. Hear it often enough and you'll see her too, among
+the graves after dark, grey as ash, ringing a handbell that no living hand is ringing, trying to wake a
+city that won't listen. Anyone who sees her runs. Lay her to rest and the whispers die down, for a while.
+
+In the game: townsfolk (and now and then a guard) pass the story on, and each telling the hero hears makes
+her likelier to rise when he comes to the churchyard at night (once a night, `src/game/ghost.ts`). She's a
+hard fight for an early hero (`src/systems/ghost.ts`, tuned in `src/data/ghost.ts`): her toll costs two
+hearts, her wisps chase you, and at half health she gets angry and fades away and back behind you. She
+leaves two rare things and potions.
+
 ## Festivals older than the fuss
 
 - **Gilding Day** (midsummer): the regilding, gold-flake crown loaves, and the apprentices' race to climb

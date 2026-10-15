@@ -1,9 +1,10 @@
 // What people say when you talk to them, put together from src/data/voices.ts. Everyone talks in their
 // own voice (from their personality) about one to four things, picked by weight from what they have to
 // talk about: their work, their family, their quirk, where they live, the city, the hero, the Edict, and
-// only rarely a rumour. Gruff people say one thing and go; chatty ones go on. The named families talk
+// only rarely a rumour (most often the one about the ghost in St Mary's churchyard: src/data/ghost.ts). Gruff people say one thing and go; chatty ones go on. The named families talk
 // about themselves: their family's saying, and what the city says about them.
 import type { Rng } from "../core/rng.ts";
+import { GHOST_RUMOURS } from "../data/ghost.ts";
 import type { GiftKind } from "../data/items.ts";
 import {
   ABOUT_US, AGAIN, ANNOYED, BYE, CITY, DEEP, EDICT, FOND_BYE, FOND_OPEN, GIFT, GREET, GUARD, GUARD_AGAIN, HERO, INTRO, KID, KID_AGAIN, KIN, PLACE, QUIRK,
@@ -16,6 +17,10 @@ const pick = <T>(rng: Rng, list: readonly T[]): T => list[Math.floor(rng.next() 
 const fill = (line: string, vars: Record<string, string | number>) => line.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 const firstName = (r: Resident) => r.name.replace(/^(Lord|Lady|Master|Mistress|Father|Old Mother|Old|Little|Widow|Gran)\s+/, "").replace(/"/g, "").split(" ")[0]!;
 const rumours = FAMILIES.flatMap(f => f.rumours);
+/** Who's most likely to pass on the ghost story: the gossips and the ones who believe in such things. */
+const GHOSTLY = new Set(["superstitious", "nervous", "jumpy", "gullible", "worried", "anxious", "nosy"]);
+/** The ghost story, passed on (see src/data/ghost.ts): each one the hero hears makes her likelier to rise. */
+const ghostRumour = (rng: Rng) => `${pick(rng, RUMOUR)} "${pick(rng, GHOST_RUMOURS)}."`;
 
 /** Their voice: from the first of their traits that has one. */
 export const voiceOf = (r: Resident): Voice => r.traits.map(t => VOICE_OF[t]).find(v => v !== undefined) ?? "plain";
@@ -182,6 +187,7 @@ export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[]
     { weight: 1.5, say: () => pick(rng, HERO) },
     { weight: r.stance === "whispering" ? 0.6 : 1, say: () => pick(rng, EDICT[r.stance] ?? EDICT.quiet!) },
     { weight: voice === "chatty" || r.stance === "whispering" ? 0.6 : 0.15, say: () => `${pick(rng, RUMOUR)} "${pick(rng, rumours).says}."` },
+    { weight: voice === "chatty" || voice === "dreamy" || r.traits.some(t => GHOSTLY.has(t)) ? 1.2 : 0.5, say: () => ghostRumour(rng) },
   ];
   if (workGifts.length) topics.push({ weight: 1.5, say: () => pick(rng, workGifts).say });
   if (kin.length) {
@@ -273,6 +279,7 @@ export function guardLines(rng: Rng, area: string, visits = 0, gives: CanGive = 
   if (more < 0.35) lines.push(pick(rng, GUARD.duty));
   else if (more < 0.55) lines.push(pick(rng, HERO));
   else if (more < 0.65) lines.push(`${pick(rng, RUMOUR)} "${pick(rng, rumours).says}."`);
+  else if (more < 0.75) lines.push(ghostRumour(rng));
   if (rng.next() < 0.7) lines.push(pick(rng, GUARD.bye));
   return lines;
 }

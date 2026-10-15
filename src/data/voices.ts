@@ -8,6 +8,7 @@
 // rumour about the speaker's own family.
 
 import type { GiftKind } from "./items.ts";
+import { KING_WRIT } from "./king.ts";
 
 export type Voice = "warm" | "gruff" | "shy" | "chatty" | "dreamy" | "plain";
 
@@ -142,7 +143,7 @@ export const CITY: readonly string[] = [
   "Founder's Night's coming. They're making the straw witches twice as big this year.", "Gilding Day was beautiful. Gold on everything. Again.",
   "Bread's gone up a penny. Again.", "The south road's still closed. Nobody will say why.", "Have you tried a three-cut loaf? Supposed to be lucky.",
   "The King's building something new, I hear. Or paying for the last thing.", "Lantern Night's my favourite. The whole city glows.",
-  "Rowan costs more than roses now. Ridiculous.", "My cousin went south last spring and hasn't written since.", "The slimes are thick this year. Ugh.",
+  "Have you seen what rowan costs now? More than roses. Ridiculous.", "My cousin went south last spring and hasn't written since.", "The slimes are thick this year. Ugh.",
   "There's a sheep on the square that stares at people. Have you seen it?", "Old Mother Larke sold me some salt for my windowsills. Just in case.",
   "They say the Ranger's back. They also say he isn't.", "The Crown's pies are worth every penny.",
 ];
@@ -346,9 +347,11 @@ export const GIFT = {
   ] as readonly GiftLine[],
   /** From a guard who's got used to you. */
   guard: [{ say: "Here, take this bread. The cook's spare. Don't tell the sergeant.", gives: "loaf" }] as readonly GiftLine[],
+  /** The King's writ, at the end of his audience (src/data/king.ts). */
+  king: [KING_WRIT] as readonly GiftLine[],
 };
 
 /** What each gift line hands over, by the line itself: how a conversation knows a line is a gift. */
 export const GIFT_OF: ReadonlyMap<string, GiftKind> = new Map(
-  [...GIFT.work.flatMap(([, lines]) => lines), ...GIFT.fond, ...GIFT.kid, ...GIFT.guard].map(l => [l.say, l.gives]),
+  [...GIFT.work.flatMap(([, lines]) => lines), ...GIFT.fond, ...GIFT.kid, ...GIFT.guard, ...GIFT.king].map(l => [l.say, l.gives]),
 );

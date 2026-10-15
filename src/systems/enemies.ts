@@ -1,21 +1,24 @@
 // Every enemy: knockback and hit flashes, slime AI, deaths and drops, and spawning more.
 import { DROPS } from "../data/items.ts";
 import { SLIME, SPAWNING } from "../data/enemies.ts";
+import { GHOST } from "../data/ghost.ts";
 import { XP } from "../data/progression.ts";
 import { damagePlayer, grantXP } from "../game/combat.ts";
 import { BESTIARY, type BestiaryId } from "../data/bestiary.ts";
 import { FEATURES } from "../data/features.ts";
 import { toast, type Game } from "../game/game.ts";
+import { sound } from "../game/sfx.ts";
+import { laidToRest } from "../game/ghost.ts";
 import { heroParts } from "../game/hero.ts";
 import { dropLoot, spawnEnemy, spawnPotion } from "../game/spawn.ts";
 import { rollItem } from "../items/items.ts";
 import { moveBy, overlap } from "../world/collision.ts";
 
-/** Hit flashes fade, and knockback slides enemies along (they can't be knocked into water). A dummy stays on its post. */
+/** Hit flashes fade, and knockback slides enemies along (they can't be knocked into water). A dummy stays on its post; blows pass through a ghost. */
 export function enemyPhysicsSystem(g: Game, dt: number): void {
   for (const [, { transform: t, knockback: kb, enemy }] of g.world.query("enemy", "transform", "knockback")) {
     enemy.flash = Math.max(0, enemy.flash - dt);
-    if (enemy.kind !== "dummy") moveBy(g.map, t, kb.vx * dt, kb.vy * dt, true);
+    if (enemy.kind !== "dummy" && enemy.kind !== "ghost") moveBy(g.map, t, kb.vx * dt, kb.vy * dt, true);
     kb.vx *= Math.pow(SLIME.drag, dt);
     kb.vy *= Math.pow(SLIME.drag, dt);
   }
@@ -40,27 +43,46 @@ export function slimeSystem(g: Game, dt: number): void {
   }
 }
 
-/** Dead enemies give XP and drops. Mages always drop a magic-or-better item and sometimes a potion; slimes drop one thing at most. */
+/**
+ * Dead enemies give XP and drops. Mages always drop a magic-or-better item and sometimes a potion; slimes drop one thing at most.
+ * The Grey Ringer leaves her grave goods (rare things) and potions, and is laid to rest.
+ */
 export function deathSystem(g: Game): void {
   const w = g.world;
   for (const [e, { transform: s, health, enemy }] of w.query("enemy", "transform", "health")) {
     if (enemy.kind === "dummy") { health.hp = health.maxHp; continue; }   // takes every hit, never goes down
     if (health.hp > 0) continue;
     g.kills++;
+    if (enemy.kind === "ghost") { layGhost(g, s.x, s.y); w.destroy(e); continue; }
     recordKill(g, enemy.kind === "mage" ? w.need(e, "mage").school : "slime");
     grantXP(g, enemy.kind === "mage" ? XP.mage : XP.slime, s.x, s.y);
     if (enemy.kind === "mage") {
       g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "fire" });
+      sound(g, "mageDie", s);
       dropLoot(g, s.x, s.y, rollItem(g.rng, "magic"));
       if (g.rng.next() < DROPS.magePotion) spawnPotion(g, s.x + 6, s.y);
     } else {
       g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "slime" });
+      sound(g, "slimeDie", s);
       const drop = g.rng.next();
       if (drop < DROPS.slimePotion) spawnPotion(g, s.x, s.y);
       else if (drop < DROPS.slimeItem) dropLoot(g, s.x, s.y, rollItem(g.rng));
     }
     w.destroy(e);
   }
+}
+
+/** The Grey Ringer beaten: a great burst, her reward, and the rumour laid to rest with her. */
+function layGhost(g: Game, x: number, y: number): void {
+  recordKill(g, "ghost");
+  grantXP(g, XP.ghost, x, y);
+  g.fx.push({ type: "toll", x, y, radius: GHOST.toll.radius * 1.5 });
+  sound(g, "toll", { x, y });
+  g.fx.push({ type: "burst", x, y, palette: "frost" });
+  g.shake = Math.max(g.shake, 4);
+  for (let i = 0; i < GHOST.reward.items; i++) dropLoot(g, x + (i - (GHOST.reward.items - 1) / 2) * 10, y, rollItem(g.rng, "rare"));
+  for (let i = 0; i < GHOST.reward.potions; i++) spawnPotion(g, x + (i - (GHOST.reward.potions - 1) / 2) * 10, y + 9);
+  laidToRest(g);
 }
 
 /** Every few seconds, top the enemies up. The cap grows with kills. */

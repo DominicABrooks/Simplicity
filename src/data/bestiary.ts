@@ -1,9 +1,10 @@
 // The journal's bestiary: every kind of enemy, with a little about each. Numbers come from the
 // tuning tables, so the journal can't drift from the game.
 import { MAGE, SCHOOLS, SLIME, SPELLS, type School } from "./enemies.ts";
+import { GHOST, GHOST_NAME } from "./ghost.ts";
 import { XP } from "./progression.ts";
 
-export type BestiaryId = "slime" | School;
+export type BestiaryId = "slime" | School | "ghost";
 
 export interface BestiaryEntry {
   id: BestiaryId;
@@ -59,9 +60,24 @@ export const BESTIARY: readonly BestiaryEntry[] = [
     abilities: ["Spark: a very fast bolt", `Lightning: ${SPELLS.strike.count} strikes, ${SPELLS.strike.delay} s after the circles`, blink, sword],
     drops: mageDrops,
   },
+  {
+    id: "ghost",
+    name: GHOST_NAME,
+    lore: "Ismay Tollen rang St Mary's bells for forty years, and the great bell once too often: the night before the Edict, to warn of lights in the Witchwood. Buried by night without a stone, she rises when the city whispers her name.",
+    health: `${GHOST.hp}, +${GHOST.hpPerLevel} per level`,
+    xp: XP.ghost,
+    abilities: [
+      "Only in St Mary's churchyard, at night, and likelier the more you've heard of her",
+      `Toll: her bell breaks over everything near her for ${GHOST.toll.damage} hearts; dash or jump through it`,
+      `Wail: a fan of ${GHOST.wail.count} wisps that drift after you`,
+      "Angry below half health: faster, more wisps, and she fades and returns behind you",
+      "Drifts through walls; can't be knocked back; mends if you lead her from her grave",
+    ],
+    drops: `${GHOST.reward.items} rare items and ${GHOST.reward.potions} potions`,
+  },
 ];
 
 /** Kills per kind of enemy. A kind with any kills is discovered. */
 export type Journal = Record<BestiaryId, number>;
 
-export const emptyJournal = (): Journal => ({ slime: 0, ember: 0, frost: 0, storm: 0 });
+export const emptyJournal = (): Journal => ({ slime: 0, ember: 0, frost: 0, storm: 0, ghost: 0 });

@@ -4,8 +4,9 @@
 // through the gatehouse into the ward: the keep on its crag between burning braziers, the great hall and
 // its kitchen, the chapel and the lodgings, the barracks by the gate, the storehouse, the smithy, a well and
 // a corner for training, all inside one ring of tall walls with a tower at every corner.
-import { T, Tile } from "../data/world.ts";
+import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
+import { keepPlan } from "../world/plans.ts";
 import { Town, at, corner, edgeExit, px, type TileRect } from "../world/townkit.ts";
 import { area as capital, CASTLE_STREET } from "./capital.ts";
 
@@ -78,10 +79,21 @@ function lay(): Town {
   return town;
 }
 
+/** The foot of the keep's stairs (tiles, down the middle line): where the way up into the Throne Room starts. */
+const KEEP_STAIR = (() => {
+  const k = keepPlan({ kind: "keep", rect: px(KEEP), plinth: 2.2, height: 8 });
+  return k.z + k.back + k.baseD / 2 + k.stairD;
+})();
+
 const finish = (town: Town): AreaLayout => town.layout(
-  // Up Castle Street from the Market Quarter, a step in from the edge (a step past where you left it).
-  { town: { x: 28 * T, y: (H - 2) * T } },
-  [edgeExit("south", STREET.x0, STREET.x1, W, H, { area: "capital", entry: "castle" })],
+  // Up Castle Street from the Market Quarter, a step in from the edge (a step past where you left it);
+  // and down the keep's stairs, out of the Throne Room.
+  { town: { x: 28 * T, y: (H - 2) * T }, keep: { x: MID * T - HALF, y: (KEEP_STAIR + 1.6) * T - HALF } },
+  [
+    edgeExit("south", STREET.x0, STREET.x1, W, H, { area: "capital", entry: "castle" }),
+    // Up the keep's stairs and in at its door: the Throne Room.
+    { rect: { x: (MID - 1.2) * T, y: KEEP_STAIR * T - 2, w: 2.4 * T, h: T }, to: { area: "throneroom", entry: "door" } },
+  ],
 );
 
 /** The castle as you walk it, without the view past its edge: what the Market Quarter shows past its own. */

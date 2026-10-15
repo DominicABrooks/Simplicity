@@ -6,6 +6,7 @@ import { MAGE, SCHOOLS, SPELLS, type SpellName } from "../data/enemies.ts";
 import type { Knockback, MageBrain, Transform } from "../game/components.ts";
 import { cancelActions, damagePlayer } from "../game/combat.ts";
 import { toast, type Game } from "../game/game.ts";
+import { sound } from "../game/sfx.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
 import { spawnBolt, spawnStrike } from "../game/spawn.ts";
 import { MAGE_SWING_TIME, mageSwingK, relativeAngle, sweptThrough, swingRel } from "../game/swing.ts";
@@ -78,6 +79,7 @@ function releaseSpell(g: Game, h: HeroParts, s: Transform, b: MageBrain, dx: num
   const p = h.pos, spell = b.spell!, S = SPELLS[spell], a = Math.atan2(dy, dx);
   if (spell === "nova") {
     g.fx.push({ type: "nova", x: s.x, y: s.y, radius: S.radius! });
+    sound(g, "nova", s);
     if (Math.hypot(dx, dy) < S.radius! && h.motion.dash <= 0 && h.motion.jump <= 0) {
       h.status.frozen = S.freeze!;
       cancelActions(h.actions);
@@ -90,6 +92,7 @@ function releaseSpell(g: Game, h: HeroParts, s: Transform, b: MageBrain, dx: num
     }
   } else {
     const o = MAGE.boltOffset;
+    sound(g, "spell", s);
     spawnBolt(g, spell, s.x + Math.cos(a) * o, s.y + Math.sin(a) * o, Math.cos(a) * S.speed!, Math.sin(a) * S.speed!);
   }
   if (S.cooldown) b.specialCD = S.cooldown;
@@ -104,6 +107,7 @@ function blinkMage(g: Game, p: Transform, s: Transform, b: MageBrain, kb: Knockb
     const x = Math.round(p.x + Math.cos(a) * d), y = Math.round(p.y + Math.sin(a) * d);
     if ([[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]].some(([ox, oy]) => blocked(g.map, x + ox!, y + oy!, true))) continue;
     g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "arcane" });
+    sound(g, "blink", s);
     s.x = x; s.y = y;
     kb.vx = kb.vy = 0;
     g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "arcane" });

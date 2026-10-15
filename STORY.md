@@ -88,10 +88,11 @@ comes out of a sky that is, if you look closely, perfectly clear.
 
 ### The King's audience
 
-The King holds court in the castle's inner ward, at the foot of the keep's stair, between the braziers,
-with his guards around him. No new area is needed. The player walks up Castle Street, through the
-barbican and the gatehouse into the ward, and the guards there point the way: *"The King's on the keep
-steps. Mind your manners."*
+The King holds court in **the Throne Room**, inside the keep (`src/areas/throneroom.ts`). The player walks
+up Castle Street, through the barbican and the gatehouse into the ward, and up the keep's stairs to its
+doors. Inside, a crimson carpet runs the length of a white marble hall, between pillars hung with banners,
+under gold chandeliers, to the velvet dais where the King stands before his golden throne, gilded lions and
+braziers at its foot and the Royal Guard along the carpet.
 
 ### Checkpoints: the old stones
 
@@ -160,7 +161,8 @@ doors, the Edict read at the cross, people muttering about "the weather". Anyone
 rumour (see [FAMILIES.md](FAMILIES.md)). **Old Mother Larke** looks into his eyes on the way past, laughs,
 and gives him three potions. *Teaches:* talking to people, potions. The fountain stone is here.
 
-**0:13 The King (4 min).** Through the castle gates to the ward. **King Osric** on the keep steps, with
+**0:13 The King (4 min).** Through the castle gates to the ward, and up the keep's stairs into the Throne
+Room. **King Osric** on his dais, with
 Prince Edmund beside him and the Marshal glowering. The Foreigner can't speak (he has no mouth), so he does
 the only thing he can: he holds out the Ranger's note. The scene, in the King's words:
 

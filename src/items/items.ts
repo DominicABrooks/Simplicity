@@ -32,6 +32,7 @@ export function rollItem(rng: Rng, minRarity: Rarity = "normal"): Item {
   const r = rng.next();
   let rarity: Rarity = r < RARITY_ODDS.rare ? "rare" : r < RARITY_ODDS.magic ? "magic" : "normal";
   if (minRarity === "magic" && rarity === "normal") rarity = "magic";
+  if (minRarity === "rare") rarity = "rare";
   const pool = (Object.keys(AFFIXES) as StatKey[]).filter(k => slot && AFFIXES[k].slots.includes(slot));
   const count = rarity === "rare" ? Math.min(3, pool.length) : rarity === "magic" ? 1 + Math.floor(rng.next() * 2) : 0;
   const mods: Stats = {};

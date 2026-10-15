@@ -10,6 +10,8 @@ export type Fx =
   | { type: "burst"; x: number; y: number; palette: BurstPalette }
   /** Frost Nova's expanding ring. */
   | { type: "nova"; x: number; y: number; radius: number }
+  /** The Grey Ringer's toll: a ghostly ring of sound breaking outward from her bell. */
+  | { type: "toll"; x: number; y: number; radius: number }
   /** A lightning column where a strike lands. */
   | { type: "bolt"; x: number; y: number }
   /** A golden pillar around the hero. */

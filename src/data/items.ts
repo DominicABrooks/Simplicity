@@ -2,7 +2,7 @@
 
 export type Rarity = "normal" | "magic" | "rare";
 export type Slot = "helm" | "amulet" | "weapon" | "armor" | "ring" | "boots";
-export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone";
+export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone" | "writ";
 export type StatKey = "damage" | "life" | "speed" | "dash";
 export type Stats = Partial<Record<StatKey, number>>;
 
@@ -33,6 +33,7 @@ export const BASES: Record<ItemType, ItemBase> = {
   // Gifts: only ever given, by the people you talk to (see GIFTS).
   bread:  { name: "Loaf", slot: null, w: 2, h: 1, base: {}, noLoot: true },
   stone:  { name: "Shiny Stone", slot: null, w: 1, h: 1, base: {}, noLoot: true, note: "A gift. It's yours now" },
+  writ:   { name: "Writ", slot: null, w: 1, h: 2, base: {}, noLoot: true, note: "Under the King's seal. Show it to his woodwardens" },
 };
 
 /** Catches: rarity decides the koi and how much eating it heals. */
@@ -43,11 +44,12 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
 };
 
 /** What people give the hero when they talk to him: the gift lines in src/data/voices.ts say which. */
-export type GiftKind = "loaf" | "koi" | "stone";
+export type GiftKind = "loaf" | "koi" | "stone" | "writ";
 export const GIFTS: Record<GiftKind, { type: ItemType; name: string; heal?: number }> = {
   loaf: { type: "bread", name: "Three-Cut Loaf", heal: 1 },
   koi: { type: "fish", name: FISH.normal.name, heal: FISH.normal.heal },
   stone: { type: "stone", name: "Shiny Stone" },
+  writ: { type: "writ", name: "The King's Writ" },
 };
 
 /** Equipment paperdoll: slot positions in cells inside a 10x7 area. */

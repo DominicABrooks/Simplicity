@@ -50,6 +50,7 @@ What an entity is depends only on its components:
 | Hero | `transform knockback health hero motion status actions renderable` |
 | Slime | `transform knockback health enemy slime renderable` |
 | Mage | `transform knockback health enemy mage renderable` |
+| The Grey Ringer (ghost) | `transform knockback health ghost renderable`, and `enemy targetable` while she's there to hit |
 | Potion, loot | `transform pickup renderable` |
 | Arrow | `transform arrow renderable` |
 | Dog, cat | `transform pet renderable` |
@@ -76,7 +77,7 @@ order, and **order matters**: each system sees what the ones before it did this 
 4. `fishing`, `rod`, `bow`, `sword`, `thrust`: weapons. Each consumes the attack press it uses, so the
    thrust (punch, or the rod's bonk) only gets presses no weapon took.
 5. `clearPresses`, then `pickups`.
-6. Then, while the hero is alive: `arrows`, `enemyPhysics`, `mage`, `slime`, `deaths`, `spawner`, `sentry` (guards
+6. Then, while the hero is alive: `arrows`, `enemyPhysics`, `haunt` (the Grey Ringer rising in St Mary's churchyard at night, `src/game/ghost.ts`), `mage`, `ghost` (her fight), `slime`, `deaths`, `spawner`, `sentry` (guards
    keeping watch, turning to watch the hero who comes close), `pets` (the city's dogs and cats, `src/game/pets.ts`), and the spell hazards, `bolts` and `strikes`.
 7. `floaters` (combat numbers drift and fade).
 
