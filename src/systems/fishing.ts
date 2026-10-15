@@ -1,13 +1,13 @@
 // The fishing pole: press winds up a cast, release throws it at the cursor. Over water the line
 // goes out: wait for a bite, then click during the bite to catch. Released over land, it's a weak bonk.
-import { CATCH_ODDS, type Rarity } from "../data/items.ts";
+import { CATCH_ODDS, MYSTERIOUS_STONE, type Rarity } from "../data/items.ts";
 import { FISHING } from "../data/player.ts";
 import { HALF, Tile } from "../data/world.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf, type HeroParts } from "../game/hero.ts";
 import { dropLoot } from "../game/spawn.ts";
-import { makeFish } from "../items/items.ts";
+import { makeFish, makeMysteriousStone } from "../items/items.ts";
 import { tileAt, type Point } from "../world/collision.ts";
 
 /** Where a cast would land: exactly at the cursor, pulled in to the pole's reach. Without a mouse it goes 3 tiles along the aim. */
@@ -37,11 +37,12 @@ export function fishingSystem(g: Game, dt: number): void {
     if (input.attackPressed) {
       const r = g.rng.next();
       const rarity: Rarity = r < CATCH_ODDS.rare ? "rare" : r < CATCH_ODDS.magic ? "magic" : "normal";
-      const item = makeFish(rarity);
+      const stone = g.rng.next() < MYSTERIOUS_STONE.chance;   // now and then, something that isn't a fish at all
+      const item = stone ? makeMysteriousStone() : makeFish(rarity);
       if (!g.inventory.add(item)) dropLoot(g, pos.x, pos.y, item, true);
       sound(g, "catch");
-      a.catchAnim = { x: f.x, y: f.y, t0: g.clock, rarity };
-      toast(g, `Caught a ${item.name}!`, true);
+      a.catchAnim = { x: f.x, y: f.y, t0: g.clock, rarity, stone };
+      toast(g, stone ? `Something heavy on the line... a ${item.name}!` : `Caught a ${item.name}!`, true);
       a.fishing = null;
     } else if (f.t >= FISHING.biteWindow) {
       toast(g, "It got away");

@@ -91,6 +91,8 @@ export interface CatchAnim {
   y: number;
   t0: number;
   rarity: Rarity;
+  /** It wasn't a koi but the mysterious stone. */
+  stone?: boolean;
 }
 
 /** What the hero is doing with their hands: swings, punches, the bow and the fishing pole. */

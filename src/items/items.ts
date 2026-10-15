@@ -1,5 +1,5 @@
 import type { Rng } from "../core/rng.ts";
-import { AFFIXES, BASES, FISH, GIFTS, RARE_A, RARE_B, RARITY_ODDS, type GiftKind, type ItemType, type Rarity, type Slot, type StatKey, type Stats } from "../data/items.ts";
+import { AFFIXES, BASES, FISH, GIFTS, MYSTERIOUS_STONE, RARE_A, RARE_B, RARITY_ODDS, type GiftKind, type ItemType, type Rarity, type Slot, type StatKey, type Stats } from "../data/items.ts";
 
 export interface Item {
   id: number;
@@ -58,6 +58,11 @@ export function makeFish(rarity: Rarity): Item {
   const item = makeItem("fish", rarity, {}, FISH[rarity].name);
   item.heal = FISH[rarity].heal;
   return item;
+}
+
+/** The mysterious stone that sometimes comes up on the line instead of a koi. */
+export function makeMysteriousStone(): Item {
+  return makeItem("stone", "rare", {}, MYSTERIOUS_STONE.name);
 }
 
 /** Something someone hands the hero as they talk: a loaf, a koi, a shiny stone. */

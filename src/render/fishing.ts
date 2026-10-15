@@ -6,12 +6,18 @@ import { FISHING } from "../data/player.ts";
 import { TIERS } from "../data/tiers.ts";
 import type { Actions, Transform } from "../game/components.ts";
 import { GROUND, onGround, WATER_Y, col, toWorld, type RenderContext } from "./context.ts";
-import { makeKoiMesh, type KoiMesh } from "./koi.ts";
+import { makeKoiMesh } from "./koi.ts";
 import type { Body } from "./models/body.ts";
 
 export interface FishingView {
   /** Returns where the bobber sits in the water (world X/Z), if it's in. */
   update(hero: Body, pos: Transform, a: Actions, t: number): { x: number; z: number } | null;
+}
+
+/** The mysterious stone, as it comes up out of the water: a smooth grey pebble with a faint blue-green glow about it. */
+function makeStoneMesh(ctx: RenderContext): THREE.Object3D {
+  return new THREE.Mesh(new THREE.IcosahedronGeometry(0.07, 0).scale(1.25, 0.8, 1),
+    ctx.lambert("#8a96a2", { emissive: col("#3fb8a8"), emissiveIntensity: 0.35 }));
 }
 
 export function createFishingView(ctx: RenderContext, world: THREE.Group): FishingView {
@@ -29,7 +35,7 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
   castMarker.visible = false;
   scene.add(line, bobber, splash, castMarker);
   line.visible = bobber.visible = splash.visible = false;
-  let leaper: KoiMesh | null = null, leaperFor: unknown = null;
+  let leaper: THREE.Object3D | null = null, leaperFor: unknown = null;
   const tipPos = new THREE.Vector3(), bobPos = new THREE.Vector3(), mid = new THREE.Vector3();
 
   return {
@@ -87,7 +93,7 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
         if (leaperFor !== c) {
           if (leaper) world.remove(leaper);
           const T = TIERS[c.rarity];
-          leaper = makeKoiMesh(ctx, T.fishMain, T.fishAccent);
+          leaper = c.stone ? makeStoneMesh(ctx) : makeKoiMesh(ctx, T.fishMain, T.fishAccent);
           leaper.scale.setScalar(2.2);
           world.add(leaper);
           leaperFor = c;

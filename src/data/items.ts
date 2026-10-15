@@ -43,6 +43,12 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
   rare: { name: "Golden Koi", heal: 4 },
 };
 
+/**
+ * Now and then it isn't a koi on the hook at all: a smooth grey stone, cold from the water but warm in the hand, that
+ * hums faintly when you hold it to your ear. Nobody in Kingsholm can say what it is. One catch in twenty.
+ */
+export const MYSTERIOUS_STONE = { name: "Mysterious Stone", chance: 1 / 20 } as const;
+
 /** What people give the hero when they talk to him: the gift lines in src/data/voices.ts say which. */
 export type GiftKind = "loaf" | "koi" | "stone" | "writ";
 export const GIFTS: Record<GiftKind, { type: ItemType; name: string; heal?: number }> = {
