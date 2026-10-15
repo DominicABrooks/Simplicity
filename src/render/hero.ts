@@ -20,6 +20,9 @@ export interface HeroView {
   updateTrail(g: Game, dt: number): void;
 }
 
+/** How bright the glow about the hero is, for how dark it is (see ctx.nightGlow). */
+const AURA = 5;
+
 export function createHeroView(ctx: RenderContext): HeroView {
   const { scene, lambert, basic, particles } = ctx;
   const hero = makeBody(ctx);
@@ -44,6 +47,13 @@ export function createHeroView(ctx: RenderContext): HeroView {
     swooshMat.color.set(SWOOSH_COLOR[gear.weapon ?? "normal"] ?? PAL.W);
     swooshMat.opacity = k < 0.6 ? 0.45 : 0.45 * (1 - (k - 0.6) / 0.25);
   }
+
+  // ---------- A light about him ----------
+  // After dark, a faint warm glow about the hero, lighting him and the ground at his feet, so he's never lost on a
+  // dark street. Always there (at nothing by day), so the scene's shaders don't change as night falls.
+  const aura = new THREE.PointLight(0xffd8a0, 0, 2.8, 1.4);
+  aura.position.set(0, 1.1, 0);
+  hero.group.add(aura);
 
   // ---------- Hands ----------
   const grip = new THREE.Vector3(), handTarget = new THREE.Vector3();
@@ -188,6 +198,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
   return {
     body: hero,
     update(g, t, dt) {
+      aura.intensity = ctx.nightGlow.value * AURA;
       const h = heroParts(g), { pos, hero: stats, motion: m, status, actions: a } = h;
       const [px, pz] = toWorld(pos.x, pos.y);
       const hz = m.jump > 0 ? Math.sin((1 - m.jump / JUMP_TIME) * Math.PI) * 1.0 : 0;
