@@ -147,6 +147,12 @@ Travelling: walking into an exit sets `game.travel` and the `travel` state, whic
 `RenderContext` (`src/render/context.ts`) with the PS1-style materials (vertex snapping, flat lambert),
 the hand-painted textures and the particle pool, so nothing touches WebGL at import time.
 
+Pick a material by whether the thing gives its own light. `lambert()` is lit by the sun, sky and lamps. `basic()` is a
+flat colour that still follows how much light there is (`ctx.light`, which the renderer sets each frame from the hour and
+indoors), so wares, trims and banners dim at night like everything else. `glow()` is for what shines of itself, as
+bright at midnight as at noon: flames, lit windows, eyes, spells, markers and particles. `glowAtNight()` gives lit
+materials a faint glow of their own as it darkens (`ctx.nightGlow`), so enemies stay visible after dark.
+
 Entities are drawn through a **registry** (`src/render/views.ts`): each `renderable.kind` has a view with
 `create`, `update` and `remove`. The render system (`renderSystem.ts`) creates a view when an entity
 appears, updates it every frame and removes it when the entity is destroyed. The hero has its own view
