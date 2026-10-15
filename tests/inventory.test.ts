@@ -106,3 +106,36 @@ describe("Inventory", () => {
     expect(seen).toEqual([2]);
   });
 });
+
+describe("Inventory, shuffled at random", () => {
+  // A thousand random clicks about the bag and the slots: whatever's done, nothing overlaps, nothing hangs off
+  // the grid, nothing is in the wrong slot, and no item is lost or turns up twice.
+  it("never overlaps, spills off the grid, misplaces, loses or copies an item", () => {
+    const types = ["blade", "hood", "robe", "boots", "ring", "amulet", "bow", "rod", "bread"] as const;
+    let s = 12345;
+    const roll = (n: number) => (s = (s * 48271) % 2147483647) % n;
+    const inv = fresh(3);
+    const all = new Set<number>();
+    for (let i = 0; i < 14; i++) { const it = makeItem(types[roll(types.length)]!); if (inv.add(it)) all.add(it.id); }
+    const where = () => [...inv.grid.map(e => e.item), ...Object.values(inv.equip).filter(x => x !== null), ...(inv.held ? [inv.held] : [])];
+    for (let step = 0; step < 1000; step++) {
+      const slots = Object.keys(inv.equip) as (keyof typeof inv.equip)[];
+      switch (roll(6)) {
+        case 0: if (!inv.held && inv.grid.length) inv.pickFromGrid(inv.grid[roll(inv.grid.length)]!); break;
+        case 1: if (!inv.held) inv.pickFromSlot(slots[roll(slots.length)]!); break;
+        case 2: inv.placeHeldAt(roll(COLS + 2) - 1, roll(ROWS + 2) - 1); break;   // the UI clamps; the model mustn't rely on it
+        case 3: inv.putHeldInSlot(slots[roll(slots.length)]!); break;
+        case 4: if (!inv.held && inv.grid.length) inv.equipFromGrid(inv.grid[roll(inv.grid.length)]!); break;
+        case 5: if (!inv.held) inv.unequipToGrid(slots[roll(slots.length)]!); break;
+      }
+      for (const e of inv.grid) {
+        expect(inv.inBounds(e.x, e.y, e.item.w, e.item.h), `step ${step}: ${e.item.name} at ${e.x},${e.y}`).toBe(true);
+        expect(inv.overlapping(e.x, e.y, e.item.w, e.item.h), `step ${step}: overlap at ${e.x},${e.y}`).toEqual([e]);
+      }
+      for (const [slot, item] of Object.entries(inv.equip)) if (item) expect(item.slot, `step ${step}`).toBe(slot);
+      const ids = where().map(i => i.id);
+      expect(new Set(ids).size, `step ${step}: an item twice`).toBe(ids.length);
+      expect(new Set(ids), `step ${step}: an item lost`).toEqual(all);
+    }
+  });
+});

@@ -105,7 +105,7 @@ export class Inventory {
   /** Place the held item at (x, y). Lands on at most one other item, which is picked up in a swap. */
   placeHeldAt(x: number, y: number): boolean {
     const held = this.held;
-    if (!held) return false;
+    if (!held || !this.inBounds(x, y, held.w, held.h)) return false;
     const hits = this.overlapping(x, y, held.w, held.h);
     if (hits.length > 1) return false;
     this.grid = this.grid.filter(e => e !== hits[0]);
