@@ -21,6 +21,7 @@ import { dropItem } from "./actions.ts";
 import { toast, type Game } from "./game.ts";
 import { heardRumour } from "./ghost.ts";
 import { curioClue } from "./clues.ts";
+import { gilLines, isGil } from "./quay.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -51,6 +52,7 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   // The King gives you your task the first time, and reminds you of it after.
   if (isKing && visits === 0) toast(g, KINGS_TASK, true);
   const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!])
+    : isGil(g, e) ? gilLines(g)
     : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
   const clue = resident ? curioClue(g) : null;
