@@ -27,7 +27,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
 
   // ---------- Sword swoosh ----------
   // A flat arc from where the sweep began to where the blade is now, fading after the sweep.
-  const swooshMat = basic(PAL.W, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  const swooshMat = ctx.glow(PAL.W, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
   const swoosh = new THREE.Mesh(new THREE.BufferGeometry(), swooshMat);
   swoosh.position.y = 0.5;
   hero.group.add(swoosh);
@@ -182,7 +182,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
   }
   const reticle = new THREE.Mesh(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0.18, 0, 0), new THREE.Vector3(-0.1, 0, -0.14), new THREE.Vector3(-0.1, 0, 0.14)]),
-    basic(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, ...onGround(GROUND.marker) }));
+    ctx.glow(PAL.Y, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, ...onGround(GROUND.marker) }));
   scene.add(reticle);
 
   return {
@@ -293,7 +293,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
       wasDashing = dashing;
       if (dashing && (ghostTimer -= dt) <= 0) {
         ghostTimer = 0.03;
-        const mat = basic(PAL.C, { transparent: true, opacity: 0.45, depthWrite: false });
+        const mat = ctx.glow(PAL.C, { transparent: true, opacity: 0.45, depthWrite: false });
         const ghost = hero.body.clone();
         ghost.traverse(o => { if (o instanceof THREE.Mesh) o.material = mat; });
         const holder = new THREE.Group(); holder.add(ghost);

@@ -52,7 +52,7 @@ export function makeBody(ctx: RenderContext): Body {
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 7, 5), skin); head.position.y = 0.8;
   const face = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 4), basic(PAL.k));
   face.position.set(0.17, 0.78, 0); face.scale.set(0.55, 0.8, 0.9);
-  const eyeMat = basic(PAL.Y);
+  const eyeMat = ctx.glow(PAL.Y);                           // the eyes shine, day and night
   const eyes = [-1, 1].map(s => { const e = new THREE.Mesh(box(0.05, 0.1, 0.06), eyeMat); e.position.set(0.29, 0.8, s * 0.075); return e; });
   // Each foot is a group so bare feet and boots share the walk animation.
   const feet = [-1, 1].map(s => {

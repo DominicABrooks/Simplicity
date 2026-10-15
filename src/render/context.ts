@@ -25,7 +25,16 @@ export interface RenderContext {
   /** PS1 vertex snapping grid, in screen pixels (set on resize). */
   snap: { value: THREE.Vector2 };
   lambert(c: string, o?: THREE.MeshLambertMaterialParameters): THREE.MeshLambertMaterial;
+  /** A flat colour, unlit but shaded by how much light there is (see light): it dims at night and indoors like everything else. */
   basic(c: string, o?: THREE.MeshBasicMaterialParameters): THREE.MeshBasicMaterial;
+  /** A flat colour that gives its own light, as bright at midnight as at noon: flames, lit windows, glowing eyes, spells, markers. */
+  glow(c: string, o?: THREE.MeshBasicMaterialParameters): THREE.MeshBasicMaterial;
+  /** Make these lit materials glow faintly of themselves in the dark (see nightGlow): enemies you need to see by night. */
+  glowAtNight(...mats: THREE.Material[]): void;
+  /** How much light there is: 1 by day, down to about a third at night (the renderer sets it from the sky and sun each frame). */
+  light: { value: number };
+  /** How strongly the glowAtNight materials glow: not at all by day, more as it darkens. */
+  nightGlow: { value: number };
   /** A lathe (turned) mesh from [radius, y] points. */
   lathe(pts: [number, number][], mat: THREE.Material): THREE.Mesh;
   tex: Textures;
@@ -37,28 +46,42 @@ export interface RenderContext {
 
 export function createContext(scene: THREE.Scene): RenderContext {
   const snap = { value: new THREE.Vector2(160, 120) };
-  // PS1 look: snap every vertex to a coarse screen grid, so geometry wobbles slightly as it moves.
-  function ps1<M extends THREE.Material>(mat: M): M {
+  const light = { value: 1 }, nightGlow = { value: 0 };
+  // PS1 look: snap every vertex to a coarse screen grid, so geometry wobbles slightly as it moves. And by kind:
+  // a flat colour shaded by the light ("dim"), or a lit material with a faint glow of its own in the dark. Each
+  // kind is its own shader program (three.js would otherwise share one between handlers whose source reads the same).
+  function ps1<M extends THREE.Material>(mat: M, kind: "lit" | "glow" | "dim" | "nightGlow" = "lit"): M {
     mat.onBeforeCompile = sh => {
       sh.uniforms.uSnap = snap;
       sh.vertexShader = "uniform vec2 uSnap;\n" + sh.vertexShader.replace(
         "#include <project_vertex>",
         "#include <project_vertex>\n  gl_Position.xy = floor(gl_Position.xy / gl_Position.w * uSnap + 0.5) / uSnap * gl_Position.w;");
+      if (kind === "dim") {
+        sh.uniforms.uLight = light;
+        sh.fragmentShader = "uniform float uLight;\n" + sh.fragmentShader.replace("#include <opaque_fragment>", "#include <opaque_fragment>\n  gl_FragColor.rgb *= uLight;");
+      }
+      if (kind === "nightGlow") {
+        sh.uniforms.uNightGlow = nightGlow;
+        sh.fragmentShader = "uniform float uNightGlow;\n" + sh.fragmentShader.replace("#include <opaque_fragment>", "outgoingLight += diffuseColor.rgb * uNightGlow;\n#include <opaque_fragment>");
+      }
     };
+    mat.customProgramCacheKey = () => "ps1-" + kind;
     return mat;
   }
   const lambert = (c: string, o: THREE.MeshLambertMaterialParameters = {}) =>
     ps1(new THREE.MeshLambertMaterial({ color: col(c), flatShading: true, dithering: true, ...o }));
-  const basic = (c: string, o: THREE.MeshBasicMaterialParameters = {}) => ps1(new THREE.MeshBasicMaterial({ color: col(c), ...o }));
+  const basic = (c: string, o: THREE.MeshBasicMaterialParameters = {}) => ps1(new THREE.MeshBasicMaterial({ color: col(c), ...o }), "dim");
+  const glow = (c: string, o: THREE.MeshBasicMaterialParameters = {}) => ps1(new THREE.MeshBasicMaterial({ color: col(c), ...o }), "glow");
+  const glowAtNight = (...mats: THREE.Material[]) => { for (const m of mats) if (m instanceof THREE.MeshLambertMaterial) ps1(m, "nightGlow"); };
   const lathe = (pts: [number, number][], mat: THREE.Material) =>
     new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 7), mat);
 
   return {
-    scene, snap, lambert, basic, lathe,
+    scene, snap, lambert, basic, glow, glowAtNight, light, nightGlow, lathe,
     tex: createTextures(),
     shadowGeo: new THREE.CircleGeometry(0.34, 8).rotateX(-Math.PI / 2),
     shadowMat: basic("#000000", { transparent: true, opacity: 0.35, depthWrite: false, ...onGround(GROUND.shadow) }),
-    particles: createParticles(scene, basic),
+    particles: createParticles(scene, glow),                 // sparks, fire and spells shine
   };
 }
 

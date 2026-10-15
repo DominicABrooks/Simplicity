@@ -137,6 +137,10 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
       camTarget.set(smooth(camTarget.x, px, dt, 8), 0, smooth(camTarget.z, pz, dt, 8));
       weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z);   // no rain indoors
+      // How much light there is now, from the sky light and the sun as the hour and weather leave them (1 by day,
+      // about a third at night): flat colours are shaded by it, and enemies glow a little more the darker it gets.
+      ctx.light.value = THREE.MathUtils.clamp((fill.intensity * 0.6 + sun.intensity * 0.25) / 1.5, 0.22, 1);
+      ctx.nightGlow.value = (1 - ctx.light.value) * 0.45;
       camera.position.copy(camTarget).add(CAM_OFFSET);
       camera.lookAt(camTarget);
       if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));

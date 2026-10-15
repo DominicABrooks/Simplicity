@@ -36,14 +36,14 @@ export function place(parent: THREE.Group, g: THREE.Group, x: number, z: number,
 // ---------- Brazier ----------
 /** An iron fire bowl on a tripod, its flames flickering and throwing embers. */
 export function buildBrazier(ctx: RenderContext, parent: THREE.Group, p: PropOf<"brazier">): PropView {
-  const { lambert, basic, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON);
+  const { lambert, glow, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON);
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * Math.PI * 2;
     put(g, box(0.05, 1.0, 0.05), iron, Math.cos(a) * 0.17, 0.48, Math.sin(a) * 0.17, Math.sin(a) * 0.2, 0, -Math.cos(a) * 0.2);
   }
   put(g, new THREE.CylinderGeometry(0.3, 0.16, 0.22, 8, 1, true), lambert(IRON, { side: THREE.DoubleSide }), 0, 1.02, 0);
-  put(g, new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8), basic("#e8642a"), 0, 1.06, 0);   // the coals
-  const flames = [PAL.O, PAL.Y, "#e8642a"].map((c, i) => put(g, new THREE.ConeGeometry(0.14 - i * 0.03, 0.45 - i * 0.1, 5), basic(c), (i - 1) * 0.07, 1.28, (i % 2) * 0.05));
+  put(g, new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8), ctx.glow("#e8642a"), 0, 1.06, 0);   // the coals
+  const flames = [PAL.O, PAL.Y, "#e8642a"].map((c, i) => put(g, new THREE.ConeGeometry(0.14 - i * 0.03, 0.45 - i * 0.1, 5), glow(c), (i - 1) * 0.07, 1.28, (i % 2) * 0.05));
   const [x, z] = at(p);
   place(parent, g, x, z);
   return {
@@ -156,7 +156,7 @@ export function buildWell(ctx: RenderContext, parent: THREE.Group, p: PropOf<"we
  * he's there hammering (the townsfolk view throws them).
  */
 export function buildSmithy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"smithy">): PropView {
-  const { lambert, basic, tex, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON), wood = lambert(DARK_WOOD);
+  const { lambert, glow, tex, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON), wood = lambert(DARK_WOOD);
   const w = p.rect.w / T - 0.2, d = p.rect.h / T - 0.2;
   // The lean-to: posts and a sloping shingled roof over the back half.
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 0.1], [1, 0.1]] as const) put(g, box(0.1, sz < 0 ? 2.0 : 1.6, 0.1), wood, sx * (w / 2 - 0.05), (sz < 0 ? 2.0 : 1.6) / 2, sz * (d / 2 - 0.05));
@@ -164,7 +164,7 @@ export function buildSmithy(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
   // The hearth at the back, its coals, hood and chimney.
   const hx = -w / 2 + 0.6;
   put(g, tiledBox(1.0, 0.75, 0.8, 0.5), lambert("#ffffff", { map: tex.stone }), hx, 0.375, -d / 2 + 0.45);
-  const coals = put(g, box(0.7, 0.05, 0.5), basic("#e8642a"), hx, 0.77, -d / 2 + 0.45);
+  const coals = put(g, box(0.7, 0.05, 0.5), glow("#e8642a"), hx, 0.77, -d / 2 + 0.45);
   put(g, new THREE.CylinderGeometry(0.15, 0.5, 0.45, 4, 1, true), lambert("#77706a", { side: THREE.DoubleSide }), hx, 1.25, -d / 2 + 0.45, 0, Math.PI / 4);
   put(g, tiledBox(0.3, 1.2, 0.3, 0.5), lambert("#ffffff", { map: tex.stone }), hx, 1.95, -d / 2 + 0.45);
   put(g, box(0.4, 0.2, 0.25), lambert("#7a4a2a"), hx + 0.62, 0.5, -d / 2 + 0.45, 0, 0, 0.3);   // the bellows
@@ -413,12 +413,12 @@ export function buildStairs(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
 // ---------- Torch ----------
 /** A torch in an iron sconce on a wall, its flame flickering, now and then an ember. */
 export function buildTorch(ctx: RenderContext, parent: THREE.Group, p: PropOf<"torch">): PropView {
-  const { lambert, basic, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON);
+  const { lambert, glow, particles } = ctx, g = new THREE.Group(), iron = lambert(IRON);
   put(g, box(0.18, 0.3, 0.05), iron, 0, 0, 0);
   put(g, box(0.05, 0.05, 0.3), iron, 0, -0.05, 0.15);
   put(g, new THREE.CylinderGeometry(0.035, 0.03, 0.45, 5), lambert(DARK_WOOD), 0, 0.1, 0.3, -0.25, 0, 0);
-  const flame = put(g, new THREE.ConeGeometry(0.09, 0.3, 5), basic(PAL.O), 0, 0.42, 0.36);
-  const core = put(g, new THREE.ConeGeometry(0.05, 0.18, 5), basic(PAL.Y), 0, 0.38, 0.36);
+  const flame = put(g, new THREE.ConeGeometry(0.09, 0.3, 5), glow(PAL.O), 0, 0.42, 0.36);
+  const core = put(g, new THREE.ConeGeometry(0.05, 0.18, 5), glow(PAL.Y), 0, 0.38, 0.36);
   const [x, z] = at(p);
   g.position.set(x, p.height, z);
   g.rotation.y = TURN[p.facing];

@@ -18,6 +18,7 @@ export function makeSlimeModel(ctx: RenderContext): SlimeModel {
   const { lambert, basic } = ctx;
   const group = new THREE.Group(), body = new THREE.Group();
   const mat = lambert(PAL.G, { transparent: true, opacity: 0.9, emissive: col("#000000") });
+  ctx.glowAtNight(mat);                                       // so you can still make it out at night
   const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(0.36, 0), mat);
   blob.scale.set(1, 0.72, 1); blob.position.y = 0.26;
   const eyeMat = basic(PAL.k);
@@ -33,9 +34,16 @@ export const MAGE_EYES: Record<School, string> = { ember: PAL.O, frost: PAL.C, s
 /** The hero's body in a school's robes, hood and boots, with glowing eyes. Added to the scene (see makeBody). */
 export function makeMageBody(ctx: RenderContext, school: School): Body {
   const m = makeBody(ctx);
-  const eyeMat = ctx.basic(MAGE_EYES[school]);
+  const eyeMat = ctx.glow(MAGE_EYES[school]);
   m.eyes.forEach(eye => { eye.material = eyeMat; });
   m.ripple.visible = false;
   dressBody(ctx, m, { helm: school, armor: school, boots: school, weapon: null, ring: null, amulet: null, weaponType: null });
+  // A faint glow of its own in the dark, so you can still make it out at night: on its own copies of the
+  // materials, as the hero's and the townsfolk's bodies may share them.
+  m.group.traverse(o => {
+    if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshLambertMaterial)) return;
+    o.material = o.material.clone();
+    ctx.glowAtNight(o.material);
+  });
   return m;
 }

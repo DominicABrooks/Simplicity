@@ -101,7 +101,7 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
       put(g, box(w + 0.1, 0.12, d * 0.8), lambert("#8a8378", { map: tex.stone }), 0, 1.0, -d * 0.1);
       put(g, box(w * 0.7, 0.06, 0.25), stone, 0, 0.03, d * 0.45);
       for (const s of [-1, 1]) put(g, new THREE.CylinderGeometry(0.05, 0.05, 0.5, 5), lambert("#6b4f3a"), s * 0.12, 0.08, d * 0.3, 0, 0.4 * s, Math.PI / 2);   // logs, in the mouth of it
-      const flames = [0, 1, 2].map(i => put(g, new THREE.ConeGeometry(0.1 - i * 0.02, 0.32 - i * 0.05, 5), basic(["#ffb040", "#ff7a2a", "#ffe08a"][i]!), (i - 1) * 0.1, 0.25, d * 0.3));
+      const flames = [0, 1, 2].map(i => put(g, new THREE.ConeGeometry(0.1 - i * 0.02, 0.32 - i * 0.05, 5), ctx.glow(["#ffb040", "#ff7a2a", "#ffe08a"][i]!), (i - 1) * 0.1, 0.25, d * 0.3));
       const light = new THREE.PointLight(0xffa860, 5, 9, 1.6);
       light.position.set(0, 0.7, d * 0.6);
       g.add(light);
@@ -124,7 +124,7 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
       put(g, new THREE.CylinderGeometry(0.12, 0.08, 0.08, 8), lambert("#b8a88a"), 0.1, 0.8, 0.15);
       put(g, new THREE.CylinderGeometry(0.06, 0.08, 0.2, 6), lambert("#8a6a4a"), 0.45, 0.86, -0.15);
       put(g, new THREE.CylinderGeometry(0.03, 0.03, 0.14, 5), lambert(LINEN), 0.15, 0.83, -0.2);
-      put(g, new THREE.ConeGeometry(0.025, 0.06, 4), basic(LIT), 0.15, 0.93, -0.2);
+      put(g, new THREE.ConeGeometry(0.025, 0.06, 4), ctx.glow(LIT), 0.15, 0.93, -0.2);
       break;
     }
     case "bench": {                                           // a plank seat on splayed trestle legs

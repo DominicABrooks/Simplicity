@@ -387,8 +387,8 @@ export function createAmbient(ctx: RenderContext): Ambient {
       }) : [];
       fireflies = edgeTiles.length ? Array.from({ length: 26 }, () => {
         const glow = { transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending };
-        const mesh = new THREE.Mesh(fireflyGeo, basic("#efffa0", glow));
-        const halo = new THREE.Mesh(haloGeo, basic("#b8f060", glow));   // a soft glow around it, facing the camera
+        const mesh = new THREE.Mesh(fireflyGeo, ctx.glow("#efffa0", glow));
+        const halo = new THREE.Mesh(haloGeo, ctx.glow("#b8f060", glow));   // a soft glow around it, facing the camera
         halo.rotation.x = -0.94;
         mesh.add(halo);
         mesh.visible = false;

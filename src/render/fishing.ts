@@ -25,7 +25,7 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
   );
   const splash = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.2, 10).rotateX(-Math.PI / 2), basic(PAL.W, { transparent: true, opacity: 0.7, depthWrite: false, ...onGround(GROUND.marker) }));
   const castMarker = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.24, 8).rotateX(-Math.PI / 2),
-    basic(PAL.C, { transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, ...onGround(GROUND.marker) }));
+    ctx.glow(PAL.C, { transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, ...onGround(GROUND.marker) }));
   castMarker.visible = false;
   scene.add(line, bobber, splash, castMarker);
   line.visible = bobber.visible = splash.visible = false;

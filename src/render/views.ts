@@ -95,8 +95,8 @@ const mage: EntityView<MageView> = {
     })) as Record<BoltKind, THREE.Group>;
     // Frost Nova telegraph: the blast radius outlined on the ground, filling as the spell charges.
     const R = SPELLS.nova.radius! / PX_PER_TILE;
-    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.basic(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
-    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.basic(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false, ...onGround(GROUND.marker) }));
+    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.glow(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
+    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.glow(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false, ...onGround(GROUND.marker) }));
     novaEdge.position.y = novaFill.position.y = 0.03;
     m.group.add(novaEdge, novaFill);
     return { ...m, orbs, novaEdge, novaFill, yaw: null, wasMelee: false };
@@ -182,7 +182,7 @@ const loot: EntityView<LootView> = {
     if (rarity !== "normal") {                               // light beam: short for magic, tall for rare
       const hgt = rarity === "rare" ? 3 : 1.2;
       group.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.12, hgt, 5, 1, true).translate(0, hgt / 2, 0),
-        ctx.basic(c, { transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending })));
+        ctx.glow(c, { transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending })));
     }
     const shadow = addShadow(ctx, 0.5);
     ctx.scene.add(group, shadow);
@@ -261,8 +261,8 @@ interface StrikeView extends Simple { edge: THREE.Mesh<THREE.BufferGeometry, THR
 const strike: EntityView<StrikeView> = {
   create(ctx) {
     const R = SPELLS.strike.radius! / PX_PER_TILE, group = new THREE.Group();
-    const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.08, R, 16).rotateX(-Math.PI / 2), ctx.basic(PAL.Y, { transparent: true, opacity: 0.85, depthWrite: false, ...onGround(GROUND.marker) }));
-    const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 16).rotateX(-Math.PI / 2), ctx.basic(PAL.Y, { transparent: true, opacity: 0.3, depthWrite: false, ...onGround(GROUND.marker) }));
+    const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.08, R, 16).rotateX(-Math.PI / 2), ctx.glow(PAL.Y, { transparent: true, opacity: 0.85, depthWrite: false, ...onGround(GROUND.marker) }));
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 16).rotateX(-Math.PI / 2), ctx.glow(PAL.Y, { transparent: true, opacity: 0.3, depthWrite: false, ...onGround(GROUND.marker) }));
     group.add(edge, fill);
     ctx.scene.add(group);
     return { group, shadow: new THREE.Object3D(), edge, fill };

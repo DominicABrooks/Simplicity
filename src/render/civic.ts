@@ -185,7 +185,7 @@ export function buildHall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ha
         // frame, glass lit or dark, and a stone mullion and transom across it.
         const lit = hash(p.rect.x + i, p.rect.y + f, 420) < 0.45, h = storeyH * 0.62, out = side * 0.03;
         put(g, box(0.56, h + 0.14, 0.04), trim, x, y + h / 2, z);
-        put(g, box(0.44, h, 0.04), basic(lit ? LIT : "#2b3a5a"), x, y + h / 2, z + out);
+        put(g, box(0.44, h, 0.04), lit ? ctx.glow(LIT) : basic("#2b3a5a"), x, y + h / 2, z + out);
         put(g, box(0.05, h, 0.05), trim, x, y + h / 2, z + out * 1.6);
         put(g, box(0.44, 0.05, 0.05), trim, x, y + h * 0.62, z + out * 1.6);
       } else put(g, box(0.36, 0.44, 0.06), lambert("#5e4630"), x, y + 0.25, z);

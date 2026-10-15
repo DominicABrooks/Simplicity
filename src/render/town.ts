@@ -236,7 +236,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   const { lambert, basic, tex } = ctx, g = new THREE.Group(), seed = p.rect.x * 3 + p.rect.y * 7;
   const sideways = p.doorSide === "east" || p.doorSide === "west", body = houseBody(p.rect);
   const w = sideways ? body.d : body.w, d = sideways ? body.w : body.d, storeys = p.storeys;
-  const timber = lambert("#ffffff", { map: tex.timber }), frame = lambert(DARK_WOOD), glass = basic(LIT), shutter = lambert(SHUTTER);
+  const timber = lambert("#ffffff", { map: tex.timber }), frame = lambert(DARK_WOOD), glass = ctx.glow(LIT), shutter = lambert(SHUTTER);
   const stone = lambert("#ffffff", { map: tex.stone });
   let lights = 0;
   // A window on the front (`facing` 1) or the back (-1): lit glass between shutters folded back, or shut.
@@ -346,7 +346,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
     const lx = doorX + (doorX < 0 ? -0.45 : 0.45) * (p.sign ? -1 : 1);
     const arm = new THREE.Mesh(box(0.04, 0.04, 0.28), iron);
     arm.position.set(lx, 1.75, front + 0.14);
-    const lamp = new THREE.Mesh(box(0.14, 0.2, 0.14), basic(LIT));
+    const lamp = new THREE.Mesh(box(0.14, 0.2, 0.14), ctx.glow(LIT));
     lamp.position.set(lx, 1.58, front + 0.26);
     const cap = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.1, 4), iron);
     cap.position.set(lx, 1.73, front + 0.26);
@@ -426,7 +426,7 @@ export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ke
   spire.rotation.y = Math.PI / 4;
   g.add(donjon, crown, spire);
   for (let i = -1; i <= 1; i++) for (const y of [H + dh * 0.35, H + dh * 0.7]) {
-    const win = new THREE.Mesh(box(0.32, 0.75, 0.05), basic(LIT));
+    const win = new THREE.Mesh(box(0.32, 0.75, 0.05), ctx.glow(LIT));
     win.position.set(i * ds * 0.28, y, -0.4 + ds * 0.425 + 0.02);
     g.add(win);
   }
@@ -462,7 +462,7 @@ export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ke
   // Rows of lit windows along the front, clear of the door, the banners and the towers.
   for (let y = 3.2; y < H - 0.8; y += 1.4) for (let x = -w / 2 + tr + 1.2; x <= w / 2 - tr - 1.2; x += 1.2) {
     if (Math.abs(x) < 1.9 || Math.abs(Math.abs(x) - 2.8) < 0.8) continue;
-    const win = new THREE.Mesh(box(0.28, 0.6, 0.05), basic(LIT));
+    const win = new THREE.Mesh(box(0.28, 0.6, 0.05), ctx.glow(LIT));
     win.position.set(x, y, front);
     g.add(win);
   }

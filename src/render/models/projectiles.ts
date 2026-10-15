@@ -20,7 +20,7 @@ export const ORB_COLORS: Record<BoltKind, [string, string]> = { fire: [PAL.Y, PA
 
 export function makeOrbMesh(ctx: RenderContext, kind: BoltKind = "fire"): THREE.Group {
   const g = new THREE.Group(), [core, shell] = ORB_COLORS[kind];
-  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), ctx.basic(core)));
-  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 0), ctx.basic(shell, { transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })));
+  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), ctx.glow(core)));
+  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 0), ctx.glow(shell, { transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })));
   return g;
 }

@@ -107,14 +107,14 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group, camp: Extract
     fire.add(log);
   }
   const flames = ([[0.19, 0.62, PAL.R], [0.14, 0.48, PAL.O], [0.08, 0.32, PAL.Y]] as const).map(([r, h, c], i) => {
-    const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 5).translate(0, h / 2, 0), basic(c, { transparent: true, opacity: 0.92 }));
+    const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 5).translate(0, h / 2, 0), ctx.glow(c, { transparent: true, opacity: 0.92 }));
     m.position.y = 0.06 + i * 0.01;
     fire.add(m);
     return m;
   });
   // A soft pool of firelight on the ground (the grass texture is too dark to show the light alone).
   // It fades out smoothly from the fire, so it has no edge.
-  const glow = new THREE.Mesh(quad, basic(PAL.O, { ...DECAL, map: disc, opacity: 0.3, blending: THREE.AdditiveBlending }));
+  const glow = new THREE.Mesh(quad, ctx.glow(PAL.O, { ...DECAL, map: disc, opacity: 0.3, blending: THREE.AdditiveBlending }));
   glow.scale.setScalar(1.6);
   glow.position.y = 0.02;
   glow.renderOrder = 1;

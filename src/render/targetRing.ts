@@ -21,7 +21,7 @@ const DECKS = {
 } as const;
 
 export function createTargetRing(ctx: RenderContext): TargetRing {
-  const mat = ctx.basic(PAL.R, { transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide, ...onGround(GROUND.marker) });
+  const mat = ctx.glow(PAL.R, { transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide, ...onGround(GROUND.marker) });
   const ring = new THREE.Group();
   // Four arcs with gaps between them, on a unit circle; scaled to each target's radius. Each sits on
   // a slightly bigger ink arc, so the ring reads on any ground (even in the campfire's glow).
