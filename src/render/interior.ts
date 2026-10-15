@@ -323,7 +323,7 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
       for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
         put(g, box(GW / 2 - 0.04, GH / 4 - 0.04, 0.02), basic(STAINED[Math.floor(seed * 50 + r * 2 + c) % STAINED.length]!), (c - 0.5) * (GW / 2), y0 + (r + 0.5) * (GH / 4), 0.07);
       }
-      put(g, new THREE.CircleGeometry(0.16, 8), basic("#f5d562"), 0, y0 + GH + 0.08, 0.07);                // a rose at the head
+      put(g, new THREE.CircleGeometry(0.16, 8), ctx.glow("#f5d562"), 0, y0 + GH + 0.08, 0.07);                // a rose at the head
       break;
     }
     case "candelabra": {                                      // a tall gold candelabra on three feet: five arms, five candles, five flames
@@ -335,7 +335,7 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
       for (let i = 0; i < 5; i++) {
         const x = (i - 2) * 0.15, y = 1.42 + (i === 2 ? 0.12 : Math.abs(i - 2) === 1 ? 0.05 : 0);
         put(g, new THREE.CylinderGeometry(0.03, 0.03, 0.16, 5), wax, x, y + 0.08, 0);
-        flames.push(put(g, new THREE.ConeGeometry(0.03, 0.09, 4), basic("#ffd070"), x, y + 0.21, 0));
+        flames.push(put(g, new THREE.ConeGeometry(0.03, 0.09, 4), ctx.glow("#ffd070"), x, y + 0.21, 0));
       }
       update = t => flames.forEach((f, i) => { f.scale.y = 0.8 + Math.abs(Math.sin(t * (8 + i) + i * 1.7)) * 0.5; });
       break;
@@ -348,7 +348,7 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2, x = Math.cos(a) * 0.55, z = Math.sin(a) * 0.55;
         put(g, new THREE.CylinderGeometry(0.03, 0.03, 0.14, 5), lambert("#f4ecd8"), x, Hc + 0.09, z);
-        flames.push(put(g, new THREE.ConeGeometry(0.035, 0.1, 4), basic("#ffd070"), x, Hc + 0.2, z));
+        flames.push(put(g, new THREE.ConeGeometry(0.035, 0.1, 4), ctx.glow("#ffd070"), x, Hc + 0.2, z));
       }
       const light = new THREE.PointLight(0xffd090, 4, 8, 1.4);
       light.position.set(0, Hc - 0.2, 0);
