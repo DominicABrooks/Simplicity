@@ -115,9 +115,11 @@ export function createMapView(g: Game): MapView {
     mg.clearRect(0, 0, marks.width, marks.height);
     for (const prop of g.area.layout.props) {
       if (prop.kind === "camp") {
-        // A camp: a little tent, and the fire beside it.
-        const [tx, ty] = toMap(prop.tent.x + prop.tent.w / 2 - HALF, prop.tent.y + prop.tent.h / 2 - HALF);
-        shape([[tx - 3.5, ty + 2.5], [tx, ty - 3.5], [tx + 3.5, ty + 2.5]], "#d8c8a0");
+        // A camp: a little tent (if it has one), and the fire beside it.
+        if (prop.tent) {
+          const [tx, ty] = toMap(prop.tent.x + prop.tent.w / 2 - HALF, prop.tent.y + prop.tent.h / 2 - HALF);
+          shape([[tx - 3.5, ty + 2.5], [tx, ty - 3.5], [tx + 3.5, ty + 2.5]], "#d8c8a0");
+        }
         const [fx, fy] = toMap(prop.fire.x, prop.fire.y);
         mg.fillStyle = PAL.K; mg.fillRect(Math.round(fx) - 2, Math.round(fy) - 2, 4, 4);
         mg.fillStyle = PAL.O; mg.fillRect(Math.round(fx) - 1, Math.round(fy) - 1, 2, 2);

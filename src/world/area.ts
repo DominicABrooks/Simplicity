@@ -26,7 +26,8 @@ export interface ExitDef {
 export type Prop =
   | {
       kind: "camp";
-      tent: Rect;
+      /** Its tent, if it has one (the Greyed's camp has just its cold fire). */
+      tent?: Rect;
       /** The fire pit's cell (top-left). */
       fire: Point;
       seat: Point;

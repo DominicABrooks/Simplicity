@@ -150,7 +150,13 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       camera.position.copy(camTarget).addScaledVector(CAM_OFFSET, camZoom);
       camera.lookAt(camTarget);
       if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));
+      // Asleep, only the scenery, the hero and the light are drawn: nobody and nothing else moving about (and the
+      // shade over the screen, src/ui/sleepShade.ts, blacks out all but his bed). Put back as they were after.
+      const asleep = g.world.has(g.player, "sleeping");
+      const hidden = asleep ? scene.children.filter(o => o.visible && o !== world && o !== hero.body.group && o !== hero.body.shadow && !(o instanceof THREE.Light)) : [];
+      for (const o of hidden) o.visible = false;
       renderer.render(scene, camera);
+      for (const o of hidden) o.visible = true;
     },
 
     screenToGame(clientX, clientY) {

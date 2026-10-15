@@ -75,9 +75,11 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group, camp: Extract
   const { lambert, basic, particles, tex } = ctx;
 
   // Tent: centred on its footprint, the doorway facing the camera (south).
-  const tent = buildTent(ctx);
-  tent.position.set((camp.tent.x + camp.tent.w / 2) / PX_PER_TILE, 0, (camp.tent.y + camp.tent.h / 2) / PX_PER_TILE);
-  parent.add(tent);
+  if (camp.tent) {
+    const tent = buildTent(ctx);
+    tent.position.set((camp.tent.x + camp.tent.w / 2) / PX_PER_TILE, 0, (camp.tent.y + camp.tent.h / 2) / PX_PER_TILE);
+    parent.add(tent);
+  }
 
   // Campfire: scorched ground, a ring of stones, a tipi of logs and three nested flames.
   const [fx, fz] = toWorld(camp.fire.x, camp.fire.y);

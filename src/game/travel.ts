@@ -34,7 +34,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   cancelActions(g.world.need(g.player, "actions"));
 
   for (const prop of layout.props) {
-    if (prop.kind === "camp") { spawnCampfire(g, prop.fire.x, prop.fire.y); spawnTent(g, prop.tent); }
+    if (prop.kind === "camp") { spawnCampfire(g, prop.fire.x, prop.fire.y); if (prop.tent) spawnTent(g, prop.tent); }
     if (prop.kind === "furniture" && prop.item === "bed") spawnBed(g, prop);
     if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
     if (prop.kind === "king") spawnKing(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
