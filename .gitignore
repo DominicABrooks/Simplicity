@@ -5,3 +5,8 @@ __pycache__/
 src/assets/generated/
 public/fonts/
 build/
+
+# End-to-end runs (npm run e2e)
+dist-e2e/
+test-results/
+playwright-report/

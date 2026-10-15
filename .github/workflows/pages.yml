@@ -1,5 +1,5 @@
 # Check, test, build and publish the game to GitHub Pages on every push to main.
-# A failing lint, type check or test stops the deploy.
+# A failing lint, type check, test or end-to-end spec stops the deploy.
 name: Deploy to GitHub Pages
 
 on:
@@ -37,8 +37,32 @@ jobs:
         with:
           path: dist
 
+  # The story's big beats, played through in a real browser (e2e/): the road to the King, his audience
+  # cutscene, the Grey Ringer's fight. A failure here stops the deploy too.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+        env:
+          CI: true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
   deploy:
-    needs: build
+    needs: [build, e2e]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:

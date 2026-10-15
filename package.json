@@ -14,6 +14,8 @@
     "pretest": "npm run assets",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pree2e": "npm run assets",
+    "e2e": "playwright test",
     "census": "tsx tools/census.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.55.0",
     "@types/node": "^26.6.5",
     "@types/pngjs": "^6.0.5",
     "@types/three": "0.160.0",

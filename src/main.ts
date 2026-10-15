@@ -27,7 +27,11 @@ import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
 import { updateChatter } from "./game/chatter.ts";
 import { startPetting, updatePetting } from "./game/petting.ts";
 import { startResting, updateResting } from "./game/resting.ts";
+import { cutscene, holdInput, skipCutscene, updateCutscene, watchCutscenes } from "./game/cutscene.ts";
+import { createLetterbox } from "./ui/letterbox.ts";
 import { enterPets } from "./game/pets.ts";
+import { createAudioPlayer } from "./audio/player.ts";
+import { exposeDebug } from "./debug.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -39,6 +43,9 @@ const hud = createHud(g, view);
 const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
 const dialogue = createDialogue(g);
+const letterbox = createLetterbox(g);
+watchCutscenes(g);
+const audio = createAudioPlayer();
 bindOverlay(g);
 bindToasts(g);
 bindFade(g);
@@ -80,16 +87,20 @@ g.events.on("state", ({ state }) => {
     });
 });
 // Talking: clicking someone friendly (or E with them targeted) talks instead of attacking; while they're
-// talking, a click or Enter, Space or E goes on, and Escape ends it.
+// talking, a click or Enter, Space or E goes on, and Escape ends it. In a cutscene the same goes on through
+// what's said, nothing else does anything, and Escape skips the scene.
 const SAY_ON = ["enter", " ", "e", "j"];
 const input = bindInput(g, {
   toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels,
   talkClick: at => {
     if (talking(g)) { advanceTalk(g); return true; }
+    if (cutscene(g)) return true;
     const hit = pickTarget(g, view, at);
     return knock(g, hit) || startResting(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; a dog or cat: pet it; someone: talk
   },
   talkKey: k => {
+    if (cutscene(g) && k === "escape") { skipCutscene(g); return true; }
+    if (cutscene(g) && !talking(g)) return k === "e";       // nobody to talk to but who the scene says
     if (talking(g)) {
       if (k === "escape") { endTalk(g); return true; }
       if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
@@ -118,14 +129,17 @@ function frame(now: number): void {
   const mouse = input.mouse();
   g.input.pointer = mouse && view.screenToGame(mouse.x, mouse.y);
   updateTarget(g, view, mouse, input.overUi());
+  holdInput(g);                                            // in a cutscene, nothing the player does moves the hero
   updateResting(g, dt);                                    // before the hero moves: anything he does gets him up
   step(g, dt);
+  updateCutscene(g, dt);                                   // after: the scene walks him, and says where to look
   updateTalk(g, dt);
   updateTownsfolk(g, g.hitstop > 0 ? 0 : dt);
   updateInterior(g);
   updateChatter(g, g.hitstop > 0 ? 0 : dt);              // and people who know each other stop for a word
   updatePetting(g, g.hitstop > 0 ? 0 : dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
+  audio.play(g.sfx, g.world.get(g.player, "transform"));
   menu.setActive(MENU.inventory, inventory.isOpen());
   menu.setActive(MENU.map, map.isOpen());
   menu.setActive(MENU.journal, journal.isOpen());
@@ -134,15 +148,12 @@ function frame(now: number): void {
   labels.draw();
   resetBar.draw();
   dialogue.draw();
+  letterbox.draw();
   requestAnimationFrame(frame);
 }
 
-// Debug handle for the browser console in development: simplicity.world, simplicity.hero(), ...
-if (import.meta.env.DEV) {
-  Object.assign(window, {
-    simplicity: { game: g, view, world: g.world, hero: () => g.world.need(g.player, "transform"), critters: () => view.critters(), memory: () => view.memory() },
-  });
-}
+// Debug handle for the browser console in development, and for the end-to-end specs (e2e/) in their build.
+if (import.meta.env.DEV || import.meta.env.MODE === "e2e") exposeDebug(g, view);
 
 resize();
 resetGame(g);
