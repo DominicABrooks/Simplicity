@@ -6,6 +6,7 @@ import { FACING_ANGLE, type AreaDef } from "../world/area.ts";
 import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { doorStep } from "../world/townkit.ts";
+import { spawnBed, spawnTent } from "./sleeping.ts";
 import { lockedOut } from "./undercroft.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
@@ -33,7 +34,8 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   cancelActions(g.world.need(g.player, "actions"));
 
   for (const prop of layout.props) {
-    if (prop.kind === "camp") spawnCampfire(g, prop.fire.x, prop.fire.y);
+    if (prop.kind === "camp") { spawnCampfire(g, prop.fire.x, prop.fire.y); spawnTent(g, prop.tent); }
+    if (prop.kind === "furniture" && prop.item === "bed") spawnBed(g, prop);
     if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
     if (prop.kind === "king") spawnKing(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
     if (prop.kind === "dummy" || prop.kind === "target") spawnTraining(g, prop.kind === "dummy" ? "dummy" : "butt", prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);

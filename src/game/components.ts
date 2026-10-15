@@ -350,6 +350,28 @@ export interface Resting {
   hp: number;
 }
 
+/** Somewhere to sleep, a tent or a bed: where the hero lies in it (px, like a transform), feet toward `face`, `ahead` tiles on, `lift` tiles up. */
+export interface Bed {
+  x: number;
+  y: number;
+  face: number;
+  ahead: number;
+  lift: number;
+}
+
+/** The hero asleep in a tent or a bed, the clock running fast (see src/game/sleeping.ts). */
+export interface Sleeping {
+  bed: Entity;
+  /** Where he was standing, to get up there again, and in which area. */
+  from: { x: number; y: number };
+  area: string;
+  /** In-game hours slept so far, toward the next heart, and to the next Z; his health as last seen (a drop wakes him). */
+  slept: number;
+  heal: number;
+  snore: number;
+  hp: number;
+}
+
 /** The hero talking to someone (see src/game/talk.ts). */
 export interface Conversation {
   with: Entity;
@@ -393,6 +415,8 @@ export interface Components {
   dummy: Dummy;
   conversation: Conversation;
   resting: Resting;
+  sleeping: Sleeping;
+  bed: Bed;
   cutscene: Cutscene;
   walker: Walker;
   pet: Pet;
