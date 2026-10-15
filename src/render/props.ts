@@ -16,6 +16,7 @@ import { buildFurniture, buildRoom } from "./interior.ts";
 import { buildBunting, buildFountain, buildPlaza, buildStall, buildStandard, buildStock } from "./market.ts";
 import type { Occluder } from "./occlusion.ts";
 import { buildBridge, buildCurtainWall, buildHouse, buildKeep } from "./town.ts";
+import { buildCryptDoor, buildStoneRing, buildTomb } from "./undercroft.ts";
 
 /** What a built prop gives back: a per-frame update if it animates, and occluders if it's tall. */
 export type PropView = { update?(t: number, dt: number): void; occluders?: Occluder[] } | void;
@@ -76,6 +77,9 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   plaza: buildPlaza,
   room: buildRoom,
   furniture: buildFurniture,
+  cryptDoor: buildCryptDoor,
+  tomb: buildTomb,
+  stoneRing: buildStoneRing,
 };
 
 /** Build one prop; returns its per-frame update (if it animates) and occluders (if it's tall). */

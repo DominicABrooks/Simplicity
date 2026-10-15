@@ -6,6 +6,7 @@ import { FACING_ANGLE, type AreaDef } from "../world/area.ts";
 import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { doorStep } from "../world/townkit.ts";
+import { lockedOut } from "./undercroft.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { spawnCampfire, spawnEnemy, spawnGuard, spawnKing, spawnPotion, spawnTraining } from "./spawn.ts";
@@ -57,6 +58,7 @@ export function travelSystem(g: Game): void {
   for (const exit of g.area.layout.exits) {
     const r = exit.rect;
     if (fx < r.x + r.w && r.x < fx + fw && fy < r.y + r.h && r.y < fy + fh) {
+      if (lockedOut(g, exit)) return;
       g.travel = exit.to;
       setState(g, "travel");
       return;

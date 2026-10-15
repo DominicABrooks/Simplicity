@@ -9,6 +9,7 @@ import {
   FACING_YAW, FURNITURE, TOWER_FLARE, roomWalls, barbicanPlan, cathedralPlan, churchPlan, cloisterPlan, hallBody, houseBody, keepPlan, local, stallBody, wallPlan, type XZ,
 } from "./plans.ts";
 import type { Shape } from "./shapes.ts";
+import { RING_STONE_R, ringPlan } from "./stonering.ts";
 import { anvilOf } from "./workplaces.ts";
 
 /** How deep a lion's plinth is, along its facing (it's 1.2 across). */
@@ -105,6 +106,9 @@ export function propSolids(p: Prop): Shape[] {
       const [w, d] = FURNITURE[p.item];
       return w ? [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, w, d)] : [];
     }
+    case "cryptDoor": return [];                             // set into the wall, which is solid already
+    case "tomb": return [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, 0.9, 1.9)];
+    case "stoneRing": return ringPlan(p).stones.map(s => circle(s.x, s.z, RING_STONE_R));
     case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": return [];
   }
 }

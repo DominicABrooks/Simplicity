@@ -1,6 +1,7 @@
 // Areas: the world is a graph of areas joined by exits (caves, for now). Each area is a module in
 // src/areas/ exporting an AreaDef. Only the area you're in is built and in memory; the others are
 // just ids until you travel there (and every area but the home one is downloaded on first visit).
+import type { CurioId } from "../data/items.ts";
 import type { Rect } from "../data/world.ts";
 import type { Point } from "./collision.ts";
 import type { TileMap } from "./map.ts";
@@ -11,10 +12,14 @@ export interface Destination {
   entry: string;
 }
 
-/** Walk into `rect` to travel to `to`. */
+/**
+ * Walk into `rect` to travel to `to`. A door `locked` with a curiosity (the Rusted Key) opens for whoever carries it,
+ * and stays open: see src/game/undercroft.ts.
+ */
 export interface ExitDef {
   rect: Rect;
   to: Destination;
+  locked?: CurioId;
 }
 
 /** Static scenery the renderer builds for an area (and the map view marks). */
@@ -133,6 +138,13 @@ export type Prop =
   // What you'd find in a castle (src/render/castle.ts). Long things lie along their rect's long side.
   /** The King, on his throne, looking toward `facing`. A game entity (a friendly target you can talk to), not scenery. */
   | { kind: "king"; x: number; y: number; facing: Facing }
+  // Under St Mary's (src/render/undercroft.ts).
+  /** A low iron-banded door in a wall, steps going down behind it, opening toward `facing`. */
+  | { kind: "cryptDoor"; x: number; y: number; facing: Facing }
+  /** A stone chest tomb, long along `facing`'s axis, the one in it carved lying on the lid if `effigy`. */
+  | { kind: "tomb"; x: number; y: number; facing: Facing; effigy: boolean }
+  /** A ring of `stones` old grey standing stones, `radius` tiles out, the `gap`th (from the north, clockwise) missing. */
+  | { kind: "stoneRing"; x: number; y: number; radius: number; stones: number; gap: number }
   /** A guard at their post, keeping watch toward `facing`. A game entity (a friendly target), not scenery. */
   | { kind: "guard"; x: number; y: number; facing: Facing }
   /** A fire bowl on a tripod. */

@@ -21,6 +21,8 @@ export const SOUTHGATE = { x: MID, y: SOUTH_WALL, towers: [19, 34, 63, 78] } as 
 export const CASTLE_STREET = { x0: 46, x1: 50 } as const;
 const HIGH = CASTLE_STREET, SQUARE = { x0: 30, y0: 30, x1: 66, y1: 51 }, EAST_ST = { y0: 39, y1: 42 };
 const GUILDHALL: TileRect = [20, 31, 10, 14];
+/** The low door down to the Undercroft, in the south face of St Mary's tower, in the nook by the nave (tiles: the middle of its foot). */
+export const UNDERCROFT_DOOR = { x: 69.9, y: 32.1 } as const;
 const inSquare = (x: number, y: number) => x >= SQUARE.x0 && x <= SQUARE.x1 && y >= SQUARE.y0 && y <= SQUARE.y1;
 /** The main streets, where the shops are. */
 const mainStreet = (x: number, y: number) => inSquare(x, y) || (x >= HIGH.x0 && x <= HIGH.x1) || (y >= EAST_ST.y0 && y <= EAST_ST.y1 && x > SQUARE.x1);
@@ -83,6 +85,8 @@ function build(): AreaLayout {
   town.add({ kind: "church", rect: px([68, 26, 18, 8]), tower: "spire" });
   town.add({ kind: "graves", rect: px([69, 34, 15, 4]) });
   for (const x of [68, 85]) town.set(x, 36, Tile.Tree);
+  // The low door at the foot of the tower, down to the Undercroft: locked since the Edict, and the key's in the river.
+  town.add({ kind: "cryptDoor", x: UNDERCROFT_DOOR.x * T, y: UNDERCROFT_DOOR.y * T, facing: "south" });
   town.add({ kind: "church", rect: px([8, 20, 9, 6]), tower: "bellcote" });
   town.add({ kind: "hall", rect: px([8, 61, 9, 6]), door: "north", roof: "#8a4a3a", storeys: 2, stone: false, chimneys: 1 });
   town.add({ kind: "well", ...at(19, 59) });
@@ -101,10 +105,14 @@ function build(): AreaLayout {
 
   return town.layout(
     // In through Southgate, at the foot of the high street; down from the castle, a step in from the edge.
-    { southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 1 * T } },
+    {
+      southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 1 * T },
+      undercroft: { x: (UNDERCROFT_DOOR.x - 0.5) * T, y: (UNDERCROFT_DOOR.y + 1.3) * T },
+    },
     [
       { rect: { x: (HIGH.x0 + 1) * T, y: (SOUTH_WALL + 2) * T, w: 3 * T, h: 2 * T }, to: { area: "kingsroad", entry: "gate" } },
       edgeExit("north", HIGH.x0, HIGH.x1, W, H, { area: "castle", entry: "town" }),
+      { rect: { x: (UNDERCROFT_DOOR.x - 0.5) * T, y: UNDERCROFT_DOOR.y * T, w: T, h: T }, to: { area: "undercroft", entry: "steps" }, locked: "key" },
     ],
   );
 }

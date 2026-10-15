@@ -25,6 +25,7 @@ import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
 import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
+import { ringstone } from "./undercroft.ts";
 
 export interface Frame {
   /** Game clock, for animation. */
@@ -663,4 +664,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone } satisfies { [K in ViewKind]: EntityView<object> };
