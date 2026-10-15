@@ -16,13 +16,20 @@ export function spentCurios(g: Game): Set<CurioId> {
   return s;
 }
 
-/** Is the hero carrying this curiosity? */
-export const carryingCurio = (g: Game, id: CurioId): boolean => g.inventory.grid.some(e => e.item.curio === id);
+/** Is the hero carrying this curiosity: in the bag, or in hand (on the cursor)? */
+export const carryingCurio = (g: Game, id: CurioId): boolean =>
+  g.inventory.grid.some(e => e.item.curio === id) || g.inventory.held?.curio === id;
 
-/** Hand it over: out of the bag, and spent for good this run. */
+/** Is it out of the water already: carried, or lying on the ground here (dropped, or caught with the bag full)? */
+export const curioFound = (g: Game, id: CurioId): boolean =>
+  carryingCurio(g, id) || g.world.query("pickup").some(([, c]) => c.pickup.kind === "loot" && c.pickup.item.curio === id);
+
+/** Hand it over: out of the bag (or hand), and spent for good this run. */
 export function spendCurio(g: Game, id: CurioId): void {
   spentCurios(g).add(id);
-  const before = g.inventory.grid.length;
-  g.inventory.grid = g.inventory.grid.filter(e => e.item.curio !== id);
-  if (g.inventory.grid.length !== before) g.inventory.changed();
+  const inv = g.inventory, before = inv.grid.length;
+  inv.grid = inv.grid.filter(e => e.item.curio !== id);
+  const held = inv.held?.curio === id;
+  if (held) inv.held = null;
+  if (held || inv.grid.length !== before) inv.changed();
 }
