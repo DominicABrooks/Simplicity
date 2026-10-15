@@ -38,9 +38,14 @@ jobs:
           path: dist
 
   # The story's big beats, played through in a real browser (e2e/): the road to the King, his audience
-  # cutscene, the Grey Ringer's fight. A failure here stops the deploy too.
+  # cutscene, the Grey Ringer's fight. A failure here stops the deploy too. Split three ways, in parallel:
+  # software WebGL is slow, and one machine takes the specs about nine minutes.
   e2e:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,13 +54,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - run: npm run e2e -- --shard=${{ matrix.shard }}/3
         env:
           CI: true
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report
             test-results
