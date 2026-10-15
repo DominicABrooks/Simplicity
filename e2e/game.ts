@@ -15,6 +15,7 @@ export interface Handle {
   view: Renderer;
   hero(): Point;
   haunting(): Haunting;
+  doors(): { id: number; name: string; x: number; y: number; home: number }[];
 }
 
 declare global {
