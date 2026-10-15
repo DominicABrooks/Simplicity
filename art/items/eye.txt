@@ -1,0 +1,11 @@
+# A glass eye, fished up: 1x1 inventory cell. White, with a blue iris, looking back at you.
+
+@idle 1000
+........
+..WWWW..
+.WWBBWw.
+.WBKKBw.
+.WBKKBw.
+.WwBBww.
+..wwww..
+........

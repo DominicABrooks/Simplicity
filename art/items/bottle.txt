@@ -1,0 +1,11 @@
+# A sealed bottle, fished up: 1x1 inventory cell. Green glass, a cork, and a rolled letter inside.
+
+@idle 1000
+...nn...
+...vv...
+...GG...
+..GWWG..
+.GvWWvG.
+.GvWWvG.
+.GvvvvG.
+..GGGG..

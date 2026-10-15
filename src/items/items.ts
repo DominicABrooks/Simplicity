@@ -1,5 +1,5 @@
 import type { Rng } from "../core/rng.ts";
-import { AFFIXES, BASES, FISH, GIFTS, MYSTERIOUS_STONE, RARE_A, RARE_B, RARITY_ODDS, type GiftKind, type ItemType, type Rarity, type Slot, type StatKey, type Stats } from "../data/items.ts";
+import { AFFIXES, BASES, CURIOS, FISH, GIFTS, RARE_A, RARE_B, RARITY_ODDS, type CurioId, type GiftKind, type ItemType, type Rarity, type Slot, type StatKey, type Stats } from "../data/items.ts";
 
 export interface Item {
   id: number;
@@ -15,6 +15,8 @@ export interface Item {
   mods: Stats;
   /** Food only: hearts restored when eaten. */
   heal?: number;
+  /** A curiosity fished up (see CURIOS): which one. */
+  curio?: CurioId;
 }
 
 let nextId = 1;
@@ -60,9 +62,11 @@ export function makeFish(rarity: Rarity): Item {
   return item;
 }
 
-/** The mysterious stone that sometimes comes up on the line instead of a koi. */
-export function makeMysteriousStone(): Item {
-  return makeItem("stone", "rare", {}, MYSTERIOUS_STONE.name);
+/** A curiosity that sometimes comes up on the line instead of a koi. */
+export function makeCurio(id: CurioId): Item {
+  const item = makeItem(CURIOS[id].type, "rare", {}, CURIOS[id].name);
+  item.curio = id;
+  return item;
 }
 
 /** Something someone hands the hero as they talk: a loaf, a koi, a shiny stone. */

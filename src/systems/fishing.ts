@@ -1,14 +1,20 @@
 // The fishing pole: press winds up a cast, release throws it at the cursor. Over water the line
 // goes out: wait for a bite, then click during the bite to catch. Released over land, it's a weak bonk.
-import { CATCH_ODDS, MYSTERIOUS_STONE, type Rarity } from "../data/items.ts";
+import { CATCH_ODDS, CURIO_CHANCE, CURIO_IDS, type CurioId, type Rarity } from "../data/items.ts";
 import { FISHING } from "../data/player.ts";
 import { HALF, Tile } from "../data/world.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf, type HeroParts } from "../game/hero.ts";
 import { dropLoot } from "../game/spawn.ts";
-import { makeFish, makeMysteriousStone } from "../items/items.ts";
+import { makeCurio, makeFish } from "../items/items.ts";
 import { tileAt, type Point } from "../world/collision.ts";
+
+/** A curiosity still in the water for the hero to find: one he isn't already carrying (none, once he has them all). */
+function curioToFind(g: Game): CurioId | null {
+  const left = CURIO_IDS.filter(id => !g.inventory.grid.some(e => e.item.curio === id));
+  return left.length ? left[g.rng.int(0, left.length - 1)]! : null;
+}
 
 /** Where a cast would land: exactly at the cursor, pulled in to the pole's reach. Without a mouse it goes 3 tiles along the aim. */
 export function castTarget(h: HeroParts, pointer: Point | null): Point {
@@ -37,12 +43,12 @@ export function fishingSystem(g: Game, dt: number): void {
     if (input.attackPressed) {
       const r = g.rng.next();
       const rarity: Rarity = r < CATCH_ODDS.rare ? "rare" : r < CATCH_ODDS.magic ? "magic" : "normal";
-      const stone = g.rng.next() < MYSTERIOUS_STONE.chance;   // now and then, something that isn't a fish at all
-      const item = stone ? makeMysteriousStone() : makeFish(rarity);
+      const curio = g.rng.next() < CURIO_CHANCE ? curioToFind(g) : null;   // now and then, something that isn't a fish at all
+      const item = curio ? makeCurio(curio) : makeFish(rarity);
       if (!g.inventory.add(item)) dropLoot(g, pos.x, pos.y, item, true);
       sound(g, "catch");
-      a.catchAnim = { x: f.x, y: f.y, t0: g.clock, rarity, stone };
-      toast(g, stone ? `Something heavy on the line... a ${item.name}!` : `Caught a ${item.name}!`, true);
+      a.catchAnim = { x: f.x, y: f.y, t0: g.clock, rarity, curio };
+      toast(g, curio ? `Something heavy on the line... a ${item.name}!` : `Caught a ${item.name}!`, true);
       a.fishing = null;
     } else if (f.t >= FISHING.biteWindow) {
       toast(g, "It got away");

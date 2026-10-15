@@ -1,0 +1,11 @@
+# The mysterious stone, fished up: 1x1 inventory cell. Smooth and grey, a pale rune glowing in it.
+
+@idle 1000
+........
+..wwww..
+.wWwwwk.
+.wwCwwk.
+.wCCCwk.
+.wwCwkk.
+..kkkk..
+........

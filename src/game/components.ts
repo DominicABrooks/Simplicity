@@ -1,7 +1,7 @@
 // Components: plain data, no behaviour. Systems in src/systems read and write them.
 // Every position is the top-left of an 8x8 cell, in game pixels; add HALF for the cell's centre.
 import type { BoltKind, School, SpellName } from "../data/enemies.ts";
-import type { Rarity } from "../data/items.ts";
+import type { CurioId, Rarity } from "../data/items.ts";
 import type { Gear } from "../items/inventory.ts";
 import type { Item } from "../items/items.ts";
 import type { Entity } from "../core/ecs.ts";
@@ -91,8 +91,8 @@ export interface CatchAnim {
   y: number;
   t0: number;
   rarity: Rarity;
-  /** It wasn't a koi but the mysterious stone. */
-  stone?: boolean;
+  /** It wasn't a koi but a curiosity: which. */
+  curio?: CurioId | null;
 }
 
 /** What the hero is doing with their hands: swings, punches, the bow and the fishing pole. */

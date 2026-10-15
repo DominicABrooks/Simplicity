@@ -1,5 +1,5 @@
 // Item tooltips, PoE style: name in the rarity colour, base type, slot, stats and affixes.
-import { AFFIXES, BASES, BASE_TEXT, SLOTS, type StatKey } from "../data/items.ts";
+import { AFFIXES, BASES, BASE_TEXT, CURIOS, SLOTS, type StatKey } from "../data/items.ts";
 import type { Item } from "../items/items.ts";
 import { byId } from "./dom.ts";
 
@@ -28,11 +28,11 @@ export function createTooltip(): Tooltip {
 
   return {
     show(item, mouse) {
-      const lines = [line(`tip-name rarity-${item.rarity}`, item.name)];
-      if (item.rarity !== "normal") lines.push(line("tip-base", BASES[item.type].name));
-      lines.push(line("tip-slot", item.slot ? SLOTS[item.slot].label : item.heal ? "Food" : "Keepsake"));
+      const lines = [line(`tip-name rarity-${item.rarity}`, item.name)], curio = item.curio ? CURIOS[item.curio] : null;
+      if (item.rarity !== "normal" && !curio) lines.push(line("tip-base", BASES[item.type].name));
+      lines.push(line("tip-slot", item.slot ? SLOTS[item.slot].label : item.heal ? "Food" : curio ? "Curiosity" : "Keepsake"));
       if (item.heal) lines.push(line("tip-stat", `Restores ${item.heal} Life`), line("tip-note", "Right-click to eat"));
-      const note = BASES[item.type].note;
+      const note = curio ? curio.note : BASES[item.type].note;
       if (note) lines.push(line("tip-note", note));
       for (const [k, v] of Object.entries(item.base) as [StatKey, number][]) {
         const text = BASE_TEXT[k];

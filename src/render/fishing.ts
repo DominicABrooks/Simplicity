@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { FISHING } from "../data/player.ts";
 import { TIERS } from "../data/tiers.ts";
+import type { CurioId } from "../data/items.ts";
 import type { Actions, Transform } from "../game/components.ts";
 import { GROUND, onGround, WATER_Y, col, toWorld, type RenderContext } from "./context.ts";
 import { makeKoiMesh } from "./koi.ts";
@@ -14,10 +15,31 @@ export interface FishingView {
   update(hero: Body, pos: Transform, a: Actions, t: number): { x: number; z: number } | null;
 }
 
-/** The mysterious stone, as it comes up out of the water: a smooth grey pebble with a faint blue-green glow about it. */
-function makeStoneMesh(ctx: RenderContext): THREE.Object3D {
-  return new THREE.Mesh(new THREE.IcosahedronGeometry(0.07, 0).scale(1.25, 0.8, 1),
-    ctx.lambert("#8a96a2", { emissive: col("#3fb8a8"), emissiveIntensity: 0.35 }));
+/** A curiosity as it comes up out of the water (see CURIOS): small, and each its own odd shape. */
+function makeCurioMesh(ctx: RenderContext, id: CurioId): THREE.Object3D {
+  const { lambert } = ctx, g = new THREE.Group();
+  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); };
+  if (id === "stone") {                                      // a smooth grey pebble with a faint blue-green glow
+    add(new THREE.IcosahedronGeometry(0.07, 0).scale(1.25, 0.8, 1), lambert("#8a96a2", { emissive: col("#3fb8a8"), emissiveIntensity: 0.35 }));
+  } else if (id === "key") {                                 // a rusted key: its bow, shaft and bit
+    const rust = lambert("#9a5a2a");
+    add(new THREE.TorusGeometry(0.035, 0.012, 4, 8), rust, -0.06, 0, 0);
+    add(new THREE.BoxGeometry(0.1, 0.018, 0.018), rust, 0.02, 0, 0);
+    add(new THREE.BoxGeometry(0.018, 0.035, 0.018), rust, 0.06, -0.02, 0);
+  } else if (id === "eye") {                                 // a glass eye, its blue iris and black pupil
+    add(new THREE.SphereGeometry(0.06, 8, 6), lambert("#f2ead8"));
+    add(new THREE.CircleGeometry(0.03, 8).rotateY(Math.PI / 2), lambert("#3f6fd0"), 0.061, 0, 0);
+    add(new THREE.CircleGeometry(0.013, 6).rotateY(Math.PI / 2), lambert("#14101e"), 0.062, 0, 0);
+  } else if (id === "bottle") {                              // green glass, corked, a letter inside
+    add(new THREE.CylinderGeometry(0.04, 0.04, 0.11, 7), lambert("#5fb04a", { transparent: true, opacity: 0.6 }));
+    add(new THREE.CylinderGeometry(0.015, 0.02, 0.04, 6), lambert("#5fb04a", { transparent: true, opacity: 0.6 }), 0, 0.075, 0);
+    add(new THREE.CylinderGeometry(0.016, 0.016, 0.02, 6), lambert("#8b5a34"), 0, 0.1, 0);
+    add(new THREE.CylinderGeometry(0.018, 0.018, 0.07, 6), lambert("#f2ead8"));
+  } else {                                                   // a little brass handbell on its wooden handle
+    add(new THREE.ConeGeometry(0.05, 0.07, 8, 1, true), lambert("#f5d562", { side: THREE.DoubleSide }));
+    add(new THREE.CylinderGeometry(0.012, 0.012, 0.06, 5), lambert("#8b5a34"), 0, 0.06, 0);
+  }
+  return g;
 }
 
 export function createFishingView(ctx: RenderContext, world: THREE.Group): FishingView {
@@ -93,7 +115,7 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
         if (leaperFor !== c) {
           if (leaper) world.remove(leaper);
           const T = TIERS[c.rarity];
-          leaper = c.stone ? makeStoneMesh(ctx) : makeKoiMesh(ctx, T.fishMain, T.fishAccent);
+          leaper = c.curio ? makeCurioMesh(ctx, c.curio) : makeKoiMesh(ctx, T.fishMain, T.fishAccent);
           leaper.scale.setScalar(2.2);
           world.add(leaper);
           leaperFor = c;

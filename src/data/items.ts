@@ -2,7 +2,8 @@
 
 export type Rarity = "normal" | "magic" | "rare";
 export type Slot = "helm" | "amulet" | "weapon" | "armor" | "ring" | "boots";
-export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone" | "writ";
+export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone" | "writ"
+  | "runestone" | "key" | "eye" | "bottle" | "bell";
 export type StatKey = "damage" | "life" | "speed" | "dash";
 export type Stats = Partial<Record<StatKey, number>>;
 
@@ -34,6 +35,12 @@ export const BASES: Record<ItemType, ItemBase> = {
   bread:  { name: "Loaf", slot: null, w: 2, h: 1, base: {}, noLoot: true },
   stone:  { name: "Shiny Stone", slot: null, w: 1, h: 1, base: {}, noLoot: true, note: "A gift. It's yours now" },
   writ:   { name: "Writ", slot: null, w: 1, h: 2, base: {}, noLoot: true, note: "Under the King's seal. Show it to his woodwardens" },
+  // Curiosities: only ever fished up (see CURIOS), each with its own line.
+  runestone: { name: "Stone", slot: null, w: 1, h: 1, base: {}, noLoot: true },
+  key:       { name: "Key", slot: null, w: 1, h: 1, base: {}, noLoot: true },
+  eye:       { name: "Glass Eye", slot: null, w: 1, h: 1, base: {}, noLoot: true },
+  bottle:    { name: "Bottle", slot: null, w: 1, h: 1, base: {}, noLoot: true },
+  bell:      { name: "Handbell", slot: null, w: 1, h: 1, base: {}, noLoot: true },
 };
 
 /** Catches: rarity decides the koi and how much eating it heals. */
@@ -44,10 +51,19 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
 };
 
 /**
- * Now and then it isn't a koi on the hook at all: a smooth grey stone, cold from the water but warm in the hand, that
- * hums faintly when you hold it to your ear. Nobody in Kingsholm can say what it is. One catch in twenty.
+ * Now and then it isn't a koi on the hook at all but something stranger, lost in the water who knows how: one catch
+ * in twenty (CURIO_CHANCE) is one of these, never one you're already carrying. Each says something of itself.
  */
-export const MYSTERIOUS_STONE = { name: "Mysterious Stone", chance: 1 / 20 } as const;
+export type CurioId = "stone" | "key" | "eye" | "bottle" | "bell";
+export const CURIOS: Record<CurioId, { type: ItemType; name: string; note: string }> = {
+  stone:  { type: "runestone", name: "Mysterious Stone", note: "Maybe someone is interested in this..." },
+  key:    { type: "key", name: "Rusted Key", note: "It must open something. Somewhere." },
+  eye:    { type: "eye", name: "Glass Eye", note: "Someone must be missing it. It seems to be looking for them." },
+  bottle: { type: "bottle", name: "Sealed Bottle", note: "There's a letter inside. The handwriting looks like yours." },
+  bell:   { type: "bell", name: "Little Handbell", note: "It rings at nine every night, though nobody rings it." },
+};
+export const CURIO_IDS = Object.keys(CURIOS) as CurioId[];
+export const CURIO_CHANCE = 1 / 20;
 
 /** What people give the hero when they talk to him: the gift lines in src/data/voices.ts say which. */
 export type GiftKind = "loaf" | "koi" | "stone" | "writ";
