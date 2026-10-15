@@ -158,3 +158,11 @@ export async function clickOn(page: Page, id: number, height = 0.8): Promise<voi
   await page.mouse.down();
   await page.mouse.up();
 }
+
+/** A quiet spell: every enemy in the area gone, and none coming for a long while (for scenes that aren't about them). */
+export const clearEnemies = (page: Page) =>
+  page.evaluate(() => {
+    const g = window.simplicity.game;
+    for (const [e, c] of g.world.query("enemy")) if (c.enemy.kind !== "dummy") g.world.destroy(e);
+    g.spawnTimer = 1e6;
+  });
