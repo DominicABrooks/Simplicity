@@ -381,7 +381,9 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
   const hair = lambert(d.hair);
   const cap = (r: number, y: number, mat: THREE.Material, open = 0.5, x = -0.03) =>
     mesh(new THREE.SphereGeometry(r, 7, 5, 0, Math.PI * 2, 0, Math.PI * open), mat, x, y, 0);
-  if (d.head === "bare" || d.head === "cap" || d.head === "felt" || d.head === "straw") cap(0.28, 0.8, hair, 0.5, -0.05).rotation.z = 0.5;   // hair, swept back
+  // Hair, swept back: clear of the head (0.27) by enough that their low-poly faces never meet and flicker, and
+  // set back so the face still shows in front. Any hat over it must clear it in turn.
+  if (d.head === "bare" || d.head === "cap" || d.head === "felt" || d.head === "straw") cap(0.3, 0.8, hair, 0.5, -0.05).rotation.z = 0.5;
   if (d.longHair && d.head !== "wimple" && d.head !== "veil" && d.head !== "hood") {          // a braid down the back, a ribbon at its end
     const top = new THREE.Vector3(-0.25, 0.7, 0), end = new THREE.Vector3(-(outer(0.42) + 0.05), 0.42, 0), plait = new THREE.IcosahedronGeometry(0.058, 0).scale(1, 1.3, 1);
     for (let i = 0; i < 4; i++) mesh(plait, hair).position.lerpVectors(top, end, i / 3).add(new THREE.Vector3(0, 0, i % 2 ? 0.015 : -0.015));
@@ -407,8 +409,8 @@ export function dressCommoner(ctx: RenderContext, h: Body, d: Dress): void {
       break;
     }
     case "cap": {
-      cap(0.28, 0.9, cloth, 0.45, -0.02).scale.set(1, 0.7, 1);
-      mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8), trim, -0.02, 0.92, 0);
+      cap(0.32, 0.9, cloth, 0.45, -0.02).scale.set(1, 0.7, 1);                              // over the hair
+      mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.04, 8), trim, -0.02, 0.92, 0);
       break;
     }
     case "chaperon": {                                                                     // a rolled band like a turban, its tail hanging to one side
