@@ -90,7 +90,12 @@ test.describe("the King's audience", () => {
     // Up to the King and click on him.
     const king = (await find(page, "king"))!;
     await placeHero(page, { x: king.x, y: king.y + 20 });
-    await clickOn(page, king.id, 1);
+    await play(page, 1.5);                                   // the camera glides after him
+    // A slow frame can leave the camera moving under the cursor: click again until he's talking, as a player would.
+    for (let i = 0; i < 5 && !(await page.locator("#dialogue").isVisible()); i++) {
+      await clickOn(page, king.id, 1);
+      await play(page, 0.5);
+    }
     const heard = await readConversation(page, KING.name);
     expect(KING_AGAIN).toContain(heard[0]);
     expect(await toasts(page)).not.toContain("Too far away to talk");
