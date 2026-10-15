@@ -22,11 +22,13 @@ for (const kind of Object.keys(TRAINING) as (keyof typeof TRAINING)[]) {
     for (let i = 0; i < 8; i++) {
       await placeHero(page, { x: target!.x - 7, y: target!.y });
       if (!(await aimAt(page, target!.id))) continue;
-      const shown = await page.evaluate(() => window.simplicity.game.floaters.length);
+      // Mark the numbers already in the air, so a blow counts by a new one (not by how many there are: on a slow
+      // frame the last blow's number can fade in the same moment this one appears).
+      await page.evaluate(() => { for (const f of window.simplicity.game.floaters) Object.assign(f, { seen: true }); });
       await page.mouse.down();
       await page.mouse.up();
       await play(page, 0.4);
-      if ((await page.evaluate(() => window.simplicity.game.floaters.length)) > shown) hits++;
+      if (await page.evaluate(() => window.simplicity.game.floaters.some(f => !("seen" in f) && /^\d+!?$/.test(f.text)))) hits++;
     }
     expect(hits, "blows that landed (a number flew off it)").toBeGreaterThanOrEqual(3);
 
