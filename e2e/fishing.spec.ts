@@ -2,7 +2,7 @@
 // bite, strike, and land a koi; and now and then a curiosity instead, with a line of its own in the tooltip.
 import { expect, test, type Page } from "@playwright/test";
 import { CURIOS } from "../src/data/items.ts";
-import { bag, clearEnemies, placeHero, play, startGame } from "./game.ts";
+import { bag, clearEnemies, expectToastLike, placeHero, play, startGame } from "./game.ts";
 
 /** Open the bag, find the fishing pole by its tooltip, and right-click it to take it in hand. */
 async function takeUpThePole(page: Page): Promise<void> {
@@ -64,7 +64,7 @@ test("cast into the water, wait for the bite, strike, and land a koi", async ({ 
   await castAndStrike(page, water, 0.5);
   await expect.poll(async () => (await bag(page)).length).toBe(before + 1);
   expect((await bag(page)).some(n => /Koi$/.test(n))).toBe(true);
-  await expect.poll(() => page.locator("#toast").textContent()).toMatch(/^Caught a .*Koi!$/);
+  await expectToastLike(page, /^Caught a .*Koi!$/);
 });
 
 test("a curiosity comes up instead, and says something of itself", async ({ page }) => {
@@ -72,7 +72,7 @@ test("a curiosity comes up instead, and says something of itself", async ({ page
   await takeUpThePole(page);
   const water = await toTheShore(page);
   await castAndStrike(page, water, 0);
-  await expect.poll(() => page.locator("#toast").textContent()).toMatch(/^Something heavy on the line\.\.\. a /);
+  await expectToastLike(page, /^Something heavy on the line\.\.\. a /);
   const name = await page.evaluate(() => window.simplicity.game.inventory.grid.find(e => e.item.curio)?.item.name ?? null);
   const curio = Object.values(CURIOS).find(c => c.name === name);
   expect(curio, `a curiosity in the bag (got ${name})`).toBeDefined();

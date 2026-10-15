@@ -102,6 +102,14 @@ export async function expectToast(page: Page, text: string): Promise<void> {
   await expect.poll(() => toasts(page)).toContain(text);
 }
 
+/**
+ * Wait for a toast matching this pattern. Checks every toast shown, not the one on screen: another can replace it
+ * before a slow frame lets us look.
+ */
+export async function expectToastLike(page: Page, pattern: RegExp): Promise<void> {
+  await expect.poll(async () => (await toasts(page)).some(t => pattern.test(t)), { message: `a toast like ${pattern}` }).toBe(true);
+}
+
 /** The names of what's in the bag. */
 export const bag = (page: Page) => page.evaluate(() => window.simplicity.game.inventory.grid.map(e => e.item.name));
 
