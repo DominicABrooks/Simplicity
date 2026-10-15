@@ -1,8 +1,10 @@
-// Old Gil and his glass eye (the story is in src/data/quay.ts and docs/CURIOSITIES.md). Gil sits by his boat at the
-// foot of the King's Bridge. Talk to him with the Glass Eye in the bag and he takes it back, and tells the hero what
-// the river showed it: Ael's Thorn, on the bed of the lake in the Clearing, where it lies from then on (until he has it).
+// Old Gil and his glass eye, and the letter in the bottle (the story is in src/data/quay.ts and docs/CURIOSITIES.md).
+// Gil sits by his boat at the foot of the King's Bridge. Talk to him with the Glass Eye in the bag and he takes it
+// back, and tells the hero what the river showed it: Ael's Thorn, on the bed of the lake in the Clearing, where it
+// lies from then on (until he has it). The Sealed Bottle is read from the bag: a letter from himself, last time round.
 import type { Entity } from "../core/ecs.ts";
-import { GIL, GIL_TALK, THORN, THORN_SAYS } from "../data/quay.ts";
+import { GIL, GIL_TALK, LETTER, THORN, THORN_SAYS } from "../data/quay.ts";
+import { CURIO_IDS, type CurioId } from "../data/items.ts";
 import { T, Tile } from "../data/world.ts";
 import { makeItem, type Item } from "../items/items.ts";
 import { FACING_ANGLE } from "../world/area.ts";
@@ -64,9 +66,27 @@ function glinted(g: Game): { told: boolean } {
   return s;
 }
 
+/** The letter, opened from the bag, waits here to be read as soon as he's free to (not mid-conversation, nor travelling). */
+const unread = new WeakSet<Game>();
+
+/** Use a curiosity from the bag (right-click). Only the bottle can be: it's opened and the letter read. True if it's used up. */
+export function useCurio(g: Game, item: Item): boolean {
+  if (item.curio !== "bottle") return false;
+  spentCurios(g).add("bottle");
+  unread.add(g);
+  toast(g, LETTER.later);
+  return true;
+}
+
+/** The letter: its opening, a line for each curiosity still to take where it belongs, and its close. */
+export function letterLines(g: Game): string[] {
+  const left = CURIO_IDS.filter((id): id is Exclude<CurioId, "bottle"> => id !== "bottle" && !spentCurios(g).has(id));
+  return [LETTER.open, ...(left.length ? left.map(id => LETTER.hints[id]) : [LETTER.none]), LETTER.close];
+}
+
 /**
- * Every frame: Gil's at his boat at the foot of the King's Bridge; and once he's told the hero about the Thorn, it's
- * on the lake bed in the Clearing until the hero has it.
+ * Every frame: Gil's at his boat at the foot of the King's Bridge; once he's told the hero about the Thorn, it's on
+ * the lake bed in the Clearing until the hero has it; and a letter opened in the bag is read once it's put down.
  */
 export function quaySystem(g: Game): void {
   if (g.area.def.id === "kingsroad" && !gilHere(g)) spawnGil(g);
@@ -77,6 +97,10 @@ export function quaySystem(g: Game): void {
       g.world.remove(e, "despawn");                             // it's waited this long
       if (!glinted(g).told) { glinted(g).told = true; toast(g, THORN_SAYS); }
     }
+  }
+  if (unread.has(g) && g.state === "play" && !g.world.has(g.player, "conversation")) {
+    unread.delete(g);
+    g.world.add(g.player, "conversation", { with: g.player, name: LETTER.name, key: "letter", lines: letterLines(g), line: 0, t: 0 });
   }
 }
 

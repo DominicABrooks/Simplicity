@@ -32,12 +32,13 @@ import { createLetterbox } from "./ui/letterbox.ts";
 import { enterPets } from "./game/pets.ts";
 import { createAudioPlayer } from "./audio/player.ts";
 import { exposeDebug } from "./debug.ts";
+import { useCurio } from "./game/quay.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
 const inventory = createInventoryView(g.inventory, bakeItemIcons(), {
   onDrop: item => dropItem(g, item),
-  onUse: item => eatItem(g, item),
+  onUse: item => (item.curio ? (inventory.close(), useCurio(g, item)) : eatItem(g, item)),   // a letter is read with the bag shut
 });
 const hud = createHud(g, view);
 const labels = createLabels(g, view);

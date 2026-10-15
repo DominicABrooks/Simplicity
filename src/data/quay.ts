@@ -1,10 +1,10 @@
-// Old Gil and his glass eye (see docs/CURIOSITIES.md and src/game/quay.ts).
+// Old Gil and his glass eye, and the letter in the bottle (see docs/CURIOSITIES.md and src/game/quay.ts).
 //
 // Gil Harrow has rowed folk across under the King's Bridge for forty years, since before it was gilded. The night
 // of the fog he leaned out over the side to see what was glowing down in the water, and his glass eye dropped
 // out and went in after it. He's worn a patch since, and sworn the river took it on purpose. It had: an eye that's
 // been in the river sees what the river's seen, and the river carries everything down out of the Witchwood.
-import type { ItemType, Stats } from "./items.ts";
+import type { CurioId, ItemType, Stats } from "./items.ts";
 
 export const GIL = {
   name: "Old Gil",
@@ -41,3 +41,23 @@ export const GIL_TALK = {
 /** What lies on the lake bed, once Gil's told him: Ael's Thorn, a rare blade of grey wood (GEAR.md, the Heartstone). */
 export const THORN = { type: "blade" as ItemType, name: "Ael's Thorn", mods: { damage: 2, life: 1, speed: 6 } satisfies Stats } as const;
 export const THORN_SAYS = "Something glints on the lake bed, far out in the middle. Gil was right.";
+
+/** The letter in the bottle, in the hero's own blocky hand, from a run he doesn't remember. */
+export const LETTER = {
+  name: "A letter in your own hand",
+  /** It opens: */
+  open: "You've done this before. You won't remember. I didn't. So I'm writing it down, and putting it back in the river.",
+  /** One line for each curiosity he hasn't yet taken where it belongs this run. */
+  hints: {
+    stone: "The warm stone wants to go home. There's a ring of them under St Mary's, with a gap.",
+    key: "The rusted key is for the low door at the foot of St Mary's tower, by the churchyard.",
+    eye: "The glass eye is Old Gil's. He sits by his boat at the foot of the King's Bridge.",
+    bell: "The little bell is Ismay's. Take it to her in the churchyard, after dark. She won't hurt you.",
+  } satisfies Record<Exclude<CurioId, "bottle">, string>,
+  /** If they're all done already. */
+  none: "You've found everything else already. Of course you have. You always do, eventually.",
+  /** And it ends: */
+  close: "The sky over the Rift is clear. Don't trust it. And when it's over, take the King's offer of a bed. -- You",
+  /** Opened from the bag. */
+  later: "You break the seal and shake the letter out of the bottle.",
+} as const;

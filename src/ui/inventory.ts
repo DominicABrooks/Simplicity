@@ -158,7 +158,7 @@ export function createInventoryView(model: Inventory, icons: ItemIcons, hooks: I
     ev.stopPropagation(); ev.preventDefault(); markHandled(ev);
     if (model.held) { placeHeld(); return; }
     tip.hide();
-    if (ev.button === 2 && entry.item.heal) model.useFromGrid(entry, hooks.onUse);   // right-click food: eat it
+    if (ev.button === 2 && (entry.item.heal || entry.item.curio === "bottle")) model.useFromGrid(entry, hooks.onUse);   // right-click food: eat it (or open the bottle)
     else if (ev.button === 2) model.equipFromGrid(entry);                             // right-click: equip
     else { model.pickFromGrid(entry); dragStart = { x: ev.clientX, y: ev.clientY }; }
   }
