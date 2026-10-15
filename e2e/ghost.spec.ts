@@ -2,7 +2,7 @@
 // city whisper about her; she's fought among the graves until she's laid to rest; and dawn sends her back.
 import { expect, test, type Page } from "@playwright/test";
 import { GHOST_NAME, GHOST_SAYS } from "../src/data/ghost.ts";
-import { aimAt, expectToast, find, journey, keepHeroAlive, placeHero, setHour, startGame, toasts, waitFor } from "./game.ts";
+import { aimAt, expectToast, find, journey, keepHeroAlive, placeHero, play, setHour, startGame, toasts, waitFor } from "./game.ts";
 
 /** To the Market Quarter at midnight, having heard the rumour `heard` times, standing by the churchyard gate. */
 async function toTheChurchyard(page: Page, heard: number): Promise<void> {
@@ -32,7 +32,7 @@ const ghost = (page: Page) => find(page, "ghost");
 test("nobody's talked about her: the churchyard stays quiet at night", async ({ page }) => {
   await toTheChurchyard(page, 0);
   await waitFor(page, () => window.simplicity.haunting().night === "quiet");
-  await page.waitForTimeout(1500);
+  await play(page, 1.5);
   expect(await ghost(page)).toBeNull();
 });
 
@@ -58,7 +58,7 @@ test("she rises for a hero who's heard the rumour, is fought among the graves, a
     await placeHero(page, { x: her.x - 7, y: her.y });
     // She fades out now and then (untargetable): wait for her to come back.
     if (await aimAt(page, her.id, 0.8, 1_000)) { await page.mouse.down(); await page.mouse.up(); }
-    await page.waitForTimeout(120);
+    await play(page, 0.1);
     angry ||= (await toasts(page)).includes(GHOST_SAYS.angry);
   }
   expect(await ghost(page)).toBeNull();
@@ -78,7 +78,7 @@ test("she rises for a hero who's heard the rumour, is fought among the graves, a
   expect(await page.evaluate(() => window.simplicity.game.kills)).toBeGreaterThanOrEqual(1);
 
   // And she doesn't rise again tonight.
-  await page.waitForTimeout(1500);
+  await play(page, 1.5);
   expect(await ghost(page)).toBeNull();
 });
 

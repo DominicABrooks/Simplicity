@@ -6,10 +6,11 @@ const PORT = 4319;
 
 export default defineConfig({
   testDir: "e2e",
-  timeout: 120_000,
-  expect: { timeout: 15_000 },
+  // CI renders WebGL in software, slowly: one test at a time there, each given longer.
+  timeout: process.env.CI ? 300_000 : 120_000,
+  expect: { timeout: process.env.CI ? 45_000 : 15_000 },
   fullyParallel: true,
-  workers: process.env.CI ? 2 : 3,
+  workers: process.env.CI ? 1 : 3,
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],

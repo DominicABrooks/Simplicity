@@ -2,7 +2,7 @@
 // and the King's audience in the Throne Room (the cutscene, his speech, his writ and his task).
 import { expect, test, type Page } from "@playwright/test";
 import { KING, KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../src/data/king.ts";
-import { areaId, bag, clickOn, expectToast, find, journey, placeHero, readConversation, startGame, toasts, travel, waitFor } from "./game.ts";
+import { areaId, bag, clickOn, expectToast, find, hold, journey, placeHero, play, readConversation, startGame, toasts, travel, waitFor } from "./game.ts";
 
 const ROAD_TO_THE_KING = ["kingsroad", "capital", "castle", "throneroom"];
 const WRIT = "The King's Writ";
@@ -16,9 +16,7 @@ test("the title screen gives way to the hero waking in the Witchwood", async ({ 
   let furthest = 0;
   for (const key of ["d", "s", "a", "w"]) {
     const before = await page.evaluate(() => ({ ...window.simplicity.hero() }));
-    await page.keyboard.down(key);
-    await page.waitForTimeout(500);
-    await page.keyboard.up(key);
+    await hold(page, key, 0.5);
     const after = await page.evaluate(() => ({ ...window.simplicity.hero() }));
     furthest = Math.max(furthest, Math.hypot(after.x - before.x, after.y - before.y));
   }
@@ -45,9 +43,7 @@ test.describe("the King's audience", () => {
     await expect(inCutscene(page)).toBeVisible();
     await expect(page.locator(".letterbox.bottom.on .skip")).toHaveText("esc: skip");
     const atDoor = await page.evaluate(() => ({ ...window.simplicity.hero() }));
-    await page.keyboard.down("a");
-    await page.waitForTimeout(500);
-    await page.keyboard.up("a");
+    await hold(page, "a", 0.5);
     const held = await page.evaluate(() => ({ ...window.simplicity.hero() }));
     expect(held.x).toBeCloseTo(atDoor.x, 0);
 
@@ -61,9 +57,7 @@ test.describe("the King's audience", () => {
     await expect(inCutscene(page)).toHaveCount(0);
     expect(await bag(page)).toContain(WRIT);
     await expectToast(page, KINGS_TASK);
-    await page.keyboard.down("s");
-    await page.waitForTimeout(500);
-    await page.keyboard.up("s");
+    await hold(page, "s", 0.5);
     const free = await page.evaluate(() => ({ ...window.simplicity.hero() }));
     expect(Math.hypot(free.x - hero.x, free.y - hero.y)).toBeGreaterThan(3);
   });
@@ -89,7 +83,7 @@ test.describe("the King's audience", () => {
     await expect(inCutscene(page)).toHaveCount(0);
 
     await journey(page, "castle", "throneroom");
-    await page.waitForTimeout(1000);
+    await play(page, 1);
     await expect(inCutscene(page)).toHaveCount(0);
     expect((await bag(page)).filter(n => n === WRIT)).toHaveLength(1);
 
