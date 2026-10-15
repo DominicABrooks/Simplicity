@@ -542,13 +542,17 @@ function answererOf(g: Game, s: Streets, door: Door): Resident | null {
   return pool.length ? pool[s.rng.int(0, pool.length - 1)]! : null;
 }
 
-/** Knock at a door, if it is one and the hero's close enough. Returns whether it was a door at all. */
+/**
+ * Knock at a door, if it is one and the hero's on its doorstep. Returns whether he knocked (or went in). A door
+ * out of reach isn't knocked at all: with a whole street of doors on screen, the last one the cursor crossed is
+ * often still targeted, and a click or E meant for anything else mustn't be spent telling him he's too far away.
+ */
 export function knock(g: Game, e: Entity | null): boolean {
   const s = here, door = e !== null ? doors.get(e) : undefined;
   if (!s || !door || e === null) return false;
-  g.target = e;
   const hero = g.world.need(g.player, "transform"), d = g.world.need(e, "transform"), dx = d.x + HALF, dy = d.y + HALF;
-  if (Math.hypot(hero.x - d.x, hero.y - d.y) > TOWNSFOLK.knock.reach) { toast(g, "Too far away to knock"); return true; }
+  if (Math.hypot(hero.x - d.x, hero.y - d.y) > TOWNSFOLK.knock.reach) return false;
+  g.target = e;
   if (door.invitedUntil > g.clock) {                         // they asked you in: in you go
     const answerers = new Set([...answering].flatMap(([a, at]) => (at.door === door ? [g.world.get(a, "walker")?.id] : [])));
     const home = door.household.filter(r => homeNow(g, s, r) || answerers.has(r.id));

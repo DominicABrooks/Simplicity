@@ -230,8 +230,10 @@ describe("knocking at doors", () => {
   it("can't be done from afar, and late at night mostly gets no answer", async () => {
     const g = await inArea("capital", 3), said = toasts(g), [door] = doorsOf(g);
     standAt(g, door!, TOWNSFOLK.knock.reach + 12);
-    expect(knock(g, door!)).toBe(true);
-    expect(said).toContain("Too far away to knock");
+    expect(knock(g, door!)).toBe(false);                        // not a knock: the click or E goes on to whatever else
+    expect(said.some(s => /knock/i.test(s))).toBe(false);       // and no nagging that he's too far
+    run(g, TOWNSFOLK.knock.answer + 0.1);
+    expect(g.world.query("walker").some(([, c]) => c.walker.plan === "answer")).toBe(false);   // nobody comes
     for (const d of doorsOf(g).slice(0, 12)) { standAt(g, d); knock(g, d); run(g, TOWNSFOLK.knock.answer + 0.1); g.world.need(g.player, "transform").y += 60; run(g, 0.1); }
     expect(said.some(s => /No answer at .*asleep/.test(s))).toBe(true);
   });
