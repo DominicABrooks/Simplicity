@@ -1,7 +1,7 @@
 // 2D pixel art from art/ (via the generated sprite data), baked into canvases with the 1px ink
 // outline from ART_STYLE.md. Used for the HUD hearts and the inventory icons.
 import { SPRITES } from "../assets/generated/sprites.ts";
-import type { ItemType, Rarity } from "../data/items.ts";
+import type { ItemType } from "../data/items.ts";
 import { PAL } from "../data/palette.ts";
 import { ICON_SWAPS, TIERS, type TierName } from "../data/tiers.ts";
 
@@ -57,5 +57,3 @@ export function bakeItemIcons(): ItemIcons {
     }))];
   })) as ItemIcons;
 }
-
-export const iconFor = (icons: ItemIcons, type: ItemType, rarity: Rarity): string => icons[type][rarity];
