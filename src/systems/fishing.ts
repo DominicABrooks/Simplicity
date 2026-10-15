@@ -7,12 +7,13 @@ import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf, type HeroParts } from "../game/hero.ts";
 import { dropLoot } from "../game/spawn.ts";
+import { carryingCurio, spentCurios } from "../game/curios.ts";
 import { makeCurio, makeFish } from "../items/items.ts";
 import { tileAt, type Point } from "../world/collision.ts";
 
-/** A curiosity still in the water for the hero to find: one he isn't already carrying (none, once he has them all). */
+/** A curiosity still in the water for the hero to find: one he isn't already carrying or has given up (none, once he has them all). */
 function curioToFind(g: Game): CurioId | null {
-  const left = CURIO_IDS.filter(id => !g.inventory.grid.some(e => e.item.curio === id));
+  const spent = spentCurios(g), left = CURIO_IDS.filter(id => !spent.has(id) && !carryingCurio(g, id));
   return left.length ? left[g.rng.int(0, left.length - 1)]! : null;
 }
 

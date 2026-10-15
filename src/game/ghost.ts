@@ -5,9 +5,10 @@
 // What she does once she's up is src/systems/ghost.ts; the townsfolk running from her, src/game/townsfolk.ts.
 import type { Entity } from "../core/ecs.ts";
 import { isDay } from "../data/daylight.ts";
-import { GHOST, GHOST_NAME, GHOST_SAYS, ghostChance, ghostHp } from "../data/ghost.ts";
+import { BELL_HOME, GHOST, GHOST_NAME, GHOST_SAYS, ghostChance, ghostHp } from "../data/ghost.ts";
 import type { Rect } from "../data/world.ts";
 import type { Point } from "../world/collision.ts";
+import { carryingCurio, spentCurios } from "./curios.ts";
 import { toast, type Game } from "./game.ts";
 
 /**
@@ -65,6 +66,12 @@ export function hauntSystem(g: Game): void {
     h.night = "waiting";
     return;
   }
+  // Her bell given back, she's at rest for good.
+  if (spentCurios(g).has("bell")) return;
+  // Carrying her bell: up she comes for it, rumour or none; and if she's up already, she stops to listen.
+  const bell = carryingCurio(g, "bell");
+  if (bell && ghost !== null) { calmGhost(g, ghost); return; }
+  if (bell && near(yard, g.world.need(g.player, "transform"), GHOST.wake)) { riseGhost(g, yard, true); return; }
   if (ghost !== null || h.night === "quiet" || h.night === "laid") return;
   if (!near(yard, g.world.need(g.player, "transform"), GHOST.wake)) return;
   if (h.night === "waiting") {
@@ -78,20 +85,45 @@ export function hauntSystem(g: Game): void {
   riseGhost(g, yard);
 }
 
-/** She rises from her grave in the churchyard's far corner, by the hero. */
-export function riseGhost(g: Game, yard: Rect): Entity {
+/** She rises from her grave in the churchyard's far corner, by the hero: to fight, or `calm`, for her bell. */
+export function riseGhost(g: Game, yard: Rect, calm = false): Entity {
   const level = g.world.get(g.player, "hero")?.level ?? 1, hp = ghostHp(level);
   const home = { x: yard.x + yard.w - 16, y: yard.y + yard.h / 2 - 4 };   // the far (east) end, where there's no stone
   const e = g.world.create({
     transform: { ...home },
     knockback: { vx: 0, vy: 0 },
     health: { hp, maxHp: hp },
-    ghost: { home, act: "rise", t: 0, next: GHOST.every[1], angry: false, hidden: false },
+    ghost: { home, act: "rise", t: 0, next: GHOST.every[1], angry: false, hidden: false, calm },
     renderable: { kind: "ghost" },
   });
-  g.shake = Math.max(g.shake, 2);
-  toast(g, GHOST_SAYS.rise);
+  g.shake = Math.max(g.shake, calm ? 1 : 2);
+  toast(g, calm ? BELL_HOME.wake : GHOST_SAYS.rise, calm);
   return e;
+}
+
+/** She's up and fighting, but hears her own bell in the hero's bag: the fight's over, and she comes for it. */
+export function calmGhost(g: Game, e: Entity): void {
+  const b = g.world.need(e, "ghost");
+  if (b.calm) return;
+  b.calm = true;
+  b.hidden = false;
+  if (b.act !== "rise") b.act = "come";
+  b.t = 0;
+  ghostSolid(g, e, false);
+  toast(g, BELL_HOME.hush, true);
+}
+
+/** Calm, she can be spoken to (by name, not as a foe), but never hit. */
+export function ghostListens(g: Game, e: Entity): void {
+  g.world.add(e, "targetable", { name: BELL_HOME.name, hostile: false, radius: GHOST.radius, height: GHOST.height });
+}
+
+/** Her bell's back with her: she's at rest, for good this run, and the rumour with her. */
+export function bellHome(g: Game): void {
+  const h = hauntingOf(g);
+  h.night = "laid";
+  h.heard = 0;
+  toast(g, BELL_HOME.rest, true);
 }
 
 /** She's up out of the ground: now she can be hit, and targeted. */

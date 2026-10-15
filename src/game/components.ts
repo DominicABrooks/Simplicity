@@ -160,7 +160,7 @@ export interface MageBrain {
 }
 
 /** What the Grey Ringer is doing (see src/systems/ghost.ts). */
-export type GhostAct = "rise" | "drift" | "toll" | "wail" | "fade" | "return";
+export type GhostAct = "rise" | "drift" | "toll" | "wail" | "fade" | "return" | "come" | "speak" | "ring";
 
 /** The ghost of St Mary's churchyard. */
 export interface GhostBrain {
@@ -175,6 +175,8 @@ export interface GhostBrain {
   angry: boolean;
   /** Faded out: not there to hit (her enemy and target are taken away until she's back). */
   hidden: boolean;
+  /** She's heard her own bell in the hero's bag: no fight, she comes for it (see BELL_HOME). */
+  calm?: boolean;
 }
 
 /** Something on the ground to walk over: a healing potion, or an item. */

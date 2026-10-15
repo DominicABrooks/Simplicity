@@ -635,9 +635,9 @@ const ghost: EntityView<GhostView> = {
     v.body.position.y = 0.22 + Math.sin(t * 2.1) * 0.07 - (1 - rising) * 1.3;
     for (const eye of v.eyes) eye.material = b.angry ? v.angry : v.calm;
     // What her arms are doing: the bell raised and shaking for the toll, both arms flung out for the wail, else held out before her.
-    const k = b.act === "toll" ? Math.min(1, b.t / (b.angry ? GHOST.toll.angryCharge : GHOST.toll.charge)) : 0;
+    const k = b.act === "ring" ? 1 : b.act === "toll" ? Math.min(1, b.t / (b.angry ? GHOST.toll.angryCharge : GHOST.toll.charge)) : 0;
     const wail = b.act === "wail" ? Math.min(1, b.t / GHOST.wail.charge) : 0;
-    v.bellArm.rotation.set(0, 0, smooth(v.bellArm.rotation.z, b.act === "toll" ? 2.5 + Math.sin(t * 38) * 0.18 * k : wail ? 1.3 : 0.9 + Math.sin(t * 1.7) * 0.12, dt, 10));
+    v.bellArm.rotation.set(0, 0, smooth(v.bellArm.rotation.z, b.act === "toll" || b.act === "ring" ? 2.5 + Math.sin(t * 38) * 0.18 * k : wail ? 1.3 : 0.9 + Math.sin(t * 1.7) * 0.12, dt, 10));
     v.reachArm.rotation.set(wail ? -0.6 : 0, 0, smooth(v.reachArm.rotation.z, wail ? 1.5 : b.act === "toll" ? 0.4 : 1.15 + Math.sin(t * 1.3 + 1) * 0.1, dt, 8));
     v.bellArm.rotation.x = wail ? 0.6 : 0;
     v.bell.rotation.z = Math.sin(t * (k ? 30 : 3)) * (k ? 0.5 : 0.25);
