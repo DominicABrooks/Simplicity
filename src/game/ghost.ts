@@ -5,11 +5,13 @@
 // What she does once she's up is src/systems/ghost.ts; the townsfolk running from her, src/game/townsfolk.ts.
 import type { Entity } from "../core/ecs.ts";
 import { isDay } from "../data/daylight.ts";
-import { BELL_HOME, GHOST, GHOST_NAME, GHOST_SAYS, ghostChance, ghostHp } from "../data/ghost.ts";
+import { BELL_HOME, GHOST, GHOST_NAME, GHOST_SAYS, HOLLOW_BITE, ghostChance, ghostHp } from "../data/ghost.ts";
 import type { Rect } from "../data/world.ts";
 import type { Point } from "../world/collision.ts";
 import { carryingCurio, spentCurios } from "./curios.ts";
 import { toast, type Game } from "./game.ts";
+import { makeItem, rollItem } from "../items/items.ts";
+import { dropLoot, spawnPotion } from "./spawn.ts";
 
 /**
  * How the haunting stands. `heard` is how many times the hero's heard the rumour (it carries across runs, like
@@ -136,6 +138,13 @@ export function ghostSolid(g: Game, e: Entity, solid: boolean): void {
     g.world.remove(e, "targetable");
     if (g.target === e) g.target = null;
   }
+}
+
+/** Her grave goods, left where she's laid to rest: Hollow Bite, a rare thing or two besides, and potions. */
+export function graveGoods(g: Game, x: number, y: number): void {
+  const items = [makeItem(...HOLLOW_BITE), ...Array.from({ length: GHOST.reward.items }, () => rollItem(g.rng, "rare"))];
+  items.forEach((item, i) => dropLoot(g, x + (i - (items.length - 1) / 2) * 10, y, item));
+  for (let i = 0; i < GHOST.reward.potions; i++) spawnPotion(g, x + (i - (GHOST.reward.potions - 1) / 2) * 10, y + 9);
 }
 
 /** She's beaten: at rest for tonight, and the rumour dies down (the hero would have to hear it all again). */

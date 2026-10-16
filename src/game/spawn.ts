@@ -17,7 +17,7 @@ export function createHero(g: Game): Entity {
     transform: { x: 0, y: 0 },                             // placed when it enters an area
     knockback: { vx: 0, vy: 0 },
     health: { hp: BASE_HP, maxHp: BASE_HP },
-    hero: { level: 1, xp: 0, damage: 1, speedMul: 1, dashMul: 1, gear: null },
+    hero: { level: 1, xp: 0, damage: 1, crit: 0, speedMul: 1, dashMul: 1, gear: null },
     motion: { aim: 0, face: 1, moving: false, swimming: false, dash: 0, dashX: 0, dashY: 0, dashCooldown: 0, jump: 0 },
     status: { hurt: 0, sheep: 0, frozen: 0, chill: 0 },
     actions: {

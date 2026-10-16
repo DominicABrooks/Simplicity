@@ -93,7 +93,7 @@ export function quaySystem(g: Game): void {
   if (g.area.def.id === "witchwood" && spentCurios(g).has("eye") && !thornHere(g) && !hasThorn(g)) {
     const bed = lakeBed(g);
     if (bed) {
-      const e = dropLoot(g, bed.x, bed.y, makeItem(THORN.type, "rare", { ...THORN.mods }, THORN.name));
+      const e = dropLoot(g, bed.x, bed.y, makeItem(THORN.type, THORN.rarity, { ...THORN.mods }, THORN.name));
       g.world.remove(e, "despawn");                             // it's waited this long
       if (!glinted(g).told) { glinted(g).told = true; toast(g, THORN_SAYS); }
     }

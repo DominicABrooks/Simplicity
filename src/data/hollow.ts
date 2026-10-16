@@ -188,12 +188,12 @@ export const WHISKER_ROD: KitPiece = ["rod", "legendary", {}, "Greatwhisker"];
 export const WHISKER_NOTE = "Strung with the Great Koi's whisker. Golden koi 30%, silver 40%, and they bite twice as quick";
 
 /** The bow in the hunter's hut on the Hollow's rim (GEAR.md): the first bow worth using. */
-export const HUNTERS_LONGBOW: KitPiece = ["bow", "magic", { damage: 1 }, "Hunter's Longbow"];
+export const HUNTERS_LONGBOW: KitPiece = ["bow", "magic", { crit: 2 }, "Hunter's Longbow"];
 /** As he picks it up. */
 export const HUT_FIND = "The hunter's longbow, left lying in his doorway. Still strung, after all this time.";
 
 /** What Cinder leaves (GEAR.md, the Cinderward): a blade, 2 damage. */
-export const CINDERS_BRAND: KitPiece = ["blade", "rare", { damage: 1 }, "Cinder's Brand"];
+export const CINDERS_BRAND: KitPiece = ["blade", "rare", { crit: 2 }, "Cinder's Brand"];
 
 /**
  * What a hero on the straight path has on reaching Rime (GEAR.md, "Along the story path": about level 7, Cinder's

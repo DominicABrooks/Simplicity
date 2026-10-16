@@ -11,7 +11,7 @@ import { bossHere, quietAfterBoss } from "../game/bosses.ts";
 import { greatKoiOut, landGreatKoi } from "../game/greatkoi.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
-import { laidToRest } from "../game/ghost.ts";
+import { graveGoods, laidToRest } from "../game/ghost.ts";
 import { heroParts } from "../game/hero.ts";
 import { dropLoot, spawnEnemy, spawnPotion } from "../game/spawn.ts";
 import { rollItem } from "../items/items.ts";
@@ -89,8 +89,7 @@ function layGhost(g: Game, x: number, y: number): void {
   sound(g, "toll", { x, y });
   g.fx.push({ type: "burst", x, y, palette: "frost" });
   g.shake = Math.max(g.shake, 4);
-  for (let i = 0; i < GHOST.reward.items; i++) dropLoot(g, x + (i - (GHOST.reward.items - 1) / 2) * 10, y, rollItem(g.rng, "rare"));
-  for (let i = 0; i < GHOST.reward.potions; i++) spawnPotion(g, x + (i - (GHOST.reward.potions - 1) / 2) * 10, y + 9);
+  graveGoods(g, x, y);
   laidToRest(g);
   celebrate(g, GHOST_NAME, GHOST_TITLE, x, y);
 }

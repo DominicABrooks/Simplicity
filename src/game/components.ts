@@ -29,6 +29,8 @@ export interface Hero {
   level: number;
   xp: number;
   damage: number;
+  /** Critical strike chance from gear (percent), on top of everyone's (CRIT.chance). */
+  crit: number;
   speedMul: number;
   /** Multiplies the dash cooldown (gear can shorten it). */
   dashMul: number;

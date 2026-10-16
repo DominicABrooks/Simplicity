@@ -15,7 +15,7 @@ export function combatText(g: Game, x: number, y: number, text: string, color: s
   g.floaters.push({ x, y, text, color, crit, life, t: 1, jx: Math.round((Math.random() - 0.5) * 10) });
 }
 
-/** Hit an enemy (with a blade or a fist: `melee`; or a shot): 10% crits for double damage, with a flash, a number, and extra weight on crits. */
+/** Hit an enemy (with a blade or a fist: `melee`; or a shot): 10% crits (more with gear) for double damage, with a flash, a number, and extra weight on crits. */
 export function hitEnemy(g: Game, e: Entity, damage: number, melee = true): number {
   const health = g.world.need(e, "health"), enemy = g.world.need(e, "enemy"), at = g.world.need(e, "transform");
   if (enemy.warded) {                                        // sealed in (ice, lightning): it glances off
@@ -23,7 +23,7 @@ export function hitEnemy(g: Game, e: Entity, damage: number, melee = true): numb
     combatText(g, at.x, at.y, enemy.wardSay ?? "Ice!", COMBAT_COLORS.hit);
     return 0;
   }
-  const crit = g.rng.next() < CRIT.chance;
+  const crit = g.rng.next() < CRIT.chance + (g.world.get(g.player, "hero")?.crit ?? 0) / 100;
   const dealt = crit ? damage * CRIT.multiplier : damage;
   if (enemy.lastStand === "ready" && health.hp - dealt <= 0) {   // it won't fall yet: the blow's turned, its health kept
     enemy.lastStand = "taken";

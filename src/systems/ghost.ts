@@ -14,11 +14,10 @@ import { damagePlayer, grantXP } from "../game/combat.ts";
 import { spendCurio } from "../game/curios.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
-import { bellHome, ghostListens, ghostSolid } from "../game/ghost.ts";
+import { bellHome, ghostListens, ghostSolid, graveGoods } from "../game/ghost.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
-import { dropLoot, spawnBolt, spawnPotion } from "../game/spawn.ts";
+import { spawnBolt } from "../game/spawn.ts";
 import { speak, talking } from "../game/talk.ts";
-import { rollItem } from "../items/items.ts";
 import { blocked, overlap } from "../world/collision.ts";
 
 const between = (g: Game, [a, b]: readonly [number, number]) => a + g.rng.next() * (b - a);
@@ -154,8 +153,7 @@ function updateCalm(g: Game, h: HeroParts, e: Entity, s: Transform, b: GhostBrai
       if (b.t < BELL_HOME.ring) return;
       g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "frost" });
       grantXP(g, XP.ghost, s.x, s.y);
-      for (let i = 0; i < GHOST.reward.items; i++) dropLoot(g, s.x + (i - (GHOST.reward.items - 1) / 2) * 10, s.y, rollItem(g.rng, "rare"));
-      for (let i = 0; i < GHOST.reward.potions; i++) spawnPotion(g, s.x + (i - (GHOST.reward.potions - 1) / 2) * 10, s.y + 9);
+      graveGoods(g, s.x, s.y);
       if (g.target === e) g.target = null;
       g.world.destroy(e);
       bellHome(g);

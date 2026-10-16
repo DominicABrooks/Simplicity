@@ -2,7 +2,7 @@
 // Click to pick up and place, drag and drop, right-click to equip, unequip or eat. Holding an item and
 // clicking the world drops it. The panel is a window you can drag by its title; it remembers where it was.
 import { BASES, SLOTS, SLOT_ICON, type Slot } from "../data/items.ts";
-import { BASE_HP } from "../data/player.ts";
+import { BASE_HP, CRIT } from "../data/player.ts";
 import { COLS, ROWS, type GridEntry, type Inventory } from "../items/inventory.ts";
 import type { Item } from "../items/items.ts";
 import { byId, isHandled, isUiTarget, markHandled } from "./dom.ts";
@@ -99,7 +99,7 @@ export function createInventoryView(model: Inventory, icons: ItemIcons, hooks: I
     }
     const st = model.stats();
     statsEl.replaceChildren(...[
-      ["Level ", st.level, ""], ["", st.damage, " Damage"], ["", BASE_HP + st.life, " Life"],
+      ["Level ", st.level, ""], ["", st.damage, " Damage"], ["", `${Math.round(CRIT.chance * 100) + st.crit}%`, " Crit"], ["", BASE_HP + st.life, " Life"],
       ["", `+${st.speed}%`, " Speed"], ["", `${st.dash}%`, " Dash recovery"],
     ].map(([before, value, after]) => {
       const span = document.createElement("span"), b = document.createElement("b");

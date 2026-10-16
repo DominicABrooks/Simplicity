@@ -49,7 +49,7 @@ Guards in the kingdom's colours keep the gates; nothing hostile lives in the cit
 
 **Journal (coming soon):** greyed out on the menu bar for now; it's built and switched off in `src/data/features.ts`. A bestiary of every enemy. Each starts as a black silhouette; kill one and its page fills in with its portrait, a little about it, its health, experience, abilities and drops, and how many you've defeated. Your discoveries are saved in the browser and kept across runs. The book button glows when there's a new entry.
 
-**Combat text and crits:** WoW-style numbers float up as pixel text: white for your hits, red for damage you take, green for healing, lilac for XP. Every hit (sword, punch, arrow) has a 10% chance to **crit** for double damage, shown as a big gold number with a "!", with a little extra hitstop, shake and gold sparks.
+**Combat text and crits:** WoW-style numbers float up as pixel text: white for your hits, red for damage you take, green for healing, lilac for XP. Every hit (sword, punch, arrow) has a 10% chance to **crit** for double damage (more with gear: weapons, rings and amulets can roll a little **Critical Strike Chance**, in place of the +Damage they used to), shown as a big gold number with a "!", with a little extra hitstop, shake and gold sparks.
 
 **Experience:** kills give XP (10 per slime, 50 per mage), shown on the purple bar along the bottom, with your level in the medallion at its left end. Level 2 takes 50 XP and each level needs 40 more, up to level 20. Each level gives raw stats on top of your gear (+2% movement speed per level, +1 life every 2 levels, +1 damage every 4 levels) and, as in WoW, a full heal.
 

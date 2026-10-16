@@ -60,6 +60,19 @@ describe("combat", () => {
     expect([...crits].sort()).toEqual([3, 3 * CRIT.multiplier]);
   });
 
+  it("gear's crit chance comes on top of everyone's", () => {
+    const crits = (bonus: number) => {
+      const g = playing();
+      g.world.need(g.player, "hero").crit = bonus;
+      let n = 0;
+      g.rng.next = () => CRIT.chance + 0.05;                  // just past everyone's chance
+      for (let i = 0; i < 20; i++) if (hitEnemy(g, addSlime(g, 30, 0, 100), 3) === 3 * CRIT.multiplier) n++;
+      return n;
+    };
+    expect(crits(0)).toBe(0);
+    expect(crits(6)).toBe(20);
+  });
+
   it("damage breaks a polymorph and knocks the hero back", () => {
     const g = playing();
     polymorph(g);

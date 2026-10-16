@@ -346,13 +346,13 @@ describe("coming to Rime ready, to playtest (?boss=rime)", () => {
   it("is about level 7, in the pieces a player would have by then", () => {
     expect(RIME_READY.level).toBe(7);
     expect(RIME_READY.kit.map(total)).toEqual([
-      { name: "Hunter's Longbow", slot: "weapon", damage: 2 },
+      { name: "Hunter's Longbow", slot: "weapon", damage: 1, crit: 2 },
       { name: "Ember Cowl", slot: "helm", life: 1 },
       { name: "Ashen Robe", slot: "armor", life: 2 },
       { name: "Icewalk Boots", slot: "boots", speed: 6, dash: 10 },
       { name: "Signet of Aurenmark", slot: "amulet", life: 1 },
     ]);
-    expect(RIME_READY.bag.map(total)).toEqual([{ name: "Cinder's Brand", slot: "weapon", damage: 2 }]);
+    expect(RIME_READY.bag.map(total)).toEqual([{ name: "Cinder's Brand", slot: "weapon", damage: 1, crit: 2 }]);
   });
 
   it("doesn't leave a second longbow in the hut when he's carrying one", async () => {

@@ -46,7 +46,7 @@ export const FISHING = {
   noMouseReach: 24,     // without a mouse, casts land this far along the aim
 } as const;
 
-/** Crits: 10% of hits deal double damage and land a little harder. */
+/** Crits: 10% of hits (more with gear: the crit affix) deal double damage and land a little harder. */
 export const CRIT = { chance: 0.1, multiplier: 2, hitstop: 0.07, shake: 0.25 } as const;
 
 /** Taking a hit: a moment of invulnerability, a shove away from the source, and a shake. */

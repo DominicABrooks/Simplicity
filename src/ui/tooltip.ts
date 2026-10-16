@@ -1,5 +1,5 @@
 // Item tooltips, PoE style: name in the rarity colour, base type, slot, stats and affixes.
-import { AFFIXES, BASES, BASE_TEXT, CURIOS, SLOTS, type StatKey } from "../data/items.ts";
+import { AFFIXES, BASES, BASE_TEXT, CURIOS, SLOTS, type ModKey, type StatKey } from "../data/items.ts";
 import type { Item } from "../items/items.ts";
 import { byId } from "./dom.ts";
 
@@ -40,7 +40,7 @@ export function createTooltip(): Tooltip {
         const text = BASE_TEXT[k];
         if (text) lines.push(line("tip-stat", text(v)));
       }
-      for (const [k, v] of Object.entries(item.mods) as [StatKey, number][]) lines.push(line("tip-mod", AFFIXES[k].text(v)));
+      for (const [k, v] of Object.entries(item.mods) as [ModKey, number][]) lines.push(line("tip-mod", AFFIXES[k].text(v)));
       tip.replaceChildren(...lines);
       tip.hidden = false;
       place(mouse);
