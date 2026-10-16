@@ -5,6 +5,7 @@ import { CRIT, HURT } from "../data/player.ts";
 import { XP, xpToNext } from "../data/progression.ts";
 import { COMBAT_COLORS } from "../data/ui.ts";
 import { SPELLS } from "../data/enemies.ts";
+import { isGod } from "./cheats.ts";
 import type { Actions } from "./components.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { sound } from "./sfx.ts";
@@ -55,7 +56,7 @@ export function damagePlayer(g: Game, sx: number, sy: number, amount = 1): void 
   const w = g.world, e = g.player;
   const p = w.need(e, "transform"), kb = w.need(e, "knockback"), health = w.need(e, "health"), status = w.need(e, "status");
   status.sheep = 0;                                          // any damage breaks a polymorph
-  health.hp -= amount;
+  if (!isGod(g)) health.hp -= amount;                       // (a playtesting switch: see cheats.ts)
   status.hurt = HURT.invulnerable;
   cancelActions(w.need(e, "actions"));
   combatText(g, p.x, p.y, `-${amount}`, COMBAT_COLORS.taken);

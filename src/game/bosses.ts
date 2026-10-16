@@ -7,11 +7,17 @@ import { CINDER, CINDER_FALLS } from "../data/ashwild.ts";
 import { MAGE_TARGET } from "../data/enemies.ts";
 import { XP } from "../data/progression.ts";
 import { rollItem } from "../items/items.ts";
+import { isFrozen } from "./cheats.ts";
 import { grantXP } from "./combat.ts";
 import { dropLoot } from "./spawn.ts";
 import { toast, type Game } from "./game.ts";
 
-type Who = "cinder";
+export type Who = "cinder";
+
+/** Where each boss waits: their area, and the way in the hero comes by (for playtesting: see src/debug.ts). */
+export const LAIRS: Record<Who, { area: string; entry: string }> = {
+  cinder: { area: "ashwild", entry: "witchwood" },
+};
 
 /** Who's been beaten this run (by name), and the boss in the area now, with where they last stood. */
 interface Bosses { beaten: Set<Who>; here: { e: Entity; who: Who; x: number; y: number } | null }
@@ -55,6 +61,12 @@ export function bossSystem(g: Game, dt: number): void {
   if (!s || !here) return;
   const t = g.world.get(here.e, "transform"), m = g.world.get(here.e, "mage"), hp = g.world.get(here.e, "health");
   if (t && m && hp && hp.hp > 0) {
+    if (isFrozen(g)) {                                       // playtesting: held still where he stands, casting nothing
+      t.x = here.x; t.y = here.y;
+      Object.assign(m, { casting: false, castK: 0, spell: null, moving: false, melee: false, swing: null });
+      m.timer = m.blinkCD = m.specialCD = m.swingCD = 1;
+      return;
+    }
     here.x = t.x; here.y = t.y;
     const more = dt * (CINDER.hurry - 1);
     m.timer -= more;
