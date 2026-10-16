@@ -3,8 +3,8 @@
 // "snow" look: src/render/snow.ts). The track comes in from the east past the hollow stone, one of Ael's old stones
 // (src/game/stones.ts), and down into the bowl of the valley; at the bottom of it the lake, frozen hard enough to
 // walk on, where the Frost mages keep. Off to one side of the lake someone has cut a hole in the ice (fish through it
-// and it's always the big one, a golden koi: src/systems/fishing.ts); out in the middle, the ring of frost runes where
-// Rime waits under the ice (src/game/rimefight.ts). On the bowl's north rim, a hunter's hut, left empty but for his
+// and it's always the big one, a golden koi: src/systems/fishing.ts); out in the middle, her arena: frost runes in a
+// ring of ice pillars, where Rime waits under the ice (src/game/rimefight.ts). On the bowl's north rim, a hunter's hut, left empty but for his
 // longbow inside the door (src/game/hunterhut.ts).
 import { Rng } from "../core/rng.ts";
 import { HALF, T, Tile } from "../data/world.ts";
@@ -20,10 +20,10 @@ const BOWL = { x: 22, y: 20, rx: 16, ry: 14 } as const;
 const LAKE = { x: 20, y: 21, rx: 10, ry: 7 } as const;
 /** The hollow stone, on the track a little way in from the edge (its tile). */
 export const HOLLOW_STONE = { x: W - 9, y: TRACK } as const;
-/** The hole in the ice (its top-left tile; two by two), off to the west of the lake's middle, ice all round it. */
-export const ICE_HOLE = { x: LAKE.x - 7, y: LAKE.y - 2 } as const;
-/** Rime's stage, out in the middle of the lake: how far across its ring of runes is (tiles). */
-const STAGE_R = 3.5;
+/** The hole in the ice (its top-left tile, and how many tiles across and down), out west of Rime's arena, ice all round it. */
+export const ICE_HOLE = { x: LAKE.x - 8, y: LAKE.y, w: 1, h: 2 } as const;
+/** Rime's arena, out in the middle of the lake: how far out its pillars of ice stand (tiles), how many, and the one left out (east, for the way in). */
+const STAGE = { radius: 6, pillars: 12, gap: 3 } as const;
 /** The hunter's hut on the north rim (the tile in the middle of it). */
 const HUT = { x: BOWL.x + 3, y: BOWL.y - BOWL.ry + 3 } as const;
 
@@ -41,7 +41,7 @@ function build(): AreaLayout {
   }
   // The lake, frozen over, and the hole in the ice.
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (inside(x, y, LAKE, 2.1)) town.set(x, y, Tile.Ice);
-  town.fill([ICE_HOLE.x, ICE_HOLE.y, 2, 2], Tile.Water);
+  town.fill([ICE_HOLE.x, ICE_HOLE.y, ICE_HOLE.w, ICE_HOLE.h], Tile.Water);
   // The track in from the east edge, down into the bowl, with the ground cleared round the stone.
   for (let x = Math.round(BOWL.x + BOWL.rx * 0.6); x < W; x++) town.set(x, TRACK, Tile.Path);
   for (let y = TRACK - 1; y <= TRACK + 1; y++) for (let x = HOLLOW_STONE.x - 1; x <= HOLLOW_STONE.x + 1; x++) if (y !== TRACK) town.set(x, y, Tile.Grass);
@@ -54,7 +54,9 @@ function build(): AreaLayout {
 
   // The hollow stone, and Rime's stage in the middle of the ice.
   town.add({ kind: "oldStone", x: (HOLLOW_STONE.x + 0.5) * T, y: (HOLLOW_STONE.y + 0.5) * T, name: "The hollow stone", entry: "stone" });
-  town.add({ kind: "rimeStage", x: LAKE.x * T, y: LAKE.y * T, radius: STAGE_R });
+  town.add({ kind: "rimeStage", x: LAKE.x * T, y: LAKE.y * T, ...STAGE });
+  // Ice under the pillars, not the paving a Wall tile gets (their shapes block, as everything built does).
+  town.paint((x, y) => town.at(x, y) === Tile.Wall && Math.hypot(x + 0.5 - LAKE.x, y + 0.5 - LAKE.y) < STAGE.radius + 1, Tile.Ice);
   town.add({ kind: "boss", x: LAKE.x * T, y: LAKE.y * T, who: "rime" });
 
   // Anywhere the trees have cut off from the track is forest too.

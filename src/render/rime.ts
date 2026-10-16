@@ -1,5 +1,6 @@
-// The frost of Rime's fight (src/game/rimefight.ts), drawn on the entity made for it at her stage's middle: patches
-// of frost creeping over the ice (a ring on the ice, filling white), then setting hard (a cluster of ice crystals
+// The frost of Rime's fight (src/game/rimefight.ts), drawn on the entity made for it at her arena's middle: the wall
+// of ice shooting up all round between the pillars (and shattering when she falls); patches of frost creeping over
+// the ice (a ring on the ice, filling white), then setting hard (a cluster of ice crystals
 // standing up out of it for a moment); and once she's fallen, the ring of the lake thawed to open water round where
 // she stood, its edge broken into floes.
 import * as THREE from "three";
@@ -19,6 +20,10 @@ interface PatchMesh { group: THREE.Group; edge: THREE.Mesh; fill: THREE.Mesh; cr
 export interface RimeFrostView {
   group: THREE.Group;
   patches: PatchMesh[];
+  /** The wall of ice between the pillars, while the fight's on, its shards, and how far round it stands (tiles). */
+  wall: THREE.Group | null;
+  shards: THREE.Mesh[];
+  ringR: number;
   /** The thawed ring, once she's fallen (built the first time it's needed), and how far it's faded in. */
   thaw: THREE.Group | null;
   thawK: number;
@@ -100,7 +105,10 @@ export const rimefrost: EntityView<RimeFrostView> = {
     const [x, z] = toWorld(t.x, t.y);
     group.position.set(x, 0, z);
     ctx.scene.add(group);
-    return { group, patches: [], thaw: null, thawK: 0 };
+    const stage = g.area.layout.props.find(p => p.kind === "rimeStage"), ringR = stage?.kind === "rimeStage" ? stage.radius : F.keepIn / PX_PER_TILE + 1;
+    const v: RimeFrostView = { group, wall: null, shards: [], ringR, patches: [], thaw: null, thawK: 0 };
+    if (rimeFight(g)?.view === e) makeWall(ctx, v);
+    return v;
   },
   update(ctx, v, e, g, f) {
     const fight = rimeFight(g), fell = fellAt(g, "rime");
@@ -108,6 +116,14 @@ export const rimefrost: EntityView<RimeFrostView> = {
     while (v.patches.length < patches.length) v.patches.push(makePatch(ctx, v.group));
     while (v.patches.length > patches.length) { const m = v.patches.pop()!; m.group.removeFromParent(); disposeTree(m.group); }
     if (fight) patches.forEach((pa, i) => posePatch(v.patches[i]!, fight, pa, f.t));
+    if (v.wall && fight) {                                    // shooting up as the ice shuts him in, then glinting
+      v.wall.scale.y = Math.min(1, fight.t * 2.2);
+      v.shards.forEach((s, i) => { s.rotation.y = Math.sin(f.t * 0.6 + i) * 0.15; });
+      if (Math.random() < f.dt * 10) {                        // frost smoking off it
+        const a = Math.random() * Math.PI * 2;
+        ctx.particles.spawn("snow", v.group.position.x + Math.cos(a) * v.ringR, 0.4 + Math.random() * 0.6, v.group.position.z + Math.sin(a) * v.ringR, 0, 0.5 + Math.random() * 0.5, 0, 0.9);
+      }
+    }
     if (fell && !v.thaw && !fight) {
       const at = g.world.need(e, "transform");
       v.thaw = makeThaw(ctx, g.area.layout.map, at);
@@ -119,7 +135,31 @@ export const rimefrost: EntityView<RimeFrostView> = {
     }
   },
   remove(ctx, v) {
+    if (v.wall) for (let i = 0; i < 40; i++) {                // the wall shatters
+      const a = (i / 40) * Math.PI * 2;
+      ctx.particles.spawn(i % 2 ? "ice" : "snow", v.group.position.x + Math.cos(a) * v.ringR, 0.2 + Math.random() * 0.9, v.group.position.z + Math.sin(a) * v.ringR,
+        Math.cos(a) * (0.6 + Math.random()), 0.8 + Math.random() * 1.2, Math.sin(a) * (0.6 + Math.random()), 0.9);
+    }
     ctx.scene.remove(v.group);
     disposeTree(v.group);
   },
 };
+
+/** The wall of ice: a pale band glowing on the ice all the way round, and a crowd of jagged shards standing up out of it. */
+function makeWall(ctx: RenderContext, v: RimeFrostView): void {
+  const wall = new THREE.Group(), R = v.ringR;
+  wall.add(new THREE.Mesh(new THREE.RingGeometry(R - 0.4, R + 0.4, 48).rotateX(-Math.PI / 2),
+    ctx.glow(GLINT, { transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, ...onGround(GROUND.marker) })));
+  const mats = [ctx.lambert("#d8eef7", { transparent: true, opacity: 0.85 }), ctx.lambert("#9cc6dc", { transparent: true, opacity: 0.9 }), ctx.glow("#c9f3ff", { transparent: true, opacity: 0.8 })];
+  for (let i = 0; i < 64; i++) {
+    const a = (i / 64) * Math.PI * 2, k = hash(i, 3, 441), h = 0.45 + k * 0.75, d = R + (k - 0.5) * 0.35;
+    const s = new THREE.Mesh(new THREE.ConeGeometry(0.13 - (i % 3) * 0.025, h, 4).translate(0, h / 2, 0), mats[i % 3]!);
+    s.position.set(Math.cos(a) * d, 0, Math.sin(a) * d);
+    s.rotation.set(Math.sin(a) * 0.25 * (k - 0.5), k * 3, -Math.cos(a) * 0.25 * (k - 0.5));
+    v.shards.push(s);
+    wall.add(s);
+  }
+  wall.scale.y = 0.01;
+  v.group.add(wall);
+  v.wall = wall;
+}

@@ -42,7 +42,25 @@ function standOff(g: Game, tiles: number) {
 }
 
 describe("Rime", () => {
-  it("waits under the ice until he steps onto her runes", async () => {
+  it("waits under the ice until he steps in among her pillars; then the ice shuts him in, and he can't leave", async () => {
+    const g = await inHollow(), toasts: string[] = [];
+    g.events.on("toast", ({ text }) => toasts.push(text));
+    expect(standOff(g, 6)).toBeUndefined();
+    expect(rimeFight(g)).toBeNull();
+    standOff(g, 4);
+    expect(rimeFight(g)).not.toBeNull();
+    expect(toasts).toEqual(expect.arrayContaining([RIME_FIGHT.say.shut, RIME_FIGHT.say.rise]));
+    const me = g.world.need(g.player, "transform");
+    Object.assign(me, { x: RIME_AT.x + 12 * T, y: RIME_AT.y });         // out through where the way in was
+    rimeFightSystem(g, DT);
+    expect(Math.hypot(me.x - RIME_AT.x, me.y - RIME_AT.y)).toBeCloseTo(RIME_FIGHT.keepIn);
+    // And everything the frost does, it does inside.
+    rimeFight(g)!.nextPatches = 0;
+    rimeFightSystem(g, DT);
+    for (const pa of rimeFight(g)!.patches) expect(Math.hypot(pa.x - RIME_AT.x, pa.y - RIME_AT.y)).toBeLessThanOrEqual(RIME_FIGHT.keepIn + 0.001);
+  });
+
+  it("rises in the middle: a Frost mage, tougher than any, with a boss bar", async () => {
     const g = await inHollow();
     expect(bossWaiting(g)).toBe("rime");
     expect(standOff(g, 6)).toBeUndefined();

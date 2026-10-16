@@ -26,8 +26,8 @@ export const RIME = {
 export const RIME_CIRCLET: KitPiece = ["hood", "rare", { dash: 10 }, "Rime Circlet"];
 
 export const RIME_FIGHT = {
-  /** How close to the middle of her stage (px) the hero comes before she rises out of the ice. */
-  wakeAt: 30,
+  /** How far in among the pillars (px from the middle) the hero has to come for the ice to shut him in, and how far in it then keeps him. */
+  shutAt: 36, keepIn: 42,
   /** Below this share of her health, she's angry. */
   angry: 0.5,
   patch: {
@@ -39,7 +39,9 @@ export const RIME_FIGHT = {
   /** When she falls, the lake thaws in a ring round where she stood: from this far out to this far (tiles). */
   thaw: { inner: 2, outer: 3.6 },
   say: {
+    shut: "Ice shoots up between the pillars! There's no way out.",
     rise: "Something hums under the ice. Rime rises out of it.",
+    open: "The wall of ice cracks, and falls away in shards.",
     patch: "Frost creeps across the ice around you!",
     thaw: "The ice groans, and thaws in a ring round where she stood.",
   },

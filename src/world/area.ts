@@ -159,8 +159,9 @@ export type Prop =
   /** One of Ael's old stones (see src/game/stones.ts): grey, flat and faintly warm, set in the ground. Touch it and, if he
    * falls, he wakes beside it at the area's `entry`. Not solid. */
   | { kind: "oldStone"; x: number; y: number; name: string; entry: string }
-  /** Where Rime will stand (the Frozen Hollow): a ring of frost runes `radius` tiles across, scratched into the ice. Not solid. */
-  | { kind: "rimeStage"; x: number; y: number; radius: number }
+  /** Rime's arena (the Frozen Hollow; see src/world/arena.ts): frost runes scratched into the ice, ringed by `pillars` pillars of
+   * ice `radius` tiles out, the `gap`th (from the north, clockwise) left out for the way in. The pillars are solid. */
+  | { kind: "rimeStage"; x: number; y: number; radius: number; pillars: number; gap: number }
   /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
   | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" }
   /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */

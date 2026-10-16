@@ -13,6 +13,7 @@ import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
 import { waterAt } from "../src/systems/fishing.ts";
 import { step } from "../src/systems/index.ts";
+import { arenaPlan } from "../src/world/arena.ts";
 import { blocked, moveBy, tileAt } from "../src/world/collision.ts";
 
 const DT = 1 / 60;
@@ -44,14 +45,20 @@ describe("the Frozen Hollow", () => {
     expect(g.world.need(g.player, "motion").swimming).toBe(false);
   });
 
-  it("has Rime's stage out in the middle of the ice, with nowhere to hide on it", () => {
+  it("has Rime's arena out in the middle of the ice: a ring of ice pillars, open to the east, and nowhere to hide inside", () => {
     const stage = layout.props.find(p => p.kind === "rimeStage");
     if (stage?.kind !== "rimeStage") throw new Error("no stage");
     expect(stage.x - HALF).toBe(RIME_AT.x);
     expect(stage.y - HALF).toBe(RIME_AT.y);
-    for (let y = Math.floor(stage.y / T - stage.radius); y <= stage.y / T + stage.radius; y++)
-      for (let x = Math.floor(stage.x / T - stage.radius); x <= stage.x / T + stage.radius; x++)
-        if (Math.hypot(x + 0.5 - stage.x / T, y + 0.5 - stage.y / T) <= stage.radius) expect(layout.map.tiles[y]![x]).toBe(Tile.Ice);
+    const inner = stage.radius - 1;
+    for (let y = Math.floor(stage.y / T - inner); y <= stage.y / T + inner; y++)
+      for (let x = Math.floor(stage.x / T - inner); x <= stage.x / T + inner; x++)
+        if (Math.hypot(x + 0.5 - stage.x / T, y + 0.5 - stage.y / T) <= inner) expect(layout.map.tiles[y]![x]).toBe(Tile.Ice);
+    // The pillars are solid; the way in, from the east (the side the track comes down), isn't.
+    const pillars = arenaPlan(stage);
+    expect(pillars).toHaveLength(stage.pillars - 1);
+    for (const s of pillars) expect(blocked(layout.map, s.x * T - HALF, s.z * T - HALF, false)).toBe(true);
+    expect(blocked(layout.map, stage.x + stage.radius * T - HALF, stage.y - HALF, false)).toBe(false);
   });
 
   it("is hunted by Frost mages only, out on the ice", async () => {
@@ -67,8 +74,11 @@ describe("the Frozen Hollow", () => {
 describe("the hole in the ice", () => {
   it("is open water with ice all round it", async () => {
     const g = await inHollow();
-    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) expect(g.map.tiles[ICE_HOLE.y + dy]![ICE_HOLE.x + dx]).toBe(Tile.Water);
-    for (let x = ICE_HOLE.x - 1; x <= ICE_HOLE.x + 2; x++) for (const y of [ICE_HOLE.y - 1, ICE_HOLE.y + 2]) expect(g.map.tiles[y]![x]).toBe(Tile.Ice);
+    const { x: x0, y: y0, w, h } = ICE_HOLE, inside = (x: number, y: number) => x >= x0 && x < x0 + w && y >= y0 && y < y0 + h;
+    for (let y = y0 - 1; y <= y0 + h; y++) for (let x = x0 - 1; x <= x0 + w; x++) {
+      const corner = (x < x0 || x >= x0 + w) && (y < y0 || y >= y0 + h);
+      if (!corner) expect(g.map.tiles[y]![x], `${x},${y}`).toBe(inside(x, y) ? Tile.Water : Tile.Ice);
+    }
     expect(waterAt(g, ICE_HOLE.x * T, ICE_HOLE.y * T)).toBe("hole");
   });
 

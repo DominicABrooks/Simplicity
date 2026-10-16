@@ -1,7 +1,8 @@
-// Rime's fight, out in the middle of the Frozen Hollow's lake (the rules are RIME_FIGHT, in src/data/hollow.ts). She
-// isn't there until the hero sets foot on her ring of runes: then she rises out of the ice. There's nowhere to hide
-// on a frozen lake, and no walls to shut: just her, and patches of frost creeping over the ice round him, one always
-// under his feet, that freeze him solid if he's still standing in them when they set. When she falls, the lake thaws
+// Rime's fight, in her arena out in the middle of the Frozen Hollow's lake (the rules are RIME_FIGHT, in
+// src/data/hollow.ts). She isn't there until the hero steps in among her pillars of ice: then a wall of ice shoots up
+// between them, she rises out of the ice in the middle, and nobody leaves until one of them falls. There's nowhere to
+// hide in there: just her, and patches of frost creeping over the ice round him, one always under his feet, that
+// freeze him solid if he's still standing in them when they set. When she falls, the lake thaws
 // in a ring round where she stood, open water for the rest of the run. Drawn by the rimefrost view (src/render/rime.ts),
 // on an entity made for the fight at the stage's middle, and once she's fallen, on one that keeps the thaw.
 import type { Entity } from "../core/ecs.ts";
@@ -60,16 +61,17 @@ function stageOf(g: Game): { x: number; y: number } | null {
   return stage?.kind === "rimeStage" ? { x: stage.x - HALF, y: stage.y - HALF } : null;
 }
 
-/** The hero's on her stage: up she comes out of the ice. */
+/** The hero's in among her pillars: up goes the ice between them, and up she comes out of the ice in the middle. */
 function rise(g: Game): void {
   const at = stageOf(g), p = g.world.need(g.player, "transform");
-  if (!at || Math.hypot(p.x - at.x, p.y - at.y) > F.wakeAt) return;
+  if (!at || Math.hypot(p.x - at.x, p.y - at.y) > F.shutAt) return;
   const view = g.world.create({ transform: { ...at }, renderable: { kind: "rimefrost" } });
   fights.set(g, { ...at, t: 0, angry: false, patches: [], nextPatches: 2, view });
-  g.shake = Math.max(g.shake, 1.5);
+  g.shake = Math.max(g.shake, 2);
   sound(g, "nova", at);
+  toast(g, F.say.shut, true);
   summonBoss(g);
-  toast(g, F.say.rise, true);
+  toast(g, F.say.rise);
 }
 
 /** She's down (or the hero's gone): the frost lets go, and if she fell, the lake thaws round where she stood. */
@@ -77,6 +79,7 @@ function end(g: Game, f: RimeFight, fell: boolean): void {
   if (g.world.isAlive(f.view)) g.world.destroy(f.view);
   fights.delete(g);
   if (!fell) return;
+  toast(g, F.say.open);
   g.map = thawed(g.area.layout.map, fellAt(g, "rime")!);
   g.shake = Math.max(g.shake, 2);
   sound(g, "thunder", g.world.need(g.player, "transform"));   // the ice cracking
@@ -87,6 +90,9 @@ function run(g: Game, f: RimeFight, rime: Entity, dt: number): void {
   const h = heroParts(g), hp = g.world.need(rime, "health");
   f.t += dt;
   f.angry = hp.hp <= hp.maxHp * F.angry;
+  keepIn(f, h.pos);
+  const her = g.world.get(rime, "transform");
+  if (her) keepIn(f, her);
   if (isFrozen(g)) return;                                  // playtesting: the frost holds still with her
   const P = F.patch, safe = h.motion.dash > 0 || h.motion.jump > 0;   // a dash or a jump gets him clear as it sets
 
@@ -96,7 +102,9 @@ function run(g: Game, f: RimeFight, rime: Entity, dt: number): void {
     const n = P.count[f.angry ? 1 : 0];
     for (let i = 0; i < n; i++) {
       const a = g.rng.next() * Math.PI * 2, d = 14 + g.rng.next() * 30;
-      f.patches.push(i === 0 ? { x: h.pos.x, y: h.pos.y, t: 0, hit: false } : { x: h.pos.x + Math.cos(a) * d, y: h.pos.y + Math.sin(a) * d, t: 0, hit: false });
+      const spot = i === 0 ? { x: h.pos.x, y: h.pos.y } : { x: h.pos.x + Math.cos(a) * d, y: h.pos.y + Math.sin(a) * d };
+      keepIn(f, spot);                                       // all of it inside the wall
+      f.patches.push({ ...spot, t: 0, hit: false });
     }
     if (f.patches.length <= n) toast(g, F.say.patch);       // only said when the ice was clear
   }
@@ -115,6 +123,14 @@ function run(g: Game, f: RimeFight, rime: Entity, dt: number): void {
     }
   }
   f.patches = f.patches.filter(pa => pa.t < P.warn + P.hold);
+}
+
+/** Nobody leaves the ring: kept within its wall of ice. */
+function keepIn(f: RimeFight, t: { x: number; y: number }): void {
+  const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy);
+  if (d <= F.keepIn) return;
+  t.x = f.x + (dx / d) * F.keepIn;
+  t.y = f.y + (dy / d) * F.keepIn;
 }
 
 /** Is the tile at (x, y) in the thaw round (cx, cy) (tiles)? */

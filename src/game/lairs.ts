@@ -35,7 +35,7 @@ export const LAIRS = {
     stage(g) {
       takeBow(g);                                             // he's carrying it: it isn't still lying in the hut
       const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "rime")!;
-      return { x: at.x - HALF, y: at.y - HALF + 3 * T };     // onto her ring of runes: up she comes
+      return { x: at.x - HALF, y: at.y - HALF + 3 * T };     // in among her pillars: the ice shuts, and up she comes
     },
   },
   /** The Grey Ringer, in St Mary's churchyard: made night, and up she comes, rumour or none (src/game/ghost.ts). */

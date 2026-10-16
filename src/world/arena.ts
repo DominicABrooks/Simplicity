@@ -1,9 +1,9 @@
-// A boss's arena: where each burnt standing stone round its ring stands, shared by its solids
-// (src/world/solids.ts) and its look (src/render/wild.ts).
+// A boss's arena: where each standing stone (Cinder's, burnt) or pillar of ice (Rime's) round its ring stands, shared
+// by its solids (src/world/solids.ts) and its look (src/render/wild.ts, src/render/hollow.ts).
 import { T } from "../data/world.ts";
 import type { Prop } from "./area.ts";
 
-type Arena = Extract<Prop, { kind: "arena" }>;
+type Arena = Pick<Extract<Prop, { kind: "arena" | "rimeStage" }>, "x" | "y" | "radius" | "pillars" | "gap">;
 
 /** Each pillar's centre, in tiles, round the ring from the north, clockwise, and how far round it is (0 north, 0.5 south). */
 export function arenaPlan(p: Arena): { x: number; z: number; i: number; round: number }[] {
