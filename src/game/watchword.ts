@@ -93,44 +93,53 @@ const spot = (gate: Gate, west: boolean, open: boolean): number =>
 
 /**
  * The map with the wardens in it: shut, the two of them shoulder to shoulder in the gate, from their feet back to the
- * stakes; open, each by a post, as solid as any guard.
+ * stakes; open, each solid as any guard by his post, once he's got there (`at`: which have). While one's still on his
+ * way he's nothing to bump into, so he can never close round the hero.
  */
-const maps = new WeakMap<TileMap, { shut: TileMap; open: TileMap }>();
-function wardensIn(map: TileMap, gate: Gate, open: boolean): TileMap {
+const maps = new WeakMap<TileMap, Map<string, TileMap>>();
+function wardensIn(map: TileMap, gate: Gate, open: boolean, at: { west: boolean; east: boolean }): TileMap {
   let m = maps.get(map);
-  if (!m) {
+  if (!m) maps.set(map, m = new Map());
+  const key = open ? `open ${at.west} ${at.east}` : "shut";
+  let made = m.get(key);
+  if (!made) {
     const feet = gate.y - HALF + FEET.y;
     const post = (west: boolean): Shape => ({ kind: "circle", x: spot(gate, west, true), y: gate.y, r: 0.3 * T });
-    maps.set(map, m = {
-      shut: { ...map, solids: [...map.solids, { kind: "box", x: gate.x0, y: feet, w: gate.x1 - gate.x0, h: gate.stakes - feet }] },
-      open: { ...map, solids: [...map.solids, post(true), post(false)] },
-    });
+    const solids: Shape[] = !open ? [{ kind: "box", x: gate.x0, y: feet, w: gate.x1 - gate.x0, h: gate.stakes - feet }]
+      : [...(at.west ? [post(true)] : []), ...(at.east ? [post(false)] : [])];
+    m.set(key, made = { ...map, solids: [...map.solids, ...solids] });
   }
-  return open ? m.open : m.shut;
+  return made;
 }
 
 /** How fast the wardens step aside (px/s). */
 const STEP_ASIDE = 14;
+/** How close (px, either way) a warden stepping aside will come to the hero before he waits for him to move. */
+const MIND_HIM = 0.8 * T;
 let stoppedAt = -Infinity;
 
 /**
  * The woodwardens stand in the barricade's gate, side by side, until they've read the watchword off him; then they
- * step aside, one to each post, and the way's open. Pushing at them before then gets a word. (dt Infinity: just be there.)
+ * step aside, one to each post, and the way's open. Stepping aside, they mind him: one won't walk into him, but waits
+ * for him to move. Pushing at them before then gets a word. (dt Infinity: just be there.)
  */
 export function wardenSystem(g: Game, dt: number): void {
   const gate = gateOf(g);
   if (!gate) return;
-  const open = passedBarricade(g), mid = (gate.x0 + gate.x1) / 2;
-  g.map = wardensIn(g.area.layout.map, gate, open);
+  const open = passedBarricade(g), mid = (gate.x0 + gate.x1) / 2, p = g.world.need(g.player, "transform");
+  const at = { west: false, east: false };
   for (const [, { transform: t, targetable }] of g.world.query("transform", "targetable")) {
     if (targetable.name !== WOODWARDEN.name) continue;
     const west = t.x + HALF < mid;
-    const want = spot(gate, west, open) - HALF;
-    t.x += Math.sign(want - t.x) * Math.min(Math.abs(want - t.x), STEP_ASIDE * dt);
+    const want = spot(gate, west, open) - HALF, x = t.x + Math.sign(want - t.x) * Math.min(Math.abs(want - t.x), STEP_ASIDE * dt);
+    const inTheWay = dt !== Infinity && Math.abs(p.x - x) < MIND_HIM && Math.abs(p.y - t.y) < MIND_HIM;
+    if (!inTheWay || x === t.x) t.x = x;
+    if (Math.abs(want - t.x) < 0.5) at[west ? "west" : "east"] = true;
   }
+  g.map = wardensIn(g.area.layout.map, gate, open, at);
   if (open || dt === Infinity) return;
   // Walking into them: a word from one of them now and then.
-  const p = g.world.need(g.player, "transform"), fx = p.x + FEET.x, fy = p.y + FEET.y + FEET.h;
+  const fx = p.x + FEET.x, fy = p.y + FEET.y + FEET.h;
   if (fx + FEET.w > gate.x0 && fx < gate.x1 && Math.abs(fy - (gate.y - HALF + FEET.y)) < 1.5 && g.input.keys.size > 0) wardenStops(g);
 }
 

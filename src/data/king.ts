@@ -9,12 +9,15 @@ export const KING = { name: "King Osric", radius: 5, height: 1.75 } as const;
 /** His task for the Foreigner, as the game puts it once he's given it. */
 export const KINGS_TASK = "New task: go deep into the Witchwood and kill Calder";
 
-/** The watchword his woodwardens ask for at the barricade: always the same. */
-export const WATCHWORD = "Gilded Oak";
+/**
+ * The watchword his woodwardens ask for at the barricade: always the same. It's his kingdom's whole policy (no witches,
+ * no eggs, nothing to see; read at the cross every market day), and he chose it himself.
+ */
+export const WATCHWORD = "All is well";
 
 /** Telling the hero the watchword. It's up to the player to remember it: the wardens ask (see src/game/watchword.ts). */
 export const KING_WATCHWORD =
-  `My woodwardens will ask you for the watchword. It's "${WATCHWORD}". Remember it. You can't say it, I know, but they keep paper for the woodcutters who can't spell.`;
+  `My woodwardens will ask you for the watchword. It's "${WATCHWORD}". I chose it myself. Remember it. You can't say it, I know, but they keep paper for the woodcutters who can't spell.`;
 
 /** Said after every reminder: the watchword again, for anyone who's forgotten it. */
 export const KING_WATCHWORD_AGAIN = `And the watchword for my woodwardens, since I can see you've forgotten it: "${WATCHWORD}". Write it on your hand.`;

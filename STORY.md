@@ -69,7 +69,7 @@ A scrap of paper comes up and the **player types the watchword** on it, then han
 remember it from the King's audience. Capital letters, spacing and punctuation don't matter. Get it wrong
 and the warden reads out what was written, says *"That's not it,"* and the gate stays shut. Get it right:
 
-> *(The warden squints at your crayon letters.) "Gilded Oak." That's the one. Well.* *"Through you go,
+> *(The warden squints at your crayon letters.) "All is well." That's the one. Is it, though.* *"Through you go,
 > then. Mind yourself in there."* (The stakes are pulled aside, and stay that way for the rest of the run.)
 
 ### The new areas
@@ -193,10 +193,11 @@ the only thing he can: he holds out the Ranger's note. The scene, in the King's 
 > *"So. If you can go deep into the woods and kill him... I need it. The kingdom needs it. Bring me proof,
 > and you'll have anything Aurenmark can give."*
 >
-> *"My woodwardens will ask you for the watchword. It's 'Gilded Oak'. Remember it. You can't say it, I
-> know, but they keep paper for the woodcutters who can't spell."*
+> *"My woodwardens will ask you for the watchword. It's 'All is well'. I chose it myself. Remember it. You
+> can't say it, I know, but they keep paper for the woodcutters who can't spell."*
 
-The player now has **the King's watchword**, *Gilded Oak*. It never changes, and it's a word the player
+The player now has **the King's watchword**, *All is well*: his kingdom's whole policy in three words, said
+going into a wood that's dying. It never changes, and it's a word the player
 has to remember, not an item in the bag. The Prince, as the player leaves, adds quietly: *"The Hammonds'
 forge is by the gate. Tell Walter I sent you."* (A better sword, if the player stops.)
 

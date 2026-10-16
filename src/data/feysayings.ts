@@ -362,7 +362,7 @@ const SERIOUS = [
 const ENCODED = [
   rot13("The eggs are hatching"),
   `Backwards, as the river says it: ${backwards("The star is an eye")}`,
-  numbers("Gilded oak"),
+  numbers("All is well"),
   atbash("Yssa remembers the milk"),
   `Tap tap: ${morse("Leave the milk out")}`,
   rot13("The door is a lock"),

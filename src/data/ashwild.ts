@@ -20,7 +20,7 @@ export const WARDEN_TALK = {
     "Can't talk? Half the woodcutters can't either. Here: paper, and a crayon. Write it down.",
   ],
   right: [
-    `(The warden squints at your crayon letters.) "${WATCHWORD}." That's the one. Well.`,
+    `(The warden squints at your crayon letters.) "${WATCHWORD}." That's the one. Is it, though.`,
     "Through you go, then. Mind yourself in there. The trees aren't the right colour any more.",
   ],
   wrong: [
