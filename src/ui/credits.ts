@@ -100,7 +100,7 @@ function makeCard(back: () => void): { el: HTMLElement } {
   const send = make("button", "send", "Send"), said = make("span", "said"), home = make("button", "home", "Restart");
   send.type = home.type = "button";
   const row = make("div", "row");
-  row.append(send, said);
+  row.append(said, send);                                   // what came of it, then Send, at the right
   el.append(make("h2", "by", C.by), make("p", "help", C.help), ...C.note.map(n => make("p", "note", n)),
     make("p", "ask", C.donate), donate, make("p", "ask", C.ask), box, row, home);
   let sent = 0;

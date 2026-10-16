@@ -236,7 +236,7 @@ body.in-credits #menuBar, body.in-credits #hudCanvas, body.in-credits #labels, b
   background: #14101e; color: var(--bone); border: 2px solid #4a3a5a; outline: none;
 }
 #credits .card textarea:focus { border-color: var(--glow); }
-#credits .card .row { display: flex; align-items: center; gap: 12px; align-self: stretch; }
+#credits .card .row { display: flex; align-items: center; justify-content: flex-end; gap: 12px; align-self: stretch; margin-top: -2px; }   /* Send under the box, at its right */
 #credits .card .said { color: var(--stone); font-size: 14px; }
 #credits .card button {
   padding: 6px 14px; font-size: 16px; cursor: pointer; color: var(--ink); background: var(--glow); border: none; box-shadow: 3px 3px 0 #2a1840;
