@@ -1,8 +1,8 @@
 // The third time under the hill, with only the watchers there: they murmur, a line at a time over one of them, with a
-// low voice; and it all stops when he leaves.
+// low voice, none twice till all have been said; and it all stops when he leaves.
 import { describe, expect, it } from "vitest";
 import { HOME, loadArea } from "../src/areas/index.ts";
-import { UNDERHILL } from "../src/data/underhill.ts";
+import { UNDERHILL, WATCHER_MURMURS } from "../src/data/underhill.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
@@ -36,7 +36,7 @@ describe("the watchers' murmurs", () => {
     expect(watched(g)).toBe(false);
   });
 
-  it("come once they're out of the dark, over one of them, with a low voice, and never the same line twice running", async () => {
+  it("come once they're out of the dark, over one of them, with a low voice, and none twice till all have been said", async () => {
     const g = await third();
     expect(watched(g)).toBe(true);
     g.sfx.length = 0;
@@ -49,8 +49,8 @@ describe("the watchers' murmurs", () => {
       said[m.n] = m.text;
     }
     expect(said.length).toBeGreaterThan(4);
-    for (const line of said) expect(UNDERHILL.murmurs.lines).toContain(line);
-    for (let i = 1; i < said.length; i++) expect(said[i]).not.toBe(said[i - 1]);
+    for (const line of said) expect(WATCHER_MURMURS).toContain(line);
+    expect(new Set(said).size).toBe(said.length);                // none twice till they've all been said
     expect(g.sfx.filter(s => s.id === "murmur").length).toBe(said.length - before);
   });
 

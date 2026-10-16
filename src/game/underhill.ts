@@ -6,7 +6,7 @@
 // been is the world's, not the run's: it's kept across runs, like the hour. The Erl-King can be hurried: on to his next
 // line, or past all of it (his gift still given). The watchers murmur, and while they're there the screen goes wrong
 // (src/ui/watched.ts).
-import { FIRST_VISIT, GLADE_MID, REEL_RING, SECOND_VISIT, UNDERHILL as U } from "../data/underhill.ts";
+import { FIRST_VISIT, GLADE_MID, REEL_RING, SECOND_VISIT, UNDERHILL as U, WATCHER_MURMURS } from "../data/underhill.ts";
 import { HALF, T } from "../data/world.ts";
 import { makeItem, type Item } from "../items/items.ts";
 import { setState, toast, type Game } from "./game.ts";
@@ -27,13 +27,13 @@ export interface Murmur { text: string; who: number; age: number; n: number }
 
 interface State {
   visits: number; journey: Journey; speech: Speech | null; watchers: number[];
-  /** What one of them is murmuring, if anything; seconds till the next; how many so far this visit, and the last of them. */
-  murmur: Murmur | null; nextMurmur: number; murmured: number; lastMurmur: string | null;
+  /** What one of them is murmuring, if anything; seconds till the next; how many so far this visit; and what's still to say. */
+  murmur: Murmur | null; nextMurmur: number; murmured: number; unmurmured: string[];
 }
 const states = new WeakMap<Game, State>();
 const state = (g: Game): State => {
   let s = states.get(g);
-  if (!s) states.set(g, s = { visits: 0, journey: null, speech: null, watchers: [], murmur: null, nextMurmur: 0, murmured: 0, lastMurmur: null });
+  if (!s) states.set(g, s = { visits: 0, journey: null, speech: null, watchers: [], murmur: null, nextMurmur: 0, murmured: 0, unmurmured: [] });
   return s;
 };
 
@@ -165,16 +165,16 @@ function stare(g: Game, s: State, dt: number): void {
   }
 }
 
-/** Every so often one of them murmurs something, low; never the same line twice running. */
+/** Every so often one of them murmurs something, low; nothing said again till everything has been. */
 function murmur(g: Game, s: State, dt: number): void {
   const M = U.murmurs;
   if (!s.watchers.length) return;
   if (s.murmur && (s.murmur.age += dt) >= M.life) s.murmur = null;
   if ((s.nextMurmur -= dt) > 0) return;
   const [lo, hi] = M.every, who = s.watchers[Math.floor(g.rng.next() * s.watchers.length)]!;
-  const choices = M.lines.filter(l => l !== s.lastMurmur), text = choices[Math.floor(g.rng.next() * choices.length)]!;
-  s.murmur = { text, who, age: 0, n: s.murmured++ };
-  s.lastMurmur = text;
+  if (!s.unmurmured.length) s.unmurmured = WATCHER_MURMURS.filter(l => l !== s.murmur?.text);   // a fresh round: not straight back to the last
+  const [text] = s.unmurmured.splice(Math.floor(g.rng.next() * s.unmurmured.length), 1);
+  s.murmur = { text: text!, who, age: 0, n: s.murmured++ };
   s.nextMurmur = lo + g.rng.next() * (hi - lo);
   const at = g.world.get(who, "transform");
   sound(g, "murmur", at && { x: at.x + HALF, y: at.y + HALF });

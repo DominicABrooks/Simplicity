@@ -326,13 +326,16 @@ body.in-cutscene #hudCanvas { opacity: 0; transition: opacity 0.4s; }
   white-space: pre; font-size: 12px; color: #d8c8f0; text-shadow: 1px 1px 0 #2a1840; opacity: 0; transition: opacity 0.6s ease;
 }
 #erlSkip.on { opacity: 0.6; }
-/* The watchers murmuring, and the screen going wrong round them (src/ui/watched.ts). */
+/* The watchers murmuring, and their magic swimming over the screen (src/ui/watched.ts). */
 #murmur {
   position: fixed; z-index: 46; pointer-events: none; opacity: 0; white-space: nowrap; font-size: 16px; letter-spacing: 1px;
   color: #b9b4c0; text-shadow: 2px 0 0 rgb(200 30 40 / 0.55), -2px 0 0 rgb(40 200 220 / 0.4), 0 0 12px #000;
 }
-#glitch { position: fixed; inset: 0; z-index: 12; pointer-events: none; }
-#glitch i { position: absolute; left: -40px; right: -40px; background: rgb(255 255 255 / 0.04); }
+#glitch {
+  position: fixed; inset: 0; z-index: 12; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(ellipse at center, transparent 30%, rgb(150 80 255 / 0.5) 72%, rgb(70 230 210 / 0.45) 100%);
+}
+#glitch i { position: absolute; width: 4px; height: 4px; border-radius: 50%; opacity: 0; box-shadow: 0 0 8px 3px currentColor; color: #b79cff; }
 #sleepShade { position: fixed; inset: 0; z-index: 13; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
 #sleepShade.on { opacity: 1; }
 body.asleep #hudCanvas { z-index: 14; }   /* the clock running on, and the Zs, show over it */

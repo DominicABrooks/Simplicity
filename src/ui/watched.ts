@@ -1,5 +1,7 @@
 // Under the hill with only the watchers there (src/game/underhill.ts): what they murmur, low and grey over the head of
-// whichever of them said it, shivering; and the screen going wrong, a jolt every so often, till he leaves.
+// whichever of them said it, shivering; and their magic getting into everything till he leaves: every so often the
+// world swims as if seen through water, a violet and green glow washes in from the edges, and motes of light rise,
+// all swelling and falling away again.
 import { UNDERHILL as U } from "../data/underhill.ts";
 import { HALF } from "../data/world.ts";
 import type { Game } from "../game/game.ts";
@@ -10,34 +12,51 @@ import type { Projector } from "../render/projector.ts";
 const ABOVE = 2.2;
 /** Seconds a murmur takes to come and go, at each end of its life. */
 const FADE = 0.7;
-/** How many bands of wrongness a jolt can put across the screen. */
-const BANDS = 5;
+/** How many motes of light rise in a swell, how far they rise (px), and how far (px) the world swims at the height of it. */
+const MOTES = 16, RISE = 70, SWIM = 26;
 
 const between = ([lo, hi]: readonly [number, number]) => lo + Math.random() * (hi - lo);
+const SVG = "http://www.w3.org/2000/svg";
 
 export function createWatched(g: Game, view: Projector): { draw(dt: number): void } {
   const words = document.createElement("div"), glitch = document.createElement("div");
   words.id = "murmur";
   glitch.id = "glitch";
-  const bands = Array.from({ length: BANDS }, () => glitch.appendChild(document.createElement("i")));
-  document.body.append(words, glitch);
+  const motes = Array.from({ length: MOTES }, () => glitch.appendChild(document.createElement("i")));
+  // The swim: the picture pushed about by slow, smooth noise (an SVG filter the canvas is drawn through).
+  const svg = document.createElementNS(SVG, "svg"), filter = document.createElementNS(SVG, "filter");
+  const noise = document.createElementNS(SVG, "feTurbulence"), shift = document.createElementNS(SVG, "feDisplacementMap");
+  svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.style.position = "absolute";
+  filter.id = "feyWarp";
+  noise.setAttribute("type", "fractalNoise"); noise.setAttribute("numOctaves", "2"); noise.setAttribute("seed", "7");
+  shift.setAttribute("in", "SourceGraphic"); shift.setAttribute("xChannelSelector", "R"); shift.setAttribute("yChannelSelector", "G");
+  filter.append(noise, shift);
+  svg.append(filter);
+  document.body.append(words, glitch, svg);
   const screen = document.getElementById("screen")!;
-  let shown = -1, wait = 0, left = 0;
+  let shown = -1, wait = 0, left = 0, len = 1, clock = 0;
 
-  /** One frame of a jolt: the picture shoved and skewed and its colours wrong, and bands torn across it. */
-  const jolt = (): void => {
-    const dx = (Math.random() - 0.5) * 26, skew = (Math.random() - 0.5) * 6;
-    screen.style.transform = `translate(${dx.toFixed(1)}px, ${((Math.random() - 0.5) * 6).toFixed(1)}px) skewX(${skew.toFixed(1)}deg)`;
-    screen.style.filter = Math.random() < 0.25 ? "invert(1) hue-rotate(180deg)" : `hue-rotate(${Math.round(Math.random() * 360)}deg) contrast(1.6) saturate(2.2)`;
+  /** A swell begins: the motes scattered afresh. */
+  const begin = (): void => {
+    len = left = between(U.glitch.last);
+    for (const m of motes) {
+      m.style.left = `${(Math.random() * 100).toFixed(1)}%`;
+      m.style.top = `${(15 + Math.random() * 80).toFixed(1)}%`;
+      m.style.background = m.style.color = Math.random() < 0.5 ? "#c9a8ff" : "#9effd8";   // and its glow (the shadow's currentColor)
+      m.dataset.bright = (0.4 + Math.random() * 0.6).toFixed(2);
+    }
     glitch.hidden = false;
-    for (const b of bands) {
-      const on = Math.random() < 0.7;
-      b.style.display = on ? "block" : "none";
-      if (!on) continue;
-      b.style.top = `${(Math.random() * 100).toFixed(1)}%`;
-      b.style.height = `${(1 + Math.random() * 7).toFixed(1)}%`;
-      b.style.transform = `translateX(${((Math.random() - 0.5) * 60).toFixed(0)}px)`;
-      b.style.backdropFilter = `invert(${Math.random() < 0.5 ? 1 : 0}) hue-rotate(${Math.round(Math.random() * 360)}deg) blur(${Math.random() < 0.3 ? 2 : 0}px)`;
+  };
+  /** One frame of a swell, `e` (0 to 1 and back) how far into it, `p` (0 to 1) how far through it. */
+  const swell = (e: number, p: number): void => {
+    noise.setAttribute("baseFrequency", `${(0.006 + 0.002 * Math.sin(clock * 1.3)).toFixed(4)} ${(0.011 + 0.003 * Math.cos(clock * 0.9)).toFixed(4)}`);
+    shift.setAttribute("scale", (SWIM * e).toFixed(1));
+    screen.style.filter = `url(#feyWarp) hue-rotate(${(55 * e).toFixed(0)}deg) saturate(${(1 + 0.5 * e).toFixed(2)}) brightness(${(1 + 0.08 * e).toFixed(2)})`;
+    screen.style.transform = `scale(${(1 + 0.012 * e).toFixed(4)})`;
+    glitch.style.opacity = e.toFixed(3);
+    for (const m of motes) {
+      m.style.transform = `translateY(${(-RISE * p).toFixed(1)}px)`;
+      m.style.opacity = (Number(m.dataset.bright) * Math.sin(Math.PI * p)).toFixed(3);
     }
   };
   const still = (): void => {
@@ -49,10 +68,13 @@ export function createWatched(g: Game, view: Projector): { draw(dt: number): voi
   return {
     draw(dt) {
       const on = watched(g) && g.state === "play";
-      // The screen: quiet between jolts, wrong all through one.
+      clock += dt;
+      // The world: quiet between swells, swimming and glowing through one.
       if (!on) { if (left > 0 || !glitch.hidden) still(); left = 0; wait = between(U.glitch.every); }
-      else if (left > 0) { if ((left -= dt) > 0) jolt(); else { still(); wait = between(U.glitch.every); } }
-      else if ((wait -= dt) <= 0) { left = between(U.glitch.last); jolt(); }
+      else if (left > 0) {
+        if ((left -= dt) > 0) { const p = 1 - left / len; swell(Math.sin(Math.PI * p) ** 2, p); }
+        else { still(); wait = between(U.glitch.every); }
+      } else if ((wait -= dt) <= 0) begin();
 
       // Their words.
       const m = on ? murmurOf(g) : null, at = m && g.world.get(m.who, "transform");
