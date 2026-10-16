@@ -2,6 +2,7 @@
 // hero on the straight path has on reaching them, and how to set the fight up once he's there.
 import { CINDER_READY } from "../data/ashwild.ts";
 import { RINGER_READY } from "../data/ghost.ts";
+import { RIME_READY } from "../data/hollow.ts";
 import type { KitPiece } from "../data/items.ts";
 import { HALF, T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
@@ -24,6 +25,14 @@ export const LAIRS = {
     stage(g) {
       const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "cinder")!;
       return { x: at.x - HALF, y: at.y - HALF + 4 * T };     // in among the stones: the fire shuts, and out he comes
+    },
+  },
+  /** Rime, under the ice in the middle of the Frozen Hollow's lake (src/game/rimefight.ts). */
+  rime: {
+    area: "hollow", entry: "stone", ready: RIME_READY,
+    stage(g) {
+      const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "rime")!;
+      return { x: at.x - HALF, y: at.y - HALF + 3 * T };     // onto her ring of runes: up she comes
     },
   },
   /** The Grey Ringer, in St Mary's churchyard: made night, and up she comes, rumour or none (src/game/ghost.ts). */

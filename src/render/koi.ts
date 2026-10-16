@@ -1,5 +1,6 @@
 // Koi swim just under the surface of every body of water, about one per 7 water tiles, and a few in
 // each fountain's pool. They wander, mill around a bobber, scatter from the hero and never leave the water.
+// Under a frozen lake, now and then, something big swims by: only a very large koi, a dark shape under the ice.
 import * as THREE from "three";
 import { angleDiff } from "../core/math.ts";
 import { PAL } from "../data/palette.ts";
@@ -52,8 +53,12 @@ export interface KoiPond {
   update(dt: number, t: number, heroX: number, heroZ: number, bobber: { x: number; z: number } | null): void;
 }
 
+/** The big one under the ice: how big, how fast it glides, and how long between its passes and each pass (s). */
+const BIG = { size: 7, speed: 0.55, every: 34, pass: 14, opacity: 0.38 } as const;
+
 export function createKoiPond(ctx: RenderContext): KoiPond {
   let fish: Koi[] = [];
+  let big: { group: KoiMesh; mat: THREE.MeshBasicMaterial; x: number; z: number; heading: number; turn: number; ice: (x: number, z: number) => boolean; spots: [number, number][] } | null = null;
   const pond = new THREE.Group();
   ctx.scene.add(pond);
 
@@ -79,6 +84,29 @@ export function createKoiPond(ctx: RenderContext): KoiPond {
         const [x, y] = waterTiles[Math.floor(Math.random() * waterTiles.length)]!;
         add(x + 0.5, y + 0.5, -0.22, isWaterAt, 1.4 + Math.random() * 0.6);
       }
+      // Under the ice, the big one: a dark shape, flattened, just under the surface (drawn on it: the ice is opaque).
+      const iceTiles: [number, number][] = [];
+      for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) if (map.tiles[y]![x] === Tile.Ice) iceTiles.push([x, y]);
+      big = null;
+      if (iceTiles.length > 40) {
+        const mat = ctx.basic("#28465a", { transparent: true, opacity: 0, depthWrite: false });
+        const group = makeKoiMesh(ctx, "#28465a", "#28465a");
+        group.traverse(o => { if (o instanceof THREE.Mesh) o.material = mat; });
+        group.scale.set(BIG.size, 0.15, BIG.size);
+        pond.add(group);
+        const ice = (x: number, z: number) => {                // well in from the shore, so all of it stays under the ice
+          for (const [dx, dz] of [[0, 0], [1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]] as const) {
+            const tx = Math.floor(x + dx), tz = Math.floor(z + dz);
+            if (map.tiles[tz]?.[tx] !== Tile.Ice) return false;
+          }
+          return true;
+        };
+        const spots = iceTiles.filter(([x, y]) => ice(x + 0.5, y + 0.5));
+        if (spots.length) {
+          const [x, z] = spots[Math.floor(Math.random() * spots.length)]!;
+          big = { group, mat, x: x + 0.5, z: z + 0.5, heading: Math.random() * Math.PI * 2, turn: 0, ice, spots };
+        }
+      }
       // A few in each fountain, swimming round the pedestal (smaller: it's a small pool).
       for (const p of props) {
         if (p.kind !== "fountain") continue;
@@ -90,6 +118,23 @@ export function createKoiPond(ctx: RenderContext): KoiPond {
       }
     },
     update(dt, t, px, pz, bobber) {
+      if (big) {                                              // the big one: a slow pass now and then, fading in and out
+        const into = t % BIG.every, shown = into < BIG.pass;
+        big.mat.opacity = shown ? BIG.opacity * Math.min(1, into / 2, (BIG.pass - into) / 2) : 0;
+        big.group.visible = shown;
+        if (shown && into < dt * 2) {                          // each pass starts somewhere new
+          const [x, z] = big.spots[Math.floor(Math.random() * big.spots.length)]!;
+          big.x = x + 0.5; big.z = z + 0.5;
+        }
+        if (Math.random() < dt * 0.4) big.turn = (Math.random() - 0.5) * 0.8;
+        big.heading += big.turn * dt;
+        const nx = big.x + Math.cos(big.heading) * BIG.speed * dt, nz = big.z + Math.sin(big.heading) * BIG.speed * dt;
+        if (big.ice(nx + Math.cos(big.heading) * 0.6, nz + Math.sin(big.heading) * 0.6)) { big.x = nx; big.z = nz; }
+        else big.heading += Math.PI * (0.5 + Math.random() * 0.5);
+        big.group.position.set(big.x, 0.012, big.z);
+        big.group.rotation.y = -big.heading;
+        big.group.userData.tail.rotation.y = Math.sin(t * 2.2) * 0.45;
+      }
       for (const f of fish) {
         // Wander: drift the turn rate, and occasionally pick a new one.
         if (Math.random() < dt * 0.8) f.turn = (Math.random() - 0.5) * 2.4;

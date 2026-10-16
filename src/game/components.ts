@@ -163,6 +163,8 @@ export interface MageBrain {
   swingSide: number;
   swingK: number;
   swingRel: number;
+  /** A lieutenant's (src/game/bosses.ts): how much wider its novas are, and faster its bolts, than its school's. */
+  boost?: { nova: number; bolt: number };
 }
 
 /** What the Grey Ringer is doing (see src/systems/ghost.ts). */
@@ -393,7 +395,7 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {

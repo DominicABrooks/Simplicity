@@ -162,7 +162,7 @@ export type Prop =
   /** Where Rime will stand (the Frozen Hollow): a ring of frost runes `radius` tiles across, scratched into the ice. Not solid. */
   | { kind: "rimeStage"; x: number; y: number; radius: number }
   /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
-  | { kind: "boss"; x: number; y: number; who: "cinder" }
+  | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" }
   /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */
   | { kind: "guard"; x: number; y: number; facing: Facing; name?: string }
   /** A fire bowl on a tripod. */

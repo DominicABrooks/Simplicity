@@ -21,6 +21,8 @@ import { hourOf, residentById } from "../game/townsfolk.ts";
 import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { animateCinder, makeCinder, type CinderParts } from "./models/cinder.ts";
+import { RIME_SCALE, animateRime, makeRime, type RimeParts } from "./models/rime.ts";
+import { rimefrost } from "./rime.ts";
 import { blaze } from "./blaze.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
@@ -183,6 +185,33 @@ const cinder: EntityView<CinderView> = {
       const [x, z] = toWorld(o.x, o.y);
       ctx.particles.spawn(Math.random() < 0.5 ? "fire" : "ember", x + (Math.random() - 0.5) * 0.6, 0.4 + Math.random() * 0.9, z + (Math.random() - 0.5) * 0.6,
         (Math.random() - 0.5) * 0.3, 0.9 + Math.random() * 0.8, (Math.random() - 0.5) * 0.3, 0.8);
+    }
+  },
+  remove: removeBody,
+};
+
+// ---------- Rime ----------
+// The Frost lieutenant: a mage's brain and moves, in her own icy, crowned body (see models/rime.ts), her nova's
+// telegraph as wide as her nova.
+interface RimeView extends MageView { rime: RimeParts; novaK: number }
+const rime: EntityView<RimeView> = {
+  create(ctx, e, g) {
+    const v = mage.create(ctx, e, g), b = g.world.need(e, "mage");
+    v.robed = false;
+    dressBody(ctx, v, mageOutfit(b, false));
+    const parts = makeRime(ctx, v), novaK = (b.boost?.nova ?? 1) / RIME_SCALE;    // the group's scaled already
+    v.novaEdge.scale.setScalar(novaK);
+    return { ...v, rime: parts, novaK };
+  },
+  update(ctx, v, e, g, f) {
+    mage.update(ctx, v, e, g, f);
+    const b = g.world.need(e, "mage"), o = g.world.need(e, "transform");
+    v.novaFill.scale.multiplyScalar(v.novaK);
+    animateRime(v.rime, f.t, b.casting ? b.castK : 0);
+    if (Math.random() < f.dt * 6) {                          // frost always drifting off her
+      const [x, z] = toWorld(o.x, o.y);
+      ctx.particles.spawn(Math.random() < 0.5 ? "snow" : "ice", x + (Math.random() - 0.5) * 0.7, 0.3 + Math.random() * 1.1, z + (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 0.2, 0.3 + Math.random() * 0.4, (Math.random() - 0.5) * 0.2, 1.1);
     }
   },
   remove: removeBody,
@@ -704,4 +733,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, cinder, blaze, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, rime, rimefrost, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa } satisfies { [K in ViewKind]: EntityView<object> };

@@ -4,7 +4,8 @@
 // (src/game/stones.ts), and down into the bowl of the valley; at the bottom of it the lake, frozen hard enough to
 // walk on, where the Frost mages keep. Off to one side of the lake someone has cut a hole in the ice (fish through it
 // and it's always the big one, a golden koi: src/systems/fishing.ts); out in the middle, the ring of frost runes where
-// Rime will stand. On the bowl's north rim, a hunter's hut, left empty.
+// Rime waits under the ice (src/game/rimefight.ts). On the bowl's north rim, a hunter's hut, left empty but for his
+// longbow inside the door (src/game/hunterhut.ts).
 import { Rng } from "../core/rng.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
@@ -23,6 +24,8 @@ export const HOLLOW_STONE = { x: W - 9, y: TRACK } as const;
 export const ICE_HOLE = { x: LAKE.x - 7, y: LAKE.y - 2 } as const;
 /** Rime's stage, out in the middle of the lake: how far across its ring of runes is (tiles). */
 const STAGE_R = 3.5;
+/** The hunter's hut on the north rim (the tile in the middle of it). */
+const HUT = { x: BOWL.x + 3, y: BOWL.y - BOWL.ry + 3 } as const;
 
 function build(): AreaLayout {
   const rng = new Rng(SEED), town = new Town(W, H, Tile.Tree);
@@ -44,7 +47,7 @@ function build(): AreaLayout {
   for (let y = TRACK - 1; y <= TRACK + 1; y++) for (let x = HOLLOW_STONE.x - 1; x <= HOLLOW_STONE.x + 1; x++) if (y !== TRACK) town.set(x, y, Tile.Grass);
 
   // The hunter's hut on the north rim, and a woodpile by it.
-  const hut = { x: BOWL.x + 3, y: BOWL.y - BOWL.ry + 3 };
+  const hut = HUT;
   town.fill([hut.x - 2, hut.y - 1, 6, 5], Tile.Grass);
   town.add({ kind: "hall", rect: px([hut.x - 1, hut.y - 1, 3, 3]), door: "south", roof: "#dfe6ea", storeys: 1, stone: false });
   town.add({ kind: "stock", x: (hut.x + 2.5) * T, y: (hut.y + 1.5) * T, what: "crates" });
@@ -52,6 +55,7 @@ function build(): AreaLayout {
   // The hollow stone, and Rime's stage in the middle of the ice.
   town.add({ kind: "oldStone", x: (HOLLOW_STONE.x + 0.5) * T, y: (HOLLOW_STONE.y + 0.5) * T, name: "The hollow stone", entry: "stone" });
   town.add({ kind: "rimeStage", x: LAKE.x * T, y: LAKE.y * T, radius: STAGE_R });
+  town.add({ kind: "boss", x: LAKE.x * T, y: LAKE.y * T, who: "rime" });
 
   // Anywhere the trees have cut off from the track is forest too.
   const reached = reachableFrom({ width: W, height: H, tiles: town.tiles, solids: [] }, W - 2, TRACK);
@@ -77,5 +81,5 @@ export const area: AreaDef = {
   life: { enemies: true, potions: true, ambient: false, mages: { schools: ["frost"], extra: 2, on: Tile.Ice } },
 };
 
-/** Where Rime will stand (cell top-left): the middle of the frozen lake, the middle of her stage. */
+/** Where Rime rises (cell top-left): the middle of the frozen lake, the middle of her stage. */
 export const RIME_AT = { x: LAKE.x * T - HALF, y: LAKE.y * T - HALF } as const;
