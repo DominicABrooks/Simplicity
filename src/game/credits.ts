@@ -427,9 +427,9 @@ const SHOTS: readonly Shot[] = [
     // its first small breath; and their song with hers seals the valley whole.
     id: "hatch", area: "greyspines", load: async () => greyspines(), hour: 17.5, had: () => true,
     stage(g) {
-      const mx = (g.map.width * T) / 2, my = 6 * T, ey = my + 3.6 * T;
+      const mx = (g.map.width * T) / 2, my = 6 * T, ey = my + 3.3 * T;   // right under her face, head down
       const her = dragonAt(g, { x: mx - HALF, y: my - HALF, size: 4, hide: "mother", pose: "sit" });
-      const eggs = ORDERS.map((school, i) => eggAt(g, school, mx + (i - 1) * 1.2 * T - HALF, ey + (i === 1 ? 0.35 * T : 0) - HALF, 0, 0.8));
+      const eggs = ORDERS.map((school, i) => eggAt(g, school, mx + (i - 1) * 0.6 * T - HALF, ey + (i === 1 ? 0.3 * T : 0) - HALF, 0, 0.8));   // between her wing-claws
       heroAt(g, mx + 4.5 * T, ey + 3 * T, mx, ey);
       const young: (Entity | null)[] = [null, null, null];
       let roared = false, sang = false;
@@ -453,6 +453,9 @@ const SHOTS: readonly Shot[] = [
           young.forEach((y, i) => {
             if (y === null) return;
             const d = g.world.need(y, "dragon"), born = 0.16 + i * 0.12, look = ramp(k, 0.55, 0.62), puff = 0.8 + i * 0.045;
+            const egg = g.world.need(eggs[i]!, "transform"), out = ease(ramp(k, born + 0.02, born + 0.14));   // hopping out to a spot of its own
+            d.x = egg.x + (i - 1) * 0.9 * T * out;
+            d.y = egg.y + (0.4 + 1.1 * out) * T;
             d.grow = ramp(k, born, born + 0.05);
             d.height = Math.abs(Math.sin((k - born) * 50)) * 0.22 * (1 - ramp(k, born + 0.05, born + 0.16));   // a few little hops
             d.facing = lerp(Math.PI / 2 + (i - 1) * 0.6, -Math.PI / 2 + (i - 1) * 0.5, look);                  // round to look up at her
@@ -460,7 +463,9 @@ const SHOTS: readonly Shot[] = [
             d.fire = k > puff && k < puff + 0.04 ? 1 : 0;
           });
           const d = g.world.need(her, "dragon");
-          d.neck = ramp(k, 0.5, 0.6) - 0.55 * ramp(k, 0.84, 0.95);
+          // Face down over them; as each one opens she lifts her head a little to look, and settles again; then up she rears.
+          const looks = Math.max(0, ...eggs.map((_, i) => { const a = 0.16 + i * 0.12; return ramp(k, a, a + 0.025) * (1 - ramp(k, a + 0.05, a + 0.09)); }));
+          d.neck = Math.max(looks * 0.22, ramp(k, 0.5, 0.6)) - 0.55 * ramp(k, 0.84, 0.95);
           d.spread = ramp(k, 0.52, 0.6) * (1 - ramp(k, 0.86, 0.96));
           d.fire = ramp(k, 0.6, 0.63) * (1 - ramp(k, 0.75, 0.79));
           if (!roared && k >= 0.58) { roared = true; sound(g, "roar"); g.shake = Math.max(g.shake, 3); }

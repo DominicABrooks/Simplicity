@@ -20,18 +20,18 @@ import type { EntityView } from "./views.ts";
 import type { Dragon, Egg } from "../game/components.ts";
 
 /**
- * Each dragon's colours, after the great wyverns of the old songs: hide, belly, the wing membrane on top (deep red near
- * the body and along the leading edge) and where it runs pale (cream toward the trailing edge, and all over underneath),
- * the dark veins through it, the dark of the markings, spikes and claws, eyes; and the breath it breathes. The Old
- * Mother is crimson barred with black, a tan belly; her hatchlings each in their own order's colour, marked darker.
+ * Each dragon's colours, after the great wyverns of the old songs: hide, belly, the wing membrane (deep red out from the
+ * arm) and where it runs pale (cream toward the trailing edge), the dark of the markings, spikes and claws, eyes; and
+ * the breath it breathes. The Old Mother is crimson barred with black, a tan belly; her hatchlings each in their own
+ * order's colour, marked darker. Flat colours in big pieces, like everything else in the world.
  */
 const HIDES: Record<Dragon["hide"], {
-  skin: string; belly: string; wing: string; pale: string; vein: string; mark: string; horn: string; eye: string; breath: [SparkColor, SparkColor]; light: string;
+  skin: string; belly: string; wing: string; pale: string; mark: string; horn: string; eye: string; breath: [SparkColor, SparkColor]; light: string;
 }> = {
-  mother: { skin: "#b3231c", belly: "#d9b98c", wing: "#9a1e16", pale: "#e6cb9c", vein: "#3e110c", mark: "#2a1816", horn: "#3a302c", eye: "#ffd23a", breath: ["fire", "ember"], light: "#ff9a40" },
-  ember: { skin: "#d0391f", belly: "#f0b878", wing: "#c42a1c", pale: "#f2c08c", vein: "#5a160c", mark: "#5a160c", horn: "#f2e2c4", eye: "#fff1a8", breath: ["fire", "ember"], light: "#ff8a3a" },
-  frost: { skin: "#eef2f4", belly: "#cfe6f2", wing: "#c4dcea", pale: "#f4f8fa", vein: "#7c9cb4", mark: "#8fb0c6", horn: "#9fc4dc", eye: "#5ab8f0", breath: ["ice", "snow"], light: "#cfeeff" },
-  storm: { skin: "#3a368a", belly: "#8f86d8", wing: "#4a42b0", pale: "#a49ce0", vein: "#14123a", mark: "#1c1a48", horn: "#e8e2ff", eye: "#fff6a0", breath: ["arcane", "arcaneLight"], light: "#9a8cff" },
+  mother: { skin: "#b3231c", belly: "#d9b98c", wing: "#9a1e16", pale: "#e6cb9c", mark: "#2a1816", horn: "#3a302c", eye: "#ffd23a", breath: ["fire", "ember"], light: "#ff9a40" },
+  ember: { skin: "#d0391f", belly: "#f0b878", wing: "#c42a1c", pale: "#f2c08c", mark: "#5a160c", horn: "#f2e2c4", eye: "#fff1a8", breath: ["fire", "ember"], light: "#ff8a3a" },
+  frost: { skin: "#eef2f4", belly: "#cfe6f2", wing: "#c4dcea", pale: "#f4f8fa", mark: "#8fb0c6", horn: "#9fc4dc", eye: "#5ab8f0", breath: ["ice", "snow"], light: "#cfeeff" },
+  storm: { skin: "#3a368a", belly: "#8f86d8", wing: "#4a42b0", pale: "#a49ce0", mark: "#1c1a48", horn: "#e8e2ff", eye: "#fff6a0", breath: ["arcane", "arcaneLight"], light: "#9a8cff" },
 };
 type Hide = (typeof HIDES)[Dragon["hide"]];
 
@@ -64,7 +64,7 @@ const band = (inner: readonly P[], outer: readonly P[]) =>
   flatTris(inner.slice(0, -1).flatMap((a, i) => [a, outer[i]!, outer[i + 1]!, a, outer[i + 1]!, inner[i + 1]!]));
 /** Toward `o` from `p`, `k` of the way. */
 const toward = (p: P, o: P, k: number): P => [p[0] + (o[0] - p[0]) * k, p[1] + (o[1] - p[1]) * k];
-/** A bone (or a vein) on the plane y = 0 from a to b (x, z), tapering. */
+/** A bone on the plane y = 0 from a to b (x, z), tapering. */
 function rod(o: THREE.Object3D, a: P, b: P, r0: number, r1: number, mat: THREE.Material, sides = 5): void {
   put(o, toZ(limb(Math.hypot(b[0] - a[0], b[1] - a[1]), r0, r1, sides)), mat, a[0], 0, a[1]).rotation.y = Math.atan2(b[0] - a[0], b[1] - a[1]);
 }
@@ -73,20 +73,15 @@ function rod(o: THREE.Object3D, a: P, b: P, r0: number, r1: number, mat: THREE.M
  * A wing, which is the arm too, built out along +z from the shoulder (the far one the same, mirrored), shaped on
  * Rathalos's: the arm reaching forward and out to a wrist held level with the head; from it the long first finger
  * along the leading edge, bowed forward, out to the tip, and two more fingers sweeping back to the trailing edge; the
- * membrane deep (as deep as the body is long, near the root), scalloped between the fingertips. On top it's red near
- * the arm and pales to cream toward the trailing edge; underneath it's cream; dark veins run back through it from the
- * leading edge. The fingers fold back along the arm at the wrist, and at rest the folded wing is what she stands on in
- * front, the wrist claw on the ground.
+ * membrane deep (as deep as the body is long, near the root), scalloped between the fingertips: red out from the arm,
+ * cream toward the trailing edge. One sheet, in two flat colours side by side, nothing laid over it (anything that
+ * close to it would flicker through it, with every vertex snapped to the screen's coarse grid). The fingers fold back
+ * along the arm at the wrist, and at rest the folded wing is what she stands on in front, the wrist claw on the ground.
  */
-function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, pale: THREE.Material, vein: THREE.Material, s: 1 | -1, span: number): { shoulder: THREE.Group; wrist: THREE.Group } {
-  const shoulder = new THREE.Group(), m = new THREE.Group(), W: P = [0.2, 0.61], up = 0.004;
+function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, pale: THREE.Material, s: 1 | -1, span: number): { shoulder: THREE.Group; wrist: THREE.Group } {
+  const shoulder = new THREE.Group(), m = new THREE.Group(), W: P = [0.2, 0.61];
   m.scale.set(span, span, s * span);
   shoulder.add(m);
-  /** Membrane both ways up: `upper` seen from above, cream from below. */
-  const skin2 = (o: THREE.Object3D, geo: () => THREE.BufferGeometry, upper: THREE.Material) => {
-    put(o, geo(), upper, 0, up, 0);
-    put(o, geo(), pale, 0, -up, 0);
-  };
   put(m, ball(0.08), bone, 0, 0, 0);
   rod(m, [0, 0], W, 0.07, 0.045, bone, 7);
   const wrist = new THREE.Group();
@@ -103,20 +98,13 @@ function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, p
   rod(wrist, [0, 0], f2, 0.035, 0.012, bone);
   rod(wrist, [0, 0], f3, 0.035, 0.014, bone);
   const edge: P[] = [lead, tip, s1, f2, s2, f3];
-  // On top: red out from the arm, cream the outer part toward the trailing edge.
-  const inner = edge.map((p, i) => toward([0, 0], p, i === 0 || i === 1 ? 0.92 : 0.5));
-  put(wrist, fan([[0, 0], ...inner]), top, 0, up, 0);
-  put(wrist, band(inner, edge), pale, 0, up, 0);
-  put(wrist, fan([[0, 0], ...edge]), pale, 0, -up, 0);
-  for (const [a, b] of [
-    [toward(lead, tip, 0.75), toward(tip, s1, 0.7)], [toward(lead, tip, 0.35), toward([0, 0], s1, 0.95)], [toward([0, 0], lead, 0.75), toward([0, 0], f2, 0.7)],
-    [toward([0, 0], lead, 0.3), toward([0, 0], s2, 0.9)], [toward([0, 0], f2, 0.35), toward(f2, s2, 0.5)],
-  ] as [P, P][]) rod(wrist, a, b, 0.022, 0.006, vein, 3);       // dark veins, flaring back from the leading edge
+  // Red out from the arm, cream the outer part toward the trailing edge.
+  const inner = edge.map((p, i) => toward([0, 0], p, i === 0 || i === 1 ? 0.92 : 0.55));
+  put(wrist, fan([[0, 0], ...inner]), top, 0, 0, 0);
+  put(wrist, band(inner, edge), pale, 0, 0, 0);
   // Nearer the body: from the shoulder out to the wrist and the last fingertip, scalloped back in to the flank.
   const f3m: P = [W[0] + f3[0], W[1] + f3[1]], s3: P = [-0.66, 0.3], root: P = [-0.6, 0.02];
-  skin2(m, () => fan([[0, 0], W, f3m, s3, root]), top);
-  rod(m, toward([0, 0], W, 0.4), toward(f3m, s3, 0.6), 0.022, 0.006, vein, 3);
-  rod(m, toward([0, 0], W, 0.75), toward([0, 0], f3m, 0.8), 0.02, 0.006, vein, 3);
+  put(m, fan([[0, 0], W, f3m, s3, root]), top, 0, 0, 0);
   return { shoulder, wrist };
 }
 
@@ -131,16 +119,13 @@ function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, p
 function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, "shadow" | "light" | "k"> {
   const h: Hide = HIDES[hide], young = hide !== "mother", group = new THREE.Group(), flat = { flatShading: true }, both = { side: THREE.DoubleSide, ...flat };
   const skin = ctx.lambert(h.skin, flat), belly = ctx.lambert(h.belly, flat), horn = ctx.lambert(h.horn, flat), mark = ctx.lambert(h.mark, flat), eye = ctx.glow(h.eye);
-  const top = ctx.lambert(h.wing, both), pale = ctx.lambert(h.pale, both), vein = ctx.lambert(h.vein, flat), tooth = ctx.lambert("#f6f0e2", flat);
-  /** A black bar over the top of a length (the segment's own taper), showing above it and hidden under it. */
-  const bar = (o: THREE.Object3D, geo: THREE.BufferGeometry, r: number) => { put(o, geo, mark, 0, r * 0.28, 0).scale.set(1, 1, 0.92); };
+  const top = ctx.lambert(h.wing, both), pale = ctx.lambert(h.pale, both), tooth = ctx.lambert("#f6f0e2", flat);
   // The body: compact, the chest high, the hips behind, the belly under both; a black saddle down the back, and spikes.
   // Narrow, as Rathalos is from above and below: about a seventh as wide as it's long.
   const chest = put(group, ball(0.3), skin, 0.12, 0.84, 0);
   chest.scale.set(1.2, 0.95, 0.5);
   put(group, ball(0.29), skin, -0.24, 0.78, 0).scale.set(1.15, 0.85, 0.48);
   put(group, ball(0.26), belly, -0.04, 0.68, 0).scale.set(1.75, 0.6, 0.44);   // pale all down the underside
-  put(group, ball(0.26), mark, -0.06, 0.95, 0).scale.set(1.6, 0.34, 0.3);
   for (let i = 0; i < 5; i++) put(group, cone(0.04, 0.16 - Math.abs(i - 1.5) * 0.02), horn, 0.28 - i * 0.14, 1.12 - i * 0.04, 0, 0, 0, -0.45);
   // Two legs, thick in the thigh, a backward-bent shin, a long foot and three great claws.
   const legs = ([0.12, -0.12] as const).map(lz => {
@@ -166,16 +151,15 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
     put(foot, toBack(cone(0.02, 0.07)), horn, -0.04, -0.01, 0);   // the back toe
     return hip;
   });
-  // The neck: short, three thick segments, each hung off the one before, so bending each curls the whole; barred black.
+  // The neck: short, three thick segments, each hung off the one before, so bending each curls the whole; the middle one black.
   const neck: THREE.Group[] = [], L = young ? 0.08 : 0.1;
   let parent: THREE.Object3D = group;
   for (let i = 0; i < 3; i++) {
     const seg = new THREE.Group(), r0 = 0.1 - i * 0.012, r1 = r0 - 0.012;
     seg.position.set(i ? L : 0.36, i ? 0 : 0.96, 0);
     put(seg, ball(r0 * 0.97), skin, 0, 0, 0);
-    put(seg, toX(limb(L + 0.02, r0, r1)), skin, 0, 0, 0);
+    put(seg, toX(limb(L + 0.02, r0, r1)), i === 1 ? mark : skin, 0, 0, 0);
     put(seg, toX(limb(L + 0.02, r0 * 0.78, r1 * 0.78)), belly, 0, -r0 * 0.42, 0);   // paler underneath
-    if (i === 1) bar(seg, toX(limb(L * 0.6, r0 * 1.02, r1 * 1.02)), r0);
     put(seg, cone(0.028, 0.1), horn, L * 0.5, r0 * 0.8, 0, 0, 0, -0.45);
     parent.add(seg);
     neck.push(seg);
@@ -190,7 +174,6 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   put(skull, ball(0.14), skin, 0.05, 0.03, 0).scale.set(1.3, 0.88, 0.85);
   put(skull, toX(limb(0.34, 0.1, 0.035, 6)), skin, 0.1, 0.01, 0).scale.set(1, 0.72, 1);   // the snout, long and tapering
   put(skull, down(cone(0.03, 0.07, 4)), horn, 0.43, 0.005, 0);                            // the hook at its tip
-  put(skull, toX(limb(0.3, 0.05, 0.02, 5)), mark, 0.12, 0.075, 0).scale.set(1, 0.6, 1);   // black down the bridge of the nose
   for (let i = 0; i < 3; i++) put(skull, cone(0.025, 0.08 - i * 0.015), horn, 0.0 - i * 0.07, 0.13 - i * 0.01, 0, 0, 0, -0.6);   // the crest
   for (const s of [-1, 1]) {
     put(skull, box(0.13, 0.035, 0.06), mark, 0.12, 0.1, s * 0.075, s * 0.35, 0, -0.15);  // brows, black
@@ -215,7 +198,7 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   const mouth = new THREE.Object3D();
   mouth.position.set(0.44, -0.03, 0);
   skull.add(mouth);
-  // The tail: no longer than the body, four segments thinning fast, barred black, spiked along the top, and a broad
+  // The tail: no longer than the body, four segments thinning fast, every other one black, spiked along the top, and a broad
   // club at the end, spiked all round and widest side to side.
   const tail: THREE.Group[] = [];
   parent = group;
@@ -223,9 +206,8 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
     const seg = new THREE.Group(), r0 = 0.085 - i * 0.012, r1 = r0 - 0.012, T = 0.11;
     seg.position.set(i ? -T : -0.52, i ? 0 : 0.78, 0);
     put(seg, ball(r0 * 0.97), skin, 0, 0, 0);
-    put(seg, toBack(limb(T + 0.02, r0, r1)), skin, 0, 0, 0);
+    put(seg, toBack(limb(T + 0.02, r0, r1)), i % 2 ? mark : skin, 0, 0, 0);
     put(seg, toBack(limb(T + 0.02, r0 * 0.75, r1 * 0.75)), belly, 0, -r0 * 0.42, 0);
-    if (i % 2 === 0) bar(seg, toBack(limb(T * 0.55, r0 * 1.02, r1 * 1.02)), r0);
     put(seg, cone(0.028 - i * 0.003, 0.1 - i * 0.01), horn, -T * 0.5, r0 * 0.8, 0, 0, 0, 0.5);
     parent.add(seg);
     tail.push(seg);
@@ -233,7 +215,6 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   }
   const club = tail[3]!;
   put(club, ball(0.1), skin, -0.2, 0, 0).scale.set(1.6, 0.7, 1.3);
-  put(club, ball(0.08), mark, -0.2, 0.025, 0).scale.set(1.5, 0.5, 1.1);
   for (const [a, b, len] of [[0, 1, 0.14], [0, -1, 0.14], [0.4, 1, 0.11], [0.4, -1, 0.11], [1, 0, 0.09], [-0.5, 1, 0.08], [-0.5, -1, 0.08]] as const) {
     const dir = Math.atan2(b, a);
     for (const dx of [-0.13, -0.24]) put(club, cone(0.03, len), horn, dx, a * 0.04, b * 0.1, dir, 0, 0);   // spikes all round it, longest to the sides
@@ -241,7 +222,7 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   put(club, toBack(cone(0.04, 0.16)), horn, -0.33, 0, 0);
   const wings = [] as unknown as [THREE.Group, THREE.Group], wrists = [] as unknown as [THREE.Group, THREE.Group];
   for (const s of [1, -1] as const) {
-    const w = wing(skin, horn, top, pale, vein, s, young ? 0.62 : 1);
+    const w = wing(skin, horn, top, pale, s, young ? 0.62 : 1);
     w.shoulder.position.set(0.28, 1.0, s * 0.1);
     group.add(w.shoulder);
     wings.push(w.shoulder);
@@ -263,11 +244,13 @@ export const dragon: EntityView<DragonView> = {
   update(ctx, v, e, g, f) {
     const d = g.world.need(e, "dragon"), [x, z] = toWorld(d.x, d.y), t = f.t + v.k, grow = Math.max(0.001, d.grow);
     const size = d.size * (grow < 1 ? grow * (1 + Math.sin(grow * Math.PI) * 0.25) : 1);   // a hatchling pops out a little big
-    const flying = d.pose === "fly", beat = Math.sin(d.flap);
-    // Wings wide at rest, she rears up on her hind legs (rocking back about her middle, so lifted to keep them on the ground).
-    const rear = flying ? 0 : d.spread * 0.42;
-    v.group.position.set(x, d.height + (flying ? -beat * 0.06 * d.size : 0) + Math.sin(rear) * 0.36 * size, z);
-    v.group.rotation.set(0, -d.facing, rear);
+    // The beat: a quick, strong downstroke and a slower recovery (the phase runs on faster through the bottom half).
+    const flying = d.pose === "fly", p = d.flap + 0.45 * Math.cos(d.flap), beat = Math.sin(p), upstroke = Math.max(0, Math.cos(p));
+    // Wings wide at rest, she rears up on her hind legs (rocking back about her middle, lifted to keep them on the ground);
+    // head down, she bows forward over what's in front of her, so her face comes right down to it.
+    const lift = flying ? 0.5 : d.neck, rear = flying ? 0 : d.spread * 0.42, bow = flying ? 0 : (1 - lift) * (1 - d.spread) * 0.26;
+    v.group.position.set(x, d.height + (flying ? -beat * 0.07 * d.size : 0) + (Math.sin(rear) * 0.36 - Math.sin(bow) * 0.18) * size, z);
+    v.group.rotation.set(0, -d.facing, rear - bow);
     v.group.scale.setScalar(size);
     v.chest.scale.set(1.2, 0.95 + Math.sin(t * 1.8) * 0.025, 0.5);   // breathing
     for (const leg of v.legs) leg.rotation.z = flying ? -1.1 : 0;   // tucked back under her in flight
@@ -275,27 +258,28 @@ export const dragon: EntityView<DragonView> = {
     v.wings.forEach((w, i) => {
       const s = i ? -1 : 1;
       const wrist = v.wrists[i]!;
-      if (flying) {                                          // the fingertips trail a little behind the beat
-        w.rotation.set(-s * beat * 0.85, -s * Math.max(0, beat) * 0.2, 0);   // swept back only on the upstroke
-        wrist.rotation.set(beat * 0.3, 0.04, 0);
+      if (flying) {                                          // spread wide on the downstroke; on the way up, half folded and swept back
+        w.rotation.set(-s * beat * 0.85, -s * upstroke * 0.25, 0);
+        wrist.rotation.set(beat * 0.3, 0.04 - upstroke * 0.6, 0);
       } else {                                               // at rest, folded and leant on in front; or raised wide, rising and falling slowly
         const o = d.spread, up = 0.25 + Math.sin(t * 1.6) * 0.1;
         w.rotation.set(s * (1.2 * (1 - o) - up * o + Math.sin(t * 1.1) * 0.02 * (1 - o)), s * (0.5 * (1 - o) - 0.13 * o), 0);
         wrist.rotation.set(Math.sin(t * 1.6 + 0.6) * 0.08 * o, -1.3 * (1 - o), 0);
       }
     });
-    // The neck: out straight in flight; at rest, from curled low over the ground up to stretched at the sky.
-    const lift = flying ? 0.5 : d.neck, curl = [[-0.42, -0.28, -0.15, 0.03], [0.32, 0.2, 0.12, 0.06]] as const;
+    // The neck: out straight in flight, holding the head steady against the beat; at rest, from curled right down (her
+    // face nosing at what's in front of her) up to stretched at the sky.
+    const curl = [[-0.6, -0.4, -0.15], [0.32, 0.2, 0.12]] as const, low = 1 - lift;
     v.neck.forEach((n, i) => {
-      n.rotation.z = flying ? (i ? 0.06 : -0.12) : curl[0][i]! + (curl[1][i]! - curl[0][i]!) * lift;
-      n.rotation.y = Math.sin(t * 0.9 + i * 0.7) * (flying ? 0.04 : 0.08);
+      n.rotation.z = flying ? (i ? 0.06 : -0.12) + beat * 0.05 : curl[0][i]! + (curl[1][i]! - curl[0][i]!) * lift;
+      n.rotation.y = Math.sin(t * 0.9 + i * 0.7) * (flying ? 0.03 : 0.06 + low * 0.04);
     });
-    v.head.rotation.z = flying ? 0.05 : -0.25 + lift * 0.6;
+    v.head.rotation.z = flying ? 0.05 - beat * 0.08 : 0.05 + lift * 0.3 + Math.sin(t * 1.3) * 0.06 * low;   // nosing, gently
     v.jaw.rotation.z = -Math.min(0.7, d.fire * 0.7 + (flying ? 0 : lift * 0.1));
     // The tail: streaming behind in flight; at rest held out behind her in a long curve, swaying.
     v.tail.forEach((s, i) => {
-      s.rotation.y = (flying ? 0 : 0.14) + Math.sin(t * (flying ? 2 : 1.2) - i * 0.6) * (flying ? 0.08 : 0.06);
-      s.rotation.z = flying ? Math.sin(d.flap - i * 0.5) * 0.05 : i < 3 ? -0.1 : 0.04;
+      s.rotation.y = (flying ? 0 : 0.14) + Math.sin(t * (flying ? 1.6 : 0.9) - i * 0.7) * (flying ? 0.06 : 0.09);
+      s.rotation.z = flying ? Math.sin(p - 1 - i * 0.6) * 0.09 : (i < 2 ? -0.12 : 0.05) + bow * 0.3;   // a ripple down it after each beat
     });
     // The shadow: under her on the ground, as wide as she is.
     v.shadow.position.set(x, SHADOW_Y, z);
