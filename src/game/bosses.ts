@@ -50,6 +50,8 @@ export const LIEUTENANTS: Record<Who, Lieutenant> = {
 interface Bosses {
   beaten: Set<Who>;
   fell: Map<Who, { x: number; y: number }>;
+  /** The visit to an area in which a boss fell there (each arrival is a new one): nothing turns up again until he's left and come back. */
+  quietIn: Game["area"] | null;
   lair: { who: Who; x: number; y: number } | null;
   here: { e: Entity; who: Who; x: number; y: number } | null;
 }
@@ -57,15 +59,18 @@ const state = new WeakMap<Game, Bosses>();
 function bossesOf(g: Game): Bosses {
   let s = state.get(g);
   if (!s) {
-    const fresh: Bosses = { beaten: new Set(), fell: new Map(), lair: null, here: null };
+    const fresh: Bosses = { beaten: new Set(), fell: new Map(), quietIn: null, lair: null, here: null };
     state.set(g, s = fresh);
-    g.events.on("reset", () => { fresh.beaten.clear(); fresh.fell.clear(); fresh.lair = fresh.here = null; });
+    g.events.on("reset", () => { fresh.beaten.clear(); fresh.fell.clear(); fresh.lair = fresh.here = fresh.quietIn = null; });
   }
   return s;
 }
 
 /** The boss in this area, if there's one still standing. */
 export const bossHere = (g: Game): Entity | null => state.get(g)?.here?.e ?? null;
+
+/** Is it quiet here: a boss fell on this visit? Then nothing turns up until the hero leaves and comes back. */
+export const quietAfterBoss = (g: Game): boolean => state.get(g)?.quietIn === g.area;
 
 /** Who the boss in this area is, if there's one still standing. */
 export const bossWho = (g: Game): Who | null => state.get(g)?.here?.who ?? null;
@@ -146,6 +151,7 @@ export function bossSystem(g: Game, dt: number): void {
   const L = LIEUTENANTS[here.who];
   s.beaten.add(here.who);
   s.fell.set(here.who, { x: here.x, y: here.y });
+  s.quietIn = g.area;
   dropLoot(g, here.x, here.y, L.drop(g.rng));
   grantXP(g, L.xp - XP.mage, here.x, here.y);               // the mage's own share comes with the kill
   L.falls.forEach(line => toast(g, line));

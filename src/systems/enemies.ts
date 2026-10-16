@@ -6,7 +6,7 @@ import { XP } from "../data/progression.ts";
 import { damagePlayer, grantXP } from "../game/combat.ts";
 import { BESTIARY, type BestiaryId } from "../data/bestiary.ts";
 import { FEATURES } from "../data/features.ts";
-import { bossHere } from "../game/bosses.ts";
+import { bossHere, quietAfterBoss } from "../game/bosses.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { laidToRest } from "../game/ghost.ts";
@@ -89,7 +89,8 @@ function layGhost(g: Game, x: number, y: number): void {
 /** Every few seconds, top the enemies up. The cap grows with kills. */
 export function spawnerSystem(g: Game, dt: number): void {
   if (!g.area.def.life?.enemies) return;                    // only where enemies live
-  if (bossHere(g) !== null) return;                          // nothing else turns up while a boss fight's on
+  if (bossHere(g) !== null) return;                          // nothing else turns up while a boss fight's on,
+  if (quietAfterBoss(g)) return;                             // nor after it, until he's left and come back
   const cap = Math.min(SPAWNING.maxCap, SPAWNING.baseCap + Math.floor(g.kills / SPAWNING.killsPerCap));
   if ((g.spawnTimer -= dt) > 0) return;
   g.spawnTimer = SPAWNING.every;

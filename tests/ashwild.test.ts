@@ -168,7 +168,7 @@ describe("the Ashwild", () => {
     expect(m.specialCD).toBeCloseTo(5 - (CINDER.hurry - 1), 5);
   });
 
-  it("has Cinder to himself: the slimes and mages scatter as he comes out, and none turn up until he's beaten", async () => {
+  it("has Cinder to himself: the slimes and mages scatter as he comes out, and none turn up again until you leave and come back", async () => {
     const g = await inAshwild();
     for (let i = 0; i < 10; i++) spawnEnemy(g, 40);
     expect(g.world.count("enemy")).toBeGreaterThan(10);
@@ -179,9 +179,14 @@ describe("the Ashwild", () => {
     health.hp = 0;
     bossSystem(g, 1 / 60);
     deathSystem(g);
+    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    expect(g.world.count("enemy")).toBe(0);                  // quiet, now he's gone
+    enterArea(g, await loadArea("ashwild"), "witchwood");    // out and back in: the slimes are back
+    expect(g.world.count("enemy")).toBeGreaterThan(0);
+    for (const [id] of g.world.query("enemy")) g.world.destroy(id);
     g.spawnTimer = 0;
     spawnerSystem(g, 1);
-    expect(g.world.count("enemy")).toBe(1);                  // back to the slimes, now he's gone
+    expect(g.world.count("enemy")).toBe(1);                  // and they keep coming
   });
 
   it("once beaten, stays beaten for the run, leaving a fine weapon and the news; a new run brings him back", async () => {

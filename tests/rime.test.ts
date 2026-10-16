@@ -321,6 +321,11 @@ describe("Rime's last stand", () => {
     bossSystem(g, DT);
     deathSystem(g);
     expect(beaten(g, "rime")).toBe(true);
+    // The Hollow stays quiet after her, until he leaves and comes back.
+    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    expect(g.world.count("enemy")).toBe(0);
+    enterArea(g, await loadArea("hollow"), "stone");
+    expect(g.world.count("enemy")).toBeGreaterThan(0);
   });
 });
 
