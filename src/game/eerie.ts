@@ -3,13 +3,18 @@
 // from the end of the street, a lamp gutters out, a well whispers, a little bell rings nine; and anyone still out near
 // it takes fright and runs for home (src/game/townsfolk.ts scareFolk). Never by day, never
 // indoors, never while he's busy (talking, resting, in a scene) and never anywhere near St Mary's churchyard,
-// which belongs to the Grey Ringer (src/game/ghost.ts). None of it can hurt him; it's only the city. And nothing
+// which belongs to the Grey Ringer (src/game/ghost.ts). Out in the wild at night, there's only the watcher, in the
+// trees, and never by a boss's arena or while a boss is up. None of it can hurt him; it's only the city. And nothing
 // tells the player about it: it's there to be seen and heard (the fx it raises, src/game/fx.ts), or missed.
 import type { Entity } from "../core/ecs.ts";
 import { isDay } from "../data/daylight.ts";
-import { EERIE, FRIGHT, WHISPERS, type EerieId } from "../data/eerie.ts";
-import { HALF } from "../data/world.ts";
-import { blocked } from "../world/collision.ts";
+import { EERIE, FRIGHT, WHISPERS, type EerieArea, type EerieId } from "../data/eerie.ts";
+import { HALF, T, Tile } from "../data/world.ts";
+import { blocked, tileAt } from "../world/collision.ts";
+import { bossHere } from "./bosses.ts";
+import { cinderFight } from "./cinderfight.ts";
+import { greatKoiOut } from "./greatkoi.ts";
+import { rimeFight } from "./rimefight.ts";
 import { combatText } from "./combat.ts";
 import { carryingCurio, spentCurios } from "./curios.ts";
 import { cutscene } from "./cutscene.ts";
@@ -62,15 +67,26 @@ const between = (g: Game, [a, b]: readonly [number, number]) => a + g.rng.next()
 const heroAt = (g: Game): Spot => { const p = g.world.need(g.player, "transform"); return { x: p.x + HALF, y: p.y + HALF }; };
 const dist = (a: Spot, b: Spot) => Math.hypot(a.x - b.x, a.y - b.y);
 
-/** Can it happen in this place at this hour: the city's streets (not a house's inside), at night? */
-export const eerieHere = (g: Game): boolean =>
-  EERIE.areas.includes(g.area.def.id) && !g.area.def.indoors && !isDay(g.hour);
+/** How it goes in this area, if it happens here at all. */
+const areaOf = (g: Game): EerieArea | null => (Object.hasOwn(EERIE.areas, g.area.def.id) ? EERIE.areas[g.area.def.id]! : null);
 
-/** Is the hero free for it: not busy, the ghost not out, and not by the churchyard? */
+/** Can it happen in this place at this hour: one of its areas (outdoors, not a house's inside), at night? */
+export const eerieHere = (g: Game): boolean => areaOf(g) !== null && !g.area.def.indoors && !isDay(g.hour);
+
+/** A boss is up (or a fight's going on): the night keeps its tricks to itself. */
+const fightOn = (g: Game): boolean => bossHere(g) !== null || greatKoiOut(g) !== null || cinderFight(g) !== null || rimeFight(g) !== null;
+
+/** Is this spot (px) in or by a boss's arena (its ring of stones or ice pillars, and EERIE.arena tiles round it)? */
+function byArena(g: Game, at: Spot): boolean {
+  return g.area.layout.props.some(p => (p.kind === "arena" || p.kind === "rimeStage") && Math.hypot(at.x - p.x, at.y - p.y) < (p.radius + EERIE.arena) * T);
+}
+
+/** Is the hero free for it: not busy, no ghost or boss about, and not by the churchyard or a boss's arena? */
 function unbusy(g: Game): boolean {
-  if (talking(g) || cutscene(g) || resting(g) || sleeping(g) || ghostOut(g) !== null) return false;
+  if (talking(g) || cutscene(g) || resting(g) || sleeping(g) || ghostOut(g) !== null || fightOn(g)) return false;
   if ((g.world.get(g.player, "health")?.hp ?? 0) <= 0) return false;
   const yard = churchyardOf(g), p = heroAt(g), m = EERIE.churchyard;
+  if (byArena(g, p)) return false;
   return !yard || p.x < yard.x - m || p.x > yard.x + yard.w + m || p.y < yard.y - m || p.y > yard.y + yard.h + m;
 }
 
@@ -117,20 +133,37 @@ function clearLine(g: Game, from: Spot, to: Spot): boolean {
   return true;
 }
 
-/** Somewhere at the end of the street the hero's facing (or any street, failing that), in plain sight of him. */
-function watcherSpot(g: Game): Spot | null {
-  const p = heroAt(g), aim = g.world.need(g.player, "motion").aim;
+/** Is (x, y) (px) among trees: a tree's tile? */
+const inTrees = (g: Game, at: Spot) => tileAt(g.map, at.x, at.y) === Tile.Tree;
+
+/**
+ * Where the watcher stands, in plain sight of the hero, the way he's facing if it can be (or any way, failing that),
+ * and never by a boss's arena. In the city, at the end of the street. In the wild, just inside the treeline: among
+ * the trees, with open ground between him and the hero right up to the first trunk.
+ */
+export function watcherSpot(g: Game): Spot | null {
+  const p = heroAt(g), aim = g.world.need(g.player, "motion").aim, trees = areaOf(g)?.watcher === "trees";
   const turns = [0, 0.35, -0.35, 0.7, -0.7, 1.2, -1.2, 1.8, -1.8, Math.PI];
   const { wide, deep, steps } = EERIE.watcher;
   for (const k of steps) for (const turn of turns) {
     const a = aim + turn, at = { x: p.x + Math.cos(a) * wide * k, y: p.y + Math.sin(a) * deep * k };
-    if (clearLine(g, p, at)) return at;
+    if (byArena(g, at)) continue;
+    if (!trees) { if (clearLine(g, p, at)) return at; continue; }
+    // Back along the line from there toward the hero to the edge of the trees: he stands a step inside it.
+    const d = dist(p, at), ux = (at.x - p.x) / d, uy = (at.y - p.y) / d;
+    for (let r = d; r > EERIE.watcher.near; r -= 2) {
+      const spot = { x: p.x + ux * r, y: p.y + uy * r }, edge = { x: spot.x - ux * T, y: spot.y - uy * T };
+      if (!inTrees(g, spot) || inTrees(g, edge)) continue;
+      if (clearLine(g, p, edge)) return spot;
+      break;
+    }
   }
   return null;
 }
 
 /** Can this one happen here and now? (Not counting whose turn it is: see eerieSystem.) */
 export function eerieCan(g: Game, id: EerieId): boolean {
+  if (!(id in (areaOf(g)?.weights ?? {}))) return false;                // not one this place has
   switch (id) {
     case "shutter": return shutterSpots(g).length > 0;
     case "footsteps": return g.world.need(g.player, "motion").moving;
@@ -147,11 +180,12 @@ export function eerieCan(g: Game, id: EerieId): boolean {
 
 /** Which one, by the weights, of those that can happen now (and not the same as last time, if anything else can). */
 export function pickEerie(g: Game, last: EerieId | null = null): EerieId | null {
-  const ids = (Object.keys(EERIE.weights) as EerieId[]).filter(id => EERIE.weights[id] > 0 && eerieCan(g, id));
+  const weights = areaOf(g)?.weights ?? {}, weight = (id: EerieId) => weights[id] ?? 0;
+  const ids = (Object.keys(weights) as EerieId[]).filter(id => weight(id) > 0 && eerieCan(g, id));
   const fresh = ids.filter(id => id !== last), from = fresh.length ? fresh : ids;
-  const total = from.reduce((n, id) => n + EERIE.weights[id], 0);
+  const total = from.reduce((n, id) => n + weight(id), 0);
   let roll = g.rng.next() * total;
-  for (const id of from) if ((roll -= EERIE.weights[id]) < 0) return id;
+  for (const id of from) if ((roll -= weight(id)) < 0) return id;
   return from[from.length - 1] ?? null;
 }
 
@@ -163,18 +197,18 @@ export function eerieSystem(g: Game, dt: number): void {
   const s = uneaseOf(g);
   if (s.area !== g.area.def.id) { stop(g, s); s.area = g.area.def.id; s.wait = EERIE.settle; }
   if (isDay(g.hour)) { s.tonight = 0; s.rung = false; }
-  if (!eerieHere(g)) { stop(g, s); s.wait = EERIE.settle; return; }
+  if (!eerieHere(g) || (s.now && fightOn(g))) { stop(g, s); s.wait = EERIE.settle; return; }
   if (s.now) { go(g, s, s.now, dt); if (s.now) fright(g, s.now); return; }
   if (!unbusy(g) || s.tonight >= EERIE.most || (s.wait -= dt) > 0) return;
-  s.wait = between(g, EERIE.every);
+  s.wait = between(g, areaOf(g)!.every);
   const id = pickEerie(g, s.last);
   if (id) startEerie(g, id);
 }
 
-/** Make this one happen now, if it can (at night, in the streets, and here): for eerieSystem, and for playtesting. Whether it did. */
+/** Make this one happen now, if it can (at night, in one of its places, no boss about, and here): for eerieSystem, and for playtesting. Whether it did. */
 export function startEerie(g: Game, id: EerieId): boolean {
   const s = uneaseOf(g);
-  if (s.now || !eerieHere(g) || !eerieCan(g, id)) return false;
+  if (s.now || !eerieHere(g) || fightOn(g) || !eerieCan(g, id)) return false;
   s.tonight++;
   s.last = id;
   const p = heroAt(g);

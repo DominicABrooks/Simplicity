@@ -7,7 +7,9 @@ import { loadArea } from "../src/areas/index.ts";
 import { EERIE, type EerieId } from "../src/data/eerie.ts";
 import { HALF } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
-import { eerieCan, eerieHere, eerieNow, eerieSystem, pickEerie, startEerie, uneaseOf } from "../src/game/eerie.ts";
+import { eerieCan, eerieHere, eerieNow, eerieSystem, pickEerie, startEerie, uneaseOf, watcherSpot } from "../src/game/eerie.ts";
+import { T, Tile } from "../src/data/world.ts";
+import { tileAt } from "../src/world/collision.ts";
 import { churchyardOf, riseGhost } from "../src/game/ghost.ts";
 import { lampLit, lampsHere, setLamps } from "../src/game/lamps.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -50,8 +52,11 @@ describe("the city after dark", () => {
     expect(eerieHere(await at("capital", NOON))).toBe(false);
     expect(eerieHere(await at("capital", 5))).toBe(false);
     expect(eerieHere(await at("capital", 20.9))).toBe(false);
-    expect(eerieHere(await at("kingsroad", MIDNIGHT))).toBe(false);
     expect(eerieHere(await at("castle", MIDNIGHT))).toBe(false);
+    for (const wild of ["kingsroad", "witchwood", "ashwild", "hollow"]) {
+      expect(eerieHere(await at(wild, MIDNIGHT))).toBe(true);
+      expect(eerieHere(await at(wild, NOON))).toBe(false);
+    }
   });
 
   it("never indoors, even in the city at midnight", async () => {
@@ -78,11 +83,11 @@ describe("the city after dark", () => {
     run(g, 600);
     expect(uneaseOf(g).tonight).toBe(0);
     expect(eerieNow(g)).toBeNull();
-    for (const id of Object.keys(EERIE.weights) as EerieId[]) expect(startEerie(g, id)).toBe(false);
+    for (const id of Object.keys(EERIE.areas.capital!.weights) as EerieId[]) expect(startEerie(g, id)).toBe(false);
   });
 
   it("never anywhere else at night", async () => {
-    const g = await at("kingsroad", MIDNIGHT);
+    const g = await at("castle", MIDNIGHT);
     g.world.need(g.player, "motion").moving = true;
     run(g, 600);
     expect(uneaseOf(g).tonight).toBe(0);
@@ -228,7 +233,7 @@ describe("each of them", () => {
   });
 
   it("goes by the weights: one weighted 0 never happens", async () => {
-    const g = await at("capital", MIDNIGHT), weights = EERIE.weights as Record<EerieId, number>, saved = { ...weights };
+    const g = await at("capital", MIDNIGHT), weights = EERIE.areas.capital!.weights as Record<EerieId, number>, saved = { ...weights };
     place(g, square(g));
     g.world.need(g.player, "motion").moving = true;
     try {
@@ -264,5 +269,87 @@ describe("the townsfolk", () => {
     for (const [, { walker }] of near()) expect(walker.fleeing).toBe(true);
     expect(g.floaters.length - shouted).toBeGreaterThanOrEqual(near().length);   // each with a shout
     for (const e of far) expect(g.world.get(e, "walker")?.fleeing ?? false).toBe(false);
+  });
+});
+
+/**
+ * Somewhere in the wild the watcher could be seen from: open ground with the treeline in sight, away from any
+ * boss's arena (tried at open tiles across the map, the hero facing every way in turn). Where he'd stand, and from where.
+ */
+function lookOut(g: Game): { from: { x: number; y: number }; spot: { x: number; y: number } } | null {
+  const motion = g.world.need(g.player, "motion");
+  for (let ty = 2; ty < g.map.height - 2; ty += 3) for (let tx = 2; tx < g.map.width - 2; tx += 3) {
+    const from = { x: tx * T + HALF, y: ty * T + HALF };
+    if (tileAt(g.map, from.x, from.y) === Tile.Tree || tileAt(g.map, from.x, from.y) === Tile.Water) continue;
+    place(g, from);
+    for (const aim of [-Math.PI / 2, 0, Math.PI, Math.PI / 2]) {
+      motion.aim = aim;
+      const spot = watcherSpot(g);
+      if (spot && startEerie(g, "watcher")) { stopIt(g); return { from, spot }; }
+    }
+  }
+  return null;
+}
+/** Send him off again (he'll go at first light). */
+const stopIt = (g: Game) => { const h = g.hour; g.hour = NOON; eerieSystem(g, DT); g.hour = h; };
+
+describe("out in the wild", () => {
+  for (const wild of ["kingsroad", "witchwood", "ashwild", "hollow"]) {
+    it(`${wild}: only the watcher, and he stands just inside the trees, and is gone when the hero comes`, async () => {
+      const g = await at(wild, MIDNIGHT);
+      g.world.need(g.player, "motion").moving = true;
+      for (const id of ["shutter", "footsteps", "lamp", "well", "curfew"] as const) expect(eerieCan(g, id)).toBe(false);
+      const seen = lookOut(g);
+      expect(seen).not.toBeNull();
+      const { from, spot } = seen!;
+      expect(tileAt(g.map, spot.x, spot.y)).toBe(Tile.Tree);             // among the trees
+      const d = Math.hypot(spot.x - from.x, spot.y - from.y), edge = { x: spot.x - ((spot.x - from.x) / d) * T, y: spot.y - ((spot.y - from.y) / d) * T };
+      expect(tileAt(g.map, edge.x, edge.y)).not.toBe(Tile.Tree);         // a step inside the treeline, open ground before him
+
+      place(g, from);
+      expect(startEerie(g, "watcher")).toBe(true);
+      const [e, c] = g.world.query("watcher", "transform")[0]!;
+      run(g, 1);
+      expect(c.watcher.shown).toBeGreaterThan(0);
+      place(g, { x: c.transform.x + HALF, y: c.transform.y + HALF + 6 });
+      run(g, 1);
+      expect(g.world.has(e, "watcher")).toBe(false);
+    });
+  }
+
+  it("keeps away from the bosses' arenas, Cinder's stones and Rime's ice", async () => {
+    for (const [wild, kind] of [["ashwild", "arena"], ["hollow", "rimeStage"]] as const) {
+      const g = await at(wild, MIDNIGHT), ring = g.area.layout.props.find(p => p.kind === kind)!;
+      if (ring.kind !== "arena" && ring.kind !== "rimeStage") throw new Error(kind);
+      const keep = (ring.radius + EERIE.arena) * T;
+      // In the ring, or by it: nothing.
+      place(g, { x: ring.x, y: ring.y + ring.radius * T - 4 });
+      expect(startEerie(g, "watcher")).toBe(false);
+      run(g, 400);
+      expect(uneaseOf(g).tonight).toBe(0);
+      // From anywhere else, he never stands by it.
+      const motion = g.world.need(g.player, "motion");
+      for (let ty = 2; ty < g.map.height - 2; ty += 4) for (let tx = 2; tx < g.map.width - 2; tx += 4) {
+        place(g, { x: tx * T + HALF, y: ty * T + HALF });
+        for (const aim of [-Math.PI / 2, 0, Math.PI, Math.PI / 2]) {
+          motion.aim = aim;
+          const spot = watcherSpot(g);
+          if (spot) expect(Math.hypot(spot.x - ring.x, spot.y - ring.y)).toBeGreaterThanOrEqual(keep);
+        }
+      }
+    }
+  });
+
+  it("holds off while a boss is up, and goes if one turns up while he's standing there", async () => {
+    const g = await at("witchwood", MIDNIGHT), seen = lookOut(g)!;
+    place(g, seen.from);
+    const koi = g.world.create({ koi: {} as never });           // the Great Koi, up out of the ice
+    expect(startEerie(g, "watcher")).toBe(false);
+    g.world.destroy(koi);
+    expect(startEerie(g, "watcher")).toBe(true);
+    g.world.create({ koi: {} as never });
+    eerieSystem(g, DT);
+    expect(eerieNow(g)).toBeNull();
+    expect(g.world.query("watcher").length).toBe(0);
   });
 });
