@@ -36,6 +36,9 @@ function barricade(g: Game): Barricade {
 /** Have the wardens read the right watchword from him this run? Then the gate's open to him. */
 export const passedBarricade = (g: Game): boolean => barricade(g).passed;
 
+/** The wardens have read it off him already (getting about quickly in development: src/game/zones.ts). */
+export function passBarricade(g: Game): void { barricade(g).passed = true; }
+
 /** The warden waiting for the paper back, while he writes; null otherwise (or once they're gone, or he's walked off). */
 export function writingFor(g: Game): Entity | null {
   const b = barricade(g), w = b.writing;

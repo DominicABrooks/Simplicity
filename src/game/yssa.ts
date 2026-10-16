@@ -76,6 +76,9 @@ export const passedYssa = (g: Game): boolean => track(g).passed.has("name");
 /** Has she read the river's name off him this run? Then the climb up out of the Hollow is open to him. */
 export const passedClimb = (g: Game): boolean => track(g).passed.has("river");
 
+/** She's read it off him already (getting about quickly in development: src/game/zones.ts). */
+export function passYssa(g: Game, asks: YssaAsks): void { track(g).passed.add(asks); }
+
 /** Is this her? */
 export const isYssa = (g: Game, e: Entity): boolean => g.world.get(e, "renderable")?.kind === "yssa";
 
