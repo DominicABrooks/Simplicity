@@ -13,6 +13,8 @@ export interface Lamp {
   y: number;
   tile: readonly [number, number];
   lit: boolean;
+  /** Guttered out for a moment, lit or not (src/game/eerie.ts): dark until it catches again. */
+  snuffed?: boolean;
   /** The hour it goes out at dawn (each a little after the last). */
   out: number;
 }
@@ -26,7 +28,7 @@ const keyOf = (x: number, y: number) => `${x},${y}`;
 export const lampsHere = (): readonly Lamp[] => lamps;
 
 /** Whether the lamp standing at (x, y) (px) is burning. */
-export const lampLit = (p: { x: number; y: number }): boolean => byKey.get(keyOf(p.x, p.y))?.lit ?? false;
+export const lampLit = (p: { x: number; y: number }): boolean => { const l = byKey.get(keyOf(p.x, p.y)); return !!l && l.lit && !l.snuffed; };
 
 /** Whether the lamplighter should be out on his round: it's dusk, and there are lamps still to light. */
 export const lampsDue = (): boolean => hour >= CRAFTS.lamps.from && hour < CRAFTS.lamps.by && lamps.some(l => !l.lit);
@@ -48,6 +50,11 @@ export function updateLamps(g: Game): void {
     if (hour >= CRAFTS.lamps.by || hour < l.out) l.lit = true;
     else if (hour < CRAFTS.lamps.from) l.lit = false;
   }
+}
+
+/** A lamp gutters out (`out`), or catches again, by itself. */
+export function snuffLamp(l: Lamp, out: boolean): void {
+  l.snuffed = out;
 }
 
 /** The lamplighter's pole is up to the `i`th lamp: it catches. */

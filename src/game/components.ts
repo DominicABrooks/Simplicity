@@ -415,10 +415,13 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit" | "watcher";
 
 /** A beaten lieutenant's spirit, in the middle of their arena (src/game/spirits.ts): whose. */
 export interface Spirit { who: "cinder" | "rime" }
+
+/** The figure at the end of the street after dark (src/game/eerie.ts): how far it's faded in (0-1), and whether it's going. */
+export interface Watcher { shown: number; going: boolean }
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -455,4 +458,5 @@ export interface Components {
   walker: Walker;
   pet: Pet;
   spirit: Spirit;
+  watcher: Watcher;
 }

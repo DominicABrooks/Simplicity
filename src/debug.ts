@@ -7,6 +7,8 @@ import { LAIRS, type Lair, type LairName } from "./game/lairs.ts";
 import { isFrozen, isGod, setFrozen, setGod } from "./game/cheats.ts";
 import { setState, type Game } from "./game/game.ts";
 import { hauntingOf } from "./game/ghost.ts";
+import { startEerie } from "./game/eerie.ts";
+import type { EerieId } from "./data/eerie.ts";
 import { isDoor, whoIsHome } from "./game/townsfolk.ts";
 import { resetGame } from "./game/reset.ts";
 import { makeItem } from "./items/items.ts";
@@ -65,6 +67,8 @@ export function exposeDebug(g: Game, view: Renderer): void {
       memory: () => view.memory(),
       /** How the churchyard's haunting stands (see src/game/ghost.ts). */
       haunting: () => hauntingOf(g),
+      /** The city after dark (src/game/eerie.ts): eerie("watcher") makes one happen now, if it can here (at night, in the streets). */
+      eerie: (id: EerieId = "watcher") => (startEerie(g, id) ? `${id}` : `${id} can't happen here and now`),
       /** Playtesting the bosses: boss("cinder") or boss("ringer") starts a fresh run in their lair (or load the page with ?boss=cinder,
        *  adding &god and/or &freeze); god() and freeze() flip the switches in src/game/cheats.ts, or set them with true/false. */
       boss,

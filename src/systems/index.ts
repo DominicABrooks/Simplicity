@@ -8,6 +8,7 @@ import { deathSystem, enemyPhysicsSystem, slimeSystem, spawnerSystem } from "./e
 import { fishingSystem, rodSystem } from "./fishing.ts";
 import { ghostSystem } from "./ghost.ts";
 import { hauntSystem } from "../game/ghost.ts";
+import { eerieSystem } from "../game/eerie.ts";
 import { boltSystem, strikeSystem } from "./hazards.ts";
 import { clearPressesSystem, heroMoveSystem, heroStatusSystem, resetHoldSystem } from "./hero.ts";
 import { mageSystem } from "./mage.ts";
@@ -50,7 +51,7 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [arrowSystem, enemyPhysicsSystem, hauntSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, hunterHutSystem, petSystem, undercroftSystem, quaySystem],
+  [arrowSystem, enemyPhysicsSystem, hauntSystem, eerieSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, hunterHutSystem, petSystem, undercroftSystem, quaySystem],
   [boltSystem, strikeSystem],
 ];
 

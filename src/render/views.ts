@@ -28,6 +28,7 @@ import { rimeFight } from "../game/rimefight.ts";
 import { RIME_FIGHT } from "../data/hollow.ts";
 import { blaze } from "./blaze.ts";
 import { spirit } from "./spirit.ts";
+import { watcher } from "./watcher.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
 import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
@@ -800,4 +801,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, cinder, blaze, rime, rimefrost, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa, spirit } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, rime, rimefrost, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa, spirit, watcher } satisfies { [K in ViewKind]: EntityView<object> };
