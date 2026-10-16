@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { BOW, DASH, FISHING } from "../src/data/player.ts";
 import { SPELLS } from "../src/data/enemies.ts";
-import { T, Tile } from "../src/data/world.ts";
+import { loadArea } from "../src/areas/index.ts";
+import { HALF, T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnBolt } from "../src/game/spawn.ts";
+import { enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
 import { step } from "../src/systems/index.ts";
 import { blocked } from "../src/world/collision.ts";
+import { TOWER_FLARE } from "../src/world/plans.ts";
 
 const DT = 1 / 60;
 
@@ -152,6 +155,7 @@ describe("fishing", () => {
   it("casts over water, waits for a bite, and lands a fish", () => {
     const g = playing();
     g.inventory.reset([makeItem("rod")]);
+    g.rng.reseed(1);                                         // a run's dice are seeded by the clock: one catch in twenty isn't a fish
     const { stand, water } = shore(g);
     Object.assign(hero(g).pos, stand);
     g.input.pointer = water;
@@ -182,6 +186,65 @@ describe("fishing", () => {
     g.input.keys.add("a");
     step(g, DT);
     expect(hero(g).actions.fishing).toBeNull();
+  });
+
+  describe("in the market fountain", () => {
+    // The capital, with the hero just south of the fountain, facing it.
+    async function atFountain() {
+      const g = playing();
+      enterArea(g, await loadArea("capital"), "southgate");
+      for (const [e] of g.world.query("enemy")) g.world.destroy(e);
+      g.inventory.reset([makeItem("rod")]);
+      g.rng.reseed(1);                                       // a run's dice are seeded by the clock: one catch in twenty isn't a fish
+      const f = g.area.layout.props.find(p => p.kind === "fountain")!;
+      const rim = f.radius * TOWER_FLARE * T;                // where the fountain stops you, in game pixels
+      Object.assign(hero(g).pos, { x: f.x - HALF, y: f.y + rim + 5 - HALF });
+      hero(g).motion.aim = -Math.PI / 2;
+      // A cell whose centre is `d` world units north or south of the fountain's centre.
+      const cell = (d: number) => ({ x: f.x - HALF, y: f.y + d * T - HALF });
+      return { g, f, rim, cell };
+    }
+
+    it("casts into the pool and lands a fish", async () => {
+      const { g, cell } = await atFountain();
+      expect(blocked(g.map, hero(g).pos.x, hero(g).pos.y, true)).toBe(false);
+      g.input.pointer = cell(1.5);
+      g.input.attackPressed = true;
+      run(g, 0.2);
+      expect(hero(g).actions.windup).toMatchObject({ water: true, basin: true });
+      g.input.attackReleased = true;
+      step(g, DT);
+      const a = hero(g).actions;
+      expect(a.fishing).toMatchObject({ phase: "cast", basin: true });
+      run(g, FISHING.castTime + 0.05);
+      a.fishing!.biteAt = 0;
+      step(g, DT);
+      expect(a.fishing?.phase).toBe("bite");
+      g.input.attackPressed = true;
+      step(g, DT);
+      expect(a.fishing).toBeNull();
+      expect(a.catchAnim?.basin).toBe(true);
+      expect(g.inventory.grid.some(e => e.item.type === "fish")).toBe(true);
+    });
+
+    it("isn't water on the coping or the pedestal", async () => {
+      const { g, cell } = await atFountain();
+      for (const d of [2.5, 0.3, -0.3]) {
+        g.input.pointer = cell(d);
+        g.input.attackPressed = true;
+        step(g, DT);
+        expect(hero(g).actions.windup?.water).toBe(false);
+        hero(g).actions.windup = null;
+      }
+    });
+
+    it("still won't let you walk into it", async () => {
+      const { g, f, rim } = await atFountain();
+      g.input.keys.add("w");
+      run(g, 1.5);
+      const p = hero(g).pos;
+      expect(Math.hypot(p.x + HALF - f.x, p.y + HALF - f.y)).toBeGreaterThan(rim);
+    });
   });
 });
 

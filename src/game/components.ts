@@ -76,6 +76,8 @@ export interface Windup {
   x: number;
   y: number;
   water: boolean;
+  /** The water is a fountain's pool, standing up in its basin, rather than a pond or river. */
+  basin: boolean;
 }
 
 export interface Fishing {
@@ -84,6 +86,8 @@ export interface Fishing {
   y: number;
   t: number;
   biteAt: number;
+  /** Cast into a fountain's pool (its surface is up in the basin). */
+  basin?: boolean;
 }
 
 export interface CatchAnim {
@@ -93,6 +97,8 @@ export interface CatchAnim {
   rarity: Rarity;
   /** It wasn't a koi but a curiosity: which. */
   curio?: CurioId | null;
+  /** Leapt from a fountain's pool. */
+  basin?: boolean;
 }
 
 /** What the hero is doing with their hands: swings, punches, the bow and the fishing pole. */
@@ -160,7 +166,7 @@ export interface MageBrain {
 }
 
 /** What the Grey Ringer is doing (see src/systems/ghost.ts). */
-export type GhostAct = "rise" | "drift" | "toll" | "wail" | "fade" | "return";
+export type GhostAct = "rise" | "drift" | "toll" | "wail" | "fade" | "return" | "come" | "speak" | "ring";
 
 /** The ghost of St Mary's churchyard. */
 export interface GhostBrain {
@@ -175,6 +181,8 @@ export interface GhostBrain {
   angry: boolean;
   /** Faded out: not there to hit (her enemy and target are taken away until she's back). */
   hidden: boolean;
+  /** She's heard her own bell in the hero's bag: no fight, she comes for it (see BELL_HOME). */
+  calm?: boolean;
 }
 
 /** Something on the ground to walk over: a healing potion, or an item. */
@@ -260,7 +268,7 @@ export type Errand = "work" | "shop" | "chat" | "drink" | "church" | "errand" | 
 
 /** One of the census's people out in the streets (see src/game/townsfolk.ts). Paths are in tiles. */
 /** Work done standing in the open, with something to show for it (see Walker.task). */
-export type Task = "anvil" | "lute";
+export type Task = "anvil" | "lute" | "broom" | "wash" | "crank" | "fish" | "hawk" | "stave" | "fletch" | "stitch" | "grind" | "tinker" | "tell" | "chisel" | "hoop" | "sew" | "saw" | "stir" | "dye" | "spin" | "pewter" | "lamp";
 
 export interface Walker {
   /** Who they are: their id in the census (src/world/residents.ts). */
@@ -348,6 +356,28 @@ export interface Resting {
   hp: number;
 }
 
+/** Somewhere to sleep, a tent or a bed: where the hero lies in it (px, like a transform), feet toward `face`, `ahead` tiles on, `lift` tiles up. */
+export interface Bed {
+  x: number;
+  y: number;
+  face: number;
+  ahead: number;
+  lift: number;
+}
+
+/** The hero asleep in a tent or a bed, the clock running fast (see src/game/sleeping.ts). */
+export interface Sleeping {
+  bed: Entity;
+  /** Where he was standing, to get up there again, and in which area. */
+  from: { x: number; y: number };
+  area: string;
+  /** In-game hours slept so far, toward the next heart, and to the next Z; his health as last seen (a drop wakes him). */
+  slept: number;
+  heal: number;
+  snore: number;
+  hp: number;
+}
+
 /** The hero talking to someone (see src/game/talk.ts). */
 export interface Conversation {
   with: Entity;
@@ -359,9 +389,11 @@ export interface Conversation {
   /** The line being said, and seconds since it started (it types out). */
   line: number;
   t: number;
+  /** After the last line: a woodwarden hands him paper to write the watchword on (src/game/watchword.ts). */
+  then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost";
+export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -391,6 +423,8 @@ export interface Components {
   dummy: Dummy;
   conversation: Conversation;
   resting: Resting;
+  sleeping: Sleeping;
+  bed: Bed;
   cutscene: Cutscene;
   walker: Walker;
   pet: Pet;

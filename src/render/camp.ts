@@ -48,6 +48,24 @@ function buildTent(ctx: RenderContext): THREE.Group {
   flap.position.set(W + 0.12, 0.27, D - 0.1);
   flap.rotation.y = 0.4;
   tent.add(ridge, pole, pack, flap);
+  // Pegged down at each corner, and guyed out front and back from the ridge ends.
+  const peg = new THREE.CylinderGeometry(0.02, 0.008, 0.14, 4), pegMat = lambert(PAL.n), rope = lambert("#c9b48a");
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const p = new THREE.Mesh(peg, pegMat);
+    p.position.set(sx * (W + 0.06), 0.05, sz * (D + 0.06));
+    p.rotation.z = sx * 0.35;                                // leaning back against the pull
+    tent.add(p);
+  }
+  for (const sz of [-1, 1]) {
+    const top = new THREE.Vector3(0, H, sz * (D + 0.08)), foot = new THREE.Vector3(0, 0.03, sz * (D + 0.62));
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, top.distanceTo(foot), 3), rope);
+    line.position.copy(top).add(foot).multiplyScalar(0.5);
+    line.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(foot).normalize());
+    const stake = new THREE.Mesh(peg, pegMat);
+    stake.position.set(0, 0.05, sz * (D + 0.64));
+    stake.rotation.x = -sz * 0.35;
+    tent.add(line, stake);
+  }
   return tent;
 }
 
@@ -75,9 +93,11 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group, camp: Extract
   const { lambert, basic, particles, tex } = ctx;
 
   // Tent: centred on its footprint, the doorway facing the camera (south).
-  const tent = buildTent(ctx);
-  tent.position.set((camp.tent.x + camp.tent.w / 2) / PX_PER_TILE, 0, (camp.tent.y + camp.tent.h / 2) / PX_PER_TILE);
-  parent.add(tent);
+  if (camp.tent) {
+    const tent = buildTent(ctx);
+    tent.position.set((camp.tent.x + camp.tent.w / 2) / PX_PER_TILE, 0, (camp.tent.y + camp.tent.h / 2) / PX_PER_TILE);
+    parent.add(tent);
+  }
 
   // Campfire: scorched ground, a ring of stones, a tipi of logs and three nested flames.
   const [fx, fz] = toWorld(camp.fire.x, camp.fire.y);
@@ -86,8 +106,17 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group, camp: Extract
   const disc = softDisc(), quad = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2);
   const scorch = new THREE.Mesh(quad, basic("#2a1c14", { ...DECAL, map: disc, opacity: 0.85 }));
   scorch.scale.setScalar(0.5);
-  scorch.position.y = 0.01;
+  scorch.position.y = 0.02;                                  // with the other marks, above any path it's on
   fire.add(scorch);
+  // Coals glowing in the ash between the logs.
+  const coal = new THREE.IcosahedronGeometry(0.03, 0), embers = [ctx.glow(PAL.R), ctx.glow(PAL.O)];
+  for (let i = 0; i < 6; i++) {
+    const a = hash(i, 4, 203) * Math.PI * 2, d = 0.04 + hash(i, 5, 204) * 0.1;
+    const m = new THREE.Mesh(coal, embers[i % 2]!);
+    m.position.set(Math.cos(a) * d, 0.02, Math.sin(a) * d);
+    m.scale.y = 0.6;
+    fire.add(m);
+  }
   const stone = new THREE.DodecahedronGeometry(0.075, 0);
   for (let i = 0; i < 9; i++) {
     const a = (i / 9) * Math.PI * 2, shade = 0.75 + hash(i, 3, 200) * 0.35;
@@ -126,7 +155,16 @@ export function buildCamp(ctx: RenderContext, parent: THREE.Group, camp: Extract
 
   // A log to sit on, beside the fire.
   const [sx, sz] = toWorld(camp.seat.x, camp.seat.y);
-  const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.75, 6).rotateZ(Math.PI / 2), lambert("#ffffff", { map: tex.bark }));
+  const seat = new THREE.Group();
+  seat.add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.75, 6).rotateZ(Math.PI / 2), lambert("#ffffff", { map: tex.bark })));
+  const cut = lambert("#c9a878"), heart = lambert("#9a7650");   // pale sawn ends with a darker heart, just proud of the bark
+  for (const [s, r] of [[1, 0.09], [-1, 0.1]] as const) {
+    const end = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.02, 6).rotateZ(Math.PI / 2), cut);
+    end.position.x = s * 0.38;
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.4, r * 0.4, 0.024, 5).rotateZ(Math.PI / 2), heart);
+    core.position.x = s * 0.38;
+    seat.add(end, core);
+  }
   seat.position.set(sx, 0.1, sz);
   seat.rotation.y = -0.5;
   parent.add(seat);

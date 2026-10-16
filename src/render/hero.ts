@@ -7,7 +7,7 @@ import { PAL } from "../data/palette.ts";
 import { BOW, FISHING, JUMP_TIME, THRUST } from "../data/player.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
-import { GROUND, MARKER_Y, onGround, WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
+import { GROUND, MARKER_Y, SHADOW_Y, onGround, WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
 import { dressBody, makeBody, type Body } from "./models/body.ts";
 
 const SWOOSH_COLOR: Record<string, string> = { normal: PAL.W, magic: PAL.C, rare: PAL.Y };
@@ -206,9 +206,11 @@ export function createHeroView(ctx: RenderContext): HeroView {
       const swimY = m.swimming ? -0.48 + Math.sin(t * 4) * 0.03 : 0;
       hero.group.position.set(px, hz + swimY, pz);
       // Face the aim (locked to the swing direction mid-attack), or the fire he's sat by. Game angle a maps to yaw -a.
+      // Asleep, he lies the way the bed or the tent lies, straight away.
       const rest = g.world.get(g.player, "resting"), fire = rest && g.world.get(rest.fire, "transform");
+      const sleep = g.world.get(g.player, "sleeping"), bed = sleep ? g.world.get(sleep.bed, "bed") : undefined;
       const face = fire ? Math.atan2(fire.y - pos.y, fire.x - pos.x) : a.attack > 0 ? a.swingAim : m.aim;
-      yaw = turn(yaw, -face, dt, fire ? 6 : 18);
+      yaw = bed ? -bed.face : turn(yaw, -face, dt, fire ? 6 : 18);
       hero.group.rotation.y = yaw;
       hero.group.visible = !(status.hurt > 0 && Math.floor(t * 16) % 2) && !(status.sheep > 0);
       updateSheep(h, px, pz, t, dt);
@@ -216,9 +218,13 @@ export function createHeroView(ctx: RenderContext): HeroView {
       const gear = stats.gear;
       dressBody(ctx, hero, gear ?? {});
       const b = hero.body;
-      b.position.y = 0; b.rotation.z = 0; b.scale.set(1, 1, 1);
+      b.position.set(0, 0, 0); b.rotation.z = 0; b.scale.set(1, 1, 1);
       hero.feet.forEach(f => { f.position.set(hero.footX, 0, f.position.z); f.visible = !m.swimming; });
-      if (m.dash > 0) {
+      if (bed) {                                             // on his back, head toward the wall (or into the tent), chest rising and falling slow
+        b.rotation.z = Math.PI / 2;
+        b.position.set(bed.ahead, bed.lift, 0);
+        b.scale.x = 1 + Math.sin(t * 1.3) * 0.04;
+      } else if (m.dash > 0) {
         b.rotation.z = -0.4; b.scale.set(1.15, 0.9, 0.9);    // lean hard into the dash
       } else if (m.jump > 0) {
         const squash = m.jump > JUMP_TIME * 0.8;
@@ -236,11 +242,11 @@ export function createHeroView(ctx: RenderContext): HeroView {
         b.scale.y = 1 + Math.sin(t * 2.5) * 0.025;
       }
       const blink = t % 3 < 0.15;
-      hero.eyes.forEach(e => { e.scale.y = blink ? 0.15 : 1; });
+      hero.eyes.forEach(e => { e.scale.y = bed ? 0.15 : blink ? 0.15 : 1; });   // asleep, they stay shut
 
       // The weapon floats at the side, and poses per weapon and action.
       const sw = hero.sword, weapon = gear?.weaponType;
-      sw.visible = !m.swimming && !!gear?.weapon;
+      sw.visible = !m.swimming && !bed && !!gear?.weapon;    // put down to sleep
       hero.ring.rotation.y = t * 1.8;                        // the ring orbits the hero
       hero.ring.position.y = Math.sin(t * 2.4) * 0.05;
       if (hero.bow) {
@@ -283,10 +289,11 @@ export function createHeroView(ctx: RenderContext): HeroView {
 
       updateBowReady(!!hero.bow && sw.visible && !!a.draw && a.draw.t >= BOW.drawTime, dt);
       animateHands(h, t, dt);
+      hero.hands.forEach(hand => { hand.visible = !bed; });
       updateSwoosh(h);
 
       hero.shadow.visible = !m.swimming;
-      hero.shadow.position.set(px, 0.01, pz);
+      hero.shadow.position.set(px, SHADOW_Y, pz);
       hero.shadow.scale.setScalar(1 - hz * 0.4);
       hero.ripple.visible = m.swimming;
       hero.ripple.position.set(px, WATER_Y + 0.01, pz);

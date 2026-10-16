@@ -9,8 +9,10 @@ export function makeArrowMesh(ctx: RenderContext, power = false): THREE.Group & 
   const shaft = new THREE.Mesh(box(0.42, 0.025, 0.025), lambert(PAL.N)); shaft.position.x = 0.21;
   const tip = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.09, 4).rotateZ(-Math.PI / 2), lambert(PAL.w, { emissive: col(PAL.Y), emissiveIntensity: power ? 1 : 0 }));
   tip.position.x = 0.45;
-  const fletch = new THREE.Mesh(box(0.1, 0.06, 0.01), lambert(PAL.R)); fletch.position.x = 0.04;
-  g.add(shaft, tip, fletch);
+  // Two vanes crossed, so the fletching still reads from above, not just side on.
+  const feather = lambert(PAL.R);
+  const fletch = [box(0.1, 0.06, 0.01), box(0.1, 0.01, 0.06)].map(geo => { const m = new THREE.Mesh(geo, feather); m.position.x = 0.04; return m; });
+  g.add(shaft, tip, ...fletch);
   g.userData.tip = tip;
   return g as THREE.Group & { userData: { tip: typeof tip } };
 }

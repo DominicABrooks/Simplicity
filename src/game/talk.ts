@@ -6,6 +6,7 @@
 // line is said. Each person gives at most once a run, and only offers if it'll fit in the bag.
 import type { Entity } from "../core/ecs.ts";
 import { TALK } from "../data/dialogue.ts";
+import { WARDEN_TALK, WOODWARDEN } from "../data/ashwild.ts";
 import { KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../data/king.ts";
 import { isGhostRumour } from "../data/ghost.ts";
 import type { GiftKind } from "../data/items.ts";
@@ -17,10 +18,11 @@ import { folkLines, guardLines, type CanGive } from "./conversation.ts";
 
 export { jobLine } from "./conversation.ts";
 import { residentById } from "./townsfolk.ts";
-import { dropItem } from "./actions.ts";
 import { toast, type Game } from "./game.ts";
+import { handPaper, passedBarricade } from "./watchword.ts";
 import { heardRumour } from "./ghost.ts";
 import { curioClue } from "./clues.ts";
+import { gilLines, isGil } from "./quay.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -50,12 +52,16 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   const gives: CanGive = kind => !giftsFrom(g).has(key) && g.inventory.freeSpot(makeGift(kind)) !== null;
   // The King gives you your task the first time, and reminds you of it after.
   if (isKing && visits === 0) toast(g, KINGS_TASK, true);
+  // The woodwardens at the barricade ask for the King's watchword, and hand him paper to write it on; once he's through, he's through.
+  const warden = name === WOODWARDEN.name, asking = warden && !passedBarricade(g);
   const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!])
+    : warden ? [...(asking ? WARDEN_TALK.ask : WARDEN_TALK.through)]
+    : isGil(g, e) ? gilLines(g)
     : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
   const clue = resident ? curioClue(g) : null;
   if (clue) lines.splice(Math.min(1, lines.length), 0, clue);
-  g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0 });
+  g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0, ...(asking ? { then: "paper" as const } : {}) });
   said(g);
   return true;
 }
@@ -85,18 +91,12 @@ function said(g: Game): void {
 
 /**
  * `key` hands the hero a gift, once: into the bag, or if it's full, "Inventory full" and they'll give it
- * another time. The King's writ is too important for that: with no room, it's put down at the hero's feet.
+ * another time.
  */
 export function receive(g: Game, key: string, kind: GiftKind): void {
   if (giftsFrom(g).has(key)) return;
   const item = makeGift(kind);
-  if (!g.inventory.add(item)) {
-    if (kind !== "writ") { toast(g, "Inventory full"); return; }
-    dropItem(g, item);
-    giftsFrom(g).add(key);
-    toast(g, `Inventory full: ${item.name} is at your feet`, true);
-    return;
-  }
+  if (!g.inventory.add(item)) { toast(g, "Inventory full"); return; }
   giftsFrom(g).add(key);
   toast(g, `Received ${item.name}`, true);
 }
@@ -129,8 +129,9 @@ export function advanceTalk(g: Game): void {
   if (!c) return;
   const shown = Math.floor(c.t * TALK.charsPerSecond);
   if (shown < c.lines[c.line]!.length) { c.t = c.lines[c.line]!.length / TALK.charsPerSecond; return; }
-  if (++c.line >= c.lines.length) endTalk(g);
-  else { c.t = 0; said(g); }
+  if (++c.line < c.lines.length) { c.t = 0; said(g); return; }
+  endTalk(g);
+  if (c.then === "paper") handPaper(g, c.with);           // heard out: now he writes
 }
 
 export function endTalk(g: Game): void {

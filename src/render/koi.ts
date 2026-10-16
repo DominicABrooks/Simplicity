@@ -1,10 +1,12 @@
-// Koi swim just under the surface of every body of water, about one per 7 water tiles. They wander,
-// mill around a bobber, scatter from the hero and never leave the water.
+// Koi swim just under the surface of every body of water, about one per 7 water tiles, and a few in
+// each fountain's pool. They wander, mill around a bobber, scatter from the hero and never leave the water.
 import * as THREE from "three";
 import { angleDiff } from "../core/math.ts";
 import { PAL } from "../data/palette.ts";
-import { Tile } from "../data/world.ts";
+import { T, Tile } from "../data/world.ts";
+import type { Prop } from "../world/area.ts";
 import type { TileMap } from "../world/map.ts";
+import { FOUNTAIN_POOL, onFountainPool } from "../world/plans.ts";
 import { col, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 
@@ -33,37 +35,58 @@ const koiGeo = () => (geos ??= {
   fin: new THREE.ConeGeometry(0.035, 0.08, 3).translate(0, 0.07, 0),
 });
 
-interface Koi { group: KoiMesh; x: number; z: number; heading: number; speed: number; phase: number; turn: number; dart: number }
+/** How many koi live in a fountain's pool. */
+const FOUNTAIN_KOI = 5;
+
+interface Koi {
+  group: KoiMesh; x: number; z: number; heading: number; speed: number; phase: number; turn: number; dart: number;
+  /** How high it swims, just under its water's surface. */
+  y: number;
+  /** Is (x, z) its water (a pond or river, or its fountain's pool)? */
+  water: (x: number, z: number) => boolean;
+}
 
 export interface KoiPond {
-  setMap(map: TileMap): void;
+  setMap(map: TileMap, props: readonly Prop[]): void;
   /** bobber: a line in the water (world X/Z) that draws the fish in. */
   update(dt: number, t: number, heroX: number, heroZ: number, bobber: { x: number; z: number } | null): void;
 }
 
 export function createKoiPond(ctx: RenderContext): KoiPond {
-  let fish: Koi[] = [], isWaterAt = (_x: number, _z: number) => false;
+  let fish: Koi[] = [];
   const pond = new THREE.Group();
   ctx.scene.add(pond);
 
   return {
-    setMap(map) {
+    setMap(map, props) {
       disposeTree(pond, new Set(Object.values(koiGeo())));    // the last area's fish (the koi shapes are shared)
       pond.clear();
-      isWaterAt = (x, z) => {
+      const isWaterAt = (x: number, z: number) => {
         const tx = Math.floor(x), tz = Math.floor(z);
         return tx >= 0 && tz >= 0 && tx < map.width && tz < map.height && map.tiles[tz]![tx] === Tile.Water;
       };
       const waterTiles: [number, number][] = [];
       for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) if (map.tiles[y]![x] === Tile.Water) waterTiles.push([x, y]);
       fish = [];
-      for (let i = 0; i < Math.round(waterTiles.length / 7); i++) {
-        const [x, y] = waterTiles[Math.floor(Math.random() * waterTiles.length)]!;
+      const add = (x: number, z: number, y: number, water: Koi["water"], size: number) => {
         const [main, accent] = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)]!;
         const group = makeKoiMesh(ctx, main, accent);
-        group.scale.setScalar(1.4 + Math.random() * 0.6);
+        group.scale.setScalar(size);
         pond.add(group);
-        fish.push({ group, x: x + 0.5, z: y + 0.5, heading: Math.random() * Math.PI * 2, speed: 0.4, phase: Math.random() * 10, turn: 0, dart: 0 });
+        fish.push({ group, x, z, y, water, heading: Math.random() * Math.PI * 2, speed: 0.4, phase: Math.random() * 10, turn: 0, dart: 0 });
+      };
+      for (let i = 0; i < Math.round(waterTiles.length / 7); i++) {
+        const [x, y] = waterTiles[Math.floor(Math.random() * waterTiles.length)]!;
+        add(x + 0.5, y + 0.5, -0.22, isWaterAt, 1.4 + Math.random() * 0.6);
+      }
+      // A few in each fountain, swimming round the pedestal (smaller: it's a small pool).
+      for (const p of props) {
+        if (p.kind !== "fountain") continue;
+        const water = (x: number, z: number) => onFountainPool(p, x, z), ring = (FOUNTAIN_POOL.pedestal + p.radius - FOUNTAIN_POOL.inset) / 2;
+        for (let i = 0; i < FOUNTAIN_KOI; i++) {
+          const a = (i / FOUNTAIN_KOI) * Math.PI * 2 + Math.random();
+          add(p.x / T + Math.cos(a) * ring, p.y / T + Math.sin(a) * ring, FOUNTAIN_POOL.y - 0.07, water, 1 + Math.random() * 0.4);
+        }
       }
     },
     update(dt, t, px, pz, bobber) {
@@ -84,14 +107,14 @@ export function createKoiPond(ctx: RenderContext): KoiPond {
         f.speed += (speed - f.speed) * (1 - Math.exp(-dt * 6));
         // Stay in the water: if the way ahead is land, turn away.
         const ahead = 0.3 * f.group.scale.x;
-        if (!isWaterAt(f.x + Math.cos(f.heading) * ahead, f.z + Math.sin(f.heading) * ahead)) {
+        if (!f.water(f.x + Math.cos(f.heading) * ahead, f.z + Math.sin(f.heading) * ahead)) {
           f.heading += Math.PI * (0.6 + Math.random() * 0.6);
           f.dart = 0;
         } else {
           f.x += Math.cos(f.heading) * f.speed * dt;
           f.z += Math.sin(f.heading) * f.speed * dt;
         }
-        f.group.position.set(f.x, -0.22 + Math.sin(t * 1.3 + f.phase) * 0.02, f.z);
+        f.group.position.set(f.x, f.y + Math.sin(t * 1.3 + f.phase) * 0.02, f.z);
         f.group.rotation.y = -f.heading;
         f.group.userData.tail.rotation.y = Math.sin(t * (6 + f.speed * 10) + f.phase) * 0.6;
       }

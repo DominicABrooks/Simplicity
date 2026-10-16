@@ -44,10 +44,30 @@ export interface RenderContext {
   particles: Particles;
 }
 
+/**
+ * The PS1 snap, after three's project_vertex. The snapped pixel's ray runs from a (near plane) to b (far
+ * plane); the vertex moves along it to its own height, so it lands on the pixel at the depth a point there
+ * really has. (Behind the camera, or where the ray never reaches its height, it is only moved on screen.)
+ */
+const SNAP_VERTEX = /* glsl */ `
+  vec2 snapped = floor(gl_Position.xy / gl_Position.w * uSnap + 0.5) / uSnap;
+  if (gl_Position.w > 0.0) {
+    mat4 unproject = inverse(projectionMatrix);
+    mat3 toWorld = transpose(mat3(viewMatrix));
+    vec4 a = unproject * vec4(snapped, -1.0, 1.0), b = unproject * vec4(snapped, 1.0, 1.0);
+    vec3 wa = toWorld * (a.xyz / a.w) + cameraPosition, wb = toWorld * (b.xyz / b.w) + cameraPosition;
+    float level = (toWorld * mvPosition.xyz + cameraPosition).y, rise = wb.y - wa.y, along = abs(rise) > 1e-6 ? (level - wa.y) / rise : -1.0;
+    if (along >= 0.0 && along <= 1.0) gl_Position = projectionMatrix * viewMatrix * vec4(mix(wa, wb, along), 1.0);
+  }
+  gl_Position.xy = snapped * gl_Position.w;`;
+
 export function createContext(scene: THREE.Scene): RenderContext {
   const snap = { value: new THREE.Vector2(160, 120) };
   const light = { value: 1 }, nightGlow = { value: 0 };
-  // PS1 look: snap every vertex to a coarse screen grid, so geometry wobbles slightly as it moves. And by kind:
+  // PS1 look: snap every vertex to a coarse screen grid, so geometry wobbles slightly as it moves. The vertex
+  // slides level to the snapped pixel (to where that pixel's ray meets its own height) rather than just being
+  // moved on screen, so its depth moves with it: flat things stay flat in the depth test, and ground layers
+  // with different vertices (the plaza and its rings, a floor and its boards) don't fight. And by kind:
   // a flat colour shaded by the light ("dim"), or a lit material with a faint glow of its own in the dark. Each
   // kind is its own shader program (three.js would otherwise share one between handlers whose source reads the same).
   function ps1<M extends THREE.Material>(mat: M, kind: "lit" | "glow" | "dim" | "nightGlow" = "lit"): M {
@@ -55,7 +75,7 @@ export function createContext(scene: THREE.Scene): RenderContext {
       sh.uniforms.uSnap = snap;
       sh.vertexShader = "uniform vec2 uSnap;\n" + sh.vertexShader.replace(
         "#include <project_vertex>",
-        "#include <project_vertex>\n  gl_Position.xy = floor(gl_Position.xy / gl_Position.w * uSnap + 0.5) / uSnap * gl_Position.w;");
+        "#include <project_vertex>\n" + SNAP_VERTEX);
       if (kind === "dim") {
         sh.uniforms.uLight = light;
         sh.fragmentShader = "uniform float uLight;\n" + sh.fragmentShader.replace("#include <opaque_fragment>", "#include <opaque_fragment>\n  gl_FragColor.rgb *= uLight;");
@@ -95,6 +115,15 @@ export function createContext(scene: THREE.Scene): RenderContext {
  */
 export const GROUND = { paving: 1, path: 2, plaza: 3, plazaRings: 4, rug: 5, stain: 6, shadow: 7, marker: 9 } as const;
 export const onGround = (layer: number) => ({ polygonOffset: true, polygonOffsetFactor: -layer, polygonOffsetUnits: -4 * layer });
+/**
+ * Something laid on another face, a hair proud of it (a panel on a throne's back, the dragon on a tapestry,
+ * glass in its frame), `layer` deep: 1 on the face, 2 on that... The PS1 vertex snap moves each vertex up to
+ * most of a pixel across the screen but not in depth, which tilts a face's depth by more than that hair, and
+ * which of the two wins then changes as the camera moves: whole panels flicker in and out as you walk. So
+ * each layer is pulled toward the camera in the depth test by more than the snap can tilt it (two pixels of
+ * the face's own depth slope).
+ */
+export const onFace = (layer = 1) => ({ polygonOffset: true, polygonOffsetFactor: -2 * layer, polygonOffsetUnits: -4 * layer });
 /** How high blob shadows and markers sit. */
 export const SHADOW_Y = 0.02, MARKER_Y = 0.03;
 

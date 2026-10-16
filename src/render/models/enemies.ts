@@ -23,8 +23,10 @@ export function makeSlimeModel(ctx: RenderContext): SlimeModel {
   blob.scale.set(1, 0.72, 1); blob.position.y = 0.26;
   const eyeMat = basic(PAL.k);
   const eyes = [-1, 1].map(s => { const e = new THREE.Mesh(box(0.06, 0.1, 0.06), eyeMat); e.position.set(0.3, 0.32, s * 0.11); return e; });
-  const shine = new THREE.Mesh(box(0.08, 0.05, 0.08), basic(PAL.W)); shine.position.set(-0.08, 0.5, -0.12);
-  body.add(blob, ...eyes, shine);
+  const white = basic(PAL.W);
+  const shine = new THREE.Mesh(box(0.08, 0.05, 0.08), white); shine.position.set(-0.08, 0.46, -0.12);   // sunk into the top, not hovering over it
+  const glints = eyes.map(e => { const g = new THREE.Mesh(box(0.02, 0.025, 0.02), white); g.position.set(0.335, 0.35, e.position.z - 0.015); return g; });   // a catchlight in each eye
+  body.add(blob, ...eyes, ...glints, shine);
   group.add(body);
   return { group, body, mat };
 }

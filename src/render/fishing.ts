@@ -6,9 +6,14 @@ import { FISHING } from "../data/player.ts";
 import { TIERS } from "../data/tiers.ts";
 import type { CurioId } from "../data/items.ts";
 import type { Actions, Transform } from "../game/components.ts";
+import { FOUNTAIN_POOL } from "../world/plans.ts";
 import { GROUND, onGround, WATER_Y, col, toWorld, type RenderContext } from "./context.ts";
+import { disposeTree } from "./dispose.ts";
 import { makeKoiMesh } from "./koi.ts";
 import type { Body } from "./models/body.ts";
+
+/** The water's surface: a fountain's pool stands up in its basin; ponds and rivers lie below the ground. */
+const surfaceOf = (basin: boolean | undefined): number => (basin ? FOUNTAIN_POOL.y : WATER_Y);
 
 export interface FishingView {
   /** Returns where the bobber sits in the water (world X/Z), if it's in. */
@@ -58,6 +63,14 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
   scene.add(line, bobber, splash, castMarker);
   line.visible = bobber.visible = splash.visible = false;
   let leaper: THREE.Object3D | null = null, leaperFor: unknown = null;
+  /** Done with a leaper: off the scene and freed. A koi's shapes are shared with every koi (koi.ts), so only its paint goes. */
+  const drop = (o: THREE.Object3D, koi: boolean) => {
+    world.remove(o);
+    const keep = new Set<unknown>();
+    if (koi) o.traverse(m => { if (m instanceof THREE.Mesh) keep.add(m.geometry); });
+    disposeTree(o, keep);
+  };
+  let leaperIsKoi = false;
   const tipPos = new THREE.Vector3(), bobPos = new THREE.Vector3(), mid = new THREE.Vector3();
 
   return {
@@ -66,7 +79,7 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
       castMarker.visible = !!w;
       if (w) {
         const [mx, mz] = toWorld(w.x, w.y);
-        castMarker.position.set(mx, (w.water ? WATER_Y : 0) + 0.02, mz);
+        castMarker.position.set(mx, (w.water ? surfaceOf(w.basin) : 0) + 0.02, mz);
         castMarker.material.color.set(w.water ? PAL.C : PAL.w);
         castMarker.material.opacity = w.water ? 0.9 : 0.45;
         castMarker.rotation.y = t * 2;
@@ -80,17 +93,17 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
       if (f && hero.rodTip && show) {
         hero.group.updateMatrixWorld(true);
         hero.rodTip.getWorldPosition(tipPos);
-        const [bx, bz] = toWorld(f.x, f.y);
+        const [bx, bz] = toWorld(f.x, f.y), surface = surfaceOf(f.basin);
         if (f.phase === "cast") {                            // arc from the rod tip to the water
           const k = Math.min(1, f.t / FISHING.castTime);
-          bobPos.set(tipPos.x + (bx - tipPos.x) * k, tipPos.y + (WATER_Y - tipPos.y) * k + Math.sin(k * Math.PI) * 0.8, tipPos.z + (bz - tipPos.z) * k);
+          bobPos.set(tipPos.x + (bx - tipPos.x) * k, tipPos.y + (surface - tipPos.y) * k + Math.sin(k * Math.PI) * 0.8, tipPos.z + (bz - tipPos.z) * k);
         } else {
           const dip = f.phase === "bite" ? -0.08 + Math.sin(t * 30) * 0.03 : Math.sin(t * 3) * 0.015;
-          bobPos.set(bx, WATER_Y + 0.02 + dip, bz);
+          bobPos.set(bx, surface + 0.02 + dip, bz);
           bobberAt = { x: bx, z: bz };
           if (f.phase === "bite") {
             splash.visible = true;
-            splash.position.set(bx, WATER_Y + 0.01, bz);
+            splash.position.set(bx, surface + 0.01, bz);
             const s = (t * 3) % 1;
             splash.scale.setScalar(1 + s * 2);
             splash.material.opacity = 0.7 * (1 - s);
@@ -111,24 +124,25 @@ export function createFishingView(ctx: RenderContext, world: THREE.Group): Fishi
 
       const c = a.catchAnim, age = c ? t - c.t0 : 99;
       if (c && age < 0.7) {
-        const [sx, sz] = toWorld(c.x, c.y);
+        const [sx, sz] = toWorld(c.x, c.y), surface = surfaceOf(c.basin);
         if (leaperFor !== c) {
-          if (leaper) world.remove(leaper);
+          if (leaper) drop(leaper, leaperIsKoi);
           const T = TIERS[c.rarity];
           leaper = c.curio ? makeCurioMesh(ctx, c.curio) : makeKoiMesh(ctx, T.fishMain, T.fishAccent);
+          leaperIsKoi = !c.curio;
           leaper.scale.setScalar(2.2);
           world.add(leaper);
           leaperFor = c;
           for (let i = 0; i < 8; i++) {                      // splash droplets
             const a2 = Math.random() * Math.PI * 2;
-            particles.spawn("water", sx, WATER_Y, sz, Math.cos(a2) * 1.2, 2.5 + Math.random() * 1.5, Math.sin(a2) * 1.2, 0.45);
+            particles.spawn("water", sx, surface, sz, Math.cos(a2) * 1.2, 2.5 + Math.random() * 1.5, Math.sin(a2) * 1.2, 0.45);
           }
         }
         const k = age / 0.7, [hx, hz] = toWorld(pos.x, pos.y);
-        leaper!.position.set(sx + (hx - sx) * k, WATER_Y + Math.sin(k * Math.PI) * 1.6 + k * 0.6, sz + (hz - sz) * k);
+        leaper!.position.set(sx + (hx - sx) * k, surface + Math.sin(k * Math.PI) * 1.6 + k * 0.6, sz + (hz - sz) * k);
         leaper!.rotation.set(0, -Math.atan2(hz - sz, hx - sx), Math.sin(t * 25) * 0.5 + k * 6);
       } else if (leaper) {
-        world.remove(leaper);
+        drop(leaper, leaperIsKoi);
         leaper = null;
         leaperFor = null;
       }

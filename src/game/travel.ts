@@ -6,6 +6,10 @@ import { FACING_ANGLE, type AreaDef } from "../world/area.ts";
 import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { doorStep } from "../world/townkit.ts";
+import { leaveBosses, spawnBoss } from "./bosses.ts";
+import { spawnBed, spawnTent } from "./sleeping.ts";
+import { lockedOut } from "./undercroft.ts";
+import { passedBarricade, wardenStops, wardenSystem } from "./watchword.ts";
 import { cancelActions } from "./combat.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { spawnCampfire, spawnEnemy, spawnGuard, spawnKing, spawnPotion, spawnTraining } from "./spawn.ts";
@@ -14,6 +18,7 @@ import { spawnCampfire, spawnEnemy, spawnGuard, spawnKing, spawnPotion, spawnTra
 export function enterArea(g: Game, def: AreaDef, entry: string): void {
   const layout = layoutOf(def), at = layout.entries[entry] ?? doorStep(layout, entry);   // or out of a house's door
   if (!at) throw new Error(`Area "${def.id}" has no entry "${entry}"`);
+  leaveBosses(g);                                            // the last area's boss goes with it, not beaten
   for (const e of g.world.entities()) if (e !== g.player) g.world.destroy(e);
   g.area = { def, layout };
   g.map = layout.map;
@@ -32,11 +37,14 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   cancelActions(g.world.need(g.player, "actions"));
 
   for (const prop of layout.props) {
-    if (prop.kind === "camp") spawnCampfire(g, prop.fire.x, prop.fire.y);
-    if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
+    if (prop.kind === "camp") { spawnCampfire(g, prop.fire.x, prop.fire.y); if (prop.tent) spawnTent(g, prop.tent); }
+    if (prop.kind === "furniture" && prop.item === "bed") spawnBed(g, prop);
+    if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing], prop.name);
+    if (prop.kind === "boss") spawnBoss(g, prop.who, prop.x - HALF, prop.y - HALF);
     if (prop.kind === "king") spawnKing(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
     if (prop.kind === "dummy" || prop.kind === "target") spawnTraining(g, prop.kind === "dummy" ? "dummy" : "butt", prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
   }
+  wardenSystem(g, Infinity);                                 // the woodwardens in their gate, or aside if he's through
   const life = def.life;
   if (life?.enemies) for (let i = 0; i < SPAWNING.startSlimes; i++) spawnEnemy(g, 80);
   if (life?.potions) {
@@ -57,11 +65,20 @@ export function travelSystem(g: Game): void {
   for (const exit of g.area.layout.exits) {
     const r = exit.rect;
     if (fx < r.x + r.w && r.x < fx + fw && fy < r.y + r.h && r.y < fy + fh) {
+      if (exit.needs === "watchword" && !passedBarricade(g)) { turnBack(g, r); return; }
+      if (lockedOut(g, exit)) return;
       g.travel = exit.to;
       setState(g, "travel");
       return;
     }
   }
+}
+
+/** Not before the wardens have read the watchword off him: a warden there says so, and the hero is put back a step outside it. */
+function turnBack(g: Game, r: { x: number; y: number; w: number; h: number }): void {
+  const p = g.world.need(g.player, "transform"), cy = r.y + r.h / 2;
+  p.y += p.y + FEET.y < cy ? -Math.max(4, p.y + FEET.y + FEET.h - r.y + 2) : Math.max(4, r.y + r.h - (p.y + FEET.y) + 2);
+  wardenStops(g);
 }
 
 /** The next area is loaded: go there, and pick up where you left off. */

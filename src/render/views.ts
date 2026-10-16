@@ -17,7 +17,8 @@ import { DAIS_HIGH } from "../world/plans.ts";
 import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
-import { residentById } from "../game/townsfolk.ts";
+import { hourOf, residentById } from "../game/townsfolk.ts";
+import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
@@ -25,6 +26,10 @@ import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
 import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
+import { poseLoad, poseWork, type Worker } from "./work.ts";
+import { loadOf } from "../world/workplaces.ts";
+import { ringstone } from "./undercroft.ts";
+import { boatman } from "./quay.ts";
 
 export interface Frame {
   /** Game clock, for animation. */
@@ -37,6 +42,15 @@ export interface EntityView<S> {
   create(ctx: RenderContext, e: Entity, g: Game): S;
   update(ctx: RenderContext, view: S, e: Entity, g: Game, f: Frame): void;
   remove(ctx: RenderContext, view: S): void;
+  /** What it put in the scene, to hide while it's out of the camera's reach (by default its group, shadow and ripple). */
+  roots?(view: S): THREE.Object3D[];
+}
+
+/** A view's objects in the scene: its own say, or its group, shadow and ripple. */
+export function viewRoots<S>(def: EntityView<S>, view: S): THREE.Object3D[] {
+  if (def.roots) return def.roots(view);
+  const v = view as { group?: unknown; shadow?: unknown; ripple?: unknown };
+  return [v.group, v.shadow, v.ripple].filter((o): o is THREE.Object3D => o instanceof THREE.Object3D);
 }
 
 /** Views made of a group and a blob shadow. */
@@ -403,8 +417,9 @@ const dummy: EntityView<DummyView> = {
       v.speed += enemy.flash > 0.2 ? spring.crit : spring.kick;
     }
     v.flash = enemy.flash;
-    v.speed += (-spring.stiffness * v.lean - spring.damping * v.speed) * f.dt;
-    v.lean = Math.max(-spring.max, Math.min(spring.max, v.lean + v.speed * f.dt));
+    const dt = Math.min(f.dt, 1 / 30);                       // the spring flies apart in a long step (coming back into view)
+    v.speed += (-spring.stiffness * v.lean - spring.damping * v.speed) * dt;
+    v.lean = Math.max(-spring.max, Math.min(spring.max, v.lean + v.speed * dt));
     if (v.butt) {                                            // a butt's face jolts straight back on its frame
       v.top.rotation.set(BUTT_TILT - Math.abs(v.lean), 0, 0);
       v.sack.emissive.setScalar(enemy.flash > 0 ? 0.5 : 0);
@@ -425,9 +440,9 @@ const dummy: EntityView<DummyView> = {
  * clothes, kept on them in the census (Resident.dress: see src/world/wardrobe.ts), children smaller and the
  * old a little stooped. They walk like the hero, stand breathing when they stop, and face whoever they're
  * talking to. At work out in the open they show it: the smith hammers at the anvil, sparks flying off it at
- * every stroke; the minstrel strums his lute.
+ * every stroke; the minstrel strums his lute; and the sweepers, laundresses and water-carriers (work.ts).
  */
-interface FolkView extends Body {
+interface FolkView extends Body, Worker {
   k: number; size: number; stoop: number;
   /** Made the first time they're needed: a hammer in the right hand, a lute held across the body. */
   hammer: THREE.Group | null; lute: THREE.Group | null;
@@ -471,7 +486,7 @@ const townsfolk: EntityView<FolkView> = {
     b.sword.visible = false;
     b.group.scale.setScalar(size);
     b.shadow.scale.setScalar(size);
-    return Object.assign(b, { k: (w.id * 0.37) % 10, size, stoop, hammer: null, lute: null, stroke: 0 });
+    return Object.assign(b, { k: (w.id * 0.37) % 10, size, stoop, hammer: null, lute: null, stroke: 0, tools: {}, beat: 0, reach: 0, load: r && r.age >= 14 ? loadOf(r.job) : null, carried: null });
   },
   update(ctx, v, e, g, f) {
     const o = g.world.need(e, "transform"), w = g.world.need(e, "walker"), [x, z] = toWorld(o.x, o.y), t = f.t + v.k;
@@ -517,6 +532,9 @@ const townsfolk: EntityView<FolkView> = {
     }
     if (v.hammer) v.hammer.visible = task === "anvil";
     if (v.lute) v.lute.visible = task === "lute";
+    poseWork(ctx, v, task, t, f.dt);   // the broom, the washtub, the well's crank...
+    const h = hourOf(g), day = h >= (v.load === "bread" ? 5 : TOWNSFOLK.hours.workFrom) && h < TOWNSFOLK.hours.workTo;   // (the baker's round's before dawn)
+    poseLoad(ctx, v, day && !task && !w.follow && w.plan !== "answer");   // their load, about through the working day
     v.eyes.forEach(eye => { eye.scale.y = t % 4.1 < 0.15 ? 0.15 : 1; });
   },
   remove: removeBody,
@@ -635,9 +653,9 @@ const ghost: EntityView<GhostView> = {
     v.body.position.y = 0.22 + Math.sin(t * 2.1) * 0.07 - (1 - rising) * 1.3;
     for (const eye of v.eyes) eye.material = b.angry ? v.angry : v.calm;
     // What her arms are doing: the bell raised and shaking for the toll, both arms flung out for the wail, else held out before her.
-    const k = b.act === "toll" ? Math.min(1, b.t / (b.angry ? GHOST.toll.angryCharge : GHOST.toll.charge)) : 0;
+    const k = b.act === "ring" ? 1 : b.act === "toll" ? Math.min(1, b.t / (b.angry ? GHOST.toll.angryCharge : GHOST.toll.charge)) : 0;
     const wail = b.act === "wail" ? Math.min(1, b.t / GHOST.wail.charge) : 0;
-    v.bellArm.rotation.set(0, 0, smooth(v.bellArm.rotation.z, b.act === "toll" ? 2.5 + Math.sin(t * 38) * 0.18 * k : wail ? 1.3 : 0.9 + Math.sin(t * 1.7) * 0.12, dt, 10));
+    v.bellArm.rotation.set(0, 0, smooth(v.bellArm.rotation.z, b.act === "toll" || b.act === "ring" ? 2.5 + Math.sin(t * 38) * 0.18 * k : wail ? 1.3 : 0.9 + Math.sin(t * 1.7) * 0.12, dt, 10));
     v.reachArm.rotation.set(wail ? -0.6 : 0, 0, smooth(v.reachArm.rotation.z, wail ? 1.5 : b.act === "toll" ? 0.4 : 1.15 + Math.sin(t * 1.3 + 1) * 0.1, dt, 8));
     v.bellArm.rotation.x = wail ? 0.6 : 0;
     v.bell.rotation.z = Math.sin(t * (k ? 30 : 3)) * (k ? 0.5 : 0.25);
@@ -663,4 +681,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman } satisfies { [K in ViewKind]: EntityView<object> };

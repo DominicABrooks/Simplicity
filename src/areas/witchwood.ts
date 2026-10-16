@@ -1,11 +1,14 @@
 // Witchwood: the forest clearing you start in. A camp by the spawn, a lake, a pond and a river, and
 // a dirt path from the camp north through the woods to a cave in the mountains, which leads up to
-// the capital.
+// the capital; and an old trail south into the deeper woods, barred by the King's woodwardens until
+// you write them the King's watchword.
 import { Rng } from "../core/rng.ts";
+import { WOODWARDEN } from "../data/ashwild.ts";
 import { HALF, T, Tile } from "../data/world.ts";
-import type { AreaDef, AreaLayout } from "../world/area.ts";
+import type { AreaDef, AreaLayout, Prop } from "../world/area.ts";
 import { isOpenGround, reachableFrom, type TileMap } from "../world/map.ts";
 import type { Shape } from "../world/shapes.ts";
+import { propSolids } from "../world/solids.ts";
 
 const W = 80, H = 56, SEED = 7;
 /** How far the original clearing's features sit in from the top-left, now that the woods around it are deeper. */
@@ -36,6 +39,13 @@ const pathX = (y: number) => (y <= 2 ? CAVE_TX : CAVE_TX + Math.round(1.6 * Math
 const PATH_END = OY + 14;                                        // the row where it meets the camp clearing
 /** The cave mouth, at the top of the map where the path ends. */
 const CAVE_X = (CAVE_TX + 1) * T;
+/**
+ * The old trail south, out of the camp clearing into the deeper woods (the Ashwild): the tile column of its
+ * west edge, per row (two tiles wide), from where it leaves the clearing to the map's south edge; and the
+ * row the King's woodwardens have barred it at.
+ */
+const TRAIL_TOP = OY + 18, trailX = (y: number) => OX + 27 + Math.round(2 * Math.sin((y - TRAIL_TOP) * 0.3)) + Math.floor((y - TRAIL_TOP) / 7);
+const BAR_Y = H - 7;
 
 /**
  * One big forest clearing with an organic outline: a wobbly ellipse whose radius swells and pinches
@@ -102,6 +112,12 @@ export function buildMap(): TileMap {
 
   // The path: two tiles wide, winding north from the camp up to the cave at the map's top edge.
   for (let y = 0; y <= PATH_END; y++) { set(pathX(y), y, Tile.Path); set(pathX(y) + 1, y, Tile.Path); }
+  // The old trail south into the deeper woods, and past the woodwardens' barricade, nothing but trail and trees.
+  for (let y = TRAIL_TOP; y < H; y++) {
+    if (y > BAR_Y) for (let x = 0; x < W; x++) set(x, y, Tile.Tree);
+    for (let x = trailX(y); x <= trailX(y) + 1; x++) set(x, y, Tile.Path);
+    if (trailX(y + 1) !== trailX(y) && y + 1 < H) set(trailX(y + 1), y, Tile.Path);   // no corner-only joins where it bends
+  }
 
   // Fill any meadow the groves cut off, so nothing spawns where you can't reach it.
   const reached = reachableFrom({ width: W, height: H, tiles, solids: [] }, sx, sy);
@@ -111,19 +127,37 @@ export function buildMap(): TileMap {
   return { width: W, height: H, tiles, solids: CAMP_SOLIDS };
 }
 
+/** What stands in the Witchwood: the camp, the cave, and the woodwardens at their barricade on the trail south. */
+const PROPS: Prop[] = [
+  { kind: "camp", ...CAMP },
+  { kind: "cave", x: CAVE_X, y: 0, facing: "south" },
+  // The King's woodwardens' barricade across the trail, two wardens standing in its gate until he's written them the
+  // watchword; then they step aside, one to each post (src/game/watchword.ts).
+  { kind: "barricade", rect: { x: (trailX(BAR_Y) - 6) * T, y: BAR_Y * T, w: 14 * T, h: T }, gate: 6, gateW: 2 },
+  { kind: "guard", x: (trailX(BAR_Y) + 0.5) * T, y: (BAR_Y - 0.5) * T, facing: "north", name: WOODWARDEN.name },
+  { kind: "guard", x: (trailX(BAR_Y) + 1.5) * T, y: (BAR_Y - 0.5) * T, facing: "north", name: WOODWARDEN.name },
+];
+
 function build(): AreaLayout {
+  const map = buildMap(), props = PROPS;
+  // Everything standing in the way: the camp, and the barricade's stakes. The wardens move, so they stand in the way
+  // wherever they are (src/game/watchword.ts).
+  const fixed = props.filter(p => !(p.kind === "guard" && p.name === WOODWARDEN.name));
   return {
-    map: buildMap(),
+    map: { ...map, solids: [...map.solids, ...fixed.flatMap(propSolids)] },
     entries: {
       start: SPAWN,
       // Coming back down through the cave: a couple of steps south of its mouth.
       cave: { x: CAVE_X - HALF, y: 2 * T },
+      // Coming back up the trail out of the Ashwild, past the barricade.
+      ashwild: { x: (trailX(H - 3) + 0.5) * T, y: (H - 3) * T },
     },
-    exits: [{ rect: { x: CAVE_X - T, y: 0, w: 2 * T, h: 6 }, to: { area: "kingsroad", entry: "cave" } }],
-    props: [
-      { kind: "camp", ...CAMP },
-      { kind: "cave", x: CAVE_X, y: 0, facing: "south" },
+    exits: [
+      { rect: { x: CAVE_X - T, y: 0, w: 2 * T, h: 6 }, to: { area: "kingsroad", entry: "cave" } },
+      // On down the trail into the Ashwild: the woodwardens let nobody through who hasn't written them the King's watchword.
+      { rect: { x: trailX(H - 1) * T, y: (H - 1) * T + 2, w: 2 * T, h: T - 2 }, to: { area: "ashwild", entry: "witchwood" }, needs: "watchword" },
     ],
+    props,
   };
 }
 

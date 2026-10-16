@@ -22,28 +22,34 @@ import { createMapView } from "./ui/mapView.ts";
 import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
+import { createPaper } from "./ui/paper.ts";
 import { enterInterior, updateInterior } from "./game/interiors.ts";
 import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
 import { updateChatter } from "./game/chatter.ts";
 import { startPetting, updatePetting } from "./game/petting.ts";
 import { startResting, updateResting } from "./game/resting.ts";
+import { sleeping, startSleeping, updateSleeping, wake } from "./game/sleeping.ts";
 import { cutscene, holdInput, skipCutscene, updateCutscene, watchCutscenes } from "./game/cutscene.ts";
 import { createLetterbox } from "./ui/letterbox.ts";
+import { createSleepShade } from "./ui/sleepShade.ts";
 import { enterPets } from "./game/pets.ts";
 import { createAudioPlayer } from "./audio/player.ts";
 import { exposeDebug } from "./debug.ts";
+import { useCurio } from "./game/quay.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
 const inventory = createInventoryView(g.inventory, bakeItemIcons(), {
   onDrop: item => dropItem(g, item),
-  onUse: item => eatItem(g, item),
+  onUse: item => (item.curio ? (inventory.close(), useCurio(g, item)) : eatItem(g, item)),   // a letter is read with the bag shut
 });
 const hud = createHud(g, view);
 const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
 const dialogue = createDialogue(g);
+const paper = createPaper(g);
 const letterbox = createLetterbox(g);
+const sleepShade = createSleepShade(g, view);
 watchCutscenes(g);
 const audio = createAudioPlayer();
 bindOverlay(g);
@@ -93,12 +99,14 @@ const SAY_ON = ["enter", " ", "e", "j"];
 const input = bindInput(g, {
   toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels,
   talkClick: at => {
+    if (sleeping(g)) { wake(g); return true; }              // asleep: a click wakes him, and does nothing else
     if (talking(g)) { advanceTalk(g); return true; }
     if (cutscene(g)) return true;
     const hit = pickTarget(g, view, at);
-    return knock(g, hit) || startResting(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; a dog or cat: pet it; someone: talk
+    return knock(g, hit) || startResting(g, hit) || startSleeping(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; a tent or a bed: sleep; a dog or cat: pet it; someone: talk
   },
   talkKey: k => {
+    if (sleeping(g)) { wake(g); return true; }              // and so does any key
     if (cutscene(g) && k === "escape") { skipCutscene(g); return true; }
     if (cutscene(g) && !talking(g)) return k === "e";       // nobody to talk to but who the scene says
     if (talking(g)) {
@@ -106,7 +114,7 @@ const input = bindInput(g, {
       if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
       return false;
     }
-    return k === "e" && (knock(g, g.target) || startResting(g, g.target) || startPetting(g, g.target) || startTalk(g, g.target));
+    return k === "e" && (knock(g, g.target) || startResting(g, g.target) || startSleeping(g, g.target) || startPetting(g, g.target) || startTalk(g, g.target));
   },
 });
 
@@ -131,6 +139,7 @@ function frame(now: number): void {
   updateTarget(g, view, mouse, input.overUi());
   holdInput(g);                                            // in a cutscene, nothing the player does moves the hero
   updateResting(g, dt);                                    // before the hero moves: anything he does gets him up
+  updateSleeping(g, dt);                                   // and asleep, nothing held moves him
   step(g, dt);
   updateCutscene(g, dt);                                   // after: the scene walks him, and says where to look
   updateTalk(g, dt);
@@ -146,8 +155,10 @@ function frame(now: number): void {
   map.draw();
   hud.draw(menu.width());
   labels.draw();
+  sleepShade.draw();
   resetBar.draw();
   dialogue.draw();
+  paper.draw();
   letterbox.draw();
   requestAnimationFrame(frame);
 }

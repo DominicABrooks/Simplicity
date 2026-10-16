@@ -71,6 +71,7 @@ export function makeBody(ctx: RenderContext): Body {
 
   const shadow = addShadow(ctx);
   const ripple = new THREE.Mesh(new THREE.RingGeometry(0.38, 0.5, 10).rotateX(-Math.PI / 2), basic(PAL.C, { transparent: true, opacity: 0.6, depthWrite: false }));
+  ripple.renderOrder = 1;                                    // after the see-through water, wherever it sorts
   scene.add(group, shadow, ripple);
   return { group, body, gear, sword, ring, eyes, torso: [trunk, wrap], feet, hands, shadow, ripple, footX: 0.14, gripY: 0, rodTip: null, bow: null, key: null };
 }

@@ -4,13 +4,19 @@
 
 export const TOWNSFOLK = {
   /** How many are out at once at the busiest time of day, by area id. */
-  out: { capital: 30, castle: 10, kingsroad: 6 } as Record<string, number>,
+  out: { capital: 36, castle: 10, kingsroad: 6 } as Record<string, number>,
   /** How busy the streets are through the day, 0-1, at each hour from midnight. */
   busy: [0.08, 0.05, 0.04, 0.04, 0.05, 0.12, 0.35, 0.65, 0.9, 1, 1, 1, 1, 1, 1, 1, 0.95, 0.9, 0.8, 0.7, 0.55, 0.4, 0.25, 0.14],
   /** Seconds between one party going in and the next coming out. */
   every: [1.5, 5] as const,
   /** Walking speed, px per second (the hero walks at 42). */
   speed: { adult: [17, 23], child: [20, 27], old: [11, 15] } as const,
+  /** The most out at work by their own front doors at once (see HOME_TRADES): the streets are for buyers too. */
+  doorsteps: 4,
+  /** The most of those out who are at work at once (a share): the rest are out to buy, talk, run errands. */
+  working: 0.65,
+  /** How many stalls to see minded before anyone else comes out to work (see comeOut). */
+  minded: 6,
   /** Seconds they stay at what they're doing. */
   stay: {
     work: [40, 90], shop: [4, 9], chat: [10, 25], drink: [20, 45], church: [6, 12], errand: [1, 3], play: [15, 30],

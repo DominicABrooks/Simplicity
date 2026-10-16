@@ -124,6 +124,18 @@ export function cloisterPlan(rect: Rect) {
   return { ...centre(rect), W: rect.w / T, D: rect.h / T, walk: 2, wall: 0.5, doorW: 2 };
 }
 
+// ---------- The fountain ----------
+/** The fountain's pool: its surface's height, the water's edge (in from the basin's radius, inside the
+ * coping), and the pedestal standing in its middle with the lions' heads round it. */
+export const FOUNTAIN_POOL = { y: 0.5, inset: 0.18, pedestal: 0.6 } as const;
+
+/** Is (x, z) on the open water of a fountain's pool, where a bobber can float: inside the coping, clear
+ * of the pedestal, with room for the ripples of a bite? */
+export function onFountainPool(p: PropOf<"fountain">, x: number, z: number): boolean {
+  const d = Math.hypot(x - p.x / T, z - p.y / T);
+  return d > FOUNTAIN_POOL.pedestal + 0.2 && d < p.radius - FOUNTAIN_POOL.inset - 0.3;
+}
+
 // ---------- Smaller things ----------
 /** A house's ground floor (upper floors jetty out over the street, above your head). */
 export const houseBody = (r: Rect) => ({ ...centre(r), w: r.w / T - 0.22, d: r.h / T - 0.22 });

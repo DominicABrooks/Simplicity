@@ -5,9 +5,10 @@
 // bunting, the guildhall over its open market arcade, and the Crown and the Bell facing it. Castle Street
 // runs north to the castle; East Street runs east past St Mary's and its churchyard. A road runs round inside the walls, lanes cross the quarter, and every street is lined with
 // tall, narrow town houses, gable end on, shops on the main streets, St Giles' chapel and the almshouse
-// among them.
+// among them. Street lamps stand along the main streets and round the square, lit at dusk by the lamplighter.
 import { T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout, Goods } from "../world/area.ts";
+import { houseDoor } from "../world/plans.ts";
 import { AWNINGS, Town, at, corner, edgeExit, hash, px, type TileRect } from "../world/townkit.ts";
 import { CASTLE, castleCore } from "./castle.ts";
 
@@ -21,10 +22,23 @@ export const SOUTHGATE = { x: MID, y: SOUTH_WALL, towers: [19, 34, 63, 78] } as 
 export const CASTLE_STREET = { x0: 46, x1: 50 } as const;
 const HIGH = CASTLE_STREET, SQUARE = { x0: 30, y0: 30, x1: 66, y1: 51 }, EAST_ST = { y0: 39, y1: 42 };
 const GUILDHALL: TileRect = [20, 31, 10, 14];
+/** The low door down to the Undercroft, in the south face of St Mary's tower, in the nook by the nave (tiles: the middle of its foot). */
+export const UNDERCROFT_DOOR = { x: 69.9, y: 32.1 } as const;
 const inSquare = (x: number, y: number) => x >= SQUARE.x0 && x <= SQUARE.x1 && y >= SQUARE.y0 && y <= SQUARE.y1;
 /** The main streets, where the shops are. */
 const mainStreet = (x: number, y: number) => inSquare(x, y) || (x >= HIGH.x0 && x <= HIGH.x1) || (y >= EAST_ST.y0 && y <= EAST_ST.y1 && x > SQUARE.x1);
 const SHOPS: readonly Goods[] = ["bread", "cloth", "meat", "pottery", "produce", "fish", "flowers"];
+/**
+ * Where the street lamps go (tiles), in the order the lamplighter might take them: up Castle Street, round the
+ * square's edge (clear of the stalls), down the high street and out along East Street. Each stands at the
+ * street's edge, moved along a step or two if it would be in front of a door or in the way of something.
+ */
+const LAMPS: readonly (readonly [number, number])[] = [
+  [50, 8], [46, 13], [50, 20], [46, 26],
+  [36, 30], [42, 30], [54, 30], [60, 30], [66, 35], [66, 45], [60, 51], [54, 51], [42, 51], [36, 51], [30, 45], [30, 35],
+  [46, 56], [50, 61], [46, 66],
+  [72, 39], [79, 42], [86, 39],
+];
 
 function build(): AreaLayout {
   const town = new Town(W, H, Tile.Grass);
@@ -83,6 +97,8 @@ function build(): AreaLayout {
   town.add({ kind: "church", rect: px([68, 26, 18, 8]), tower: "spire" });
   town.add({ kind: "graves", rect: px([69, 34, 15, 4]) });
   for (const x of [68, 85]) town.set(x, 36, Tile.Tree);
+  // The low door at the foot of the tower, down to the Undercroft: locked since the Edict, and the key's in the river.
+  town.add({ kind: "cryptDoor", x: UNDERCROFT_DOOR.x * T, y: UNDERCROFT_DOOR.y * T, facing: "south" });
   town.add({ kind: "church", rect: px([8, 20, 9, 6]), tower: "bellcote" });
   town.add({ kind: "hall", rect: px([8, 61, 9, 6]), door: "north", roof: "#8a4a3a", storeys: 2, stone: false, chimneys: 1 });
   town.add({ kind: "well", ...at(19, 59) });
@@ -95,18 +111,47 @@ function build(): AreaLayout {
     frontage: [3, 4], depth: [5, 7], storeys: [3, 4], alley: 0.25, seed: 201, stone: 0.65,
   });
   town.yards(0.07, (x, y) => x > WEST_WALL + 2 && y < SOUTH_WALL - 3);
+  // Along the north edge, behind the rim lane, a line of trees between this quarter's back gardens and the
+  // castle's (it plants the same along its south edge): the way north is Castle Street.
+  town.paint((x, y) => town.at(x, y) === Tile.Grass && x > WEST_WALL && (y === 0 || (y === 1 && hash(x, y, 7) < 0.4)), Tile.Tree);
+  streetLamps(town);
 
   // Past the north edge, the castle as it stands there: the houses and the moat, the barbican, its walls and towers.
   town.beyond(castleCore(), [0, CASTLE.H - 22, CASTLE.W, 22], HIGH.x0 - CASTLE.street.x0, -22);
 
   return town.layout(
     // In through Southgate, at the foot of the high street; down from the castle, a step in from the edge.
-    { southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 1 * T } },
+    {
+      southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 1 * T },
+      undercroft: { x: (UNDERCROFT_DOOR.x - 0.5) * T, y: (UNDERCROFT_DOOR.y + 1.3) * T },
+    },
     [
       { rect: { x: (HIGH.x0 + 1) * T, y: (SOUTH_WALL + 2) * T, w: 3 * T, h: 2 * T }, to: { area: "kingsroad", entry: "gate" } },
       edgeExit("north", HIGH.x0, HIGH.x1, W, H, { area: "castle", entry: "town" }),
+      { rect: { x: (UNDERCROFT_DOOR.x - 0.5) * T, y: UNDERCROFT_DOOR.y * T, w: T, h: T }, to: { area: "undercroft", entry: "steps" }, locked: "key" },
     ],
   );
+}
+
+/** The street lamps (LAMPS), each on a paved tile clear of doorways, buildings, stalls and the other things on the streets. */
+function streetLamps(town: Town): void {
+  const doors = town.props.flatMap(p => (p.kind === "house" ? [houseDoor(p).at] : p.kind === "hall" ? [{ x: GUILDHALL[0] + GUILDHALL[2] + 0.5, z: GUILDHALL[1] + GUILDHALL[3] / 2 }] : []));
+  const clear = (x: number, y: number) => {
+    const cx = x + 0.5, cy = y + 0.5, px = cx * T, py = cy * T;
+    if (town.at(x, y) !== Tile.Cobble || doors.some(d => Math.hypot(d.x - cx, d.z - cy) < 2)) return false;
+    return town.props.every(p => {
+      if ("rect" in p) {                                   // not in anything, nor in front of a stall
+        const mx = p.kind === "stall" ? 0.3 * T : 0, my = p.kind === "stall" ? 1.2 * T : 0, r = p.rect;
+        return p.kind === "plaza" || px < r.x - mx || py < r.y - my || px > r.x + r.w + mx || py > r.y + r.h + my;
+      }
+      return !("x" in p) || Math.hypot(p.x - px, p.y - py) > 1.5 * T;
+    });
+  };
+  const near = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]] as const;
+  for (const [x, y] of LAMPS) {
+    const step = near.find(([i, j]) => clear(x + i, y + j));
+    if (step) town.add({ kind: "lamp", ...at(x + step[0], y + step[1]) });
+  }
 }
 
 export const area: AreaDef = {

@@ -5,15 +5,19 @@
 // Below half health she's angry: faster, more wisps, and now and then she fades away and comes back behind
 // you, already tolling. She can't be knocked about; she's not really there.
 import { SPELLS } from "../data/enemies.ts";
-import { GHOST, GHOST_SAYS } from "../data/ghost.ts";
+import { BELL_HOME, GHOST, GHOST_SAYS } from "../data/ghost.ts";
+import { XP } from "../data/progression.ts";
 import type { Entity } from "../core/ecs.ts";
 import type { GhostAct, GhostBrain, Transform } from "../game/components.ts";
-import { damagePlayer } from "../game/combat.ts";
+import { damagePlayer, grantXP } from "../game/combat.ts";
+import { spendCurio } from "../game/curios.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
-import { ghostSolid } from "../game/ghost.ts";
+import { bellHome, ghostListens, ghostSolid } from "../game/ghost.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
-import { spawnBolt } from "../game/spawn.ts";
+import { dropLoot, spawnBolt, spawnPotion } from "../game/spawn.ts";
+import { speak, talking } from "../game/talk.ts";
+import { rollItem } from "../items/items.ts";
 import { blocked, overlap } from "../world/collision.ts";
 
 const between = (g: Game, [a, b]: readonly [number, number]) => a + g.rng.next() * (b - a);
@@ -25,6 +29,7 @@ export function ghostSystem(g: Game, dt: number): void {
     if (kb) kb.vx = kb.vy = 0;                               // blows pass through her
     const enemy = g.world.get(e, "enemy");
     if (enemy) enemy.face = h.pos.x - transform.x >= 0 ? 1 : -1;
+    if (ghost.calm) { updateCalm(g, h, e, transform, ghost, dt); continue; }
     if (!ghost.angry && health.hp > 0 && health.hp <= health.maxHp * GHOST.angry) {
       ghost.angry = true;
       g.shake = Math.max(g.shake, 3);
@@ -113,4 +118,48 @@ function updateGhost(g: Game, h: HeroParts, e: Entity, s: Transform, b: GhostBra
 function rest(g: Game, b: GhostBrain): void {
   start(b, "drift");
   b.next = between(g, b.angry ? GHOST.angryEvery : GHOST.every);
+}
+
+/**
+ * Calm, for her bell (BELL_HOME): up out of the grass, over to the hero, a word, and she takes it back. Then she
+ * rings nine with it one last time, and goes, leaving her grave goods behind.
+ */
+function updateCalm(g: Game, h: HeroParts, e: Entity, s: Transform, b: GhostBrain, dt: number): void {
+  const p = h.pos, dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy) || 1;
+  b.t += dt;
+  switch (b.act) {
+    case "rise":
+      if (b.t >= GHOST.rise) { ghostListens(g, e); start(b, "come"); }
+      return;
+    case "come":
+      if (!g.world.has(e, "targetable")) ghostListens(g, e);
+      if (d > BELL_HOME.near + 0.5) { const step = Math.min(d - BELL_HOME.near, BELL_HOME.speed * dt); s.x += (dx / d) * step; s.y += (dy / d) * step; return; }
+      speak(g, e, "ismay", BELL_HOME.lines);
+      start(b, "speak");
+      return;
+    case "speak":
+      if (talking(g)) return;
+      spendCurio(g, "bell");
+      start(b, "ring");
+      return;
+    case "ring": {
+      // A toll every so often as she rings, harmless now: just the sound of it going out over the city.
+      const every = BELL_HOME.ring / 3;
+      if (Math.floor(b.t / every) !== Math.floor((b.t - dt) / every)) {
+        g.fx.push({ type: "toll", x: s.x, y: s.y, radius: GHOST.toll.radius });
+        sound(g, "toll", s);
+      }
+      if (b.t < BELL_HOME.ring) return;
+      g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "frost" });
+      grantXP(g, XP.ghost, s.x, s.y);
+      for (let i = 0; i < GHOST.reward.items; i++) dropLoot(g, s.x + (i - (GHOST.reward.items - 1) / 2) * 10, s.y, rollItem(g.rng, "rare"));
+      for (let i = 0; i < GHOST.reward.potions; i++) spawnPotion(g, s.x + (i - (GHOST.reward.potions - 1) / 2) * 10, s.y + 9);
+      if (g.target === e) g.target = null;
+      g.world.destroy(e);
+      bellHome(g);
+      return;
+    }
+    default:
+      start(b, "come");
+  }
 }

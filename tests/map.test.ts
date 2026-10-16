@@ -8,17 +8,18 @@ import { isOpenGround, reachableFrom } from "../src/world/map.ts";
 describe("Witchwood's map", () => {
   const map = buildMap();
 
-  it("matches the fixture tile for tile (the original world, plus the path to the cave)", () => {
+  it("matches the fixture tile for tile (the original world, plus the path to the cave and the trail south)", () => {
     const fixture = readFileSync(new URL("./fixtures/map.txt", import.meta.url), "utf8").trim().split(/\r?\n/);
     expect(map.tiles.map(r => r.join(""))).toEqual(fixture);
   });
 
-  it("is sealed by forest on every edge, except where the path reaches the cave", () => {
+  it("is sealed by forest on every edge, except where the path reaches the cave and the trail runs south", () => {
     for (let x = 0; x < map.width; x++) {
       expect([Tile.Tree, Tile.Path]).toContain(map.tiles[0]![x]);
-      expect(map.tiles[map.height - 1]![x]).toBe(Tile.Tree);
+      expect([Tile.Tree, Tile.Path]).toContain(map.tiles[map.height - 1]![x]);
     }
     expect(map.tiles[0]!.filter(t => t === Tile.Path)).toHaveLength(2);
+    expect(map.tiles[map.height - 1]!.filter(t => t === Tile.Path)).toHaveLength(2);
   });
 
   it("leaves no open ground you can't walk to from the spawn", () => {

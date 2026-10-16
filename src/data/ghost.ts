@@ -87,3 +87,30 @@ export const GHOST_SAYS = {
   laid: "The bell falls silent. Ismay Tollen is at rest.",
   scream: ["Aaah!", "It's her!", "Ismay!", "Run!", "The bell!", "Help!", "Not me!"],
 } as const;
+
+/**
+ * The bell come home. Ismay's little handbell went off St Mary's bridge with the Marshal's men the night she
+ * died, and still rings the curfew at nine from wherever it is. Fish it up and carry it into her churchyard
+ * after dark, and she rises whether the city's talking about her or not: not to fight, but to have it back.
+ * She rings nine one last time and lies down for good, and leaves the hero her grave goods for his trouble.
+ */
+export const BELL_HOME = {
+  /** Her name, once she's calm enough to have one. */
+  name: "Ismay Tollen",
+  /** As she wakes for it (toast); if she was already up and fighting, she hears it and lowers her own bell. */
+  wake: "The little bell in your bag rings by itself. Under the grass, something answers.",
+  hush: "The Grey Ringer stops. She's heard the little bell in your bag.",
+  /** How near she comes before she speaks (px), and how fast (px/s). */
+  near: 14, speed: 18,
+  /** What she says (the dialogue box). */
+  lines: [
+    "...That's my bell. That's my bell!",
+    "Forty-one years I rang the curfew with that, and they put me under without it, so there'd be nothing left of me to ring.",
+    "The river had it? Of course it did. The Marshal's men threw it off the bridge after me. I heard it go in.",
+    "You came out of the wood, didn't you, little stone? Then you've seen the lights. I wasn't mad. I wasn't wrong.",
+    "Stand back, now. It's nine o'clock somewhere. Let me ring it one last time.",
+  ],
+  /** How long she rings before she goes (s), and what's said as she does. */
+  ring: 2.4,
+  rest: "Ismay Tollen rings the curfew, and the churchyard is quiet. Quiet for good, this time.",
+} as const;

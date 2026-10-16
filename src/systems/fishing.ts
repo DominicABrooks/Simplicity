@@ -1,18 +1,27 @@
 // The fishing pole: press winds up a cast, release throws it at the cursor. Over water the line
 // goes out: wait for a bite, then click during the bite to catch. Released over land, it's a weak bonk.
-import { CATCH_ODDS, CURIO_CHANCE, CURIO_IDS, type CurioId, type Rarity } from "../data/items.ts";
+import { CATCH_ODDS, CURIO_IDS, type CurioId, type Rarity } from "../data/items.ts";
 import { FISHING } from "../data/player.ts";
-import { HALF, Tile } from "../data/world.ts";
+import { HALF, T, Tile } from "../data/world.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf, type HeroParts } from "../game/hero.ts";
 import { dropLoot } from "../game/spawn.ts";
+import { curioDue, curioFound, spentCurios } from "../game/curios.ts";
 import { makeCurio, makeFish } from "../items/items.ts";
 import { tileAt, type Point } from "../world/collision.ts";
+import { onFountainPool } from "../world/plans.ts";
 
-/** A curiosity still in the water for the hero to find: one he isn't already carrying (none, once he has them all). */
+/** What water a cast at (x, y) lands in: a pond or river, a fountain's pool up in its basin, or none (land). */
+export function waterAt(g: Game, x: number, y: number): "open" | "basin" | null {
+  const cx = x + HALF, cy = y + HALF;
+  for (const p of g.area.layout.props) if (p.kind === "fountain" && onFountainPool(p, cx / T, cy / T)) return "basin";
+  return tileAt(g.map, cx, cy) === Tile.Water ? "open" : null;
+}
+
+/** A curiosity still in the water for the hero to find: not one he's carrying, left lying about, or given up (none, once he has them all). */
 function curioToFind(g: Game): CurioId | null {
-  const left = CURIO_IDS.filter(id => !g.inventory.grid.some(e => e.item.curio === id));
+  const spent = spentCurios(g), left = CURIO_IDS.filter(id => !spent.has(id) && !curioFound(g, id));
   return left.length ? left[g.rng.int(0, left.length - 1)]! : null;
 }
 
@@ -43,11 +52,11 @@ export function fishingSystem(g: Game, dt: number): void {
     if (input.attackPressed) {
       const r = g.rng.next();
       const rarity: Rarity = r < CATCH_ODDS.rare ? "rare" : r < CATCH_ODDS.magic ? "magic" : "normal";
-      const curio = g.rng.next() < CURIO_CHANCE ? curioToFind(g) : null;   // now and then, something that isn't a fish at all
+      const curio = curioDue(g) ? curioToFind(g) : null;                 // now and then, something that isn't a fish at all
       const item = curio ? makeCurio(curio) : makeFish(rarity);
       if (!g.inventory.add(item)) dropLoot(g, pos.x, pos.y, item, true);
       sound(g, "catch");
-      a.catchAnim = { x: f.x, y: f.y, t0: g.clock, rarity, curio };
+      a.catchAnim = { x: f.x, y: f.y, t0: g.clock, rarity, curio, basin: f.basin };
       toast(g, curio ? `Something heavy on the line... a ${item.name}!` : `Caught a ${item.name}!`, true);
       a.fishing = null;
     } else if (f.t >= FISHING.biteWindow) {
@@ -65,7 +74,7 @@ export function rodSystem(g: Game, dt: number): void {
   if (!rod) a.windup = null;
   if (!rod || a.fishing) return;
   if (input.attackPressed && !a.windup && a.cooldown <= 0 && !m.swimming) {
-    a.windup = { t: 0, x: 0, y: 0, water: false };
+    a.windup = { t: 0, x: 0, y: 0, water: false, basin: false };
     input.attackPressed = false;
   }
   const w = a.windup;
@@ -73,11 +82,12 @@ export function rodSystem(g: Game, dt: number): void {
   w.t += dt;
   const target = castTarget(h, input.pointer);
   w.x = target.x; w.y = target.y;
-  w.water = tileAt(g.map, target.x + HALF, target.y + HALF) === Tile.Water;
+  const water = waterAt(g, target.x, target.y);
+  w.water = !!water; w.basin = water === "basin";
   if (m.swimming || m.dash > 0 || m.jump > 0) a.windup = null;
   else if (input.attackReleased) {
     if (w.water) {
-      a.fishing = { phase: "cast", x: target.x, y: target.y, t: 0, biteAt: 0 };
+      a.fishing = { phase: "cast", x: target.x, y: target.y, t: 0, biteAt: 0, basin: w.basin };
       a.cooldown = FISHING.castCooldown;
       sound(g, "castLine");
     } else input.attackPressed = true;                       // over land: bonk (the thrust system takes the press)

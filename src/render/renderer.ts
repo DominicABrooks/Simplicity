@@ -19,7 +19,7 @@ import { createOcclusion } from "./occlusion.ts";
 import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
-import { compactScenery } from "./compact.ts";
+import { compactScenery, freezeScenery } from "./compact.ts";
 import { buildTerrain, groundUnderBridges } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
 import { shift } from "../world/townkit.ts";
@@ -68,7 +68,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const fishing = createFishingView(ctx, world);
   const fx = createFxView(ctx);
   const hero = createHeroView(ctx);
-  const renderEntities = createRenderSystem(ctx);
+  const renderEntities = createRenderSystem(ctx, camera);
   /** Per-frame updates of the current area's animated props (a campfire's flames, a keep's flags). */
   let animated: ((t: number, dt: number) => void)[] = [];
   const occlusion = createOcclusion(scene);
@@ -89,12 +89,18 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     const bridges = props.filter(p => p.kind === "bridge" || p.kind === "stoneBridge" || p.kind === "drawbridge").map(p => shift(p, -view.x * T, -view.y * T));
     const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view, !!def.indoors);
     scenery.add(terrain.group);
-    const built = props.map(prop => buildProp(ctx, scenery, prop));
+    const lively: THREE.Object3D[] = [];                     // what the props that animate put in the scenery
+    const built = props.map(prop => {
+      const from = scenery.children.length, b = buildProp(ctx, scenery, prop);
+      if (b.update) lively.push(...scenery.children.slice(from));
+      return b;
+    });
     animated = built.flatMap(b => (b.update ? [b.update] : []));
     const occluders = built.flatMap(b => b.occluders);
-    compactScenery(scenery, occluders.map(o => o.object), animated, [terrain.group]);
+    compactScenery(scenery, occluders.map(o => o.object), animated, [terrain.group], lively);
+    freezeScenery(scenery, lively);
     occlusion.set(occluders, terrain.trees);
-    koi.setMap(layout.map);
+    koi.setMap(layout.map, layout.props);
     targetRing.setProps(props);
     ambient.setMap(layout.map, !!def.life?.ambient);
     const p = g.world.need(g.player, "transform");
@@ -116,6 +122,15 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     render(g, dt) {
       const t = g.clock, pos = g.world.need(g.player, "transform");
       const [px, pz] = hero.update(g, t, dt);
+      // The camera follows the hero, or in a cutscene looks where the scene says, easing slowly from shot to shot.
+      const shot = g.world.get(g.player, "cutscene")?.cam, ease = shot ? 2.2 : 8;
+      const lookX = shot ? shot.x / PX_PER_TILE : px, lookZ = shot ? shot.y / PX_PER_TILE : pz;
+      camTarget.set(smooth(camTarget.x, lookX, dt, ease), 0, smooth(camTarget.z, lookZ, dt, ease));
+      camZoom = smooth(camZoom, shot?.zoom ?? 1, dt, shot ? 1.6 : 3);
+      camera.position.copy(camTarget).addScaledVector(CAM_OFFSET, camZoom);
+      camera.lookAt(camTarget);
+      if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));
+      camera.updateMatrixWorld();                            // placed first: the entity views only pose what it can see
       renderEntities(g, { t, dt, hero: pos });
       fx.update(dt);
       fx.consume(g.fx.splice(0));
@@ -137,20 +152,18 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
         sun.intensity = INDOORS.sunI;
       } else daylight.update(g.hour);
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
-      // The camera follows the hero, or in a cutscene looks where the scene says, easing slowly from shot to shot.
-      const shot = g.world.get(g.player, "cutscene")?.cam, ease = shot ? 2.2 : 8;
-      const lookX = shot ? shot.x / PX_PER_TILE : px, lookZ = shot ? shot.y / PX_PER_TILE : pz;
-      camTarget.set(smooth(camTarget.x, lookX, dt, ease), 0, smooth(camTarget.z, lookZ, dt, ease));
-      camZoom = smooth(camZoom, shot?.zoom ?? 1, dt, shot ? 1.6 : 3);
       weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z);   // no rain indoors
       // How much light there is now, from the sky light and the sun as the hour and weather leave them (1 by day,
       // about a third at night): flat colours are shaded by it, and enemies glow a little more the darker it gets.
       ctx.light.value = THREE.MathUtils.clamp((fill.intensity * 0.6 + sun.intensity * 0.25) / 1.5, 0.22, 1);
       ctx.nightGlow.value = (1 - ctx.light.value) * 0.45;
-      camera.position.copy(camTarget).addScaledVector(CAM_OFFSET, camZoom);
-      camera.lookAt(camTarget);
-      if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));
+      // Asleep, only the scenery, the hero and the light are drawn: nobody and nothing else moving about (and the
+      // shade over the screen, src/ui/sleepShade.ts, blacks out all but his bed). Put back as they were after.
+      const asleep = g.world.has(g.player, "sleeping");
+      const hidden = asleep ? scene.children.filter(o => o.visible && o !== world && o !== hero.body.group && o !== hero.body.shadow && !(o instanceof THREE.Light)) : [];
+      for (const o of hidden) o.visible = false;
       renderer.render(scene, camera);
+      for (const o of hidden) o.visible = true;
     },
 
     screenToGame(clientX, clientY) {

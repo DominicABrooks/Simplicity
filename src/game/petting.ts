@@ -6,6 +6,7 @@
 import type { Entity } from "../core/ecs.ts";
 import { HALF } from "../data/world.ts";
 import { combatText } from "./combat.ts";
+import type { Pet, Transform } from "./components.ts";
 import { toast, type Game } from "./game.ts";
 
 export const PETTING = {
@@ -44,13 +45,7 @@ export function updatePetting(g: Game, dt: number): void {
     const p = petted.get(e);
     if (!p) continue;
     if (g.state !== "play" || near > PETTING.reach * 1.6 || (p.left -= dt) <= 0) { petted.delete(e); pet.calm = Math.max(pet.calm, 4); continue; }
-    // Held still: sat (a cat may stay lying), turned to the hero, going nowhere; a moment to settle after.
-    pet.path = [];
-    pet.moving = pet.running = pet.greeting = false;
-    if (pet.pose !== "lie") pet.pose = "sit";
-    pet.wait = Math.max(pet.wait, p.left + 1);
-    pet.calm = Math.max(pet.calm, p.left + 2);
-    pet.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
+    holdStill(pet, t, hero, p.left);
     if ((p.heart -= dt) <= 0) {
       p.heart = PETTING.hearts;
       combatText(g, t.x + HALF / 2, t.y - 2, "♥", PETTING.heart);
@@ -71,7 +66,18 @@ export function startPetting(g: Game, e: Entity | null): boolean {
   const p = petted.get(e);
   if (p) p.left = Math.min(PETTING.most, p.left + PETTING.pat);
   else petted.set(e, { left: PETTING.pat, heart: 0 });
+  holdStill(g.world.need(e, "pet"), t, hero, petted.get(e)!.left);   // at once, before the pets' next move
   return true;
+}
+
+/** Held still: sat (a cat may stay lying), turned to the hero, going nowhere; a moment to settle after. */
+function holdStill(pet: Pet, t: Transform, hero: Transform, left: number): void {
+  pet.path = [];
+  pet.moving = pet.running = pet.greeting = false;
+  if (pet.pose !== "lie") pet.pose = "sit";
+  pet.wait = Math.max(pet.wait, left + 1);
+  pet.calm = Math.max(pet.calm, left + 2);
+  pet.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
 }
 
 /** Is the hero petting this one right now? */
