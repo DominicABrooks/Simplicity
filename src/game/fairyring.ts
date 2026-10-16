@@ -4,7 +4,8 @@
 // start talking to him (src/data/feysayings.ts). One step and it eases back; out of the ring (or come the dawn) it's
 // gone, and if they said anything to him while he was in it, they leave him something to remember it by. All the while
 // it sounds (src/data/sfx.ts): a slow run of notes in and out, soft bells and a low wavering hum as it deepens, and far-off
-// voices when they speak.
+// voices when they speak. Once he's come back up from the hill the third time, with the watchers there and the Erl-King
+// gone (src/game/underhill.ts), the ring is broken: nothing happens in it any more, and it looks it (src/render/fey.ts).
 import { FAIRY_RING as F, FEY_GIFT } from "../data/fey.ts";
 import { FEY_SAYINGS } from "../data/feysayings.ts";
 import { isDay } from "../data/daylight.ts";
@@ -12,6 +13,7 @@ import { HALF } from "../data/world.ts";
 import { makeItem } from "../items/items.ts";
 import type { Prop } from "../world/area.ts";
 import { toast, type Game } from "./game.ts";
+import { visitsUnderhill } from "./underhill.ts";
 import { sound } from "./sfx.ts";
 import { dropLoot } from "./spawn.ts";
 
@@ -40,9 +42,17 @@ const trance = (g: Game): Trance => {
 /** How long a line is up, from fading in to gone. */
 const lifeOf = (s: Saying) => F.line.in + s.hold + F.line.out;
 
-/** The fairy ring in the area he's in, if there is one. */
+/** The fairy ring in the area he's in, if there is one (and it isn't broken). */
 export const ringHere = (g: Game): FairyRing | undefined =>
-  g.area.layout.props.find((p): p is FairyRing => p.kind === "fairyRing" && !p.quiet);
+  g.area.layout.props.find((p): p is FairyRing => p.kind === "fairyRing" && !p.quiet && !p.broken);
+
+/** Whether the fair folk's rings are broken: once he's been under the hill a third time and found only the watchers there. */
+export const ringsBroken = (g: Game): boolean => visitsUnderhill(g) >= 3;
+
+/** Arriving in an area, before it's built: its fairy ring is broken now, or still whole. */
+export function breakRings(g: Game): void {
+  for (const p of g.area.layout.props) if (p.kind === "fairyRing" && !p.quiet) p.broken = ringsBroken(g);
+}
 
 /** Every frame: is he in the ring after dark, and has he moved? */
 export function fairyRingSystem(g: Game, dt: number): void {
