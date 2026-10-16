@@ -1,12 +1,13 @@
 // The city after dark (the story and the tuning are in src/data/eerie.ts). While the hero walks Kingsholm's
 // streets at night, every so often something happens: a shutter bangs, footsteps follow him, someone watches him
-// from the end of the street, a lamp gutters out, a well whispers, a little bell rings nine. Never by day, never
+// from the end of the street, a lamp gutters out, a well whispers, a little bell rings nine; and anyone still out near
+// it takes fright and runs for home (src/game/townsfolk.ts scareFolk). Never by day, never
 // indoors, never while he's busy (talking, resting, in a scene) and never anywhere near St Mary's churchyard,
 // which belongs to the Grey Ringer (src/game/ghost.ts). None of it can hurt him; it's only the city. And nothing
 // tells the player about it: it's there to be seen and heard (the fx it raises, src/game/fx.ts), or missed.
 import type { Entity } from "../core/ecs.ts";
 import { isDay } from "../data/daylight.ts";
-import { EERIE, WHISPERS, type EerieId } from "../data/eerie.ts";
+import { EERIE, FRIGHT, WHISPERS, type EerieId } from "../data/eerie.ts";
 import { HALF } from "../data/world.ts";
 import { blocked } from "../world/collision.ts";
 import { combatText } from "./combat.ts";
@@ -19,6 +20,7 @@ import { resting } from "./resting.ts";
 import { sound } from "./sfx.ts";
 import { sleeping } from "./sleeping.ts";
 import { talking } from "./talk.ts";
+import { scareFolk } from "./townsfolk.ts";
 
 type Spot = { x: number; y: number };
 type Front = Spot & { facing: "north" | "south" | "east" | "west" };
@@ -162,7 +164,7 @@ export function eerieSystem(g: Game, dt: number): void {
   if (s.area !== g.area.def.id) { stop(g, s); s.area = g.area.def.id; s.wait = EERIE.settle; }
   if (isDay(g.hour)) { s.tonight = 0; s.rung = false; }
   if (!eerieHere(g)) { stop(g, s); s.wait = EERIE.settle; return; }
-  if (s.now) { go(g, s, s.now, dt); return; }
+  if (s.now) { go(g, s, s.now, dt); if (s.now) fright(g, s.now); return; }
   if (!unbusy(g) || s.tonight >= EERIE.most || (s.wait -= dt) > 0) return;
   s.wait = between(g, EERIE.every);
   const id = pickEerie(g, s.last);
@@ -284,6 +286,19 @@ function go(g: Game, s: Unease, h: Happening, dt: number): void {
       g.fx.push({ type: "chime", x: p.x - HALF, y: p.y - HALF + (h.at ? EERIE.curfew.ring.at : 0), radius: EERIE.curfew.ring.radius });
       return;
   }
+}
+
+/** Where it's happening, for anyone nearby to take fright at: the shutter, the hero (followed, or hearing the bell), the watcher, the lamp, the well. */
+function fright(g: Game, h: Happening): void {
+  let at: Spot;
+  switch (h.id) {
+    case "shutter": at = h.at; break;
+    case "watcher": { const t = g.world.get(h.e, "transform"); if (!t) return; at = { x: t.x + HALF, y: t.y + HALF }; break; }
+    case "lamp": at = h.lamp; break;
+    case "well": at = h.at; break;
+    default: at = heroAt(g);
+  }
+  scareFolk(g, at, FRIGHT.radius, FRIGHT.shouts, FRIGHT.run);
 }
 
 /** Day's come, or he's gone in or away: whatever was going on stops, and leaves nothing behind. */

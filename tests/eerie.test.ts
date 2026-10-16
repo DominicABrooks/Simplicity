@@ -13,6 +13,12 @@ import { lampLit, lampsHere, setLamps } from "../src/game/lamps.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { spentCurios } from "../src/game/curios.ts";
+import { FRIGHT } from "../src/data/eerie.ts";
+import { populate, setCensus, updateTownsfolk } from "../src/game/townsfolk.ts";
+import { residentsOf } from "../src/world/residents.ts";
+import { area as capitalArea } from "../src/areas/capital.ts";
+import { area as castleArea } from "../src/areas/castle.ts";
+import { area as kingsroadArea } from "../src/areas/kingsroad.ts";
 
 const DT = 1 / 30;
 const MIDNIGHT = 0, NOON = 12;
@@ -233,5 +239,30 @@ describe("each of them", () => {
     } finally {
       Object.assign(weights, saved);
     }
+  });
+});
+
+describe("the townsfolk", () => {
+  const people = setCensus(residentsOf({ capital: capitalArea.build().props, castle: castleArea.build().props, kingsroad: kingsroadArea.build().props }));
+
+  it("anyone near when it happens shouts and runs for home; anyone further off doesn't notice", async () => {
+    const g = await at("capital", NOON);                     // a busy street to start with (it only happens at night)
+    populate(g, people);
+    for (let i = 0; i < 50; i++) updateTownsfolk(g, 0.2);
+    const walkers = () => g.world.query("walker", "transform");
+    const [, first] = walkers()[0]!;
+    const spot = { x: first.transform.x + HALF, y: first.transform.y + HALF };
+    const near = () => walkers().filter(([, { transform: t }]) => Math.hypot(t.x + HALF - spot.x, t.y + HALF - spot.y) <= FRIGHT.radius);
+    const far = walkers().filter(([, { transform: t }]) => Math.hypot(t.x + HALF - spot.x, t.y + HALF - spot.y) > FRIGHT.radius * 1.5).map(([e]) => e);
+    expect(near().length).toBeGreaterThan(0);
+    g.hour = MIDNIGHT;
+    place(g, spot);
+    g.world.need(g.player, "motion").moving = true;
+    expect(startEerie(g, "footsteps")).toBe(true);           // followed, right here among them
+    const shouted = g.floaters.length;
+    eerieSystem(g, DT);
+    for (const [, { walker }] of near()) expect(walker.fleeing).toBe(true);
+    expect(g.floaters.length - shouted).toBeGreaterThanOrEqual(near().length);   // each with a shout
+    for (const e of far) expect(g.world.get(e, "walker")?.fleeing ?? false).toBe(false);
   });
 });

@@ -903,23 +903,41 @@ function walk(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: numb
 }
 
 /**
- * The ghost is out: drop everything, shout, and run for home (or out of the quarter, for those who live elsewhere).
- * A child runs with whoever they're with, and takes them along.
+ * Something's frightened them (the ghost, or the city after dark, src/game/eerie.ts): drop everything, shout, and
+ * run for home (or out of the quarter, for those who live elsewhere). A child runs with whoever they're with, and
+ * takes them along.
  */
-function flee(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: number }): void {
+function flee(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: number }, shouts: readonly string[] = GHOST_SAYS.scream, run: number = GHOST.run): void {
   w.fleeing = true;
   if (g.world.get(g.player, "conversation")?.with === e) g.world.remove(g.player, "conversation");
   answering.delete(e);
-  combatText(g, t.x, t.y - 4, GHOST_SAYS.scream[s.rng.int(0, GHOST_SAYS.scream.length - 1)]!, "#e8dcc4");
-  w.speed *= GHOST.run;
+  combatText(g, t.x, t.y - 4, shouts[s.rng.int(0, shouts.length - 1)]!, "#e8dcc4");
+  w.speed *= run;
   Object.assign(w, { holdFor: null, leaving: 0, task: null, playAt: null, runTo: null });
   if (w.follow) {
     const lw = g.world.get(w.follow.leader, "walker"), lt = g.world.get(w.follow.leader, "transform");
-    if (lw && lt && !lw.fleeing) flee(g, s, w.follow.leader, lw, lt);
+    if (lw && lt && !lw.fleeing) flee(g, s, w.follow.leader, lw, lt, shouts, run);
     return;
   }
   const r = byId.get(w.id), at = nearestWalkable(s.ways, (t.x + HALF) / T - 0.5, (t.y + HALF) / T - 0.5, 2);
   if (!r || !at || !setOff(s, e, w, r, "home", at)) goIn(g, s, e, w);
+}
+
+/**
+ * Something uncanny just happened at (x, y) (px): everyone out within `radius` of it shouts one of `shouts` and runs
+ * for home, `run` times their walking pace. How many took fright.
+ */
+export function scareFolk(g: Game, at: { x: number; y: number }, radius: number, shouts: readonly string[], run: number): number {
+  const s = here;
+  if (!s || s.area !== g.area.def.id) return 0;
+  let n = 0;
+  for (const e of [...s.out.values()]) {
+    const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
+    if (!w || !t || w.fleeing || Math.hypot(t.x + HALF - at.x, t.y + HALF - at.y) > radius) continue;
+    flee(g, s, e, w, t, shouts, run);
+    n++;
+  }
+  return n;
 }
 
 /** Done here: what next, and off they go (or, if there's nowhere to get to from here, they stay a while longer). */

@@ -60,6 +60,28 @@ export const EERIE = {
   curfew: { from: 21, to: 22.5, strokes: 9, gap: 1.1, away: 150, ring: { at: 26, radius: 20 } },
 } as const;
 
+/**
+ * Anyone still out in the streets near where it happens (px) takes fright: they shout one of these and run for
+ * home, this many times their walking pace (like they do from the Grey Ringer, src/game/townsfolk.ts). The bell
+ * frightens anyone near the hero, who hears it too.
+ */
+export const FRIGHT = {
+  radius: 64,
+  run: 2.2,
+  shouts: [
+    "What was that?!",
+    "Who's there?",
+    "Not again!",
+    "Mind the weather!",
+    "Home! Now!",
+    "Did you hear that?",
+    "Lord preserve us!",
+    "I'm not stopping!",
+    "Salt on the sills!",
+    "Don't look at it!",
+  ],
+} as const;
+
 /** What the well whispers, a line at a time, floating up out of it. */
 export const WHISPERS = {
   lines: [
