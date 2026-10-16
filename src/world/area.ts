@@ -22,6 +22,8 @@ export interface ExitDef {
   to: Destination;
   needs?: "watchword";
   locked?: CurioId;
+  /** The little door behind the Undercroft's ring: shut till the Ringstone Pendant, burning, opens it (src/game/undercroft.ts). */
+  sealed?: true;
 }
 
 /** Static scenery the renderer builds for an area (and the map view marks). */
@@ -149,6 +151,10 @@ export type Prop =
   /** The Undercroft's stonework inside its `room` (same rect, door and doorAt): a blind arcade round the walls, bones
    * shelved in some bays; round `pillars`, iron candle-stands at `prickets` (both solid), slabs let into the floor at
    * `ledgers` (tile units); and in the wall on `seal.side`, `seal.at` tiles along, the little door the Kellets keep sealing. */
+  /** The seal-keepers' chamber behind the Undercroft's little door (src/render/undercroft.ts): the stone nest where the
+   * eggs lay, at (x, y) px, the Song of the Seal on slabs against the wall `back` tiles in from the room's north edge,
+   * two Vael lamps either side, and the crack under it, stitched shut. The nest and lamps are solid. */
+  | { kind: "vaelNest"; x: number; y: number; back: number }
   | { kind: "crypt"; rect: Rect; door: Facing; doorAt: number; pillars: { x: number; y: number }[]; prickets: { x: number; y: number }[]; ledgers: { x: number; y: number }[]; seal: { side: Facing; at: number } }
   /** A stone chest tomb, long along `facing`'s axis, the one in it carved lying on the lid if `effigy`. */
   | { kind: "tomb"; x: number; y: number; facing: Facing; effigy: boolean }

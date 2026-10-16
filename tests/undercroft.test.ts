@@ -5,20 +5,20 @@ import { area as capital } from "../src/areas/capital.ts";
 import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { loadArea } from "../src/areas/index.ts";
-import { UNDERCROFT, UNDERCROFT_SAYS } from "../src/data/undercroft.ts";
+import { CHAMBER, CHAMBER_SAYS, PENDANT, UNDERCROFT, UNDERCROFT_SAYS } from "../src/data/undercroft.ts";
 import { carryingCurio, spentCurios } from "../src/game/curios.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
-import { lastStone, touchStone, wakeOnStone } from "../src/game/stones.ts";
-import { pendantWarm } from "../src/game/pendant.ts";
-import { damagePlayer } from "../src/game/combat.ts";
-import { sealOf, socketOf } from "../src/game/undercroft.ts";
+import { lastStone, stoneSystem, touchStone, wakeOnStone } from "../src/game/stones.ts";
+import { chargePendant, pendantCharge, pendantCharged } from "../src/game/pendant.ts";
+import { sealOf, sealOpen, socketOf } from "../src/game/undercroft.ts";
+import { nestAt } from "../src/game/sealchamber.ts";
 import { CLUES } from "../src/data/clues.ts";
 import { makeCurio } from "../src/items/items.ts";
 import { step } from "../src/systems/index.ts";
-import { blocked } from "../src/world/collision.ts";
+import { FEET, blocked } from "../src/world/collision.ts";
 import { layoutOf } from "../src/world/layouts.ts";
 
 setCensus((await import("../src/world/residents.ts")).residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props }));
@@ -186,61 +186,129 @@ describe("the stone's clues", () => {
   });
 });
 
-describe("the Ringstone Pendant", () => {
-  /** He's woken the ring, picked the pendant up and put it on. */
-  async function wearing() {
-    const r = await at("undercroft", "steps", ["stone"]), s = socketOf(r.g)!;
-    Object.assign(hero(r.g), { x: s.x, y: s.y + 4 });
-    step(r.g, DT);
-    const [e, c] = r.g.world.query("pickup").find(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === UNDERCROFT.reward.name)!;
-    if (c.pickup.kind !== "loot") throw new Error("no pendant");
-    r.g.inventory.equip.amulet = c.pickup.item;
-    r.g.world.destroy(e);
-    return r;
-  }
+/** The five old stones the pendant drinks from. */
+const OLD_STONES = [
+  { area: "witchwood", entry: "start", name: "The Ranger's stone" }, { area: "capital", entry: "stone", name: "The fountain stone" },
+  { area: "ashwild", entry: "stone", name: "The ash stone" }, { area: "hollow", entry: "stone", name: "The hollow stone" },
+  { area: "rift", entry: "stone", name: "The rift stone" },
+];
 
-  it("is legendary, and its note hints at what it does", async () => {
+/** He's woken the ring, picked the pendant up and put it on. */
+async function wearing() {
+  const r = await at("undercroft", "steps", ["stone"]), s = socketOf(r.g)!;
+  Object.assign(hero(r.g), { x: s.x, y: s.y + 4 });
+  step(r.g, DT);
+  const [e, c] = r.g.world.query("pickup").find(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === UNDERCROFT.reward.name)!;
+  if (c.pickup.kind !== "loot") throw new Error("no pendant");
+  r.g.inventory.equip.amulet = c.pickup.item;
+  r.g.world.destroy(e);
+  return r;
+}
+
+describe("the Ringstone Pendant", () => {
+  it("is legendary, and its note says it wants to drink from the old stones", async () => {
     const { g } = await wearing();
     const pendant = g.inventory.equip.amulet!;
     expect(pendant.rarity).toBe("legendary");
-    expect(pendant.note).toMatch(/won't let you fall/);
-    expect(pendant.note).toMatch(/old stone/);
+    expect(pendant.note).toBe(PENDANT.note(0));
+    expect(pendant.note).toMatch(/drink from each/);
   });
 
-  it("holds him up once when he'd fall, and an old stone warms it again", async () => {
+  it("drinks from each old stone once, worn, till it's had all five and burns; its note says how far it's got", async () => {
     const { g, toasts } = await wearing();
-    const health = g.world.need(g.player, "health");
-    health.hp = 1;
-    damagePlayer(g, 0, 0, 3);
-    expect(health.hp).toBe(1);
-    expect(g.state).toBe("play");
-    expect(toasts).toContain(UNDERCROFT_SAYS.catch);
-    expect(pendantWarm(g)).toBe(false);
-    // The ring's an old stone, but standing at it when it caught him doesn't warm it; away and back again does.
-    const s = socketOf(g)!;
-    Object.assign(hero(g), { x: s.x, y: s.y + 4 });
-    step(g, DT);
-    expect(pendantWarm(g)).toBe(false);
-    Object.assign(hero(g), { x: s.x, y: s.y + 60 });
-    step(g, DT);
-    Object.assign(hero(g), { x: s.x, y: s.y + 4 });
-    step(g, DT);
-    expect(pendantWarm(g)).toBe(true);
-    expect(toasts).toContain(UNDERCROFT_SAYS.rewarm);
+    for (const [i, stone] of OLD_STONES.entries()) {
+      chargePendant(g, stone);
+      chargePendant(g, stone);
+      expect(pendantCharge(g)).toBe(i + 1);
+    }
+    expect(pendantCharged(g)).toBe(true);
+    expect(toasts).toContain(UNDERCROFT_SAYS.drinks("The fountain stone", 2));
+    expect(toasts).toContain(UNDERCROFT_SAYS.charged);
+    expect(g.inventory.equip.amulet!.note).toBe(PENDANT.note(5));
   });
 
-  it("doesn't hold him twice before then", async () => {
+  it("drinks when he touches a real old stone, but not from the bag", async () => {
     const { g } = await wearing();
-    const health = g.world.need(g.player, "health");
-    health.hp = 1; damagePlayer(g, 0, 0, 3);
-    health.hp = 1; damagePlayer(g, 0, 0, 3);
-    expect(g.state).toBe("dead");
+    const pendant = g.inventory.equip.amulet!;
+    g.inventory.equip.amulet = null;
+    enterArea(g, await loadArea("capital"), "stone");
+    const stone = g.area.layout.props.find(p => p.kind === "oldStone")!;
+    if (stone.kind !== "oldStone") throw new Error();
+    Object.assign(hero(g), { x: stone.x - 4, y: stone.y - 4 });
+    stoneSystem(g);
+    expect(pendantCharge(g)).toBe(0);
+    g.inventory.equip.amulet = pendant;
+    stoneSystem(g);                                         // still standing on it: it knows him; the pendant drinks
+    expect(pendantCharge(g)).toBe(1);
+  });
+});
+
+describe("the little door, opened", () => {
+  /** Walk him north from in front of the door, as far as he can go: into the doorway. */
+  function walkIn(g: Game) {
+    const seal = sealOf(g)!;
+    Object.assign(hero(g), seal);
+    while (!blocked(g.map, hero(g).x, hero(g).y - 1, true) && hero(g).y > 0) hero(g).y -= 1;
+    step(g, DT);
+  }
+
+  it("won't move without the pendant burning, and he's kept out", async () => {
+    const { g, toasts } = await wearing();
+    walkIn(g);
+    expect(g.state).toBe("play");
+    expect(toasts).toContain(UNDERCROFT_SAYS.sealShut);
+    expect(sealOpen(g)).toBe(false);
   });
 
-  it("does nothing in the bag", async () => {
+  it("can be reached: the doorway's within his walk", async () => {
     const { g } = await at("undercroft", "steps");
-    const health = g.world.need(g.player, "health");
-    health.hp = 1; damagePlayer(g, 0, 0, 3);
-    expect(g.state).toBe("dead");
+    const exit = g.area.layout.exits.find(x => x.sealed)!, seal = sealOf(g)!;
+    Object.assign(hero(g), seal);
+    while (!blocked(g.map, hero(g).x, hero(g).y - 1, true) && hero(g).y > 0) hero(g).y -= 1;
+    expect(hero(g).y + FEET.y).toBeLessThan(exit.rect.y + exit.rect.h);
+  });
+
+  it("opens to the burning pendant (he's put back a step to see it), then lets him through into the chamber", async () => {
+    const { g, toasts } = await wearing();
+    for (const stone of OLD_STONES) chargePendant(g, stone);
+    walkIn(g);
+    expect(g.state).toBe("play");
+    expect(sealOpen(g)).toBe(true);
+    for (const line of UNDERCROFT_SAYS.sealOpens) expect(toasts).toContain(line);
+    expect(g.world.query("renderable").filter(([, c]) => c.renderable.kind === "sealdoor")).toHaveLength(1);
+    walkIn(g);
+    expect(g.state).toBe("play");                           // still swinging open: he's kept back to watch it
+    for (let t = 0; t < UNDERCROFT.swing + 0.1; t += DT) step(g, DT);
+    walkIn(g);
+    expect(g.state).toBe("travel");
+    expect(g.travel).toEqual({ area: "sealchamber", entry: "door" });
+  });
+});
+
+describe("the seal-keepers' chamber", () => {
+  it("has somewhere to come in, the nest to walk up to, and the way back out to the door behind the ring", async () => {
+    const { g, toasts } = await at("sealchamber", "door");
+    step(g, DT);
+    expect(toasts).toContain(CHAMBER_SAYS.arrive);
+    expect(blocked(g.map, hero(g).x, hero(g).y, true)).toBe(false);
+    const back = g.area.layout.exits[0]!;
+    expect(back.to).toEqual({ area: "undercroft", entry: "seal" });
+    const under = layoutOf(await loadArea("undercroft"));
+    const seal = under.entries.seal!;
+    expect(blocked(under.map, seal.x, seal.y, true)).toBe(false);
+  });
+
+  it("tells what the nest was, and leaves him a warden's wrap, once", async () => {
+    const { g, toasts } = await at("sealchamber", "door");
+    const nest = nestAt();
+    for (let y = hero(g).y; y > nest.y + CHAMBER.near - 2; y -= 2) expect(blocked(g.map, hero(g).x, y, true)).toBe(false);
+    Object.assign(hero(g), { y: nest.y + CHAMBER.near - 4 });
+    step(g, DT);
+    step(g, DT);
+    for (const line of CHAMBER_SAYS.nest) expect(toasts.filter(t => t === line)).toHaveLength(1);
+    const wraps = g.world.query("pickup").filter(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === CHAMBER.gift.name);
+    expect(wraps).toHaveLength(1);
+    const [, c] = wraps[0]!;
+    if (c.pickup.kind === "loot") expect(c.pickup.item.rarity).toBe("legendary");
   });
 });

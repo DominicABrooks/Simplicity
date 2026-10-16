@@ -12,7 +12,7 @@ having.
 |---|---|---|---|---|
 | **Little Handbell** | St Mary's churchyard, after dark | Ismay Tollen rises for it, calm, rumour or none (and an already-angry Grey Ringer stops to listen). She takes it back, rings the curfew one last time and rests for good. | Her grave goods (two rare items, two potions), the ghost's XP, no fight | **Built** |
 | **Rusted Key** | The low locked door at the foot of St Mary's tower | It turns and stays in the lock: **the Undercroft** is open for the rest of the run. Without it: "locked fast". | The way down to the tombs and the stone ring | **Built** |
-| **Mysterious Stone** | The empty socket in the Undercroft's ring | Walk it up to the socket: it slides home, stands glowing, and the ring wakes. It's still there every time you come back. | Healed to full, the ring an old stone to wake at, and the **Ringstone Pendant** (legendary amulet: +3 life, +2 damage, +10% speed; once, holds him up when he would fall, till an old stone warms it again) | **Built** |
+| **Mysterious Stone** | The empty socket in the Undercroft's ring | Walk it up to the socket: it slides home, stands glowing, and the ring wakes. It's still there every time you come back. | Healed to full, the ring an old stone to wake at, and the **Ringstone Pendant** (legendary amulet: +3 life, +2 damage, +10% speed; charged at the five old stones, it opens the little door behind the ring) | **Built** |
 | **Glass Eye** | Old Gil, the one-eyed boatman by his boat at the foot of the King's Bridge | Talk to him with it in the bag: he takes it back (his patch comes off) and tells what the river showed it. | **Ael's Thorn** (rare blade: +2 damage, +1 life, +6% speed) on the bed of the Clearing's lake | **Built** |
 | **Sealed Bottle** | Right-click it in the bag | The bag closes and a letter in the hero's own hand is read, from a run he doesn't remember. | A hint for every curiosity still to take home this run, and one true thing about the ending | **Built** |
 
@@ -48,10 +48,7 @@ The Mysterious Stone is the missing piece ("Maybe someone is interested in this.
 it's warm in the bag; walk it up to the socket and it slides home (`src/game/undercroft.ts`). It stands there
 glowing blue-green and slowly turning, rings of light go out over the room, the warmth goes right through the
 hero (healed to full), and a chip of the ring is left at its foot: the **Ringstone Pendant**, legendary
-(`src/game/pendant.ts`): worn, it holds him up once when a blow would fell him, leaving him a heart, and goes
-cold till he touches an old stone; its note hints as much ("it won't let you fall. Not twice, till an old stone
-warms it"). Come back and
-it's still standing there.
+(`src/game/pendant.ts`; see "The little door" below). Come back and it's still standing there.
 
 As it wakes, the ring tells him what it is (`UNDERCROFT_SAYS.wake`): the Vael's temple floor, where the Old Mother
 laid her three eggs; Aldric stole them and Hereward gilded them, and the ring has held the crack under the hill
@@ -60,6 +57,24 @@ him in the ring; walk up to it again after touching another stone and it knows h
 behind the ring, the Vael's lock on somebody else's door, goes quiet: no cold comes under it any more.
 
 The way to it: one of the stone's clues (`CLUES.stone`) sends him to St Mary's, built on stones like it.
+
+## The little door (built)
+
+The Ringstone Pendant comes cool, and its note says it wants to drink from Ael's old stones, all one stone
+underneath. Worn, each of the five he touches (the Ranger's, the fountain, ash, hollow and rift stones) gives it
+some of its warmth, and the note counts them; with all five it burns. Walk it up into the little door behind the
+ring and the pendant and the door's three carved fires blaze, the Kellets' last band snaps, and the slab swings
+out on the dark (`src/game/undercroft.ts`; the door is the `sealdoor` view in `src/render/undercroft.ts`). It
+stays open the rest of the run. Without it burning, it won't move.
+
+Behind it, **the seal-keepers' chamber** (`src/areas/sealchamber.ts`, `src/game/sealchamber.ts`): a low round
+room older than the ring, two Vael lamps giving a cold light, the Song of the Seal on three slabs against the back
+wall (a flame, a snowflake, a bolt, the Old Mother's coils round three eggs), the crack across the floor stitched
+shut in the three fires' colours, and the stone nest where she laid the eggs, gilt still in its hollows, a bowl of
+milk beside it. Walk up to the nest and it tells what it was (`CHAMBER_SAYS`), and a **Warden's Wrap** (legendary
+hood) is left folded by it, once a run.
+
+To try it: `?try=seal`, or `simplicity.seal()` in the console (`seal(3)` for a pendant only part charged).
 
 ## Old Gil's eye (built)
 

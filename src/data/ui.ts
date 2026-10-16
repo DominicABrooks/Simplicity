@@ -6,3 +6,5 @@ export const COMBAT_COLORS = { hit: PAL.W, glance: PAL.w, crit: PAL.Y, taken: PA
 
 /** How long a toast stays up, in ms. */
 export const TOAST_MS = 1500;
+/** A toast that has to wait its turn (several said at once: a story told in lines) stays up longer, by its length (ms per character), to be read. */
+export const TOAST_READ_MS = 55;

@@ -79,7 +79,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 #resetHold[hidden] { display: none; }
 #resetHold .bar { width: 180px; height: 6px; margin-top: 6px; background: rgb(14 11 22 / 0.8); border: 1px solid var(--oak); }
 #resetHold i { display: block; height: 100%; width: 0; background: var(--ember); }
-#toast { position: fixed; top: 18%; left: 50%; transform: translateX(-50%); z-index: 45; color: var(--ember); font-size: 18px; line-height: 24px; text-shadow: 3px 3px 0 var(--ink); white-space: nowrap; }
+#toast { position: fixed; top: 18%; left: 50%; transform: translateX(-50%); z-index: 45; color: var(--ember); font-size: 18px; line-height: 24px; text-shadow: 3px 3px 0 var(--ink); width: max-content; max-width: min(760px, 88vw); text-align: center; }
 
 /* ---------- Menu bar (bottom right, WoW style) ---------- */
 #menuBar {

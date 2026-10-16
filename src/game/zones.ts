@@ -24,6 +24,7 @@ export const ZONES: Record<string, Zone> = {
   castle: { entry: "town" },
   throneroom: { entry: "door" },
   undercroft: { entry: "steps" },
+  sealchamber: { entry: "door" },
   /** Under the hill, where a Fey Acorn takes him (src/game/underhill.ts): straight in, without the journey (so it doesn't count as a visit). */
   underhill: { entry: "arrive" },
   /** Through the barricade, kitted as he'd be on the way to Cinder. */

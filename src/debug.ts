@@ -6,6 +6,15 @@ import { CURIOS, CURIO_IDS, STARTER_KIT, type CurioId } from "./data/items.ts";
 import { GIL } from "./data/quay.ts";
 import { churchyardOf } from "./game/ghost.ts";
 import { makeCurio } from "./items/items.ts";
+import { PENDANT, UNDERCROFT } from "./data/undercroft.ts";
+import { spendCurio } from "./game/curios.ts";
+import { chargePendant, pendantCharge } from "./game/pendant.ts";
+
+/** The five old stones the Ringstone Pendant drinks from: area, entry, name. */
+const SEAL_STONES = [
+  ["witchwood", "start", "The Ranger's stone"], ["capital", "stone", "The fountain stone"], ["ashwild", "stone", "The ash stone"],
+  ["hollow", "stone", "The hollow stone"], ["rift", "stone", "The rift stone"],
+] as const;
 import { LAIRS, type Lair, type LairName } from "./game/lairs.ts";
 import { isFrozen, isGod, setFrozen, setGod } from "./game/cheats.ts";
 import { setState, type Game } from "./game/game.ts";
@@ -182,6 +191,20 @@ export function exposeDebug(g: Game, view: Renderer): void {
     if (at) Object.assign(g.world.need(g.player, "transform"), at);
     return `${there}. ${CURIOS[id as CurioId].name} in the bag. ${t.next}`;
   }
+  /**
+   * The little door behind the Undercroft's ring (docs/CURIOSITIES.md): a fresh run in the Undercroft with the ring
+   * woken, the Ringstone Pendant on, drunk from all five old stones (or `stones` of them), stood just before the door.
+   */
+  async function seal(stones = PENDANT.stones): Promise<string> {
+    const there = await area("undercroft");
+    spendCurio(g, "stone");
+    const r = UNDERCROFT.reward;
+    g.inventory.equip.amulet = { ...makeItem(r.type, r.rarity, { ...r.mods }, r.name), note: PENDANT.note(0) };
+    for (const [area, entry, name] of SEAL_STONES.slice(0, stones)) chargePendant(g, { area, entry, name });
+    const at = g.area.layout.entries.seal;
+    if (at) Object.assign(g.world.need(g.player, "transform"), at);
+    return `${there}. The pendant's on, ${pendantCharge(g)} of ${PENDANT.stones}. Walk up into the little door.`;
+  }
   Object.assign(window, {
     simplicity: {
       game: g, view, world: g.world,
@@ -203,6 +226,9 @@ export function exposeDebug(g: Game, view: Renderer): void {
       /** The curiosities: curio("key") starts a fresh run with it in the bag, by where it goes (or load the page with
        *  ?curio=key); bell, key, stone, eye or bottle. */
       curio,
+      /** The little door behind the Undercroft's ring: seal() stands him before it with the pendant on and burning
+       *  (seal(3): only three stones drunk), or load the page with ?try=seal. */
+      seal,
       /** The time of day: hour(23) makes it 11 at night (or load the page with ?hour=23); with nothing, the hour it is now. */
       hour: (h?: number) => (h === undefined ? g.hour : setHour(h)),
       god: (on = !isGod(g)) => `god ${setGod(g, on) ? "on" : "off"}`,
@@ -224,4 +250,5 @@ export function exposeDebug(g: Game, view: Renderer): void {
   else if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
   else if (cur !== null) void curio(cur || "bell").then(said => console.info(said));
+  else if (q.get("try") === "seal") void seal().then(said => console.info(said));
 }

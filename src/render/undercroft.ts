@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { T } from "../data/world.ts";
 import type { Facing } from "../world/area.ts";
 import { FACING_YAW, ROOM_WALL } from "../world/plans.ts";
+import { LAMP_OFF, NEST_R } from "../world/solids.ts";
 import { ringPlan } from "../world/stonering.ts";
 import { put } from "./castle.ts";
 import { GROUND, box, onGround, toWorld, type RenderContext } from "./context.ts";
@@ -15,6 +16,7 @@ import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 import { DARK_WOOD, IRON, type PropOf } from "./town.ts";
 import type { EntityView } from "./views.ts";
+import { sealOpen } from "../game/undercroft.ts";
 
 const STONE = "#8f8a80", PALE_STONE = "#b9b2a4", EFFIGY = "#cbc4b6", AEL = "#7fd8c4";
 
@@ -319,14 +321,13 @@ export function buildCrypt(ctx: RenderContext, parent: THREE.Group, p: PropOf<"c
     put(g, box(0.08, 0.03, 0.8), dark, q.x, 0.12, q.y - 0.1);
     put(g, box(0.4, 0.03, 0.08), dark, q.x, 0.12, q.y - 0.3);
   }
-  const seal = sealedDoor(ctx);
-  seal.group.position.set(...sealAt(p));
-  seal.group.rotation.y = FACING_YAW[OPPOSITE[p.seal.side]];
-  g.add(seal.group);
+  const frame = sealFrame(ctx);
+  frame.position.set(...sealAt(p));
+  frame.rotation.y = FACING_YAW[OPPOSITE[p.seal.side]];
+  g.add(frame);
   parent.add(g);
   return {
     update: (time: number) => {
-      seal.update(time);
       for (const l of lights) {
         const f = 0.85 + Math.sin(time * 9 + l.k * 7) * 0.08 + Math.sin(time * 23 + l.k) * 0.05;
         l.light.intensity = 0.9 * f;
@@ -350,52 +351,155 @@ function sealAt(p: PropOf<"crypt">): [number, number, number] {
 }
 
 /**
- * The little door behind the ring: not the church's and not the temple's either. A squat frame of rough grey stone
- * like the ring's, two jambs and a lintel, round one dark slab; cut proud on the slab, three flames over a snowflake
- * and a lightning bolt, the Vael's three fires, faintly warm the way the ring is: the Vael's lock on somebody else's
- * door. Over it the Kellets' own seals, generation on generation: iron bands staked into the jambs, lead seals hanging
- * off them on cords, mortar pressed into the joints; and the top band snapped, one end hanging, the slab stood a
- * finger's width off true, a black seam down its side, grit ground out across the threshold. It keeps coming
- * unlocked. Faces +z from the wall's face.
+ * The little door behind the ring: not the church's and not the temple's either. Its frame, here (the slab in it is
+ * the sealdoor view, shut or swung open): two leaning jambs of rough grey stone like the ring's and a lintel laid
+ * across them, a threshold stone with grit ground out over it where the slab's been moving, and the dark behind.
+ * Faces +z from the wall's face.
  */
-function sealedDoor(ctx: RenderContext): { group: THREE.Group; update: (time: number) => void } {
-  const { lambert } = ctx, g = new THREE.Group(), rough = lambert(STONE, { map: ctx.tex.stone }), slab = lambert("#6a665e", { map: ctx.tex.stone });
-  const iron = lambert(IRON), lead = lambert("#7b8084"), mortar = lambert("#c9c1ae"), cord = lambert("#4a3a2a"), black = ctx.basic("#050404");
-  // The frame: two leaning jambs, a lintel laid across them, a threshold stone.
+function sealFrame(ctx: RenderContext): THREE.Group {
+  const g = new THREE.Group(), rough = ctx.lambert(STONE, { map: ctx.tex.stone });
   for (const s of [-1, 1]) put(g, box(0.24, 1.0, 0.24), rough, s * 0.46, 0.5, 0.1, 0, s * 0.08, -s * 0.03);
   put(g, box(1.26, 0.24, 0.28), rough, 0, 1.1, 0.1, 0, 0, 0.02);
   put(g, box(1.1, 0.07, 0.36), rough, 0, 0.035, 0.18);
-  // The slab, off true: the seam black down its right side.
-  put(g, box(0.06, 0.92, 0.04), black, 0.3, 0.5, 0.03);
-  put(g, box(0.64, 0.92, 0.1), slab, -0.03, 0.5, 0.06, 0, 0.04, 0);
-  // The three fires, cut proud: three flames in a row, a snowflake, a bolt. Their own faint warmth, breathing.
-  const marks = [
-    lambert("#8a5a3e", { emissive: new THREE.Color("#7a2a10") }),
-    lambert("#8a9aa4", { emissive: new THREE.Color("#1a5a6a") }),
-    lambert("#9a8a52", { emissive: new THREE.Color("#5a4a10") }),
-  ];
-  for (const i of [-1, 0, 1]) {
-    put(g, new THREE.ConeGeometry(0.055, 0.17, 4), marks[0]!, -0.03 + i * 0.16, 0.79, 0.13);
-    put(g, new THREE.ConeGeometry(0.03, 0.08, 4), marks[0]!, -0.01 + i * 0.16, 0.88, 0.13, 0, 0, -0.3);
-  }
-  for (let k = 0; k < 3; k++) put(g, box(0.2, 0.025, 0.03), marks[1]!, -0.17, 0.45, 0.13, 0, 0, (k * Math.PI) / 3);   // the snowflake
-  for (const [x, y, r] of [[0.17, 0.53, -0.45], [0.13, 0.46, 1.2], [0.09, 0.39, -0.45]] as const) put(g, box(0.035, 0.12, 0.03), marks[2]!, x, y, 0.13, 0, 0, r);   // the bolt
-  put(g, new THREE.ConeGeometry(0.028, 0.07, 4), marks[2]!, 0.065, 0.32, 0.13, 0, 0, Math.PI - 0.45);
-  // The Kellets' bands: the lower one whole, staked into both jambs; the upper one snapped, its end hanging.
-  put(g, box(0.98, 0.06, 0.03), iron, 0, 0.24, 0.16);
-  put(g, box(0.5, 0.06, 0.03), iron, -0.24, 0.65, 0.16);
-  put(g, box(0.3, 0.06, 0.03), iron, 0.3, 0.55, 0.17, 0, 0, 0.9);
-  for (const [x, y] of [[-0.46, 0.24], [0.46, 0.24], [-0.46, 0.65]] as const) put(g, new THREE.CylinderGeometry(0.03, 0.03, 0.05, 5).rotateX(Math.PI / 2), iron, x, y, 0.2);
-  // The lead seals, each on a cord off a band; mortar pressed into the joints round the slab.
-  for (const [x, y] of [[-0.3, 0.24], [0.05, 0.24], [0.32, 0.24], [-0.38, 0.65]] as const) {
-    put(g, box(0.012, 0.09, 0.012), cord, x, y - 0.07, 0.18);
-    put(g, new THREE.CylinderGeometry(0.045, 0.045, 0.02, 7).rotateX(Math.PI / 2), lead, x, y - 0.14, 0.19);
-  }
-  for (const [x, y, h] of [[-0.35, 0.15, 0.2], [-0.35, 0.8, 0.14], [0.27, 0.95, 0.06], [-0.1, 0.97, 0.05]] as const) put(g, box(0.07, h, 0.05), mortar, x, y, 0.1);
-  // Grit ground out over the threshold, where the slab's been moving.
+  put(g, box(0.66, 0.94, 0.04), ctx.basic("#050404"), -0.02, 0.5, 0.02);   // the dark, behind the slab
   for (let i = 0; i < 6; i++) put(g, new THREE.DodecahedronGeometry(0.025 + (i % 3) * 0.008, 0), rough, -0.2 + i * 0.09, 0.09, 0.3 + (i % 2) * 0.06);
-  return {
-    group: g,
-    update: (time: number) => { const k = 0.55 + Math.sin(time * 0.9) * 0.35; for (const m of marks) m.emissiveIntensity = k; },
-  };
+  return g;
+}
+
+/**
+ * The little door's slab (src/game/undercroft.ts): one dark slab, three flames over a snowflake and a lightning bolt
+ * cut proud on it, the Vael's three fires, faintly warm the way the ring is: the Vael's lock on somebody else's door.
+ * Over it the Kellets' own seals, generation on generation: iron bands staked into the jambs, lead seals hanging off
+ * them on cords, mortar pressed into the joints; the top band snapped, one end hanging, the slab a finger's width off
+ * true, a black seam down its side. It keeps coming unlocked. When the burning Ringstone Pendant opens it, the seals
+ * fall away, the fires blaze, and the slab swings out on its left edge into the room, a cold light from beyond.
+ */
+interface SealdoorView { group: THREE.Group; leaf: THREE.Group; seals: THREE.Group; marks: THREE.MeshLambertMaterial[]; beyond: THREE.PointLight; open: number }
+export const sealdoor: EntityView<SealdoorView> = {
+  create(ctx, _e, g) {
+    const { lambert } = ctx, group = new THREE.Group(), leaf = new THREE.Group(), seals = new THREE.Group(), slab = lambert("#6a665e", { map: ctx.tex.stone });
+    const iron = lambert(IRON), lead = lambert("#7b8084"), mortar = lambert("#c9c1ae"), cord = lambert("#4a3a2a");
+    const marks = [
+      lambert("#8a5a3e", { emissive: new THREE.Color("#7a2a10") }),
+      lambert("#8a9aa4", { emissive: new THREE.Color("#1a5a6a") }),
+      lambert("#9a8a52", { emissive: new THREE.Color("#5a4a10") }),
+    ];
+    // The leaf hangs from its left edge (x -0.35): the slab, and the fires on it.
+    leaf.position.set(-0.35, 0, 0.06);
+    group.add(leaf);
+    const at = (x: number) => x + 0.35;
+    put(leaf, box(0.64, 0.92, 0.1), slab, at(-0.03), 0.5, 0, 0, 0.04, 0);
+    for (const i of [-1, 0, 1]) {
+      put(leaf, new THREE.ConeGeometry(0.055, 0.17, 4), marks[0]!, at(-0.03 + i * 0.16), 0.79, 0.07);
+      put(leaf, new THREE.ConeGeometry(0.03, 0.08, 4), marks[0]!, at(-0.01 + i * 0.16), 0.88, 0.07, 0, 0, -0.3);
+    }
+    for (let k = 0; k < 3; k++) put(leaf, box(0.2, 0.025, 0.03), marks[1]!, at(-0.17), 0.45, 0.07, 0, 0, (k * Math.PI) / 3);   // the snowflake
+    for (const [x, y, r] of [[0.17, 0.53, -0.45], [0.13, 0.46, 1.2], [0.09, 0.39, -0.45]] as const) put(leaf, box(0.035, 0.12, 0.03), marks[2]!, at(x), y, 0.07, 0, 0, r);   // the bolt
+    put(leaf, new THREE.ConeGeometry(0.028, 0.07, 4), marks[2]!, at(0.065), 0.32, 0.07, 0, 0, Math.PI - 0.45);
+    // The Kellets' seals, and the seam: gone once it's open.
+    group.add(seals);
+    put(seals, box(0.06, 0.92, 0.04), ctx.basic("#050404"), 0.3, 0.5, 0.03);
+    put(seals, box(0.98, 0.06, 0.03), iron, 0, 0.24, 0.16);
+    put(seals, box(0.5, 0.06, 0.03), iron, -0.24, 0.65, 0.16);
+    put(seals, box(0.3, 0.06, 0.03), iron, 0.3, 0.55, 0.17, 0, 0, 0.9);
+    for (const [x, y] of [[-0.46, 0.24], [0.46, 0.24], [-0.46, 0.65]] as const) put(seals, new THREE.CylinderGeometry(0.03, 0.03, 0.05, 5).rotateX(Math.PI / 2), iron, x, y, 0.2);
+    for (const [x, y] of [[-0.3, 0.24], [0.05, 0.24], [0.32, 0.24], [-0.38, 0.65]] as const) {
+      put(seals, box(0.012, 0.09, 0.012), cord, x, y - 0.07, 0.18);
+      put(seals, new THREE.CylinderGeometry(0.045, 0.045, 0.02, 7).rotateX(Math.PI / 2), lead, x, y - 0.14, 0.19);
+    }
+    for (const [x, y, h] of [[-0.35, 0.15, 0.2], [-0.35, 0.8, 0.14], [0.27, 0.95, 0.06], [-0.1, 0.97, 0.05]] as const) put(seals, box(0.07, h, 0.05), mortar, x, y, 0.1);
+    // A cold light from beyond, once it's open.
+    const beyond = new THREE.PointLight(AEL, 0, 3, 1.6);
+    beyond.position.set(0, 0.6, 0.3);
+    group.add(beyond);
+    const crypt = g.area.layout.props.find((p): p is PropOf<"crypt"> => p.kind === "crypt");
+    if (crypt) {
+      group.position.set(...sealAt(crypt));
+      group.rotation.y = FACING_YAW[OPPOSITE[crypt.seal.side]];
+    }
+    ctx.scene.add(group);
+    const open = sealOpen(g) ? 1 : 0;
+    return { group, leaf, seals, marks, beyond, open };
+  },
+  update(_ctx, v, _e, g, f) {
+    const to = sealOpen(g) ? 1 : 0;
+    v.open += Math.sign(to - v.open) * Math.min(Math.abs(to - v.open), f.dt * 0.7);
+    const k = ease(v.open);
+    v.leaf.rotation.y = -1.75 * k;
+    v.seals.visible = v.open < 0.05;
+    v.beyond.intensity = 1.6 * k;
+    const glow = v.open > 0 ? 1.2 + Math.sin(f.t * 2) * 0.2 : 0.55 + Math.sin(f.t * 0.9) * 0.35;
+    for (const m of v.marks) m.emissiveIntensity = glow;
+  },
+  remove(ctx, v) {
+    ctx.scene.remove(v.group);
+    disposeTree(v.group);
+  },
+};
+
+const ease = (k: number) => k * k * (3 - 2 * k);
+
+/**
+ * The seal-keepers' chamber (src/areas/sealchamber.ts). In the middle, the nest: a low round dais of rough stone, a
+ * rim of set stones round it, three hollows worn smooth in its top, one for each fire, flecks of gilt still in them,
+ * and an old stone bowl beside it, the milk the Vael always leave out. Under it, the crack, dark and jagged across the
+ * floor, stitched shut with bars of the three fires' colours. Against the back wall, the Song of the Seal on three
+ * standing slabs: a flame, a snowflake, a bolt, and the Old Mother's coils across the middle one. Either side, a Vael
+ * lamp: a stone post with a blue-green crystal on it, giving a cold light.
+ */
+export function buildVaelNest(ctx: RenderContext, parent: THREE.Group, p: PropOf<"vaelNest">): PropView {
+  const { lambert } = ctx, g = new THREE.Group(), rough = lambert(STONE, { map: ctx.tex.stone }), pale = lambert(PALE_STONE, { map: ctx.tex.stone });
+  const hollow = lambert("#3d3a35"), gilt = lambert("#d8b04a", { emissive: new THREE.Color("#3a2a08") }), crack = ctx.basic("#060505");
+  const fires = [ctx.glow("#ff8a3a"), ctx.glow("#9fe0f0"), ctx.glow("#f0d860")], crystal = ctx.glow(AEL);
+  const x = p.x / T, z = p.y / T, k = hash(x, z, 77);
+  // The crack, first, so the nest sits over it: jagged, wider in the middle, stitched across.
+  const pts = [[-3.6, 1.9], [-2.3, 1.5], [-1.2, 1.9], [0, 1.3], [1.1, 1.8], [2.4, 1.4], [3.7, 1.7]] as const;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, az] = pts[i]!, [bx, bz] = pts[i + 1]!, len = Math.hypot(bx - ax, bz - az), wide = i === 2 || i === 3 ? 0.16 : 0.09;
+    put(g, box(len + 0.05, 0.03, wide), crack, x + (ax + bx) / 2, 0.07, z + (az + bz) / 2, 0, -Math.atan2(bz - az, bx - ax), 0);
+    put(g, box(0.07, 0.05, 0.36), fires[i % 3]!, x + (ax + bx) / 2, 0.09, z + (az + bz) / 2, 0, -Math.atan2(bz - az, bx - ax), 0);
+  }
+  // The nest: the dais, its rim of set stones, the three hollows and the gilt in them.
+  put(g, new THREE.CylinderGeometry(NEST_R, NEST_R + 0.1, 0.22, 12), rough, x, 0.11, z);
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2 + k;
+    put(g, box(0.34, 0.16, 0.2), i % 2 ? pale : rough, x + Math.cos(a) * (NEST_R - 0.05), 0.28, z + Math.sin(a) * (NEST_R - 0.05), 0, -a, 0);
+  }
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 - Math.PI / 2, hx = x + Math.cos(a) * 0.42, hz = z + Math.sin(a) * 0.42;
+    put(g, new THREE.CylinderGeometry(0.26, 0.2, 0.05, 9), hollow, hx, 0.215, hz);
+    for (let j = 0; j < 3; j++) put(g, box(0.04, 0.02, 0.03), gilt, hx + Math.cos(j * 2.1 + i) * 0.12, 0.25, hz + Math.sin(j * 2.1 + i) * 0.12, 0, j, 0);
+  }
+  // The bowl, by the nest: a little stone bowl, a skin of something pale in it.
+  put(g, new THREE.CylinderGeometry(0.16, 0.1, 0.1, 8), pale, x + 1.25, 0.11, z + 0.75);
+  put(g, new THREE.CylinderGeometry(0.13, 0.13, 0.02, 8), lambert("#e8e2d0"), x + 1.25, 0.15, z + 0.75);
+  // The Song of the Seal, on three slabs against the back wall, and the Old Mother's coils over the middle one.
+  for (const [i, dx] of [-1.8, 0, 1.8].entries()) {
+    const sx = x + dx, sz = p.back + 0.12;
+    put(g, box(1.1, 1.05, 0.18), rough, sx, 0.53, sz, 0, 0, (i - 1) * 0.02);
+    put(g, box(0.9, 0.85, 0.04), pale, sx, 0.55, sz + 0.1);
+    const f = fires[i]!;
+    if (i === 0) for (const d of [-0.12, 0, 0.12]) put(g, new THREE.ConeGeometry(0.06, 0.2, 4), f, sx + d, 0.62, sz + 0.14);
+    if (i === 1) {
+      for (let j = 0; j < 3; j++) put(g, box(0.26, 0.03, 0.03), f, sx, 0.4, sz + 0.14, 0, 0, (j * Math.PI) / 3);
+      put(g, new THREE.TorusGeometry(0.24, 0.035, 3, 12, Math.PI * 1.7), lambert("#8a9a94"), sx, 0.68, sz + 0.14, 0, 0, 0.4);   // her coils
+      for (const d of [-0.12, 0, 0.12]) put(g, new THREE.SphereGeometry(0.05, 5, 4).scale(0.8, 1.1, 0.5), gilt, sx + d, 0.66, sz + 0.15);   // the three eggs, in them
+    }
+    if (i === 2) for (const [bx, by, r] of [[0.05, 0.7, -0.45], [0, 0.6, 1.2], [-0.05, 0.5, -0.45]] as const) put(g, box(0.05, 0.16, 0.03), f, sx + bx, by, sz + 0.14, 0, 0, r);
+  }
+  // The lamps, either side of the nest: a post, a cup, the crystal, its cold light.
+  const lights: THREE.PointLight[] = [];
+  for (const s of [-1, 1]) {
+    const lx = x + s * LAMP_OFF;
+    put(g, box(0.22, 0.12, 0.22), rough, lx, 0.06, z);
+    put(g, new THREE.CylinderGeometry(0.08, 0.1, 0.8, 6), rough, lx, 0.52, z);
+    put(g, new THREE.CylinderGeometry(0.16, 0.08, 0.1, 6), rough, lx, 0.96, z);
+    put(g, new THREE.OctahedronGeometry(0.11, 0).scale(0.8, 1.5, 0.8), crystal, lx, 1.14, z);
+    const light = new THREE.PointLight(AEL, 1.3, 5, 1.6);
+    light.position.set(lx, 1.2, z);
+    g.add(light);
+    lights.push(light);
+  }
+  parent.add(g);
+  return { update: (time: number) => { lights.forEach((l, i) => { l.intensity = 1.2 + Math.sin(time * 1.3 + i * 2) * 0.2; }); } };
 }

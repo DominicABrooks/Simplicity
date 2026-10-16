@@ -16,12 +16,39 @@ export const UNDERCROFT = {
   stone: { name: "The ring under St Mary's", touch: 20 },
   /** The ring's waking, as a ring of light going out over the room (px). */
   wake: 60,
-  /** What it leaves him: a pendant with a chip of the ring in it, warm to the touch. Legendary: worn, it holds him up
-   *  once when he'd fall, and an old stone warms it again (src/game/pendant.ts). Its note says as much, quietly. */
-  reward: {
-    type: "amulet" as ItemType, rarity: "legendary" as Rarity, name: "Ringstone Pendant", mods: { life: 3, damage: 2, speed: 10 } satisfies Stats,
-    note: "A chip of the ring under St Mary's, warm against your chest. It held the crack shut; it won't let you fall. Not twice, till an old stone warms it.",
-  },
+  /** What it leaves him: a pendant with a chip of the ring in it. Legendary: worn, it drinks from the old stones, and
+   *  burning it opens the little door behind the ring (src/game/pendant.ts). Its note says as much, quietly. */
+  reward: { type: "amulet" as ItemType, rarity: "legendary" as Rarity, name: "Ringstone Pendant", mods: { life: 3, damage: 2, speed: 10 } satisfies Stats },
+  /** How long (s) the little door takes to swing open, while he's kept out of it. */
+  swing: 1.6,
+} as const;
+
+/** The pendant's charge: how many old stones it drinks from (the Ranger's, the fountain, ash, hollow and rift stones),
+ *  and its note as it fills. */
+export const PENDANT = {
+  stones: 5,
+  note: (n: number): string => n >= 5
+    ? "A chip of the ring under St Mary's, burning now with all five of Ael's old stones in it. Three fires carved on a little door would know it."
+    : "A chip of the ring under St Mary's, cool where the old stones are warm. They're all one stone underneath; it wants to drink from each of them."
+      + (n > 0 ? ` It's drunk from ${n} of the five.` : ""),
+} as const;
+
+/** Behind the little door: the seal-keepers' chamber, where the Old Mother laid the eggs (src/areas/sealchamber.ts). */
+export const CHAMBER = {
+  /** How near the nest (px) he comes to read it, and what's left folded beside it, once a run. */
+  near: 34,
+  gift: { type: "hood" as ItemType, rarity: "legendary" as Rarity, name: "Warden's Wrap", mods: { life: 4, speed: 8, dash: 25 } satisfies Stats,
+    note: "A Vael warden's wrap, left folded by the empty nest. It smells of snow. The Vael hold their wraps on when they bow." },
+} as const;
+
+export const CHAMBER_SAYS = {
+  arrive: "Behind the Vael's door: a low round chamber, older than the ring, and cold.",
+  nest: [
+    "Three hollows worn smooth in a stone nest, flecks of gilt still in them. The eggs lay here, one for each fire, before Aldric came.",
+    "Carved round the walls: the Old Mother curled about her three eggs, and under them a crack, stitched shut with song.",
+    "The crack runs under the nest still, dark and quiet. The eggs are only a floor or two above you now, in St Mary's treasury. Close enough, it seems, to keep it sleeping.",
+  ],
+  gift: "Folded by the nest, as if someone meant to come back for it: a Vael warden's wrap.",
 } as const;
 
 export const UNDERCROFT_SAYS = {
@@ -39,9 +66,15 @@ export const UNDERCROFT_SAYS = {
   ],
   /** The sealed door, once the ring's whole again: said with the first of `seal` if he's not been up to it yet. */
   sealCalm: "The three fires on the little door burn steady now the ring is whole, and no cold comes under it.",
-  /** The pendant, worn: holding him up when he'd fall, and warm again at an old stone. */
-  catch: "The Ringstone Pendant flares hot against your chest. You don't fall.",
-  rewarm: "The Ringstone Pendant is warm again.",
+  /** The pendant, worn: drinking from an old stone, and full. */
+  drinks: (stone: string, n: number): string => `The Ringstone Pendant drinks from ${stone[0]!.toLowerCase()}${stone.slice(1)}. (${n} of 5)`,
+  charged: "The Ringstone Pendant burns with all five of Ael's stones. Under St Mary's, three carved fires would know it.",
+  /** At the little door: shut to him, and opening to the burning pendant. */
+  sealShut: "The little door won't move. The three fires carved on it are cold to your hand.",
+  sealOpens: [
+    "The Ringstone Pendant blazes, and the three fires on the little door blaze back.",
+    "The Kellets' last band snaps. The slab grinds open on the dark.",
+  ],
   /** Setting it back: what the ring was (HISTORY.md, "The Seal" and "88 AF"), and what it is to him now. */
   wake: [
     "The stone slides home into the socket, as if it had never left.",

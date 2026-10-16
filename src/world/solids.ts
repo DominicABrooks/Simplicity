@@ -21,6 +21,8 @@ export const LAMP_POST = 0.14;
 
 /** A box `w` by `d` world units centred on (x, z). */
 const box = (x: number, z: number, w: number, d: number): Shape => ({ kind: "box", x: (x - w / 2) * T, y: (z - d / 2) * T, w: w * T, h: d * T });
+/** The seal-keepers' nest's radius, and how far either side of it its lamps stand (tiles; src/render/undercroft.ts). */
+export const NEST_R = 1.05, LAMP_OFF = 2.8;
 const circle = (x: number, z: number, r: number): Shape => ({ kind: "circle", x: x * T, y: z * T, r: r * T });
 const capsule = (a: XZ, b: XZ, r: number): Shape => ({ kind: "capsule", ax: a.x * T, ay: a.z * T, bx: b.x * T, by: b.z * T, r: r * T });
 const rectCentre = (r: Rect): XZ => ({ x: (r.x + r.w / 2) / T, z: (r.y + r.h / 2) / T });
@@ -112,6 +114,10 @@ export function propSolids(p: Prop): Shape[] {
     }
     case "lamp": return [circle(p.x / T, p.y / T, LAMP_POST)];
     case "crypt": return [...p.pillars.map(q => circle(q.x, q.y, 0.24)), ...p.prickets.map(q => circle(q.x, q.y, 0.18))];
+    case "vaelNest": {
+      const x = p.x / T, z = p.y / T;
+      return [circle(x, z, NEST_R), circle(x - LAMP_OFF, z, 0.22), circle(x + LAMP_OFF, z, 0.22), ...[-1.8, 0, 1.8].map(dx => circle(x + dx, p.back + 0.3, 0.3))];
+    }
     case "cryptDoor": return [];                           // set into the wall, which is solid already
     case "tomb": return [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, 0.9, 1.9)];
     case "stoneRing": return ringPlan(p).stones.map(s => circle(s.x, s.z, RING_STONE_R));
