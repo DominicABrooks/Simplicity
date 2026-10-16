@@ -165,7 +165,7 @@ export type Prop =
    * ice `radius` tiles out, the `gap`th (from the north, clockwise) left out for the way in. The pillars are solid. */
   | { kind: "rimeStage"; x: number; y: number; radius: number; pillars: number; gap: number }
   /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
-  | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" }
+  | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" | "calder" }
   /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */
   | { kind: "guard"; x: number; y: number; facing: Facing; name?: string }
   /** A fire bowl on a tripod. */

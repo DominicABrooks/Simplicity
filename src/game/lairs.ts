@@ -3,6 +3,7 @@
 import { CINDER_READY } from "../data/ashwild.ts";
 import { RINGER_READY } from "../data/ghost.ts";
 import { RIME_READY } from "../data/hollow.ts";
+import { CALDER_READY } from "../data/rift.ts";
 import type { KitPiece } from "../data/items.ts";
 import { HALF, T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
@@ -36,6 +37,14 @@ export const LAIRS = {
       takeBow(g);                                             // he's carrying it: it isn't still lying in the hut
       const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "rime")!;
       return { x: at.x - HALF, y: at.y - HALF + 3 * T };     // in among her pillars: the ice shuts, and up she comes
+    },
+  },
+  /** Calder, at the edge of the great crack at the top of the Thunder Rift (src/game/calderfight.ts). */
+  calder: {
+    area: "rift", entry: "stone", ready: CALDER_READY,
+    stage(g) {
+      const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "calder")!;
+      return { x: at.x - HALF, y: at.y - HALF + 5 * T };     // a few steps south of him: the lightning shuts, and he turns
     },
   },
   /** The Grey Ringer, in St Mary's churchyard: made night, and up she comes, rumour or none (src/game/ghost.ts). */

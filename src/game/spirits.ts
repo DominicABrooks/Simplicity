@@ -10,8 +10,11 @@ import { HALF } from "../data/world.ts";
 import { beaten, type Who } from "./bosses.ts";
 import type { Game } from "./game.ts";
 
+/** Who leaves a spirit behind: not Calder, whose spark flies home south as he falls. */
+export type Spirited = Exclude<Who, "calder">;
+
 /** What each spirit's called, and what it says. */
-export const SPIRITS: Record<Who, { name: string; lines: readonly string[] }> = { cinder: CINDER_SPIRIT, rime: RIME_SPIRIT };
+export const SPIRITS: Record<Spirited, { name: string; lines: readonly string[] }> = { cinder: CINDER_SPIRIT, rime: RIME_SPIRIT };
 
 /** What the spirit says when he talks to it. */
 export const spiritLines = (g: Game, e: Entity): string[] => [...SPIRITS[g.world.need(e, "spirit").who].lines];
@@ -25,7 +28,7 @@ export const spiritHere = (g: Game): Entity | null => g.world.query("spirit")[0]
  */
 export function spiritSystem(g: Game): void {
   const lair = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss");
-  if (!lair || !beaten(g, lair.who) || spiritHere(g) !== null || g.world.has(g.player, "conversation")) return;
+  if (!lair || lair.who === "calder" || !beaten(g, lair.who) || spiritHere(g) !== null || g.world.has(g.player, "conversation")) return;
   const x = lair.x - HALF, y = lair.y - HALF, look = FACING_ANGLE.south;
   g.world.create({
     transform: { x, y },

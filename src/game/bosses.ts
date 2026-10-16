@@ -2,13 +2,16 @@
 // summoned only when their fight starts (Cinder's: src/game/cinderfight.ts; Rime's: src/game/rimefight.ts). Each is
 // a mage underneath (src/systems/mage.ts runs them; each has a body all their own), only far tougher, and hurried
 // along here: their casts, specials and blinks come back faster. Cinder, in the Ashwild, is an Ember mage; Rime, out
-// on the Frozen Hollow's lake, a Frost mage with wider novas and faster bolts. Beat one and they stay beaten for the
-// run; each always leaves something fine behind (Cinder a weapon, Rime her circlet); and the game says so.
+// on the Frozen Hollow's lake, a Frost mage with wider novas and faster bolts; and their captain Calder, at the edge of
+// the Thunder Rift's great crack, a Storm mage with faster sparks (src/game/calderfight.ts). Beat one and they stay
+// beaten for the run; each always leaves something behind (Cinder a weapon, Rime her circlet, Calder his head); and
+// the game says so.
 import type { Entity } from "../core/ecs.ts";
 import type { Rng } from "../core/rng.ts";
 import { CINDER, CINDER_FALLS, CINDER_LAST_WORDS } from "../data/ashwild.ts";
 import { MAGE_TARGET, type School } from "../data/enemies.ts";
 import { RIME, RIME_CIRCLET, RIME_FALLS, RIME_LAST_WORDS } from "../data/hollow.ts";
+import { CALDER, CALDER_FALLS, CALDER_LAST_WORDS, CALDERS_HEAD } from "../data/rift.ts";
 import { XP } from "../data/progression.ts";
 import { makeItem, rollItem, type Item } from "../items/items.ts";
 import { isFrozen } from "./cheats.ts";
@@ -17,15 +20,17 @@ import type { MageBrain, RenderKind } from "./components.ts";
 import { dropLoot } from "./spawn.ts";
 import { toast, type Game } from "./game.ts";
 
-export type Who = "cinder" | "rime";
+export type Who = "cinder" | "rime" | "calder";
 
 /** Each lieutenant: their numbers, their school, their look, what they leave, and what they say as they fall. */
 interface Lieutenant {
   name: string; title: string; hp: number; radius: number; height: number; hurry: number; xp: number;
-  school: School; look: RenderKind; boost?: MageBrain["boost"]; palette: "fire" | "frost";
+  school: School; look: RenderKind; boost?: MageBrain["boost"]; palette: "fire" | "frost" | "spark";
   /** Won't fall to the first blow that would finish them (see Enemy.lastStand). */
   lastStand?: boolean;
   drop(rng: Rng): Item;
+  /** What they leave doesn't fade where it lies (Calder's head: it's to be carried home). */
+  keeps?: boolean;
   falls: readonly string[]; lastWords: readonly string[];
 }
 export const LIEUTENANTS: Record<Who, Lieutenant> = {
@@ -40,6 +45,10 @@ export const LIEUTENANTS: Record<Who, Lieutenant> = {
   rime: {
     ...RIME, school: "frost", look: "rime", palette: "frost", boost: { nova: RIME.nova, bolt: RIME.bolt, novaCharge: RIME.novaCharge, novaCooldown: RIME.novaCooldown }, lastStand: true, falls: RIME_FALLS, lastWords: RIME_LAST_WORDS,
     drop: () => makeItem(...RIME_CIRCLET),
+  },
+  calder: {
+    ...CALDER, school: "storm", look: "calder", palette: "spark", boost: { nova: 1, bolt: CALDER.bolt }, falls: CALDER_FALLS, lastWords: CALDER_LAST_WORDS,
+    drop: () => makeItem(...CALDERS_HEAD), keeps: true,
   },
 };
 
@@ -157,7 +166,8 @@ export function bossSystem(g: Game, dt: number): void {
   s.beaten.add(here.who);
   s.fell.set(here.who, { x: here.x, y: here.y });
   s.quietIn = g.area;
-  dropLoot(g, here.x, here.y, L.drop(g.rng));
+  const left = dropLoot(g, here.x, here.y, L.drop(g.rng));
+  if (L.keeps) g.world.remove(left, "despawn");
   grantXP(g, L.xp - XP.mage, here.x, here.y);               // the mage's own share comes with the kill
   L.falls.forEach(line => toast(g, line));
   g.world.add(g.player, "conversation", { with: g.player, name: L.name, key: here.who, lines: [...L.lastWords], line: 0, t: 0 });

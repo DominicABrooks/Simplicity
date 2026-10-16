@@ -3,7 +3,8 @@
 // striking all round out of a sky that is, if you look closely, perfectly clear (src/game/rift.ts), and the ground split
 // by cracks that get thicker the higher you climb. The trail winds north from glade to glade, where the Storm mages
 // hold the paths (and by the top, Ember and Frost mages with them), past the rift stone, one of Ael's old stones, up to
-// the great crack: the deepest under the Witchwood, cold and humming, a door into the dark. Calder stands at its edge.
+// the great crack: the deepest under the Witchwood, cold and humming, a door into the dark. Calder stands at its edge
+// (src/game/calderfight.ts).
 import { Rng } from "../core/rng.ts";
 import { T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
@@ -61,6 +62,7 @@ function build(): AreaLayout {
 
   // The great crack, across the top of the last glade, and the rift stone on the trail below it.
   town.add({ kind: "greatCrack", x: GREAT_CRACK.x * T, y: GREAT_CRACK.y * T, len: GREAT_CRACK.len, wide: GREAT_CRACK.wide, angle: 0 });
+  town.add({ kind: "boss", x: (CALDER_STAND.x + 0.5) * T, y: (CALDER_STAND.y + 0.5) * T, who: "calder" });   // src/game/calderfight.ts
   town.add({ kind: "oldStone", x: (trailX(RIFT_STONE_Y) + 1) * T, y: (RIFT_STONE_Y + 0.5) * T, name: "The rift stone", entry: "stone" });
 
   // Cracks across the open ground: a few low down, thicker the higher up, thickest running out from the great one.
