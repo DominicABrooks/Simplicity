@@ -25,6 +25,7 @@ import { crowdOf } from "../src/game/crowd.ts";
 import { holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
 import { endCredits, homeStoneSystem, watchEnding } from "../src/game/ending.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
+import { laidToRest } from "../src/game/ghost.ts";
 import { atPeace, spared } from "../src/game/peace.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
@@ -111,15 +112,16 @@ describe("the credits", () => {
     }
   });
 
-  it("don't play the walk home or the King's feet again; the chronicle says a crowd followed him; the last shot is his own", async () => {
+  it("don't play back what he did, only what came of it; the chronicle says a crowd followed him; the last shot is his own", async () => {
     const g = await atTheCastle();
     crowdOf(g).following = people.filter(r => r.age >= 14).slice(0, CROWD_OF + 2).map(r => r.id);
     toTheKing(g);
     expect(g.state).toBe("credits");
     const shots = await playThrough(g);
     const said = shots.map(s => s.says);
-    expect(said[0]).toBe(SHOT_SAYS.woke);
-    expect(said.some(s => /followed you up the hill with|at the King's feet/.test(s))).toBe(false);
+    expect(said[0]).toBe(SHOT_SAYS.greyed);                  // straight to what it meant: no stone, no King, no Calder
+    expect(said.some(s => /woke|followed you up the hill with|at the King's feet|Calder looked/.test(s))).toBe(false);
+    expect(said).not.toContain(SHOT_SAYS.ringer);            // he never laid her to rest, so nothing came of it
     expect(said).toContain(`${SHOT_SAYS.chronicle} ${SHOT_SAYS_TOO.followed.crowd}`);
     const last = shots[shots.length - 1]!;
     expect(last.says).toBe(SHOT_SAYS.fells);
@@ -133,6 +135,14 @@ describe("the credits", () => {
     endCredits(g);
     expect(g.area.def.id).toBe("castle");
     expect(creditsAsleep(g)).toBeNull();
+  });
+
+  it("show St Mary's churchyard quiet if he laid the Grey Ringer to rest", async () => {
+    const g = await atTheCastle();
+    laidToRest(g);
+    toTheKing(g);
+    const said = (await playThrough(g)).map(s => s.says);
+    expect(said).toContain(SHOT_SAYS.ringer);
   });
 
   it("say only the chronicle when nobody followed him up", async () => {

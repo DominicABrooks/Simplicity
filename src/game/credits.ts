@@ -1,15 +1,13 @@
-// The credits as this run played them (STORY.md, "0:55"; src/ui/credits.ts draws the caption and The End over them).
-// After the King's had his say, the game goes back through the run, a short shot at a time, in the places it happened
-// and drawn the way the game draws them: the stone by the Ranger's fire where he woke, the King on his throne, the
-// woodwardens stepping aside, Yssa at the foot of the climb, Cinder and Rime falling and their spirits rising, the Grey
-// Ringer's churchyard, and Calder at the great crack as it grinds shut (not the walk home or the King's feet: he's just
-// played those). Then what it meant: the Greyed losing their grey, the slimes gone still, the King reading the true
-// chronicle at the cross, the Vael coming over the bridge for their eggs, Yssa at the fountain; and last his own
-// ending, asleep in the Fells' house with a lantern of his own in the window, the Ranger home by the fire with Meg. Only
-// what this run got to is shown, and some of what's said changes with what else it did. Each shot loads its area,
-// clears off anything that'd wander in, stands the people in it, and moves the camera itself (in, out, round), the
-// clock running on so everything breathes and flickers; a shot with a long line under it holds long enough to read. A
-// little tune plays under them all, coming round a little different each time. After, he's put back where he was.
+// The credits (STORY.md, "0:55"; src/ui/credits.ts draws the caption and The End over them). After the King's had his
+// say, they don't play back what he's just been through: they show what came of it, a short shot at a time, in the
+// game's own world. The Greyed losing their grey, the slimes gone still, the King reading the true chronicle at the
+// cross, the Vael coming over the bridge for their eggs; and, as this run went, the lake in the Hollow open water if he
+// beat Rime, St Mary's churchyard quiet if he laid the Grey Ringer to rest, Yssa at the fountain if he met her; and last
+// his own ending, asleep in the Fells' house with a lantern of his own in the window, the Ranger home by the fire with
+// Meg. Some of what's said changes with what else he did. Each shot loads its area, clears off anything that'd wander
+// in, stands the people in it, and moves the camera itself (in, out, round), the clock running on so everything breathes
+// and flickers; a shot with a long line under it holds long enough to read. A little tune plays under them all, coming
+// round a little different each time. After, he's put back where he was.
 import { loadArea } from "../areas/index.ts";
 import type { Entity } from "../core/ecs.ts";
 import { CREDITS_TIME, CROWD_OF, RUN_SUMS, SHOT_SAYS, SHOT_SAYS_TOO, type ShotId } from "../data/ending.ts";
@@ -23,33 +21,28 @@ import { layoutOf } from "../world/layouts.ts";
 import { interiorOf, type Spot } from "../world/interiors.ts";
 import type { Resident } from "../world/residents.ts";
 import { registerArea } from "../areas/index.ts";
-import { beaten, standIn, type Who } from "./bosses.ts";
-import { calderFightSystem, reopenCrack } from "./calderfight.ts";
+import { beaten, type Who } from "./bosses.ts";
 import { crowdOf } from "./crowd.ts";
 import { curioFound } from "./curios.ts";
-import { scenePlayed } from "./cutscene.ts";
 import type { Game } from "./game.ts";
 import { churchyardOf, hauntingOf } from "./ghost.ts";
 import { greatKoiBeaten } from "./greatkoi.ts";
-import { tookBow } from "./hunterhut.ts";
 import { rimeFightSystem } from "./rimefight.ts";
 import type { Bed } from "./components.ts";
 import { sound } from "./sfx.ts";
 import { spawnKing } from "./spawn.ts";
 import { loadCensus } from "./townsfolk.ts";
-import { spiritSystem } from "./spirits.ts";
 import { standIn as standInside } from "./interiors.ts";
 import { endTalk } from "./talk.ts";
 import { enterArea } from "./travel.ts";
-import { passedBarricade } from "./watchword.ts";
-import { passedClimb, passedYssa, yssaSystem } from "./yssa.ts";
+import { passedYssa } from "./yssa.ts";
 
 /** Where the camera looks (px, centres), how far out (1 the usual), and how far round (radians, from the usual). */
 export interface Cam { x: number; y: number; zoom: number; yaw: number }
 
 /** How the run went, read at the start of the credits. */
 interface Run {
-  audience: boolean; barricade: boolean; yssa: boolean; climb: boolean; ringer: boolean; koi: boolean; bow: boolean;
+  yssa: boolean; ringer: boolean; koi: boolean;
   level: number; kills: number; curios: number; beat: Set<Who>;
   /** How many followed him up the hill with the head. */
   followed: number;
@@ -116,8 +109,7 @@ export function runSum(g: Game): string {
 function readRun(g: Game): Run {
   const beat = new Set<Who>((["cinder", "rime", "calder"] as const).filter(w => beaten(g, w)));
   return {
-    audience: scenePlayed(g, "audience"), barricade: passedBarricade(g), yssa: passedYssa(g), climb: passedClimb(g), ringer: hauntingOf(g).night === "laid",
-    koi: greatKoiBeaten(g), bow: tookBow(g), level: g.world.need(g.player, "hero").level, kills: g.kills,
+    yssa: passedYssa(g), ringer: hauntingOf(g).night === "laid", koi: greatKoiBeaten(g), level: g.world.need(g.player, "hero").level, kills: g.kills,
     curios: CURIO_IDS.filter(id => curioFound(g, id)).length, beat, followed: crowdOf(g).following.length,
   };
 }
@@ -234,12 +226,7 @@ function heroAt(g: Game, x: number, y: number, tx: number, ty: number, walking =
   m.moving = walking;
   m.aim = Math.atan2(ty - y, tx - x);
 }
-/** Walking him from a to b (px, centres) over the part of the shot from k0 to k1. */
-function walkAlong(g: Game, a: { x: number; y: number }, b: { x: number; y: number }, k: number, k0 = 0, k1 = 1): void {
-  const u = Math.max(0, Math.min(1, (k - k0) / (k1 - k0)));
-  heroAt(g, lerp(a.x, b.x, u), lerp(a.y, b.y, u), b.x, b.y, u > 0 && u < 1);
-}
-/** A boss falls: a burst where they stood, and they're gone. */
+/** One of the Greyed loses the grey: a burst where they stood, and they're gone. */
 function crumble(g: Game, e: Entity, palette: "fire" | "frost" | "spark"): void {
   const t = g.world.get(e, "transform");
   if (!t) return;
@@ -247,17 +234,6 @@ function crumble(g: Game, e: Entity, palette: "fire" | "frost" | "spark"): void 
   g.fx.push({ type: "burst", x: t.x, y: t.y, palette: "arcane" });
   g.world.destroy(e);
 }
-/** A beaten lieutenant, back in their arena for the camera: standing facing him, falling at `at`, their spirit rising after. */
-function lieutenant(g: Game, who: Who, palette: "fire" | "frost" | "spark", at: number, after?: (dt: number) => void): NonNullable<Staged["play"]> {
-  const lair = propOf(g, "boss")!, x = lair.x, y = lair.y, me = standIn(g, who, x - HALF, y - HALF);
-  heroAt(g, x, y + 3 * T, x, y);
-  let fallen = false;
-  return (k, dt) => {
-    if (!fallen && k >= at) { fallen = true; crumble(g, me, palette); }
-    if (fallen) { after?.(dt); spiritSystem(g); }
-  };
-}
-
 /** One of the Greyed, standing (cell top-left): a mage of that school, nobody's fight. */
 function greyed(g: Game, school: School, x: number, y: number): Entity {
   return g.world.create({
@@ -297,98 +273,6 @@ function gatherRound(g: Game, x: number, y: number, r: number): void {
 }
 
 const SHOTS: readonly Shot[] = [
-  {
-    // Where he woke: the stone by the Ranger's fire, early, the camera coming down out of the trees to him.
-    id: "woke", area: "witchwood", hour: 7.5, had: () => true,
-    stage(g) {
-      const stone = propOf(g, "oldStone")!, fire = propOf(g, "camp")!.fire;
-      heroAt(g, stone.x, stone.y, fire.x + HALF, fire.y + HALF);
-      return { from: cam(stone.x, stone.y, 1.9, 0.7), to: cam(stone.x, stone.y, 0.7, -0.15), says: SHOT_SAYS.woke };
-    },
-  },
-  {
-    // The King's audience: up the carpet to the foot of the dais, the camera closing in on the two of them.
-    id: "king", area: "throneroom", hour: 10, had: run => run.audience,
-    stage(g) {
-      const k = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")![1].transform;
-      const kx = k.x + HALF, ky = k.y + HALF, from = { x: kx, y: ky + 72 }, to = { x: kx, y: ky + 24 };
-      return {
-        from: cam(kx, ky + 40, 1.4), to: cam(kx, ky + 12, 0.6, 0.25), says: SHOT_SAYS.king,
-        play: k => walkAlong(g, from, to, k, 0, 0.6),
-      };
-    },
-  },
-  {
-    // The barricade: the wardens aside at their posts, and him through the gate and on down the trail.
-    id: "barricade", area: "witchwood", hour: 16, had: run => run.barricade,
-    stage(g) {
-      const b = propOf(g, "barricade")!, gx = b.rect.x + (b.gate + b.gateW / 2) * T, from = { x: gx, y: b.rect.y - 4 * T }, to = { x: gx, y: b.rect.y + 4 * T };
-      return {
-        from: cam(gx, b.rect.y, 0.85, 0.4), to: cam(gx, b.rect.y, 0.85, -0.4), follow: true, says: SHOT_SAYS.barricade,
-        play: k => walkAlong(g, from, to, k, 0.1, 0.9),
-      };
-    },
-  },
-  {
-    // Yssa at the foot of the climb, aside now, and him past her on up the frozen river.
-    id: "yssa", area: "hollow", hour: 12, had: run => run.climb,
-    stage(g) {
-      yssaSystem(g, 0);
-      const her = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "yssa")?.[1].transform;
-      const hx = (her?.x ?? 0) + HALF, hy = (her?.y ?? 0) + HALF, x = hx + T, from = { x, y: hy + 3 * T }, to = { x, y: hy - 2 * T };
-      return {
-        from: cam(hx + HALF, hy, 0.75, -0.35), to: cam(hx + HALF, hy - HALF, 0.6, 0.3), says: SHOT_SAYS.yssa,
-        play: k => walkAlong(g, from, to, k, 0.15, 0.95),
-      };
-    },
-  },
-  {
-    // Cinder in the ashes: he falls, and his spirit rises where he stood. The camera goes round them.
-    id: "cinder", area: "ashwild", hour: 15, had: run => run.beat.has("cinder"),
-    stage(g) {
-      const lair = propOf(g, "boss")!;
-      return { from: cam(lair.x, lair.y + T, 0.75, -0.6), to: cam(lair.x, lair.y + T, 0.6, 0.6), says: SHOT_SAYS.cinder, play: lieutenant(g, "cinder", "fire", 0.35) };
-    },
-  },
-  {
-    // Rime out on the frozen lake: she falls, the lake thaws round where she stood, and her spirit rises.
-    id: "rime", area: "hollow", hour: 10, had: run => run.beat.has("rime"),
-    stage(g, run) {
-      const lair = propOf(g, "boss")!;
-      return {
-        from: cam(lair.x, lair.y + T, 1.25, 0.5), to: cam(lair.x, lair.y + T, 0.9, -0.5),
-        says: `${run.bow ? SHOT_SAYS_TOO.bow : SHOT_SAYS.rime}${run.koi ? ` ${SHOT_SAYS_TOO.koi}` : ""}`,
-        play: lieutenant(g, "rime", "frost", 0.3, dt => rimeFightSystem(g, dt)),
-      };
-    },
-  },
-  {
-    // The churchyard of St Mary's at night, quiet now: him among the graves.
-    id: "ringer", area: "capital", hour: 23, had: run => run.ringer,
-    stage(g) {
-      const yard = churchyardOf(g)!, x = yard.x + yard.w / 2, y = yard.y + yard.h / 2;
-      heroAt(g, x, y + T, x, y - T);
-      return { from: cam(x, y, 1.3, -0.3), to: cam(x, y, 0.7, 0.2), says: SHOT_SAYS.ringer };
-    },
-  },
-  {
-    // Calder at the edge of the great crack: he falls, his spark goes home, and the crack grinds shut. Round and out.
-    id: "calder", area: "rift", hour: 19, had: run => run.beat.has("calder"),
-    stage(g) {
-      calderFightSystem(g, 0);                               // the crack as he left it, to open again for the camera
-      const lair = propOf(g, "boss")!;
-      let opened = false;
-      const fall = lieutenant(g, "calder", "spark", 0.3, dt => calderFightSystem(g, dt));
-      return {
-        from: cam(lair.x, lair.y, 1.05, -0.45), to: cam(lair.x, lair.y - T, 1.35, 0.45), says: SHOT_SAYS.calder,
-        play: (k, dt) => {
-          if (!opened) { opened = true; reopenCrack(g); }
-          if (k < 0.3) calderFightSystem(g, 0);              // held open till he falls
-          fall(k, dt);
-        },
-      };
-    },
-  },
   // ---------- What it meant ----------
   {
     // The Greyed's camp in the Ashwild: the last of them standing about the old fire ring, and with nobody to follow,
@@ -461,6 +345,29 @@ const SHOTS: readonly Shot[] = [
           }
         },
       };
+    },
+  },
+  {
+    // The lake in the Hollow, if he beat Rime: open water under a spring sky, the ice gone for good. The camera drifts
+    // across it.
+    id: "rime", area: "hollow", hour: 11, had: run => run.beat.has("rime"),
+    stage(g, run) {
+      rimeFightSystem(g, 0);                                 // the thaw, as it stays for the run
+      const lair = propOf(g, "boss")!;
+      heroAt(g, lair.x, lair.y + 4 * T, lair.x, lair.y);
+      return {
+        from: cam(lair.x - 2 * T, lair.y, 1.2, 0.45), to: cam(lair.x + 2 * T, lair.y, 0.9, -0.35),
+        says: `${SHOT_SAYS.rime}${run.koi ? ` ${SHOT_SAYS_TOO.koi}` : ""}`,
+      };
+    },
+  },
+  {
+    // St Mary's churchyard on a bright morning, if he laid the Grey Ringer to rest: nothing there but the graves.
+    id: "ringer", area: "capital", hour: 10, had: run => run.ringer,
+    stage(g) {
+      const yard = churchyardOf(g)!, x = yard.x + yard.w / 2, y = yard.y + yard.h / 2;
+      heroAt(g, x + 3 * T, y + 3 * T, x, y);
+      return { from: cam(x, y, 1.1, -0.3), to: cam(x, y, 0.75, 0.25), says: SHOT_SAYS.ringer };
     },
   },
   {
