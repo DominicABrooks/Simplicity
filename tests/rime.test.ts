@@ -89,6 +89,12 @@ describe("Rime", () => {
     mage.specialCD = 0;
     mageSystem(g, DT);
     expect(mage.spell).toBe("nova");
+    // It charges slower than an ordinary mage's, time to see it coming and get clear; and comes round again later.
+    for (let t = DT; t < SPELLS.nova.charge * 1.5; t += DT) mageSystem(g, DT);
+    expect(mage.casting).toBe(true);
+    for (let t = 0; t < SPELLS.nova.charge * RIME.novaCharge && mage.casting; t += DT) mageSystem(g, DT);
+    expect(mage.casting).toBe(false);
+    expect(mage.specialCD).toBeCloseTo(SPELLS.nova.cooldown! * RIME.novaCooldown, 0);
     // A bolt: faster than a Frost mage's.
     Object.assign(mage, { casting: true, castT: SPELLS.frost.charge, spell: "frost", melee: false });
     mageSystem(g, DT);

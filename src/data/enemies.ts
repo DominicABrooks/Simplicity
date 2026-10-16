@@ -45,7 +45,7 @@ export const SPELLS: Record<SpellName, Spell> = {
   nova:   { charge: 0.6, cooldown: 9, radius: 30, freeze: 1.6 },        // cast when you get close
   strike: { charge: 0.6, cooldown: 7, chance: 0.5, delay: 0.9, radius: 7, count: 3 },
   wisp:   { charge: 0.75, speed: 46, homing: 0.9 },                     // the ghost's: slow, in a fan
-  icicle: { charge: 0.8, speed: 44, hit: 7 },                          // Rime's: thrown in rings and spirals, flying straight; big
+  icicle: { charge: 0.8, speed: 44, hit: 3.5 },                        // Rime's: thrown in rings and spirals, flying straight; big, but only the core hurts
 };
 
 export const CHILL_SLOW = 0.55;

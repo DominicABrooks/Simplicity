@@ -18,6 +18,8 @@ export const RIME = {
   hurry: 1.5,
   /** How much wider her novas are, and how much faster her bolts fly, than an ordinary Frost mage's. */
   nova: 1.3, bolt: 1.15,
+  /** How much longer than an ordinary Frost mage's her novas take to charge (time to see it and get clear), and to come round again. */
+  novaCharge: 2.2, novaCooldown: 1.6,
   /** Experience for beating her (a mage is worth 50). */
   xp: 300,
 } as const;
@@ -45,8 +47,8 @@ export const RIME_FIGHT = {
    */
   volley: {
     first: 5, every: [8, 6], wind: 1.1, speed: 30,
-    rings: { waves: [2, 2], count: [8, 9], gap: 0.75 },
-    spiral: { arms: [2, 2], shots: [7, 9], gap: 0.24, turn: 0.32 },
+    rings: { waves: [2, 2], count: [6, 7], gap: 0.75 },
+    spiral: { arms: [2, 2], shots: [5, 6], gap: 0.24, turn: 0.32 },
   },
   /**
    * The ice block: carve `melee` damage off her up close within about `window` seconds and she seals herself in ice
@@ -68,7 +70,7 @@ export const RIME_FIGHT = {
    */
   lastStand: {
     hold: 8, speed: 28,
-    spiral: { arms: 2, gap: 0.3, turn: 0.22, flip: 4 },
+    spiral: { arms: 2, gap: 0.45, turn: 0.3, flip: 4 },
     rings: { every: 3, count: 0 },
     falls: { every: 0.9, count: 3 },
   },

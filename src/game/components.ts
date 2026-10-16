@@ -178,8 +178,11 @@ export interface MageBrain {
   swingSide: number;
   swingK: number;
   swingRel: number;
-  /** A lieutenant's (src/game/bosses.ts): how much wider its novas are, and faster its bolts, than its school's. */
-  boost?: { nova: number; bolt: number };
+  /**
+   * A lieutenant's (src/game/bosses.ts): how much wider its novas are, and faster its bolts, than its school's; and how
+   * much longer its novas take to charge, and to come round again.
+   */
+  boost?: { nova: number; bolt: number; novaCharge?: number; novaCooldown?: number };
   /** Held still by its fight (Rime winding up a volley, or sealed in ice): it doesn't move, cast or blink. */
   held?: boolean;
 }

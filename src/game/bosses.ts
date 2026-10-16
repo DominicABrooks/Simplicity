@@ -38,7 +38,7 @@ export const LIEUTENANTS: Record<Who, Lieutenant> = {
     },
   },
   rime: {
-    ...RIME, school: "frost", look: "rime", palette: "frost", boost: { nova: RIME.nova, bolt: RIME.bolt }, lastStand: true, falls: RIME_FALLS, lastWords: RIME_LAST_WORDS,
+    ...RIME, school: "frost", look: "rime", palette: "frost", boost: { nova: RIME.nova, bolt: RIME.bolt, novaCharge: RIME.novaCharge, novaCooldown: RIME.novaCooldown }, lastStand: true, falls: RIME_FALLS, lastWords: RIME_LAST_WORDS,
     drop: () => makeItem(...RIME_CIRCLET),
   },
 };

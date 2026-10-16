@@ -27,7 +27,7 @@ function updateMage(g: Game, h: HeroParts, e: Entity, s: Transform, b: MageBrain
   b.blinkCD = Math.max(0, b.blinkCD - dt);
   b.specialCD = Math.max(0, b.specialCD - dt);
   if (b.casting && b.spell) {
-    const charge = SPELLS[b.spell].charge;
+    const charge = SPELLS[b.spell].charge * (b.spell === "nova" ? b.boost?.novaCharge ?? 1 : 1);
     b.castT += dt;
     b.castK = Math.min(1, b.castT / charge);
     b.moving = false;
@@ -100,7 +100,7 @@ function releaseSpell(g: Game, h: HeroParts, s: Transform, b: MageBrain, dx: num
     sound(g, "spell", s);
     spawnBolt(g, spell, s.x + Math.cos(a) * o, s.y + Math.sin(a) * o, Math.cos(a) * v, Math.sin(a) * v);
   }
-  if (S.cooldown) b.specialCD = S.cooldown;
+  if (S.cooldown) b.specialCD = S.cooldown * (spell === "nova" ? b.boost?.novaCooldown ?? 1 : 1);
   b.casting = false;
   b.timer = MAGE.every[0] + g.rng.next() * (MAGE.every[1] - MAGE.every[0]);
 }
