@@ -4,7 +4,7 @@ import { THEMES, daylight, moodOf, noteOf, playing, scaleOf, themeFor } from "..
 
 describe("music", () => {
   it("has a theme for every area, and the hearth inside a house", () => {
-    for (const id of AREA_IDS) expect(themeFor("play", { id }), id).toBe(id);
+    for (const id of AREA_IDS) expect(themeFor("play", { id }), id).not.toBeNull();
     expect(themeFor("play", { id: "inside:capital:3,4", indoors: true })).toBe("hearth");
   });
 
@@ -24,6 +24,13 @@ describe("music", () => {
   it("is the watchers' own once only they are under the hill", () => {
     expect(themeFor("play", { id: "underhill" })).toBe("underhill");
     expect(themeFor("play", { id: "underhill" }, { watched: true })).toBe("watchers");
+  });
+
+  it("plays the castle's all over Capital City, so it doesn't break off between districts", () => {
+    for (const id of ["capital", "kingsroad", "castle", "throneroom"]) {
+      expect(themeFor("play", { id }, { hour: 12 }), id).toBe("castle");
+      expect(themeFor("play", { id }, { hour: 23 }), id).toBe("castleNight");
+    }
   });
 
   it("has the castle bright by day and something else after dark, changing over at dusk and dawn", () => {
@@ -55,7 +62,7 @@ describe("music", () => {
   });
 
   it("brings a drone under the rain, and thins out and echoes in fog", () => {
-    const t = THEMES.capital, clear = playing(t, moodOf(t, 12, { rain: 0, fog: 0 }));
+    const t = THEMES.castle, clear = playing(t, moodOf(t, 12, { rain: 0, fog: 0 }));
     const rain = playing(t, moodOf(t, 12, { rain: 1, fog: 0 })), fog = playing(t, moodOf(t, 12, { rain: 0, fog: 1 }));
     expect([clear.rain, rain.rain]).toEqual([0, 1]);
     expect(rain.dark).toBe(true);
@@ -69,7 +76,7 @@ describe("music", () => {
   });
 
   it("darkens a major mode into a minor one, and climbs the scale by octaves", () => {
-    expect(scaleOf(THEMES.capital, true)).toEqual([0, 2, 3, 5, 7, 8, 10]);
+    expect(scaleOf(THEMES.castle, true)).toEqual([0, 2, 3, 5, 7, 8, 10]);
     expect(noteOf(60, [0, 2, 4, 5, 7, 9, 11], 7)).toBe(72);
     expect(noteOf(60, [0, 2, 4, 5, 7, 9, 11], -1)).toBe(59);
   });

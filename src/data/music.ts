@@ -57,10 +57,8 @@ export const THEMES = {
   title: { root: 50, mode: DORIAN, chords: [0, 3, 6, 0], bpm: 60, pad: "triangle", lead: "sine", density: 0.25, bright: 1800, sky: false },
   /** Home: a folk air in the woods. */
   witchwood: { root: 55, mode: MIXOLYDIAN, chords: [0, 3, 6, 0, 4, 3, 0, 6], bpm: 84, pad: "triangle", lead: "triangle", density: 0.45, bright: 2400 },
-  /** The capital: stately, major, a little march. */
-  capital: { root: 60, mode: IONIAN, chords: [0, 3, 4, 0, 5, 3, 4, 0], bpm: 96, pad: "sawtooth", lead: "square", density: 0.5, bright: 2000 },
   /**
-   * The castle by day: bright and bustling, a court in good spirits. Major, quick, a fanfare of a tune over a
+   * Capital City by day, all of it (CITY): bright and bustling, a court in good spirits. Major, quick, a fanfare of a tune over a
    * ripple of the chords; and by night (castleNight) something else entirely.
    */
   castle: { root: 60, mode: IONIAN, chords: [0, 3, 4, 0, 5, 3, 1, 4], bpm: 112, pad: "triangle", lead: "square", density: 0.6, arp: true, bright: 3200,
@@ -72,8 +70,6 @@ export const THEMES = {
    */
   castleNight: { root: 50, mode: HARMONIC_MINOR, chords: [0, 5, 0, 6, 3, 1, 4, 0], bpm: 54, pad: "triangle", lead: "sine", density: 0.12, arp: true,
     bright: 2600, sky: false, drone: true, detune: 12, wobble: 25, wobbleRate: 1.2, warp: 10, swell: true },
-  kingsroad: { root: 62, mode: MIXOLYDIAN, chords: [0, 6, 3, 0], bpm: 100, pad: "sawtooth", lead: "square", density: 0.45, bright: 2100 },
-  throneroom: { root: 58, mode: IONIAN, chords: [0, 3, 4, 0, 5, 1, 4, 0], bpm: 66, pad: "sawtooth", lead: "triangle", density: 0.3, bright: 1500, sky: false },
   /** The cold places: glassy ripples. */
   hollow: { root: 57, mode: AEOLIAN, chords: [0, 5, 2, 6], bpm: 70, pad: "sine", lead: "sine", density: 0.3, arp: true, bright: 3200 },
   grotto: { root: 64, mode: LYDIAN, chords: [0, 1, 0, 4], bpm: 64, pad: "sine", lead: "sine", density: 0.25, arp: true, bright: 3000, sky: false },
@@ -109,6 +105,12 @@ export const MUSIC_VOLUME = 0.16;
 /** Seconds one area's music takes to fade out and the next in. */
 export const MUSIC_FADE = 2.5;
 
+/**
+ * Areas that share a theme rather than have their own: all of Capital City, from the King's Bridge to the Throne Room,
+ * plays the castle's, so it carries on unbroken from one district to the next.
+ */
+const SHARED: Record<string, ThemeId> = { capital: "castle", kingsroad: "castle", castle: "castle", throneroom: "castle" };
+
 /** How dark it has to be (daylight under this) for a theme to give way to its `night` one. */
 const NIGHT_FALLS = 0.35;
 
@@ -122,9 +124,10 @@ export function themeFor(state: string, area: { id: string; indoors?: boolean },
   if (state !== "play" && state !== "travel") return null;           // dead, and the credits, which have their own tune
   if (now.watched) return "watchers";
   if (now.fey) return "underhill";
-  if (area.id in THEMES && !["title", "hearth", "watchers", "castleNight"].includes(area.id)) {
-    const night = (THEMES[area.id as ThemeId] as Theme).night;
-    return night && now.hour !== undefined && daylight(now.hour) < NIGHT_FALLS ? night as ThemeId : area.id as ThemeId;
+  const own = SHARED[area.id] ?? (area.id in THEMES && !["title", "hearth", "watchers", "castleNight"].includes(area.id) ? area.id as ThemeId : null);
+  if (own) {
+    const night = (THEMES[own] as Theme).night;
+    return night && now.hour !== undefined && daylight(now.hour) < NIGHT_FALLS ? night as ThemeId : own;
   }
   if (area.id.startsWith("inside:")) return "hearth";
   return null;
