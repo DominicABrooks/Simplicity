@@ -1051,18 +1051,30 @@ function homecoming(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y
   return true;
 }
 
-/** In the crowd behind him: to their place in it, hurrying if they've fallen behind; there, watching him. */
+/**
+ * In the crowd behind him: walking to their place in it, each at their own pace, hurrying if they've fallen behind,
+ * facing the way they walk; there, watching him. They set off once their place has got a step ahead and keep walking
+ * till they're on it (not stopping and starting every step), easing up as they come to it, and never step backwards
+ * to a place that's ended up just behind them: they wait for it. A place they can't get to (in a wall, a stall),
+ * they come as near as they can, and stand: never walking on the spot against it.
+ */
 function keepInCrowd(g: Game, s: Streets, w: Walker, t: { x: number; y: number }, dt: number, hero: { x: number; y: number }): void {
   const [tx, ty] = placeInCrowd(g, w.crowd!.slot), cx = t.x + HALF, cy = t.y + HALF, dx = tx - cx, dy = ty - cy, d = Math.hypot(dx, dy);
   if (d > 32 || w.catchingUp) catchUp(g, s, w, t, tx, ty, CROWD.hurry / TOWNSFOLK.party.run, dt);
-  else if (d > 1.2) {
-    const step = Math.min(d, (d > 10 ? CROWD.hurry : CROWD.pace) * dt);
-    moveBy(g.map, t, (dx / d) * step, (dy / d) * step, true);
-    w.moving = true;
-    w.facing = Math.atan2(dy, dx);
-  } else {
-    w.moving = false;
-    w.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
+  else {
+    const ahead = Math.atan2(hero.y - t.y, hero.x - t.x);          // the way the crowd's going: after him
+    const behind = dx * Math.cos(ahead) + dy * Math.sin(ahead) < 0 && d < CROWD.waitBehind;
+    if (!w.moving && d > CROWD.setOff && !behind) w.moving = true;
+    else if (w.moving && (d < CROWD.stop || behind)) w.moving = false;
+    if (w.moving) {
+      const own = 1 + (((w.id * 7919) % 201) / 100 - 1) * CROWD.spread;   // their own pace, give or take
+      const speed = d > 10 ? CROWD.hurry : CROWD.pace * own * Math.min(1, 0.45 + d / 8);
+      const step = Math.min(d, speed * dt), from = { x: t.x, y: t.y };
+      moveBy(g.map, t, (dx / d) * step, (dy / d) * step, true);
+      w.facing = Math.atan2(dy, dx);
+      if (Math.hypot(t.x - from.x, t.y - from.y) < step * 0.3) w.moving = false;   // in the way: as near as they'll get
+    }
+    if (!w.moving) w.facing = ahead;                               // stood, watching him
   }
   const last = w.trail[w.trail.length - 1];                  // breadcrumbs, for any children with them
   if (!last || Math.hypot(last[0] - t.x - HALF, last[1] - t.y - HALF) >= 3) { w.trail.push([t.x + HALF, t.y + HALF]); if (w.trail.length > 40) w.trail.shift(); }

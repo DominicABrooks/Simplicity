@@ -5,7 +5,7 @@ import { DEBUG_PARAMS, wantsDebug } from "../src/debug.ts";
 
 describe("the debug handle on the site", () => {
   it("is on when the address asks for a scene, a boss, an hour or a switch", () => {
-    for (const q of ["?area=hollow", "?try=deep", "?try=seal&stones=3", "?curio=stone", "?boss=cinder", "?ending=home&full", "?hour=22", "?god", "?area=capital&entry=castle"]) expect(wantsDebug(q), q).toBe(true);
+    for (const q of ["?area=hollow", "?try=deep", "?try=seal&stones=3", "?curio=stone", "?boss=cinder", "?ending=home&full", "?hour=22", "?god", "?area=capital&entry=castle", "?shot=eggs", "?shot=hatch&at=roar"]) expect(wantsDebug(q), q).toBe(true);
   });
 
   it("is off for an ordinary visit, or an address with nothing it reads", () => {
@@ -13,6 +13,6 @@ describe("the debug handle on the site", () => {
   });
 
   it("reads every parameter it's switched on by", () => {
-    expect([...DEBUG_PARAMS].sort()).toEqual(["area", "boss", "curio", "ending", "entry", "freeze", "god", "hour", "try"]);
+    expect([...DEBUG_PARAMS].sort()).toEqual(["area", "at", "boss", "curio", "ending", "entry", "freeze", "god", "hour", "shot", "try"]);
   });
 });

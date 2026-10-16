@@ -5,6 +5,9 @@ import type { AreaDef, AreaLayout } from "./area.ts";
 const KEEP = 8;
 const cache = new Map<string, AreaLayout>();
 
+/** Set an area's built layout aside, so it's built afresh next time (one made over for a moment, then put back). */
+export function forgetLayout(id: string): void { cache.delete(id); }
+
 /** An area's layout: built on first use, kept while it's one of the last KEEP areas used. */
 export function layoutOf(def: AreaDef): AreaLayout {
   let layout = cache.get(def.id);

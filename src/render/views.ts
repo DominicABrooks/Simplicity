@@ -132,10 +132,11 @@ const mage: EntityView<MageView> = {
       m.group.add(orb);
       return [k, orb];
     })) as Record<BoltKind, THREE.Group>;
-    // Frost Nova telegraph: the blast radius outlined on the ground, filling as the spell charges.
+    // Frost Nova telegraph: the blast radius outlined on the ground, filling as the spell charges. Deep indigo, like
+    // the other warnings on the ice (render/rime.ts), since it's cast on snow and ice where pale blue vanishes.
     const R = SPELLS.nova.radius! / PX_PER_TILE;
-    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.glow(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
-    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.glow(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false, ...onGround(GROUND.marker) }));
+    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.basic("#3348c8", { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
+    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.basic("#2a3590", { transparent: true, opacity: 0.3, depthWrite: false, ...onGround(GROUND.marker) }));
     novaEdge.position.y = novaFill.position.y = 0.03;
     m.group.add(novaEdge, novaFill);
     return { ...m, orbs, novaEdge, novaFill, yaw: null, wasMelee: false, robed: true };
@@ -401,10 +402,15 @@ const arrow: EntityView<ArrowView> = {
 
 // ---------- Spell bolt ----------
 const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost", icicle: "frost" };
+/** Under one of Rime's icicles, instead of a soft shadow: a dark dot on the ice just the size of the part that hurts. */
+const icicleDot = (ctx: RenderContext) => new THREE.Mesh(
+  new THREE.CircleGeometry(SPELLS.icicle.hit! / PX_PER_TILE, 14).rotateX(-Math.PI / 2),
+  ctx.basic("#1b2a6b", { transparent: true, opacity: 0.6, depthWrite: false, ...onGround(GROUND.marker) }),
+);
 const bolt: EntityView<Simple> = {
   create(ctx, e, g) {
-    const group = makeOrbMesh(ctx, g.world.need(e, "bolt").kind);
-    const shadow = addShadow(ctx, 0.35);
+    const kind = g.world.need(e, "bolt").kind, group = makeOrbMesh(ctx, kind);
+    const shadow = kind === "icicle" ? icicleDot(ctx) : addShadow(ctx, 0.35);
     ctx.scene.add(group, shadow);
     return { group, shadow };
   },

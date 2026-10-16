@@ -38,7 +38,7 @@ import { takeBow } from "./game/hunterhut.ts";
 import { passBarricade } from "./game/watchword.ts";
 import { passYssa } from "./game/yssa.ts";
 import { showEndCard } from "./ui/credits.ts";
-import { creditsFrom } from "./game/credits.ts";
+import { SHOT_MOMENTS, creditsFrom } from "./game/credits.ts";
 import type { ShotId } from "./data/ending.ts";
 import { hauntingOf } from "./game/ghost.ts";
 import { startEerie } from "./game/eerie.ts";
@@ -53,7 +53,7 @@ import type { KitPiece } from "./data/items.ts";
 import type { Renderer } from "./render/renderer.ts";
 
 /** The query parameters the handle reads (see the end of exposeDebug): ?area=hollow, ?boss=cinder, ?curio=key, ?try=deep, ?ending=home... */
-export const DEBUG_PARAMS = ["area", "entry", "boss", "hour", "ending", "curio", "try", "god", "freeze"] as const;
+export const DEBUG_PARAMS = ["area", "entry", "boss", "hour", "ending", "shot", "at", "curio", "try", "god", "freeze"] as const;
 
 /** Does this page's address ask for any of them? Then the handle's on even in the site's own build, so they work there too. */
 export const wantsDebug = (search: string): boolean => {
@@ -96,11 +96,15 @@ export function exposeDebug(g: Game, view: Renderer): void {
    * (after The End). `crowd` is how many follow him (castle and on). `full`: the rest of the run done too, for the
    * credits to show it all: Cinder and Rime beaten for real, the barricade and both of Yssa's words passed, the King's
    * audience heard, the hunter's bow taken, the Great Koi landed and the Grey Ringer laid to rest. `shot`: the credits
-   * start from that shot (greyed, slimes, chronicle, eggs, hatch, fells).
+   * start from that shot (greyed, slimes, chronicle, eggs, hatch, fells), and `at`, from that moment in it (its name:
+   * see SHOT_MOMENTS; or a number of seconds in).
    */
-  async function ending(stage: string = "stone", crowd = 8, full = false, shot?: string): Promise<string> {
+  async function ending(stage: string = "stone", crowd = 8, full = false, shot?: string, at?: string): Promise<string> {
     const STAGES = ["stone", "home", "castle", "king", "credits", "card"];
     if (!STAGES.includes(stage)) return `No stage "${stage}". Try: ${STAGES.join(", ")}`;
+    if (shot && !(shot in SHOT_MOMENTS)) return `No shot "${shot}". Try: ${Object.keys(SHOT_MOMENTS).join(", ")}`;
+    const moments = shot ? SHOT_MOMENTS[shot as ShotId] : [];
+    if (shot && at && !moments.includes(at) && !Number.isFinite(Number(at))) return `No moment "${at}" in ${shot}. Try: ${moments.join(", ")}, or a number of seconds`;
     await boss("calder");
     if (full) {
       g.state = "travel";                                    // held still meanwhile: no fight gets going behind his back
@@ -153,7 +157,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
     const king = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")![1].transform;
     Object.assign(hero, { x: king.x, y: king.y + 8 * T });   // near enough that the scene starts
     if (stage === "king") return "A few steps from the King";
-    if (shot) creditsFrom(g, shot as ShotId);               // the credits from that shot on
+    if (shot) creditsFrom(g, shot as ShotId, at ?? null);    // the credits from that shot on (and that moment in it)
     startCutscene(g, "homecoming");
     skipCutscene(g);                                         // the head laid down, and the credits begin
     if (stage === "card") showEndCard();
@@ -288,7 +292,10 @@ export function exposeDebug(g: Game, view: Renderer): void {
   if (q.has("freeze")) setFrozen(g, true);
   if (at !== null && Number.isFinite(Number(at))) setHour(Number(at));
   // A lair can set its own hour (the Ringer comes at night): the asked-for one wins.
-  if (end !== null) void ending(end || "stone", Number(q.get("crowd") ?? 8), q.has("full"), q.get("shot") ?? undefined).then(said => console.info(said));
+  // ?shot=eggs (&at=gilding, or &at=7.5 seconds in): the credits, from that shot (and moment). Every shot's moments are in
+  // SHOT_MOMENTS (src/game/credits.ts); "start" and "end" in all of them.
+  const shot = q.get("shot") ?? undefined, shotAt = q.get("at") ?? undefined;
+  if (end !== null || shot) void ending(end || (shot ? "credits" : "stone"), Number(q.get("crowd") ?? 8), q.has("full"), shot, shotAt).then(said => console.info(said));
   else if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
   else if (cur !== null) void curio(cur || "bell").then(said => console.info(said));

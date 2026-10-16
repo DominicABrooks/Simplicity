@@ -151,6 +151,52 @@ describe("the end of the story path", () => {
     expect(there.sort()).toEqual(following.sort());
   });
 
+  it("the crowd walks after him steadily, facing the way they go, and turns to watch him when he stops", async () => {
+    const g = await home();
+    populate(g, people);
+    const hero = g.world.need(g.player, "transform");
+    for (const [e] of g.world.query("walker", "transform")) {        // gather a crowd, as above
+      const t = g.world.get(e, "transform"), w = g.world.get(e, "walker");
+      if (!t || !w || w.follow || w.crowd) continue;
+      Object.assign(hero, { x: t.x + 10, y: t.y });
+      updateTownsfolk(g, DT);
+      Object.assign(hero, { x: t.x + 400, y: t.y });
+      updateTownsfolk(g, DT);
+    }
+    const start = g.area.layout.entries.stone!;
+    Object.assign(hero, { x: start.x, y: start.y });
+    const crowd = () => g.world.query("walker", "transform").filter(([, c]) => c.walker.crowd?.mode === "follow");
+    for (let i = 0; i < 120; i++) updateTownsfolk(g, DT);          // into their places round him
+    expect(crowd().length).toBeGreaterThan(2);
+    // He walks north, steadily: they walk after him, steadily too, and face north as they go.
+    const was = new Map<number, boolean>(), flips = new Map<number, number>();
+    let walking = 0, facingOn = 0;
+    for (let i = 0; i < 90; i++) {
+      hero.y -= 30 * DT;
+      updateTownsfolk(g, DT);
+      if (i < 30) continue;                                       // once they're under way
+      for (const [, { walker: w }] of crowd()) {
+        if (w.catchingUp) continue;
+        if (was.has(w.id) && was.get(w.id) !== w.moving) flips.set(w.id, (flips.get(w.id) ?? 0) + 1);
+        was.set(w.id, w.moving);
+        if (!w.moving) continue;
+        walking++;
+        if (Math.abs(Math.atan2(Math.sin(w.facing + Math.PI / 2), Math.cos(w.facing + Math.PI / 2))) < Math.PI / 3) facingOn++;
+      }
+    }
+    expect(Math.max(0, ...flips.values())).toBeLessThanOrEqual(4);   // no stopping and starting every step
+    expect(walking).toBeGreaterThan(0);
+    expect(facingOn / walking).toBeGreaterThan(0.85);               // facing the way they're going, not sideways or back
+    // He stops: so do they, and they turn to watch him.
+    for (let i = 0; i < 120; i++) updateTownsfolk(g, DT);
+    for (const [, { walker: w, transform: t }] of crowd()) {
+      if (w.catchingUp) continue;
+      expect(w.moving).toBe(false);
+      const at = Math.atan2(hero.y - t.y, hero.x - t.x);
+      expect(Math.abs(Math.atan2(Math.sin(w.facing - at), Math.cos(w.facing - at)))).toBeLessThan(0.3);
+    }
+  });
+
   it("on the keep steps he sets the head at the King's feet, the King has his say, and the credits roll", async () => {
     const g = await home();
     enterArea(g, await loadArea("castle"), "town");
