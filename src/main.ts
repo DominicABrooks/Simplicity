@@ -13,7 +13,7 @@ import { createHud } from "./ui/hud.ts";
 import { createInventoryView } from "./ui/inventory.ts";
 import { createLabels } from "./ui/labels.ts";
 import { bindFade, bindOverlay, bindToasts, createResetBar } from "./ui/screens.ts";
-import { loadArea } from "./areas/index.ts";
+import { LOAD_FAILED, loadArea } from "./areas/index.ts";
 import { arrive } from "./game/travel.ts";
 import { bakeItemIcons } from "./ui/sprites.ts";
 import { createJournal } from "./ui/journal.ts";
@@ -99,14 +99,15 @@ g.events.on("state", ({ state }) => {
   Promise.all([loadArea(to.area), new Promise(r => setTimeout(r, TRAVEL_FADE))])
     .then(([def]) => arrive(g, def))
     .catch(err => {
-      // Couldn't get there (say the connection dropped): step back out of the exit and stay put.
+      // Couldn't get there (the connection dropped, or the game's been updated since the page was opened): step back
+      // out of the exit, stay put, and say what to do.
       console.error(err);
       const here = g.area.layout.entries, back = Object.keys(here)[0]!;
       const p = g.world.need(g.player, "transform");
       Object.assign(p, here[back]);
       g.travel = null;
       setState(g, "play");
-      toast(g, "The way is blocked");
+      toast(g, LOAD_FAILED);
     });
 });
 // Talking: clicking someone friendly (or E with them targeted) talks instead of attacking; while they're
