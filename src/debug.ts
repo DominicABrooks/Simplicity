@@ -6,6 +6,17 @@ import { STARTER_KIT } from "./data/items.ts";
 import { LAIRS, type Lair, type LairName } from "./game/lairs.ts";
 import { isFrozen, isGod, setFrozen, setGod } from "./game/cheats.ts";
 import { setState, type Game } from "./game/game.ts";
+import { HOMECOMING } from "./data/ending.ts";
+import { CALDER_FIGHT, CALDERS_HEAD } from "./data/rift.ts";
+import { T } from "./data/world.ts";
+import { bossSystem } from "./game/bosses.ts";
+import { calderFightSystem } from "./game/calderfight.ts";
+import { crowdOf } from "./game/crowd.ts";
+import { skipCutscene, startCutscene } from "./game/cutscene.ts";
+import { endTalk } from "./game/talk.ts";
+import { isCommoner, loadCensus, walkersOf } from "./game/townsfolk.ts";
+import { deathSystem } from "./systems/enemies.ts";
+import { showEndCard } from "./ui/credits.ts";
 import { hauntingOf } from "./game/ghost.ts";
 import { startEerie } from "./game/eerie.ts";
 import type { EerieId } from "./data/eerie.ts";
@@ -45,6 +56,49 @@ export function exposeDebug(g: Game, view: Renderer): void {
     Object.assign(g.world.need(g.player, "transform"), lair.stage(g));
     return `${who}: level ${lair.ready.level}, ${health.maxHp} hearts; god ${isGod(g) ? "on" : "off"}, freeze ${isFrozen(g) ? "on" : "off"}`;
   }
+  /**
+   * The end of the story path (src/game/ending.ts), from any point along it: a fresh run with Calder beaten for real
+   * (his fight started, his health at nothing, the crack shut), his head in the bag, and then on to the stage asked for:
+   * "stone" (by the glowing rift stone), "home" (at the fountain stone at dawn), "castle" (in at the castle gate, a
+   * crowd behind him), "king" (a few steps from the King on the keep steps: the scene starts), "credits", or "card"
+   * (after The End). `crowd` is how many follow him (castle and on).
+   */
+  async function ending(stage: string = "stone", crowd = 8): Promise<string> {
+    const STAGES = ["stone", "home", "castle", "king", "credits", "card"];
+    if (!STAGES.includes(stage)) return `No stage "${stage}". Try: ${STAGES.join(", ")}`;
+    await boss("calder");
+    const dt = 1 / 60;
+    calderFightSystem(g, dt);                                // he's close enough: the fight starts
+    const calder = g.world.query("renderable", "health").find(([, c]) => c.renderable.kind === "calder");
+    if (!calder) return "Calder didn't come";
+    calder[1].health.hp = 0;
+    bossSystem(g, dt);
+    deathSystem(g);
+    calderFightSystem(g, dt);
+    calderFightSystem(g, CALDER_FIGHT.crack.shut);           // and the crack groans shut
+    endTalk(g);
+    for (const [e, { pickup }] of g.world.query("pickup")) if (pickup.kind === "loot" && pickup.item.name === CALDERS_HEAD[3]) g.world.destroy(e);
+    g.inventory.add(makeItem(...CALDERS_HEAD));
+    const hero = g.world.need(g.player, "transform");
+    if (stage === "stone") {
+      Object.assign(hero, g.area.layout.entries.stone);      // on the trail, a couple of steps below it
+      return "By the rift stone: walk onto it";
+    }
+    g.hour = HOMECOMING.dawn;
+    if (stage === "home") { enterArea(g, await loadArea("capital"), "stone"); return "Home at dawn: up the high street to Castle Street"; }
+    // Grown-ups of the Market Quarter fall in behind him, and come with him into the castle.
+    const people = await loadCensus();
+    crowdOf(g).following = walkersOf(people, "capital").filter(r => r.age >= 14 && isCommoner(r)).slice(0, crowd).map(r => r.id);
+    enterArea(g, await loadArea("castle"), "town");
+    if (stage === "castle") return `At the castle gate, ${crowd} behind him: up to the keep steps`;
+    const king = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")![1].transform;
+    Object.assign(hero, { x: king.x, y: king.y + 8 * T });   // near enough that the scene starts
+    if (stage === "king") return "A few steps from the King";
+    startCutscene(g, "homecoming");
+    skipCutscene(g);                                         // the head laid down, and the credits begin
+    if (stage === "card") showEndCard();
+    return stage === "card" ? "After The End" : "The credits";
+  }
   /** A fresh run, arriving in an area the way a player would usually come in (or by `entry`), at the level and in the
    *  gear they'd have by then, with the gates behind them open (src/game/zones.ts). */
   /** Set the time of day (any number: it wraps round to 0-24). */
@@ -80,6 +134,8 @@ export function exposeDebug(g: Game, view: Renderer): void {
       /** Getting about: area("hollow") or area("capital", "castle") starts a fresh run there (or load the page with ?area=hollow,
        *  and &entry=stone for another way in; &god and &freeze work here too). */
       area,
+      /** The ending: ending("home") and so on (see above), or load the page with ?ending=home (&crowd=12). */
+      ending,
       /** The time of day: hour(23) makes it 11 at night (or load the page with ?hour=23); with nothing, the hour it is now. */
       hour: (h?: number) => (h === undefined ? g.hour : setHour(h)),
       god: (on = !isGod(g)) => `god ${setGod(g, on) ? "on" : "off"}`,
@@ -91,11 +147,12 @@ export function exposeDebug(g: Game, view: Renderer): void {
   });
   // ?boss=cinder (with &god, &freeze): straight into the fight, after main.ts has put the title up. ?area=hollow (with
   // &entry=stone): straight there. ?hour=23 (0 to 24, fractions too): that time of day, there or wherever you start.
-  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour");
+  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour"), end = q.get("ending");
   if (q.has("god")) setGod(g, true);
   if (q.has("freeze")) setFrozen(g, true);
   if (at !== null && Number.isFinite(Number(at))) setHour(Number(at));
   // A lair can set its own hour (the Ringer comes at night): the asked-for one wins.
-  if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
+  if (end !== null) void ending(end || "stone", Number(q.get("crowd") ?? 8)).then(said => console.info(said));
+  else if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
 }

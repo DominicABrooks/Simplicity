@@ -7,6 +7,10 @@ import { CREDITS, CREDITS_TIME as TIME, END_CARD, type Still } from "../data/end
 import { endCredits } from "../game/ending.ts";
 import type { Game } from "../game/game.ts";
 
+/** Straight to the card after The End, if the credits are up (getting about quickly in development: src/debug.ts). */
+let skipToCard: (() => void) | null = null;
+export const showEndCard = (): boolean => { skipToCard?.(); return skipToCard !== null; };
+
 /** The pictures' size, in their own pixels. */
 const W = 160, H = 90;
 
@@ -38,6 +42,7 @@ export function createCredits(g: Game): { draw(dt: number): void } {
   const toEnd = () => { show(CREDITS.length); t = TIME.fade; };
   const toCard = () => { at = CREDITS.length + 1; end.style.opacity = more.style.opacity = "0"; frame.hidden = true; card.el.hidden = false; };
   const endUp = () => at === CREDITS.length && t >= TIME.fade + TIME.end;
+  skipToCard = () => { if (!root.hidden) toCard(); };
   addEventListener("keydown", e => {
     if (root.hidden) return;
     if (!card.el.hidden) { e.stopPropagation(); return; }   // typing feedback: the keys are the box's, not the game's
