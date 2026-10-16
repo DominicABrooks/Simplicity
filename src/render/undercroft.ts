@@ -5,7 +5,7 @@
 // on a face (with every vertex snapped to the screen's coarse grid, a face laid on a face flickers through it).
 import * as THREE from "three";
 import { T } from "../data/world.ts";
-import { FACING_YAW } from "../world/plans.ts";
+import { FACING_YAW, ROOM_WALL } from "../world/plans.ts";
 import { ringPlan } from "../world/stonering.ts";
 import { put } from "./castle.ts";
 import { GROUND, box, onGround, toWorld, type RenderContext } from "./context.ts";
@@ -227,3 +227,103 @@ export const ringstone: EntityView<RingstoneView> = {
     disposeTree(v.group);
   },
 };
+
+/**
+ * The Undercroft's own stonework and fittings, inside its room: a blind arcade round the walls (half-columns standing
+ * out of them, pointed arches springing between, under the wall top so the camera still sees in over it), in some bays a
+ * stone shelf of the old bones moved down when the church was built; squat round pillars with cushion capitals; iron
+ * candle-stands, thick candles guttering on their spikes, wax down the pan, each throwing a little warm light; and
+ * slabs let into the floor of the aisle, a cross cut proud on each.
+ */
+export function buildCrypt(ctx: RenderContext, parent: THREE.Group, p: PropOf<"crypt">): PropView {
+  const { lambert } = ctx, g = new THREE.Group(), stone = lambert(PALE_STONE, { map: ctx.tex.stone }), dark = lambert("#6e6960", { map: ctx.tex.stone });
+  const bone = lambert("#ddd5c2"), iron = lambert(IRON), wax = lambert("#efe6cf"), flame = ctx.glow("#ffd27a"), ledger = lambert(EFFIGY, { map: ctx.tex.stone });
+  const x0 = p.rect.x / T, z0 = p.rect.y / T, x1 = (p.rect.x + p.rect.w) / T, z1 = (p.rect.y + p.rect.h) / T, t = ROOM_WALL.thick, high = ROOM_WALL.high;
+  // The arcade, side by side: along each wall's inner face, bays about 1.5 wide; on the door's side, none over the door.
+  const sides = [
+    { side: "north", from: [x0 + t, z0 + t], along: [1, 0], out: [0, 1], len: x1 - x0 - 2 * t },
+    { side: "south", from: [x0 + t, z1 - t], along: [1, 0], out: [0, -1], len: x1 - x0 - 2 * t },
+    { side: "west", from: [x0 + t, z0 + t], along: [0, 1], out: [1, 0], len: z1 - z0 - 2 * t },
+    { side: "east", from: [x1 - t, z0 + t], along: [0, 1], out: [-1, 0], len: z1 - z0 - 2 * t },
+  ] as const;
+  let bay = 0;
+  for (const s of sides) {
+    const n = Math.max(1, Math.round(s.len / 1.5)), w = s.len / n, yaw = Math.atan2(s.out[0], s.out[1]);
+    const at = (u: number, o: number): [number, number] => [s.from[0] + s.along[0] * u + s.out[0] * o, s.from[1] + s.along[1] * u + s.out[1] * o];
+    const doorFrom = p.doorAt - t;
+    const overDoor = (u: number) => s.side === p.door && u > doorFrom - 0.3 && u < doorFrom + ROOM_WALL.gap + 0.3;
+    for (let i = 0; i <= n; i++) {                           // the half-columns, standing out of the wall
+      const u = i * w;
+      if (overDoor(u) || i === 0 || i === n) continue;          // (the corners have the walls)
+      const [cx, cz] = at(u, 0.08);
+      put(g, new THREE.CylinderGeometry(0.08, 0.09, high - 0.32, 6), stone, cx, (high - 0.32) / 2, cz);
+      put(g, box(0.2, 0.08, 0.2), stone, cx, high - 0.28, cz, 0, yaw, 0);
+    }
+    for (let i = 0; i < n; i++) {                            // the pointed arch over each bay, and bones on a shelf in some
+      const u0 = i * w, mid = u0 + w / 2;
+      if (overDoor(mid)) continue;
+      for (const sgn of [-1, 1]) for (let j = 0; j < 3; j++) {
+        const f = (j + 0.5) / 3, [ax, az] = at(mid + sgn * (w / 2) * (1 - f), 0.07), y = high - 0.26 + Math.sin(f * Math.PI / 2) * 0.2;
+        put(g, box(w / 6 + 0.04, 0.06, 0.1), stone, ax, y, az, 0, yaw, sgn * Math.cos(f * Math.PI / 2) * 0.55);
+      }
+      if ((s.side === "east" || s.side === "west") && bay++ % 3 === 1) {
+        const shelf = new THREE.Group(), [sx, sz] = at(mid, 0.14);
+        shelf.position.set(sx, 0, sz);
+        shelf.rotation.y = yaw;
+        g.add(shelf);
+        put(shelf, box(w - 0.3, 0.06, 0.24), dark, 0, 0.5, 0);
+        for (let k = 0; k < 4; k++) put(shelf, new THREE.IcosahedronGeometry(0.075, 0).scale(1, 0.9, 1.1), bone, -0.33 + k * 0.22, 0.6, 0.02);   // skulls, in a row
+        for (const r of [-0.4, 0.4]) put(shelf, new THREE.CylinderGeometry(0.018, 0.018, w - 0.5, 4).rotateZ(Math.PI / 2), bone, 0, 0.46, 0.04, 0, r, 0);   // long bones crossed under
+      }
+    }
+  }
+  // The pillars: a square base, a round shaft, a cushion capital and its slab.
+  for (const q of p.pillars) {
+    put(g, box(0.52, 0.12, 0.52), dark, q.x, 0.06, q.y);
+    put(g, new THREE.CylinderGeometry(0.19, 0.21, 1.05, 8), stone, q.x, 0.645, q.y);
+    put(g, new THREE.CylinderGeometry(0.3, 0.19, 0.16, 8), stone, q.x, 1.25, q.y);
+    put(g, box(0.62, 0.07, 0.62), dark, q.x, 1.365, q.y);
+  }
+  // The candle-stands: three legs, a stem, a drip pan, three thick candles at odd heights, their wax run down, their flames.
+  const lights: { light: THREE.PointLight; flames: THREE.Mesh[]; k: number }[] = [];
+  for (const q of p.prickets) {
+    const s = new THREE.Group(), k = hash(q.x, q.y, 509);
+    s.position.set(q.x, 0, q.y);
+    g.add(s);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2 + k;
+      put(s, box(0.035, 0.3, 0.035), iron, Math.cos(a) * 0.13, 0.13, Math.sin(a) * 0.13, Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5);
+    }
+    put(s, new THREE.CylinderGeometry(0.025, 0.03, 0.62, 5), iron, 0, 0.55, 0);
+    put(s, new THREE.CylinderGeometry(0.2, 0.17, 0.04, 8), iron, 0, 0.87, 0);
+    const flames: THREE.Mesh[] = [];
+    for (const [i, h] of [0.2, 0.14, 0.24].entries()) {
+      const a = (i / 3) * Math.PI * 2 + k * 2, cx = Math.cos(a) * 0.09, cz = Math.sin(a) * 0.09;
+      put(s, new THREE.CylinderGeometry(0.038, 0.042, h, 6), wax, cx, 0.89 + h / 2, cz);
+      put(s, new THREE.ConeGeometry(0.02, 0.07, 4), wax, cx + 0.03, 0.89 + h - 0.05, cz, Math.PI, 0, 0);   // a drip down its side
+      flames.push(put(s, new THREE.ConeGeometry(0.022, 0.07, 5), flame, cx, 0.89 + h + 0.04, cz));
+    }
+    put(s, new THREE.ConeGeometry(0.03, 0.09, 4), wax, 0.17, 0.84, 0, Math.PI, 0, 0);   // wax run over the pan's rim
+    const light = new THREE.PointLight("#ffb35a", 0.9, 3.4, 1.6);
+    light.position.set(0, 1.25, 0);
+    s.add(light);
+    lights.push({ light, flames, k });
+  }
+  // The slabs let into the aisle floor, a cross cut proud on each (well clear of the floor, which is drawn pulled forward).
+  for (const q of p.ledgers) {
+    put(g, box(0.86, 0.06, 1.46), dark, q.x, 0.05, q.y);         // the worn margin, and the slab standing on it
+    put(g, box(0.74, 0.04, 1.34), ledger, q.x, 0.09, q.y);
+    put(g, box(0.08, 0.03, 0.8), dark, q.x, 0.12, q.y - 0.1);
+    put(g, box(0.4, 0.03, 0.08), dark, q.x, 0.12, q.y - 0.3);
+  }
+  parent.add(g);
+  return {
+    update: (time: number) => {
+      for (const l of lights) {
+        const f = 0.85 + Math.sin(time * 9 + l.k * 7) * 0.08 + Math.sin(time * 23 + l.k) * 0.05;
+        l.light.intensity = 0.9 * f;
+        l.flames.forEach((m, i) => { m.scale.y = 0.8 + Math.sin(time * (11 + i * 3) + l.k * 5) * 0.25; });
+      }
+    },
+  };
+}

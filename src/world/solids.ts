@@ -111,6 +111,7 @@ export function propSolids(p: Prop): Shape[] {
       return w ? [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, w, d)] : [];
     }
     case "lamp": return [circle(p.x / T, p.y / T, LAMP_POST)];
+    case "crypt": return [...p.pillars.map(q => circle(q.x, q.y, 0.24)), ...p.prickets.map(q => circle(q.x, q.y, 0.18))];
     case "cryptDoor": return [];                           // set into the wall, which is solid already
     case "tomb": return [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, 0.9, 1.9)];
     case "stoneRing": return ringPlan(p).stones.map(s => circle(s.x, s.z, RING_STONE_R));

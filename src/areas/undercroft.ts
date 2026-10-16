@@ -25,8 +25,15 @@ function build(): AreaLayout {
     town.add({ kind: "tomb", x: 2.2 * T, y: y * T, facing: "east", effigy: i !== 1 });
     town.add({ kind: "tomb", x: (W - 2.2) * T, y: y * T, facing: "west", effigy: i !== 2 });
   }
-  // The Waxleys' candles between them, and the sexton's stores by the door.
-  for (const y of [10.85, 13.55]) for (const x of [3.6, W - 3.6]) add("candelabra", x, y, "south");
+  // The undercroft's own stonework: the arcade round the walls, two pairs of squat pillars holding up the church, the
+  // Waxleys' candles on their iron stands between the tombs, and slabs let into the floor of the aisle.
+  town.add({
+    kind: "crypt", rect: px([0, 0, W, H]), door: "south", doorAt: DOOR_AT,
+    pillars: [{ x: 4.8, y: 10.9 }, { x: 4.8, y: 13.6 }, { x: W - 4.8, y: 10.9 }, { x: W - 4.8, y: 13.6 }],
+    prickets: [{ x: 3.4, y: 10.85 }, { x: W - 3.4, y: 13.55 }, { x: 3.4, y: 13.55 }, { x: W - 3.4, y: 10.85 }],
+    ledgers: [{ x: MID - 0.9, y: 11.2 }, { x: MID + 0.9, y: 12.9 }, { x: MID - 0.9, y: 14.6 }],
+  });
+  // The sexton's stores by the door.
   add("barrel", 2.2, H - 1.6, "north");
   add("shelf", W - 2.4, H - 1.2, "north");
   add("chest", W - 4, H - 1.5, "north");
