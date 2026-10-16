@@ -300,7 +300,7 @@ function gatherRound(g: Game, x: number, y: number, r: number): void {
 function dragonAt(g: Game, d: Partial<Dragon> & Pick<Dragon, "x" | "y" | "size" | "hide" | "pose">, seen?: { x: number; y: number }): Entity {
   return g.world.create({
     transform: { x: seen?.x ?? d.x, y: seen?.y ?? d.y },
-    dragon: { height: 0, facing: Math.PI / 2, flap: 0, neck: 0, spread: 0, fire: 0, grow: 1, ...d },
+    dragon: { height: 0, facing: Math.PI / 2, flap: 0, neck: 0, spread: 0, fire: 0, grow: 1, walk: 0, stride: 0, ...d },
     renderable: { kind: "dragon" },
   });
 }
@@ -313,6 +313,23 @@ function beat(g: Game, d: Dragon, dt: number, pace: number): void {
   d.flap += dt * pace;
   if (Math.floor(d.flap / (2 * Math.PI)) > before) { sound(g, "wingbeat"); g.shake = Math.max(g.shake, 0.5); }
 }
+/**
+ * A dragon walking to (x, y) (px) this frame: turning to face the way it's going (or `want`, standing) no faster than it
+ * can turn, stepping as it goes, a step for each stride's length, and shuffling its feet round as it turns on the spot.
+ */
+function stepTo(d: Dragon, x: number, y: number, want: number | null, dt: number): void {
+  if (dt <= 0) { d.x = x; d.y = y; return; }
+  const far = Math.hypot(x - d.x, y - d.y) / T, goal = far > 0.002 ? Math.atan2(y - d.y, x - d.x) : want ?? d.facing;
+  const off = Math.atan2(Math.sin(goal - d.facing), Math.cos(goal - d.facing)), turn = Math.max(-WALK.turn * dt, Math.min(WALK.turn * dt, off));
+  d.facing += turn;
+  d.x = x; d.y = y;
+  const len = WALK.stride * d.size;
+  d.walk += (far / len) * Math.PI + Math.abs(turn) * WALK.shuffle;
+  const stepping = Math.min(1, far / dt / (len * WALK.pace) + (Math.abs(turn) / dt) * 0.4);
+  d.stride += (stepping - d.stride) * Math.min(1, dt * 10);
+}
+/** How a little dragon walks: its stride's length (world units for each 1 of size), its usual pace (strides a second), how fast it can turn (radians a second), and how much stepping a turn takes. */
+const WALK = { stride: 0.55, pace: 2.2, turn: 3.5, shuffle: 2.5 } as const;
 /** The ground stops shaking (nobody's playing to settle it, in the credits). */
 const settle = (g: Game, dt: number) => { g.shake = Math.max(0, g.shake - dt * 2.5); };
 const ORDERS = ["ember", "frost", "storm"] as const;
@@ -457,19 +474,21 @@ const SHOTS: readonly Shot[] = [
             if (y === null) return;
             const d = g.world.need(y, "dragon"), h = 0.12 + i * 0.12, look = ramp(k, 0.55, 0.62), puff = 0.8 + i * 0.045;
             const egg = g.world.need(eggs[i]!, "transform");
-            const poke = ramp(k, h, h + 0.03), climb = ease(ramp(k, h + 0.05, h + 0.1)), out = ease(ramp(k, h + 0.11, h + 0.21));
-            // From inside the shell, over the rim to just in front of it, then off to a spot of its own.
+            const poke = ramp(k, h, h + 0.03), climb = ease(ramp(k, h + 0.05, h + 0.1)), out = ease(ramp(k, h + 0.12, h + 0.24));
+            // From inside the shell, over the rim to just in front of it, then a wander off to a spot of its own: out and
+            // round in a little curve, walking all the way, turning as it goes.
             const inside = { x: egg.x, y: egg.y - 0.1 * T }, rim = { x: egg.x + (i - 1) * 0.15 * T, y: egg.y + 0.6 * T };
-            const spot = { x: egg.x + (i - 1) * 0.9 * T, y: egg.y + 1.5 * T };
-            d.x = lerp(lerp(inside.x, rim.x, climb), spot.x, out);
-            d.y = lerp(lerp(inside.y, rim.y, climb), spot.y, out);
-            // Head up out of the top, peering; up and over the rim; then toddling, a little bob in each step.
-            d.height = -0.12 + 0.2 * poke - 0.08 * climb + Math.sin(Math.PI * climb) * 0.16 + Math.abs(Math.sin((k - h) * 90)) * 0.04 * (out > 0 && out < 1 ? 1 : 0);
+            const spot = { x: egg.x + (i - 1) * 1.1 * T, y: egg.y + 1.6 * T }, bend = Math.sin(Math.PI * out) * (i === 1 ? -0.5 : (i - 1) * 0.6) * T;
+            const goX = lerp(lerp(inside.x, rim.x, climb), spot.x, out) + bend, goY = lerp(lerp(inside.y, rim.y, climb), spot.y, out);
+            // Peering about from the top of the shell; then facing her, once it's somewhere to stand, to look up at her.
+            const peer = Math.PI / 2 + (i - 1) * 0.5 + Math.sin((k - h) * 60) * 0.3 * (1 - ramp(k, h + 0.03, h + 0.06));
+            if (poke < 1) { d.x = goX; d.y = goY; d.facing = peer; } else stepTo(d, goX, goY, look > 0 ? -Math.PI / 2 + (i - 1) * 0.5 : null, dt);
+            // Head up out of the top; up and over the rim.
+            d.height = -0.12 + 0.2 * poke - 0.08 * climb + Math.sin(Math.PI * climb) * 0.16;
             d.size = 0.3 + 0.28 * ease(ramp(k, h + 0.06, h + 0.2));   // damp and small, unfurling as it goes
-            d.spread = ramp(k, h + 0.12, h + 0.14) * (1 - ramp(k, h + 0.16, h + 0.19));   // a stretch of its new wings
+            d.spread = ramp(k, h + 0.1, h + 0.115) * (1 - ramp(k, h + 0.13, h + 0.15));   // a stretch of its new wings, before it sets off
             const settle = lerp(1, 0.35, ramp(k, h + 0.08, h + 0.12));
             d.neck = lerp(settle, 0.9, look);
-            d.facing = lerp(Math.PI / 2 + (i - 1) * 0.5 + Math.sin((k - h) * 60) * 0.3 * (1 - ramp(k, h + 0.03, h + 0.06)), -Math.PI / 2 + (i - 1) * 0.5, look);   // looking about, then up at her
             d.fire = k > puff && k < puff + 0.04 ? 1 : 0;
           });
           const d = g.world.need(her, "dragon");

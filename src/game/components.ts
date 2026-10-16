@@ -436,13 +436,14 @@ export interface Watcher { shown: number; going: boolean }
  * length, near enough). Flying, its wings beat at `flap` (radians, run on by the credits); sitting, `neck` lifts its
  * head from low over the ground (0) to up at the sky (1) and `spread` opens its wings from folded (0) to wide (1).
  * `fire` is how hard it's breathing out its order's breath (0 to 1), and `grow` how far it's come into the world (0
- * to 1: a hatchling, just out of the shell).
+ * to 1: a hatchling, just out of the shell). On the ground it walks: `walk` is where it is in its stride (radians, a
+ * step with each foot every 2π, run on by whoever moves it) and `stride` how much it's stepping (0 standing, 1 walking).
  */
 export interface Dragon {
   x: number; y: number; height: number; facing: number; size: number;
   hide: "mother" | "ember" | "frost" | "storm";
   pose: "fly" | "sit";
-  flap: number; neck: number; spread: number; fire: number; grow: number;
+  flap: number; neck: number; spread: number; fire: number; grow: number; walk: number; stride: number;
 }
 /**
  * One of the three eggs: its order, how much of the King's gilding is still on it (0 to 1), how bright it glows, how

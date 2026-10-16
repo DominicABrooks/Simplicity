@@ -38,10 +38,13 @@ type Hide = (typeof HIDES)[Dragon["hide"]];
 
 interface DragonView {
   group: THREE.Group; shadow: THREE.Mesh; chest: THREE.Mesh;
-  legs: THREE.Group[]; neck: THREE.Group[]; head: THREE.Group; jaw: THREE.Group; mouth: THREE.Object3D; tail: THREE.Group[];
+  legs: Leg[]; neck: THREE.Group[]; head: THREE.Group; jaw: THREE.Group; mouth: THREE.Object3D; tail: THREE.Group[];
   wings: [THREE.Group, THREE.Group]; wrists: [THREE.Group, THREE.Group]; folds: [(k: number) => void, (k: number) => void];
   light: THREE.PointLight; k: number;
 }
+
+/** A hind leg: turned at the hip, bent at the knee, the foot kept level. */
+interface Leg { hip: THREE.Group; knee: THREE.Group; foot: THREE.Group }
 
 /** A tapered length, `r0` thick at its start (the origin) and `r1` at its end, `len` along +y. */
 const limb = (len: number, r0: number, r1: number, sides = 7) => new THREE.CylinderGeometry(r1, r0, len, sides).translate(0, len / 2, 0);
@@ -178,7 +181,7 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
     put(foot, box(0.13, 0.045, 0.1), skin, 0.03, 0, 0);
     for (const cz of [-0.035, 0, 0.035]) put(foot, toX(cone(0.02, 0.1)), horn, 0.09, -0.01, cz, 0, cz * 5, 0);
     put(foot, toBack(cone(0.02, 0.07)), horn, -0.04, -0.01, 0);   // the back toe
-    return hip;
+    return { hip, knee, foot };
   });
   // The neck: short, three thick segments, each hung off the one before, so bending each curls the whole; the middle one black.
   const neck: THREE.Group[] = [], L = young ? 0.08 : 0.1;
@@ -283,10 +286,20 @@ export const dragon: EntityView<DragonView> = {
     // head down, she bows forward over what's in front of her, so her face comes right down to it.
     const lift = flying ? 0.5 : d.neck, rear = flying ? 0 : d.spread * 0.42, bow = flying ? 0 : (1 - lift) * (1 - d.spread) * 0.26;
     v.group.position.set(x, d.height + (flying ? -beat * 0.07 * d.size : 0) + (Math.sin(rear) * 0.36 - Math.sin(bow) * 0.18) * size, z);
-    v.group.rotation.set(0, -d.facing, rear - bow);
+    // Walking: a step with each foot in turn, the body rising a little over each and rolling toward the foot that's down.
+    const stride = flying ? 0 : d.stride, wk = d.walk;
+    v.group.position.y += (1 - Math.cos(2 * wk)) * 0.5 * 0.035 * size * stride;
+    v.group.rotation.set(Math.sin(wk) * 0.07 * stride, -d.facing, rear - bow);
     v.group.scale.setScalar(size);
     v.chest.scale.set(1.2, 0.95 + Math.sin(t * 1.8) * 0.025, 0.5);   // breathing
-    for (const leg of v.legs) leg.rotation.z = flying ? -1.1 : 0;   // tucked back under her in flight
+    // The legs: tucked back in flight; on the ground each swings forward and back about the hip in turn, the knee
+    // lifting the foot clear as it comes forward, the foot kept flat (toes dropping a little as it lifts).
+    v.legs.forEach((leg, i) => {
+      const ph = wk + i * Math.PI, lifting = Math.max(0, Math.cos(ph)) * stride;
+      leg.hip.rotation.z = flying ? -1.1 : Math.sin(ph) * 0.5 * stride + lifting * 0.15;
+      leg.knee.rotation.z = flying ? 0 : -lifting * 0.75;
+      leg.foot.rotation.z = flying ? 0 : -(leg.hip.rotation.z + leg.knee.rotation.z) - lifting * 0.35;
+    });
     // Wings: beating in flight (up and down about the shoulder, swept a little back on the upstroke); folded at rest.
     v.wings.forEach((w, i) => {
       const s = i ? -1 : 1;
@@ -296,8 +309,9 @@ export const dragon: EntityView<DragonView> = {
         wrist.rotation.set(beat * 0.3, 0.04, 0);
         v.folds[i]!(upstroke * 0.35);
       } else {                                               // at rest, folded and leant on in front, the hand tilted out off her flank; or raised wide, rising and falling slowly
-        const o = d.spread, up = 0.25 + Math.sin(t * 1.6) * 0.1, shut = 1 - o;
-        w.rotation.set(s * (REST.down * shut - up * o + Math.sin(t * 1.1) * 0.02 * shut), s * (REST.forward * shut - 0.13 * o), 0);
+        // Walking, the folded wings step too, as forelegs: each with the hind leg on the other side.
+        const o = d.spread, up = 0.25 + Math.sin(t * 1.6) * 0.1, shut = 1 - o, ph = wk + (i ? 0 : Math.PI), lifting = Math.max(0, Math.cos(ph)) * stride * shut;
+        w.rotation.set(s * (REST.down * shut - up * o + Math.sin(t * 1.1) * 0.02 * shut - lifting * 0.3), s * (REST.forward * shut - 0.13 * o + Math.sin(ph) * 0.3 * stride * shut), 0);
         wrist.rotation.set(Math.sin(t * 1.6 + 0.6) * 0.08 * o + REST.tilt * shut, 0, 0);
         v.folds[i]!(shut);
       }
@@ -309,11 +323,11 @@ export const dragon: EntityView<DragonView> = {
       n.rotation.z = flying ? (i ? 0.06 : -0.12) + beat * 0.05 : curl[0][i]! + (curl[1][i]! - curl[0][i]!) * lift;
       n.rotation.y = Math.sin(t * 0.9 + i * 0.7) * (flying ? 0.03 : 0.06 + low * 0.04);
     });
-    v.head.rotation.z = flying ? 0.05 - beat * 0.08 : 0.05 + lift * 0.3 + Math.sin(t * 1.3) * 0.06 * low;   // nosing, gently
+    v.head.rotation.z = flying ? 0.05 - beat * 0.08 : 0.05 + lift * 0.3 + Math.sin(t * 1.3) * 0.06 * low + Math.sin(2 * wk + 0.6) * 0.07 * stride;   // nosing, gently; nodding as it walks
     v.jaw.rotation.z = -Math.min(0.7, d.fire * 0.7 + (flying ? 0 : lift * 0.1));
     // The tail: streaming behind in flight; at rest held out behind her in a long curve, swaying.
     v.tail.forEach((s, i) => {
-      s.rotation.y = (flying ? 0 : 0.14) + Math.sin(t * (flying ? 1.6 : 0.9) - i * 0.7) * (flying ? 0.06 : 0.09);
+      s.rotation.y = (flying ? 0 : 0.14) + Math.sin(t * (flying ? 1.6 : 0.9) - i * 0.7) * (flying ? 0.06 : 0.09) + Math.sin(wk - i * 0.6) * 0.14 * stride;
       s.rotation.z = flying ? Math.sin(p - 1 - i * 0.6) * 0.09 : (i < 2 ? -0.12 : 0.05) + bow * 0.3;   // a ripple down it after each beat
     });
     // The shadow: under her on the ground, as wide as she is.
