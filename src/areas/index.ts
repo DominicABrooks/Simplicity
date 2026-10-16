@@ -25,6 +25,9 @@ export function registerArea(def: AreaDef): void {
   made.set(def.id, def);
 }
 
+/** How long (ms) to wait before trying an area's download again. */
+const RETRY_AFTER = 1000;
+
 /** An area's definition, loading its module if needed. */
 export async function loadArea(id: string): Promise<AreaDef> {
   if (id === home.id) return home;
@@ -32,5 +35,12 @@ export async function loadArea(id: string): Promise<AreaDef> {
   if (inside) return inside;
   const load = lazy[`./${id}.ts`];
   if (!load) throw new Error(`No area "${id}" (expected src/areas/${id}.ts)`);
-  return (await load()).area;
+  // Its download can fail (the connection dropping a moment): once more, after a moment, before giving up.
+  return (await load().catch(() => new Promise(r => setTimeout(r, RETRY_AFTER)).then(load))).area;
 }
+
+/**
+ * Couldn't get an area at all: what to tell him. On the site that's most likely a new version put up since this page was
+ * opened (its areas' files have new names), and only reloading gets him the new ones.
+ */
+export const LOAD_FAILED = "The way ahead won't load. The game may have been updated: reload the page to carry on.";
