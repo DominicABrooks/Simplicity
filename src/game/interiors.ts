@@ -45,18 +45,22 @@ export function enterInterior(g: Game): void {
     const spare = free.length ? free[Math.floor((i * 7.31 + 3) % free.length)]! : null;   // somewhere with nobody right next to it
     const s = i < here.spots.length || !spare ? here.spots[i % here.spots.length]! : { x: spare[0] + 0.5, y: spare[1] + 0.5, facing: ((i * 2.4) % 6.28) - Math.PI };
     taken.add(key(Math.floor(s.x), Math.floor(s.y)));
-    const x = s.x * T, y = s.y * T, scale = r.age < 14 ? 0.62 + (r.age / 14) * 0.25 : 1;
-    const walker: Walker = {
-      id: r.id, plan: "chat", path: [], lane: [0, 0], speed: 0, moving: false, wait: Infinity, blockedFor: 0, goIn: false,
-      facing: s.facing, face: s.facing, follow: null, trail: [], playAt: null, runTo: null, holdFor: null, leaving: 0, catchingUp: false,
-    };
-    const e = g.world.create({
-      transform: { x: x - HALF, y: y - HALF },
-      targetable: { hostile: false, name: r.name, radius: TOWNSFOLK.radius, height: TOWNSFOLK.height * scale },
-      walker,
-      renderable: { kind: "townsfolk" },
-    });
-    standing.push({ e, x, y, facing: s.facing });
+    standing.push({ e: standIn(g, r, s), x: s.x * T, y: s.y * T, facing: s.facing });
+  });
+}
+
+/** One of the census's people standing at a spot indoors (tiles), facing its way, in their own body and clothes. */
+export function standIn(g: Game, r: Resident, s: Spot): Entity {
+  const x = s.x * T, y = s.y * T, scale = r.age < 14 ? 0.62 + (r.age / 14) * 0.25 : 1;
+  const walker: Walker = {
+    id: r.id, plan: "chat", path: [], lane: [0, 0], speed: 0, moving: false, wait: Infinity, blockedFor: 0, goIn: false,
+    facing: s.facing, face: s.facing, follow: null, trail: [], playAt: null, runTo: null, holdFor: null, leaving: 0, catchingUp: false,
+  };
+  return g.world.create({
+    transform: { x: x - HALF, y: y - HALF },
+    targetable: { hostile: false, name: r.name, radius: TOWNSFOLK.radius, height: TOWNSFOLK.height * scale },
+    walker,
+    renderable: { kind: "townsfolk" },
   });
 }
 

@@ -7,6 +7,7 @@ import type { Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf, type HeroParts } from "../game/hero.ts";
 import { relativeAngle, sweptThrough, swingRel } from "../game/swing.ts";
+import { spared } from "../game/peace.ts";
 
 function startSwipe(g: Game, h: HeroParts): void {
   sound(g, "swing");
@@ -39,7 +40,7 @@ export function swordSystem(g: Game, dt: number): void {
 
   // The blade sweeps from one side of the aim to the other; whatever it passes through gets hit once.
   for (const [e, { transform: t }] of g.world.query("enemy", "transform")) {
-    if (s.hits.has(e)) continue;
+    if (s.hits.has(e) || spared(g, e)) continue;
     const dx = t.x - pos.x, dy = t.y - pos.y, d = Math.hypot(dx, dy);
     if (d > SWIPE.reach) continue;
     const rel = d < 2 ? 0 : relativeAngle(dx, dy, s.aim);

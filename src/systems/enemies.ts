@@ -15,7 +15,7 @@ import { heroParts } from "../game/hero.ts";
 import { dropLoot, spawnEnemy, spawnPotion } from "../game/spawn.ts";
 import { rollItem } from "../items/items.ts";
 import { moveBy, overlap } from "../world/collision.ts";
-import { atPeace } from "../game/peace.ts";
+import { atPeace, spared } from "../game/peace.ts";
 
 /** Hit flashes fade, and knockback slides enemies along (they can't be knocked into water). A dummy stays on its post; blows pass through a ghost. */
 export function enemyPhysicsSystem(g: Game, dt: number): void {
@@ -27,10 +27,14 @@ export function enemyPhysicsSystem(g: Game, dt: number): void {
   }
 }
 
-/** Slimes hop: toward the hero when they can see you (and you're not swimming), otherwise anywhere. Touching you hurts. */
+/**
+ * Slimes hop: toward the hero when they can see you (and you're not swimming), otherwise anywhere. Touching you hurts.
+ * Once it's all over they let him be, and are nothing to fight: no target ring on them (src/game/peace.ts).
+ */
 export function slimeSystem(g: Game, dt: number): void {
-  const { pos: p, motion, status } = heroParts(g), calm = atPeace(g);   // once it's all over, they let him be (src/game/peace.ts)
-  for (const [, { transform: s, slime, enemy }] of g.world.query("slime", "transform", "enemy")) {
+  const { pos: p, motion, status } = heroParts(g), calm = atPeace(g);
+  for (const [e, { transform: s, slime, enemy }] of g.world.query("slime", "transform", "enemy")) {
+    if (calm && g.world.has(e, "targetable")) { g.world.remove(e, "targetable"); if (g.target === e) g.target = null; }
     if (slime.hop > 0) {
       slime.hop = Math.max(0, slime.hop - dt);
       moveBy(g.map, s, slime.dx * SLIME.hopSpeed * dt, slime.dy * SLIME.hopSpeed * dt, true);
@@ -59,7 +63,7 @@ export function deathSystem(g: Game): void {
     if (enemy.kind === "ghost") { layGhost(g, s.x, s.y); w.destroy(e); continue; }
     if (enemy.kind === "koi") { landGreatKoi(g, s.x, s.y); w.destroy(e); continue; }
     recordKill(g, enemy.kind === "mage" ? w.need(e, "mage").school : "slime");
-    grantXP(g, enemy.kind === "mage" ? XP.mage : XP.slime, s.x, s.y);
+    if (!spared(g, e)) grantXP(g, enemy.kind === "mage" ? XP.mage : XP.slime, s.x, s.y);
     if (enemy.kind === "mage") {
       g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "fire" });
       sound(g, "mageDie", s);

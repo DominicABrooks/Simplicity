@@ -1,7 +1,9 @@
 // The credits after the King's had his say (src/game/credits.ts), and the world after them (src/game/peace.ts): each
 // shot holds long enough for its line to be read; the walk home and the head at the King's feet aren't played over
 // again; the chronicle says how many followed him up; the last shot is his own, asleep in the top room of the Fells'
-// house with a lantern of his own lit in the window; and once it's over the Greyed stop coming and the slimes let him be.
+// house with a lantern of his own lit in the window, the Ranger home by the fire with Meg; a tune comes round under the
+// whole reel; and once it's over the Greyed stop coming, the slimes let him be (and he them), and the city's talk is
+// done with the Edict.
 import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { area as capital } from "../src/areas/capital.ts";
@@ -14,19 +16,24 @@ import { SLIME } from "../src/data/enemies.ts";
 import { T } from "../src/data/world.ts";
 import { bossSystem } from "../src/game/bosses.ts";
 import { calderFightSystem } from "../src/game/calderfight.ts";
+import { CREDITS_AIR } from "../src/data/sfx.ts";
+import { BEFORE_ONLY, EDICT, EDICT_AFTER, STALE_AFTER } from "../src/data/voices.ts";
+import { folkLines, guardLines } from "../src/game/conversation.ts";
 import { creditsAsleep, creditsShot, rollCredits, shotLength, updateCredits } from "../src/game/credits.ts";
+import { Rng } from "../src/core/rng.ts";
 import { crowdOf } from "../src/game/crowd.ts";
 import { holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
 import { endCredits, homeStoneSystem, watchEnding } from "../src/game/ending.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
-import { atPeace } from "../src/game/peace.ts";
+import { atPeace, spared } from "../src/game/peace.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { endTalk, updateTalk } from "../src/game/talk.ts";
-import { setCensus } from "../src/game/townsfolk.ts";
+import { residentById, setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
 import { deathSystem, slimeSystem } from "../src/systems/enemies.ts";
+import { FAMILIES } from "../src/world/people.ts";
 import { residentsOf } from "../src/world/residents.ts";
 
 const people = setCensus(residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props }));
@@ -67,14 +74,24 @@ function toTheKing(g: Game): void {
   skipCutscene(g);
 }
 
-/** Play the credits through: each shot's line, how long it held, and whether he was asleep in it. */
-async function playThrough(g: Game): Promise<{ says: string; held: number; asleep: boolean }[]> {
+interface Played { says: string; held: number; asleep: boolean; folk: string[] }
+/** The tunes heard over the last credits played through. */
+let heard: string[] = [];
+const listen = (g: Game) => { heard.push(...g.sfx.map(s => s.id).filter(id => (CREDITS_AIR.turns as readonly string[]).includes(id))); g.sfx = []; };
+/** Play the credits through: each shot's line, how long it held, whether he was asleep in it, and who of the townsfolk was in it. */
+async function playThrough(g: Game): Promise<Played[]> {
+  heard = [];
   await rollCredits(g);
-  const shots: { says: string; held: number; asleep: boolean }[] = [];
+  listen(g);
+  const shots: Played[] = [];
   for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60); i++) {
+    listen(g);
     const shot = creditsShot(g), last = shots[shots.length - 1];
     if (shot && last?.says === shot.says) { last.held += 1 / 60; last.asleep ||= creditsAsleep(g) !== null; }
-    else if (shot) shots.push({ says: shot.says, held: 1 / 60, asleep: creditsAsleep(g) !== null });
+    else if (shot) {
+      const folk = g.world.query("walker").map(([, c]) => residentById(c.walker.id)?.name ?? "");
+      shots.push({ says: shot.says, held: 1 / 60, asleep: creditsAsleep(g) !== null, folk });
+    }
   }
   return shots;
 }
@@ -85,7 +102,13 @@ describe("the credits", () => {
     for (const says of Object.values(SHOT_SAYS)) {
       expect(shotLength(says)).toBeGreaterThanOrEqual(words(says) / CREDITS_TIME.read + 2 * CREDITS_TIME.fade - 1e-9);
     }
-    expect(shotLength(SHOT_SAYS.greyed)).toBeGreaterThan(CREDITS_TIME.shot);
+    expect(shotLength(SHOT_SAYS.eggs)).toBeGreaterThan(CREDITS_TIME.shot);
+  });
+
+  it("keep what it all meant short, and let the pictures carry it", () => {
+    for (const says of [SHOT_SAYS.greyed, SHOT_SAYS.slimes, SHOT_SAYS.chronicle, SHOT_SAYS.milk, SHOT_SAYS.fells, ...Object.values(SHOT_SAYS_TOO.followed)]) {
+      expect(words(says), says).toBeLessThanOrEqual(25);
+    }
   });
 
   it("don't play the walk home or the King's feet again; the chronicle says a crowd followed him; the last shot is his own", async () => {
@@ -101,6 +124,11 @@ describe("the credits", () => {
     const last = shots[shots.length - 1]!;
     expect(last.says).toBe(SHOT_SAYS.fells);
     expect(last.asleep).toBe(true);                          // in the bed in the Fells' top room
+    expect(last.folk).toEqual(expect.arrayContaining(["Wystan Fell", "Meg Fell"]));   // the Ranger home, and Meg
+    // The tune comes round under the whole reel, every time a little different.
+    const reel = shots.reduce((t, s) => t + s.held, 0);
+    expect(heard.length).toBeGreaterThanOrEqual(Math.floor(reel / CREDITS_AIR.every));
+    expect(new Set(heard).size).toBe(CREDITS_AIR.turns.length);
     for (const s of shots) expect(s.held).toBeGreaterThanOrEqual(shotLength(s.says) - 0.05);
     endCredits(g);
     expect(g.area.def.id).toBe("castle");
@@ -135,6 +163,19 @@ describe("after the end", () => {
     Object.assign(g.world.need(e, "transform"), { x: hero.x, y: hero.y });
     for (let t = 0; t < SLIME.hopEvery * 3; t += DT) slimeSystem(g, DT);
     expect(health.hp).toBe(hp);
+    // And they're nothing to fight now: no ring on them, and his blows pass them by.
+    expect(g.world.has(e, "targetable")).toBe(false);
+    expect(spared(g, e)).toBe(true);
+    // Nor does the city talk as if the Edict were still about: no fear of the weather, no Ranger in the dungeon.
+    const rng = new Rng(7), fear = new Set(Object.values(EDICT).flat()), now = new Set(Object.values(EDICT_AFTER).flat());
+    const stale = FAMILIES.flatMap(f => [...f.rumours.map(r => r.says), f.secret ?? ""]).filter(s => STALE_AFTER.test(s));
+    const talk = people.filter(r => r.age >= 12 && !r.prisoner).flatMap(r => [0, 3].flatMap(v => folkLines(rng, r, [], v, undefined, true)));
+    const guards = Array.from({ length: 200 }, (_, i) => guardLines(rng, "castle", i % 2, undefined, true)).flat();
+    for (const line of [...talk, ...guards]) {
+      expect(fear.has(line) || BEFORE_ONLY.has(line), line).toBe(false);
+      for (const s of stale) expect(line.includes(s), line).toBe(false);
+    }
+    expect(talk.some(l => now.has(l))).toBe(true);
     // A new run starts the trouble afresh.
     resetGame(g);
     expect(atPeace(g)).toBe(false);

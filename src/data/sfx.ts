@@ -24,14 +24,45 @@ export interface SoundRecipe {
   jitter?: number;
 }
 
-/** The credits' tune: seconds a beat, and its notes (Hz, which beat, how many beats); and the low notes under it. */
+/**
+ * The credits' tune: seconds a beat, and its notes (Hz, which beat, how many beats); and the low notes under it. It
+ * comes round again and again under the whole reel (src/game/credits.ts), each time a little different: the air, an
+ * answer to it, the air again over a rippling accompaniment, and the answer again with a softer voice a third above.
+ */
+type Notes = readonly (readonly [number, number, number])[];
 const BEAT = 0.55;
-const TUNE: readonly (readonly [number, number, number])[] = [
+const TUNE: Notes = [
   [440, 0, 1], [587, 1, 1], [740, 2, 1], [659, 3, 1], [587, 4, 1], [440, 5, 1], [494, 6, 1], [587, 7, 2],
   [392, 9, 1], [494, 10, 1], [587, 11, 1], [554, 12, 1], [587, 13, 2], [659, 15, 1], [740, 16, 1], [880, 17, 1],
   [740, 18, 1], [659, 19, 1], [587, 20, 4],
 ];
-const BASS: readonly (readonly [number, number, number])[] = [[147, 0, 4], [196, 4, 5], [196, 9, 4], [220, 13, 5], [147, 18, 6]];
+const BASS: Notes = [[147, 0, 4], [196, 4, 5], [196, 9, 4], [220, 13, 5], [147, 18, 6]];
+/** The answer: up from D through B minor, and home. */
+const ANSWER: Notes = [
+  [587, 0, 1], [659, 1, 1], [740, 2, 2], [880, 4, 1], [740, 5, 1], [659, 6, 1], [587, 7, 2],
+  [494, 9, 1], [587, 10, 1], [659, 11, 1], [554, 12, 1], [440, 13, 2], [494, 15, 1], [587, 16, 1], [659, 17, 1],
+  [554, 18, 1], [494, 19, 1], [587, 20, 4],
+];
+const ANSWER_BASS: Notes = [[147, 0, 4], [247, 4, 5], [196, 9, 4], [220, 13, 5], [147, 18, 6]];
+/** Under the air the second time: each low note broken into a slow ripple up its chord (root, fifth, octave, fifth). */
+const RIPPLE: Notes = BASS.flatMap(([f, beat, beats]) => Array.from({ length: beats * 2 }, (_, i) => [f * [2, 3, 4, 3][i % 4]! / 2, beat + i / 2, 0.5] as const));
+/** D major, an octave of it (Hz); and a note a third above any in it (two steps up the scale). */
+const D_SCALE = [294, 330, 370, 392, 440, 494, 554];
+const third = (f: number): number => {
+  let o = 1;
+  while (f / o > 554 * 1.02) o *= 2;
+  const i = D_SCALE.findIndex(n => Math.abs(n - f / o) < 8);
+  return i < 0 ? f : D_SCALE[(i + 2) % 7]! * o * (i + 2 >= 7 ? 2 : 1);
+};
+
+/** One time round: a lead (triangle) over low notes (sine), and maybe a second, softer voice. */
+const air = (lead: Notes, low: Notes, gain = 0.07, voice?: Notes): SoundRecipe["tones"] => [
+  ...lead.map(([f, beat, beats]) => ({ wave: "triangle" as const, from: f, dur: beats * BEAT * 0.95, gain, delay: beat * BEAT })),
+  ...low.map(([f, beat, beats]) => ({ wave: "sine" as const, from: f, dur: beats * BEAT, gain: 0.05, delay: beat * BEAT })),
+  ...(voice ?? []).map(([f, beat, beats]) => ({ wave: "sine" as const, from: f, dur: beats * BEAT * 0.95, gain: 0.035, delay: beat * BEAT })),
+];
+/** The credits' tune, in turn (sound ids), and how long (s) each time round is, with a breath after it. */
+export const CREDITS_AIR = { turns: ["credits", "creditsAnswer", "creditsRipple", "creditsHigh"], every: 24 * BEAT + 1.1 } as const;
 
 export const SFX = {
   // The hero
@@ -75,8 +106,10 @@ export const SFX = {
   catch: { tones: [{ wave: "noise", from: 700, to: 300, dur: 0.3, gain: 0.25, q: 1 }, { wave: "square", from: 784, dur: 0.1, gain: 0.07, delay: 0.1 }, { wave: "square", from: 1047, dur: 0.14, gain: 0.07, delay: 0.18 }] },
 
   // The credits (src/game/credits.ts): a slow, warm air in D as the run plays back, a soft low note under each phrase.
-  credits: { tones: [...TUNE.map(([f, beat, beats]) => ({ wave: "triangle" as const, from: f, dur: beats * BEAT * 0.95, gain: 0.07, delay: beat * BEAT })),
-    ...BASS.map(([f, beat, beats]) => ({ wave: "sine" as const, from: f, dur: beats * BEAT, gain: 0.05, delay: beat * BEAT }))] },
+  credits: { tones: air(TUNE, BASS) },
+  creditsAnswer: { tones: air(ANSWER, ANSWER_BASS, 0.06) },
+  creditsRipple: { tones: air(TUNE, RIPPLE.map(([f, beat, beats]) => [f, beat, beats * 1.6] as const), 0.06) },
+  creditsHigh: { tones: air(ANSWER, ANSWER_BASS, 0.055, ANSWER.map(([f, beat, beats]) => [third(f), beat, beats] as const)) },
 } satisfies Record<string, SoundRecipe>;
 
 export type SfxId = keyof typeof SFX;

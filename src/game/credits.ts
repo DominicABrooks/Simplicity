@@ -4,21 +4,24 @@
 // woodwardens stepping aside, Yssa at the foot of the climb, Cinder and Rime falling and their spirits rising, the Grey
 // Ringer's churchyard, and Calder at the great crack as it grinds shut (not the walk home or the King's feet: he's just
 // played those). Then what it meant: the Greyed losing their grey, the slimes gone still, the King reading the true
-// chronicle at the cross, the Vael coming over the bridge for their eggs, Yssa at the fountain; and last his own ending, asleep in the top room of the Fells' house
-// with a lantern of his own in the window. Only what this run got to is shown, and some of what's said changes with
-// what else it did. Each shot loads its area, clears off anything that'd wander in, stands the people in it, and moves
-// the camera itself (in, out, round), the clock running on so everything breathes and flickers; a shot with a long line
-// under it holds long enough to read. A little tune plays as they start. After, he's put back where he was.
+// chronicle at the cross, the Vael coming over the bridge for their eggs, Yssa at the fountain; and last his own
+// ending, asleep in the Fells' house with a lantern of his own in the window, the Ranger home by the fire with Meg. Only
+// what this run got to is shown, and some of what's said changes with what else it did. Each shot loads its area,
+// clears off anything that'd wander in, stands the people in it, and moves the camera itself (in, out, round), the
+// clock running on so everything breathes and flickers; a shot with a long line under it holds long enough to read. A
+// little tune plays under them all, coming round a little different each time. After, he's put back where he was.
 import { loadArea } from "../areas/index.ts";
 import type { Entity } from "../core/ecs.ts";
 import { CREDITS_TIME, CROWD_OF, RUN_SUMS, SHOT_SAYS, SHOT_SAYS_TOO, type ShotId } from "../data/ending.ts";
 import { CURIO_IDS } from "../data/items.ts";
+import { CREDITS_AIR } from "../data/sfx.ts";
 import { MAGE_TARGET, SCHOOLS, SLIME, SLIME_TARGET, type School } from "../data/enemies.ts";
 import { SPAWN } from "../areas/witchwood.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, Prop } from "../world/area.ts";
 import { layoutOf } from "../world/layouts.ts";
-import { interiorOf } from "../world/interiors.ts";
+import { interiorOf, type Spot } from "../world/interiors.ts";
+import type { Resident } from "../world/residents.ts";
 import { registerArea } from "../areas/index.ts";
 import { beaten, standIn, type Who } from "./bosses.ts";
 import { calderFightSystem, reopenCrack } from "./calderfight.ts";
@@ -35,6 +38,7 @@ import { sound } from "./sfx.ts";
 import { spawnKing } from "./spawn.ts";
 import { loadCensus } from "./townsfolk.ts";
 import { spiritSystem } from "./spirits.ts";
+import { standIn as standInside } from "./interiors.ts";
 import { endTalk } from "./talk.ts";
 import { enterArea } from "./travel.ts";
 import { passedBarricade } from "./watchword.ts";
@@ -77,6 +81,9 @@ interface Reel {
   cam: Cam | null;
   /** Where he was before, to be put back after. */
   back: { area: AreaDef; x: number; y: number; hour: number };
+  /** The tune: which time round it's on, and how long (s) till it comes round again. */
+  turn: number;
+  music: number;
 }
 const reels = new WeakMap<Game, Reel>();
 
@@ -126,10 +133,10 @@ export async function rollCredits(g: Game): Promise<void> {
   startAt.delete(g);
   const reel: Reel = {
     shots, run, defs: new Map(), ready: false, at: -1, t: 0, staged: null, length: CREDITS_TIME.shot, cam: null,
-    back: { area: g.area.def, x: p.x, y: p.y, hour: g.hour },
+    back: { area: g.area.def, x: p.x, y: p.y, hour: g.hour }, turn: 0, music: CREDITS_AIR.every,
   };
   reels.set(g, reel);
-  sound(g, "credits");
+  sound(g, CREDITS_AIR.turns[0]);
   const defs = await Promise.all(shots.map(s => (s.load ? s.load() : loadArea(s.area))));
   shots.forEach((s, i) => { const def = defs[i]; if (def) reel.defs.set(s.id, def); });
   reel.shots = shots.filter(s => reel.defs.has(s.id));    // a place that couldn't be made: that shot's left out
@@ -140,6 +147,15 @@ export async function rollCredits(g: Game): Promise<void> {
 export function updateCredits(g: Game, dt: number): boolean {
   const r = reels.get(g);
   if (!r) return true;
+  const done = playOn(g, r, dt);
+  if ((r.music -= dt) <= 0) {                                // the tune comes round again, a little different each time
+    r.music += CREDITS_AIR.every;                            // (after the shot's moved on: a new place hushes what was to be heard)
+    sound(g, CREDITS_AIR.turns[++r.turn % CREDITS_AIR.turns.length]!);
+  }
+  return done;
+}
+
+function playOn(g: Game, r: Reel, dt: number): boolean {
   g.clock += dt;                                             // the world breathes and flickers, though nobody's playing
   if (r.at < 0) {
     if (!r.ready || (r.t += dt) < CREDITS_TIME.dark) return false;
@@ -474,6 +490,13 @@ const SHOTS: readonly Shot[] = [
       // The lantern on the sill by the bed, against the back wall where the window is.
       const lx = at.x + T, ly = Math.max(0.6 * T, at.y - 0.6 * T);
       g.world.create({ transform: { x: lx, y: ly }, renderable: { kind: "lantern" } });
+      // And the Ranger home: Wystan and Meg up late by the fire, turned to each other, and no cloak at the window now.
+      // (Him at the fire's near side, her a step off toward the beds, so the camera has them both.)
+      if (fells) {
+        const fire = fells.spots[0]!, by = { x: fire.x - 1.1, y: fire.y + 0.6 }, toHer = Math.atan2(by.y - fire.y, by.x - fire.x);
+        if (fells.wystan) standInside(g, fells.wystan, { ...fire, facing: toHer });
+        if (fells.meg) standInside(g, fells.meg, { ...by, facing: toHer + Math.PI });
+      }
       // Looking between his bed and the middle of the room, so the room's round him, the fire and all.
       const cx = (at.x + HALF + (g.map.width * T) / 2) / 2, cy = (at.y + HALF + (g.map.height * T) / 2) / 2;
       return { from: cam(cx, cy, 1.0, -0.35), to: cam((cx + at.x + HALF) / 2, (cy + at.y + HALF) / 2, 0.6, 0.15), says: SHOT_SAYS.fells, asleep: bed };
@@ -487,18 +510,22 @@ function followedLine(n: number): string {
   return n <= 0 ? F.none : n < CROWD_OF ? F.few : F.crowd;
 }
 
+/** The Fells' house as made for the credits: where people stand in it, and the Ranger and his wife. */
+let fells: { spots: Spot[]; wystan?: Resident; meg?: Resident } | null = null;
 /**
  * The inside of the Fells' house in Kingsholm (the Ranger's family: src/world/people.ts), made the way any house's is
  * when someone's asked in (src/world/interiors.ts): found from where the census says they live. Null if it can't be.
  */
 async function fellsHouse(): Promise<AreaDef | null> {
-  const people = await loadCensus(), fells = people.filter(r => r.family === "fell" && !r.prisoner), home = fells[0]?.home;
+  const people = await loadCensus(), all = people.filter(r => r.family === "fell"), fellsHome = all.filter(r => !r.prisoner), home = fellsHome[0]?.home;
   if (!home) return null;
   const city = await loadArea(home.area), px = (home.x + 0.5) * T, py = (home.y + 0.5) * T;
   const house = layoutOf(city).props.find((p): p is Extract<Prop, { kind: "house" }> =>
     p.kind === "house" && px >= p.rect.x && py >= p.rect.y && px <= p.rect.x + p.rect.w && py <= p.rect.y + p.rect.h);
   if (!house) return null;
-  const { def } = interiorOf(home.area, house, fells, "The Fells' house");
+  const { def, spots } = interiorOf(home.area, house, fellsHome, "The Fells' house");
+  // Wystan's the one who was in the dungeon; Meg the eldest of those at home.
+  fells = { spots, wystan: all.find(r => r.prisoner), meg: [...fellsHome].sort((a, b) => b.age - a.age)[0] };
   registerArea(def);
   return def;
 }

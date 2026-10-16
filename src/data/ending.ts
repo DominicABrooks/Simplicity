@@ -91,21 +91,21 @@ export const SHOT_SAYS: Record<ShotId, string> = {
   ringer: "One night in St Mary's churchyard, you laid the Grey Ringer to rest.",
   calder: "At the edge of the great crack Calder looked at you and said, \"Oh. He sent you. Good.\" Then the crack ground shut.",
   // And what it meant (HERO.md, "The end"): the aftermath, after his own story's told.
-  greyed: "With Calder gone, the Greyed had no one left to follow. One by one the grey went out of them and their sparks went home, and in time the cracks under the Witchwood closed.",
-  slimes: "The slimes stopped bouncing. With the valley whole, the Frost order could unscramble them at last, and within the year they were the people of the Deep Hall again.",
-  chronicle: "Next morning the King stood at the market cross and read the city the true chronicle, the Founder's letter and all. He went very red. The Edict was torn up.",
+  greyed: "With no one left to follow, the grey went out of the Greyed, one by one.",
+  slimes: "The slimes sat still at last. Within the year they were the people of the Deep Hall again.",
+  chronicle: "Next morning the King read the true chronicle at the market cross, went very red, and tore up the Edict.",
   eggs: "The Vael came north over the King's Bridge, openly, for the first time in six hundred years, and this time the King gave them back their eggs. Under the Greyspines, beside their mother, three small dragons hatched, and the valley was whole again.",
-  milk: "Yssa let the frost go at last. She walked over the King's Bridge, set a bowl of milk at the foot of the fountain, and stayed.",
+  milk: "Yssa let the frost go, set a bowl of milk at the foot of the fountain, and stayed.",
   // And last, his own ending: what the King's "anything Aurenmark can give" came to.
-  fells: "The King had promised you anything Aurenmark could give. You never asked for a thing. Meg Fell gave you the room at the top of her house, and on Lantern Night, for the first time, one of the lanterns in the windows was yours.",
+  fells: "You never asked the King for a thing. The Ranger came home, Meg took his cloak in, and one lantern in the window was yours.",
 };
 /** Said instead, or after, when the run went that way. */
 export const SHOT_SAYS_TOO = {
   /** After the chronicle, by how many followed him up the hill with the head: nobody, a few, or a crowd. */
   followed: {
     none: "",
-    few: "The few who'd followed you up the hill had the best places.",
-    crowd: "Half the city had followed you up the hill, and the other half came to hear.",
+    few: "The few who'd followed you had the best places.",
+    crowd: "Half the city had followed you up. The rest came to hear.",
   },
   bow: "You kept your distance with the hunter's bow. Rime sang a line about the river Aurel as she fell, and the ice let go.",
   koi: "And down under the ice, you landed the Great Koi.",

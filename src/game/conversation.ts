@@ -2,13 +2,14 @@
 // own voice (from their personality) about one to four things, picked by weight from what they have to
 // talk about: their work, their family, their quirk, where they live, the city, the hero, the Edict, and
 // only rarely a rumour (most often the one about the ghost in St Mary's churchyard: src/data/ghost.ts). Gruff people say one thing and go; chatty ones go on. The named families talk
-// about themselves: their family's saying, and what the city says about them.
+// about themselves: their family's saying, and what the city says about them. After the end (src/game/peace.ts) the
+// Edict's fear goes out of it: what they say about the Edict is how it's been since, and stale talk is left out.
 import type { Rng } from "../core/rng.ts";
 import { GHOST_RUMOURS } from "../data/ghost.ts";
 import type { GiftKind } from "../data/items.ts";
 import {
-  ABOUT_US, AGAIN, ANNOYED, BYE, CITY, DEEP, EDICT, FOND_BYE, FOND_OPEN, GIFT, GREET, GUARD, GUARD_AGAIN, HERO, INTRO, KID, KID_AGAIN, KIN, PLACE, QUIRK,
-  RUMOUR, SOFTENED, VOICE_OF, WORK, WORK_ANY, type GiftLine, type Mood, type Voice,
+  ABOUT_US, AGAIN, ANNOYED, BEFORE_ONLY, BYE, CITY, CITY_AFTER, DEEP, EDICT, EDICT_AFTER, FOND_BYE, FOND_OPEN, GIFT, GREET, GUARD, GUARD_AGAIN, HERO,
+  INTRO, KID, KID_AGAIN, KIN, PLACE, QUIRK, RUMOUR, SOFTENED, STALE_AFTER, VOICE_OF, WORK, WORK_ANY, type GiftLine, type Mood, type Voice,
 } from "../data/voices.ts";
 import { FAMILIES, type Family } from "../world/people.ts";
 import type { Resident } from "../world/residents.ts";
@@ -17,6 +18,13 @@ const pick = <T>(rng: Rng, list: readonly T[]): T => list[Math.floor(rng.next() 
 const fill = (line: string, vars: Record<string, string | number>) => line.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 const firstName = (r: Resident) => r.name.replace(/^(Lord|Lady|Master|Mistress|Father|Old Mother|Old|Little|Widow|Gran)\s+/, "").replace(/"/g, "").split(" ")[0]!;
 const rumours = FAMILIES.flatMap(f => f.rumours);
+/** What's still said after the end: the city's talk without what's gone stale, and with what's new. */
+const fresh = (lines: readonly string[]) => lines.filter(l => !BEFORE_ONLY.has(l));
+const after = {
+  city: [...fresh(CITY), ...CITY_AFTER], deep: fresh(DEEP), duty: fresh(GUARD.duty),
+  place: Object.fromEntries(Object.entries(PLACE).map(([k, v]) => [k, fresh(v)])) as Record<string, readonly string[]>,
+  rumours: rumours.filter(r => !STALE_AFTER.test(r.says)),
+};
 /** Who's most likely to pass on the ghost story: the gossips and the ones who believe in such things. */
 const GHOSTLY = new Set(["superstitious", "nervous", "jumpy", "gullible", "worried", "anxious", "nosy"]);
 /** The ghost story, passed on (see src/data/ghost.ts): each one the hero hears makes her likelier to rise. */
@@ -150,8 +158,10 @@ const AREA_NAME: Record<string, string> = { capital: "the Market Quarter", castl
  * so they can talk about their family; `visits` is how many times the hero has talked to them before, so
  * they can warm up, open up, or get fed up (see moodOf). `gives` says whether they may hand the hero
  * something: bakers a loaf, fishers a koi, a child who likes you a shiny stone, the warm-hearted some bread.
+ * `peace`: it's after the end, and the Edict's gone.
  */
-export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[] = [], visits = 0, gives: CanGive = NOTHING): string[] {
+export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[] = [], visits = 0, gives: CanGive = NOTHING, peace = false): string[] {
+  const city = peace ? after.city : CITY, heard = peace ? after.rumours : rumours;
   const name = firstName(r), voice = voiceOf(r);
   if (r.age < 4) return [pick(rng, KID.tiny)];
   if (r.age < 12 && visits > 0) {
@@ -182,11 +192,11 @@ export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[]
     { weight: 3, say: intro, personal: true },
     { weight: 2, say: workLine },
     { weight: 2, say: () => fill(pick(rng, QUIRK[voice]), { q: firstPerson(r.quirk) }).replace(/^./, c => c.toUpperCase()), personal: true },
-    { weight: 1.5, say: () => pick(rng, PLACE[r.home.area] ?? CITY) },
-    { weight: 1.5, say: () => pick(rng, CITY) },
+    { weight: 1.5, say: () => pick(rng, (peace ? after.place : PLACE)[r.home.area] ?? city) },
+    { weight: 1.5, say: () => pick(rng, city) },
     { weight: 1.5, say: () => pick(rng, HERO) },
-    { weight: r.stance === "whispering" ? 0.6 : 1, say: () => pick(rng, EDICT[r.stance] ?? EDICT.quiet!) },
-    { weight: voice === "chatty" || r.stance === "whispering" ? 0.6 : 0.15, say: () => `${pick(rng, RUMOUR)} "${pick(rng, rumours).says}."` },
+    { weight: r.stance === "whispering" ? 0.6 : 1, say: () => { const edict = peace ? EDICT_AFTER : EDICT; return pick(rng, edict[r.stance] ?? edict.quiet!); } },
+    { weight: voice === "chatty" || r.stance === "whispering" ? 0.6 : 0.15, say: () => `${pick(rng, RUMOUR)} "${pick(rng, heard).says}."` },
     { weight: voice === "chatty" || voice === "dreamy" || r.traits.some(t => GHOSTLY.has(t)) ? 1.2 : 0.5, say: () => ghostRumour(rng) },
   ];
   if (workGifts.length) topics.push({ weight: 1.5, say: () => pick(rng, workGifts).say });
@@ -197,11 +207,11 @@ export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[]
     }, personal: true });
   }
   if (family) {
-    topics.push({ weight: 3, say: () => sayingOf(family) });
+    if (!peace || !STALE_AFTER.test(family.mutter)) topics.push({ weight: 3, say: () => sayingOf(family) });
     // What the city says about the family. A rumour about someone else in it is quoted; one about the
     // speaker is turned round, so they say "I", never their own name.
     const told = family.rumours.flatMap(said => {
-      const mine = aboutMe(said.says, r);
+      const mine = peace && STALE_AFTER.test(said.says) ? null : aboutMe(said.says, r);
       return mine === null ? [] : [{ said, mine }];
     });
     if (told.length) topics.push({ weight: 2, say: () => {
@@ -227,7 +237,7 @@ export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[]
     return lines;
   }
   if (mood === "fond" || mood === "softened") {
-    const deep = deepLines(r, kin, family);
+    const deep = deepLines(r, kin, family, peace);
     const lines = [inTurn(mood === "fond" ? FOND_OPEN : SOFTENED, r, visits)];
     for (let i = 0; i < (mood === "fond" ? (voice === "chatty" ? 3 : 2) : 1) && deep.length; i++) lines.push(deep.splice(Math.floor(rng.next() * deep.length), 1)[0]!(rng));
     const bread = mood === "fond" && (voice === "warm" || r.traits.some(t => GENEROUS.has(t))) ? giftable(GIFT.fond, gives) : [];
@@ -249,36 +259,37 @@ export function folkLines(rng: Rng, r: Resident, housemates: readonly Resident[]
  * What someone tells you once they know you: the deeper lines they can fill in (and, for the named
  * families, the family secret, if it isn't about them), each filled in as it's said.
  */
-function deepLines(r: Resident, kin: readonly Resident[], family: Family | undefined): ((rng: Rng) => string)[] {
+function deepLines(r: Resident, kin: readonly Resident[], family: Family | undefined, peace: boolean): ((rng: Rng) => string)[] {
   const trade = jobLine(r.job).startsWith("I'm ") ? jobLine(r.job).slice(4, -1) : "doing this";
   const children = kin.filter(k => ["son", "daughter"].includes(relation(r, k)));
   const needsKin = /\{(kin|rel)\}/;
-  const out = DEEP.filter(l => (!needsKin.test(l) || kin.length > 0) && (!l.includes("{child}") || children.length > 0)).map(l => (rng: Rng) => {
+  const out = (peace ? after.deep : DEEP).filter(l => (!needsKin.test(l) || kin.length > 0) && (!l.includes("{child}") || children.length > 0)).map(l => (rng: Rng) => {
     const k = kin.length ? pick(rng, kin) : undefined, c = children.length ? pick(rng, children) : undefined;
     return fill(l, { trade, place: AREA_NAME[r.home.area] ?? "this city", ...(k ? { kin: firstName(k), rel: relation(r, k) } : {}), ...(c ? { child: firstName(c) } : {}) });
   });
-  if (family?.secret && aboutMe(family.secret, r) === "") out.push(() => `Can I trust you with something? ${family.secret}`);
+  if (family?.secret && aboutMe(family.secret, r) === "" && !(peace && STALE_AFTER.test(family.secret))) out.push(() => `Can I trust you with something? ${family.secret}`);
   return out;
 }
 
 /**
  * A guard's conversation: a greeting, a word about their post, now and then something more, and goodbye.
  * The same guard, talked to again, gets friendly, then personal (and, if `gives` lets them, hands over some
- * bread), then fed up with you.
+ * bread), then fed up with you. `peace`: it's after the end.
  */
-export function guardLines(rng: Rng, area: string, visits = 0, gives: CanGive = NOTHING): string[] {
+export function guardLines(rng: Rng, area: string, visits = 0, gives: CanGive = NOTHING, peace = false): string[] {
+  const duty = peace ? after.duty : GUARD.duty;
   if (visits >= 5) return [pick(rng, GUARD_AGAIN.annoyed)];
   if (visits >= 3) {
     const personal = [...GUARD_AGAIN.personal], first = personal.splice(Math.floor(rng.next() * personal.length), 1)[0]!;
     const bread = giftable(GIFT.guard, gives);
     return [first, bread.length ? pick(rng, bread).say : pick(rng, personal), pick(rng, GUARD.bye)];
   }
-  if (visits >= 1) return [pick(rng, GUARD_AGAIN.again), rng.next() < 0.5 ? pick(rng, GUARD_AGAIN.personal) : pick(rng, GUARD.duty)];
+  if (visits >= 1) return [pick(rng, GUARD_AGAIN.again), rng.next() < 0.5 ? pick(rng, GUARD_AGAIN.personal) : pick(rng, duty)];
   const lines = [pick(rng, GUARD.greet), pick(rng, GUARD.post[area] ?? GUARD.post.any!)];
   const more = rng.next();
-  if (more < 0.35) lines.push(pick(rng, GUARD.duty));
+  if (more < 0.35) lines.push(pick(rng, duty));
   else if (more < 0.55) lines.push(pick(rng, HERO));
-  else if (more < 0.65) lines.push(`${pick(rng, RUMOUR)} "${pick(rng, rumours).says}."`);
+  else if (more < 0.65) lines.push(`${pick(rng, RUMOUR)} "${pick(rng, peace ? after.rumours : rumours).says}."`);
   else if (more < 0.75) lines.push(ghostRumour(rng));
   if (rng.next() < 0.7) lines.push(pick(rng, GUARD.bye));
   return lines;
