@@ -135,33 +135,34 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   /** A black bar over the top of a length (the segment's own taper), showing above it and hidden under it. */
   const bar = (o: THREE.Object3D, geo: THREE.BufferGeometry, r: number) => { put(o, geo, mark, 0, r * 0.28, 0).scale.set(1, 1, 0.92); };
   // The body: compact, the chest high, the hips behind, the belly under both; a black saddle down the back, and spikes.
+  // Narrow, as Rathalos is from above and below: about a seventh as wide as it's long.
   const chest = put(group, ball(0.3), skin, 0.12, 0.84, 0);
-  chest.scale.set(1.2, 1, 0.95);
-  put(group, ball(0.29), skin, -0.24, 0.76, 0).scale.set(1.15, 0.92, 0.95);
-  put(group, ball(0.26), belly, 0, 0.7, 0).scale.set(1.5, 0.66, 0.8);
-  put(group, ball(0.26), mark, -0.06, 0.95, 0).scale.set(1.6, 0.36, 0.55);
+  chest.scale.set(1.2, 0.95, 0.5);
+  put(group, ball(0.29), skin, -0.24, 0.78, 0).scale.set(1.15, 0.85, 0.48);
+  put(group, ball(0.26), belly, -0.04, 0.68, 0).scale.set(1.75, 0.6, 0.44);   // pale all down the underside
+  put(group, ball(0.26), mark, -0.06, 0.95, 0).scale.set(1.6, 0.34, 0.3);
   for (let i = 0; i < 5; i++) put(group, cone(0.04, 0.16 - Math.abs(i - 1.5) * 0.02), horn, 0.28 - i * 0.14, 1.12 - i * 0.04, 0, 0, 0, -0.45);
   // Two legs, thick in the thigh, a backward-bent shin, a long foot and three great claws.
-  const legs = ([0.21, -0.21] as const).map(lz => {
+  const legs = ([0.12, -0.12] as const).map(lz => {
     const hip = new THREE.Group(), y = 0.74, a = 0.6, b = -0.75, upper = 0.34, shin = 0.3;
     hip.position.set(-0.2, y, lz);
     group.add(hip);
-    put(hip, ball(0.19), skin, 0, 0, 0).scale.set(1.2, 1.3, 0.85);
-    put(hip, down(limb(upper, 0.13, 0.08)), skin, 0, 0, 0).rotation.z = a;
+    put(hip, ball(0.17), skin, 0, 0, 0).scale.set(1.2, 1.3, 0.55);
+    put(hip, down(limb(upper, 0.095, 0.06)), skin, 0, 0, 0).rotation.z = a;
     const knee = new THREE.Group();
     knee.position.set(Math.sin(a) * upper, -Math.cos(a) * upper, 0);
     hip.add(knee);
-    put(knee, ball(0.075), skin, 0, 0, 0);
-    put(knee, down(limb(shin, 0.07, 0.05)), skin, 0, 0, 0).rotation.z = b;
+    put(knee, ball(0.06), skin, 0, 0, 0);
+    put(knee, down(limb(shin, 0.055, 0.04)), skin, 0, 0, 0).rotation.z = b;
     const ankle = new THREE.Group(), low = y - upper * Math.cos(a) - shin * Math.cos(b) - 0.03;
     ankle.position.set(Math.sin(b) * shin, -Math.cos(b) * shin, 0);
     knee.add(ankle);
-    put(ankle, down(limb(Math.max(0.05, low / Math.cos(0.45)), 0.05, 0.04)), skin, 0, 0, 0).rotation.z = 0.45;
+    put(ankle, down(limb(Math.max(0.05, low / Math.cos(0.45)), 0.04, 0.032)), skin, 0, 0, 0).rotation.z = 0.45;
     const foot = new THREE.Group();
     foot.position.set(Math.tan(0.45) * low, -low, 0);
     ankle.add(foot);
-    put(foot, box(0.14, 0.05, 0.13), skin, 0.03, 0, 0);
-    for (const cz of [-0.05, 0, 0.05]) put(foot, toX(cone(0.022, 0.1)), horn, 0.09, -0.01, cz, 0, cz * 4, 0);
+    put(foot, box(0.13, 0.045, 0.1), skin, 0.03, 0, 0);
+    for (const cz of [-0.035, 0, 0.035]) put(foot, toX(cone(0.02, 0.1)), horn, 0.09, -0.01, cz, 0, cz * 5, 0);
     put(foot, toBack(cone(0.02, 0.07)), horn, -0.04, -0.01, 0);   // the back toe
     return hip;
   });
@@ -169,11 +170,11 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   const neck: THREE.Group[] = [], L = young ? 0.08 : 0.1;
   let parent: THREE.Object3D = group;
   for (let i = 0; i < 3; i++) {
-    const seg = new THREE.Group(), r0 = 0.13 - i * 0.017, r1 = r0 - 0.017;
+    const seg = new THREE.Group(), r0 = 0.1 - i * 0.012, r1 = r0 - 0.012;
     seg.position.set(i ? L : 0.36, i ? 0 : 0.96, 0);
     put(seg, ball(r0 * 0.97), skin, 0, 0, 0);
     put(seg, toX(limb(L + 0.02, r0, r1)), skin, 0, 0, 0);
-    put(seg, toX(limb(L + 0.02, r0 * 0.75, r1 * 0.75)), belly, 0, -r0 * 0.35, 0);   // paler underneath
+    put(seg, toX(limb(L + 0.02, r0 * 0.78, r1 * 0.78)), belly, 0, -r0 * 0.42, 0);   // paler underneath
     if (i === 1) bar(seg, toX(limb(L * 0.6, r0 * 1.02, r1 * 1.02)), r0);
     put(seg, cone(0.028, 0.1), horn, L * 0.5, r0 * 0.8, 0, 0, 0, -0.45);
     parent.add(seg);
@@ -186,7 +187,7 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   skull.scale.setScalar(young ? 1.15 : 0.68);
   head.add(skull);
   parent.add(head);
-  put(skull, ball(0.14), skin, 0.05, 0.03, 0).scale.set(1.3, 0.88, 1.05);
+  put(skull, ball(0.14), skin, 0.05, 0.03, 0).scale.set(1.3, 0.88, 0.85);
   put(skull, toX(limb(0.34, 0.1, 0.035, 6)), skin, 0.1, 0.01, 0).scale.set(1, 0.72, 1);   // the snout, long and tapering
   put(skull, down(cone(0.03, 0.07, 4)), horn, 0.43, 0.005, 0);                            // the hook at its tip
   put(skull, toX(limb(0.3, 0.05, 0.02, 5)), mark, 0.12, 0.075, 0).scale.set(1, 0.6, 1);   // black down the bridge of the nose
@@ -219,11 +220,11 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   const tail: THREE.Group[] = [];
   parent = group;
   for (let i = 0; i < 4; i++) {
-    const seg = new THREE.Group(), r0 = 0.15 - i * 0.022, r1 = r0 - 0.022, T = 0.11;
+    const seg = new THREE.Group(), r0 = 0.085 - i * 0.012, r1 = r0 - 0.012, T = 0.11;
     seg.position.set(i ? -T : -0.52, i ? 0 : 0.78, 0);
     put(seg, ball(r0 * 0.97), skin, 0, 0, 0);
     put(seg, toBack(limb(T + 0.02, r0, r1)), skin, 0, 0, 0);
-    put(seg, toBack(limb(T + 0.02, r0 * 0.7, r1 * 0.7)), belly, 0, -r0 * 0.35, 0);
+    put(seg, toBack(limb(T + 0.02, r0 * 0.75, r1 * 0.75)), belly, 0, -r0 * 0.42, 0);
     if (i % 2 === 0) bar(seg, toBack(limb(T * 0.55, r0 * 1.02, r1 * 1.02)), r0);
     put(seg, cone(0.028 - i * 0.003, 0.1 - i * 0.01), horn, -T * 0.5, r0 * 0.8, 0, 0, 0, 0.5);
     parent.add(seg);
@@ -241,7 +242,7 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   const wings = [] as unknown as [THREE.Group, THREE.Group], wrists = [] as unknown as [THREE.Group, THREE.Group];
   for (const s of [1, -1] as const) {
     const w = wing(skin, horn, top, pale, vein, s, young ? 0.62 : 1);
-    w.shoulder.position.set(0.28, 1.0, s * 0.17);
+    w.shoulder.position.set(0.28, 1.0, s * 0.1);
     group.add(w.shoulder);
     wings.push(w.shoulder);
     wrists.push(w.wrist);
@@ -268,7 +269,7 @@ export const dragon: EntityView<DragonView> = {
     v.group.position.set(x, d.height + (flying ? -beat * 0.06 * d.size : 0) + Math.sin(rear) * 0.36 * size, z);
     v.group.rotation.set(0, -d.facing, rear);
     v.group.scale.setScalar(size);
-    v.chest.scale.set(1.2, 1 + Math.sin(t * 1.8) * 0.025, 0.95);   // breathing
+    v.chest.scale.set(1.2, 0.95 + Math.sin(t * 1.8) * 0.025, 0.5);   // breathing
     for (const leg of v.legs) leg.rotation.z = flying ? -1.1 : 0;   // tucked back under her in flight
     // Wings: beating in flight (up and down about the shoulder, swept a little back on the upstroke); folded at rest.
     v.wings.forEach((w, i) => {
