@@ -42,6 +42,15 @@ export interface EntityView<S> {
   create(ctx: RenderContext, e: Entity, g: Game): S;
   update(ctx: RenderContext, view: S, e: Entity, g: Game, f: Frame): void;
   remove(ctx: RenderContext, view: S): void;
+  /** What it put in the scene, to hide while it's out of the camera's reach (by default its group, shadow and ripple). */
+  roots?(view: S): THREE.Object3D[];
+}
+
+/** A view's objects in the scene: its own say, or its group, shadow and ripple. */
+export function viewRoots<S>(def: EntityView<S>, view: S): THREE.Object3D[] {
+  if (def.roots) return def.roots(view);
+  const v = view as { group?: unknown; shadow?: unknown; ripple?: unknown };
+  return [v.group, v.shadow, v.ripple].filter((o): o is THREE.Object3D => o instanceof THREE.Object3D);
 }
 
 /** Views made of a group and a blob shadow. */
@@ -408,8 +417,9 @@ const dummy: EntityView<DummyView> = {
       v.speed += enemy.flash > 0.2 ? spring.crit : spring.kick;
     }
     v.flash = enemy.flash;
-    v.speed += (-spring.stiffness * v.lean - spring.damping * v.speed) * f.dt;
-    v.lean = Math.max(-spring.max, Math.min(spring.max, v.lean + v.speed * f.dt));
+    const dt = Math.min(f.dt, 1 / 30);                       // the spring flies apart in a long step (coming back into view)
+    v.speed += (-spring.stiffness * v.lean - spring.damping * v.speed) * dt;
+    v.lean = Math.max(-spring.max, Math.min(spring.max, v.lean + v.speed * dt));
     if (v.butt) {                                            // a butt's face jolts straight back on its frame
       v.top.rotation.set(BUTT_TILT - Math.abs(v.lean), 0, 0);
       v.sack.emissive.setScalar(enemy.flash > 0 ? 0.5 : 0);
