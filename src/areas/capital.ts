@@ -15,8 +15,11 @@ import { CASTLE, castleCore } from "./castle.ts";
 const W = 96, H = 80;
 /** Southgate's line (the high street and Castle Street run on it), the south wall's row and the west wall's column. */
 const MID = 48.5, SOUTH_WALL = 74, WEST_WALL = 3;
-/** The fountain stone's row (tile corners): just clear of the fountain's basin, to its south. */
-const FOUNTAIN_STONE_Y = 44.7;
+/**
+ * The fountain stone's row (tile corners): south of the fountain toward the high street, out past where the minstrel
+ * plays at its foot and the townsfolk walk their circles round it (src/game/townsfolk.ts), so it isn't hidden under them.
+ */
+const FOUNTAIN_STONE_Y = 46.6;
 /** Southgate: its line, the south wall's row, and the south wall's towers (columns). The King's Bridge, outside
  * it, lines its own wall up with these and shows this quarter's south end through the gate. */
 export const SOUTHGATE = { x: MID, y: SOUTH_WALL, towers: [19, 34, 63, 78] } as const;
@@ -79,7 +82,7 @@ function build(): AreaLayout {
   // four rows of stalls in pairs facing each other across their aisles, stock about, and bunting all round on masts.
   town.add({ kind: "plaza", rect: px([SQUARE.x0, SQUARE.y0, SQUARE.x1 - SQUARE.x0 + 1, SQUARE.y1 - SQUARE.y0 + 1]), centre: corner(MID, 41) });
   town.add({ kind: "fountain", ...corner(MID, 41), radius: 2.6 });
-  // The fountain stone, at the fountain's foot on the high street side: one of Ael's old stones (src/game/stones.ts).
+  // The fountain stone, below the fountain on the high street side: one of Ael's old stones (src/game/stones.ts).
   town.add({ kind: "oldStone", ...corner(MID, FOUNTAIN_STONE_Y), name: "The fountain stone", entry: "stone" });
   town.add({ kind: "cross", ...at(38, 41) });
   town.add({ kind: "well", ...at(59, 41) });
