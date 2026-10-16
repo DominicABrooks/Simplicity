@@ -70,7 +70,7 @@ export const SCENES: readonly Scene[] = [
       { look: "both", zoom: 0.6, hold: 1.2, cue: "layHead" },
       { look: "speaker", zoom: 0.5, hold: 2.2 },
       { look: "both", zoom: 0.62, say: KING_HOMECOMING.slice(0, 3) },
-      { look: "hero", zoom: 1.5, hold: 1.4 },
+      { look: "hero", zoom: 0.95, hold: 1.4 },                  // a look back at the crowd, not far out: he's still talking
       { look: "both", zoom: 0.75, say: KING_HOMECOMING.slice(3) },
       { look: "both", zoom: 0.75, hold: 1 },
     ],

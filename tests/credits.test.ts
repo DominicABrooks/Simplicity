@@ -19,7 +19,7 @@ import { calderFightSystem } from "../src/game/calderfight.ts";
 import { CREDITS_AIR } from "../src/data/sfx.ts";
 import { BEFORE_ONLY, EDICT, EDICT_AFTER, STALE_AFTER } from "../src/data/voices.ts";
 import { folkLines, guardLines } from "../src/game/conversation.ts";
-import { creditsAsleep, creditsShot, rollCredits, shotLength, updateCredits } from "../src/game/credits.ts";
+import { SHOT_MOMENTS, creditsAsleep, creditsFrom, creditsShot, rollCredits, shotLength, updateCredits } from "../src/game/credits.ts";
 import { Rng } from "../src/core/rng.ts";
 import { crowdOf } from "../src/game/crowd.ts";
 import { holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
@@ -29,7 +29,8 @@ import { atPeace, spared } from "../src/game/peace.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { endTalk, updateTalk } from "../src/game/talk.ts";
-import { loadCensus, residentById, setCensus } from "../src/game/townsfolk.ts";
+import { enterPets } from "../src/game/pets.ts";
+import { enterTownsfolk, loadCensus, residentById, setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
 import { deathSystem, slimeSystem } from "../src/systems/enemies.ts";
@@ -37,6 +38,9 @@ import { FAMILIES } from "../src/world/people.ts";
 import { layoutOf } from "../src/world/layouts.ts";
 import { isMeg, megLines } from "../src/game/fells.ts";
 import { residentsOf } from "../src/world/residents.ts";
+import { solidAt } from "../src/world/collision.ts";
+import { weatherSystem } from "../src/systems/weather.ts";
+import { FIGHT_CLEARS } from "../src/data/weather.ts";
 
 const people = setCensus(residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props }));
 const DT = 1 / 30;
@@ -110,6 +114,87 @@ describe("the credits", () => {
       expect(shotLength(says)).toBeGreaterThanOrEqual(words(says) / CREDITS_TIME.read + 2 * CREDITS_TIME.fade - 1e-9);
     }
     expect(shotLength(SHOT_SAYS.eggs)).toBeGreaterThan(CREDITS_TIME.shot);
+  });
+
+  it("are all under a clear sky, the weather cleared on the way up with the head and again as they start", async () => {
+    const g = await atTheCastle();
+    Object.assign(g.weather, { kind: "rain", rain: 1, fog: 0.8, timer: 300 });
+    for (let t = 0; t < FIGHT_CLEARS + 0.1; t += DT) weatherSystem(g, DT);       // walking up to the King with it
+    expect(g.weather).toMatchObject({ kind: "clear", rain: 0, fog: 0 });
+    toTheKing(g);
+    Object.assign(g.weather, { kind: "fog", rain: 0, fog: 1 });                  // however it got there
+    g.hitstop = 0.4;                                                             // and a freeze-frame left over (a boss just fallen)
+    await rollCredits(g);
+    expect(g.weather).toMatchObject({ kind: "clear", rain: 0, fog: 0 });
+    expect(g.hitstop).toBe(0);                                                   // or nothing in them would move, or turn
+  });
+
+  it("stand the King clear of the market stalls at the cross, reading the chronicle, everyone looking at him", async () => {
+    const g = await atTheCastle();
+    g.events.on("area", () => { enterTownsfolk(g); enterPets(g); });
+    toTheKing(g);
+    await rollCredits(g);
+    let checked = false;
+    for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60) && !checked; i++) {
+      if (!creditsShot(g)?.says.startsWith(SHOT_SAYS.chronicle)) continue;
+      const king = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")?.[1].transform;
+      if (!king) continue;
+      const x = king.x + 4, y = king.y + 4;
+      for (const [dx, dy] of [[0, 0], [T, 0], [-T, 0], [0, T], [0, -T]]) expect(solidAt(g.map, x + dx!, y + dy!), `${dx},${dy}`).toBe(false);
+      for (const [, { walker: w, transform: t }] of g.world.query("walker", "transform")) {   // and everyone gathered round looking at him
+        const at = Math.atan2(king.y - t.y, king.x - t.x);
+        expect(Math.abs(Math.atan2(Math.sin(w.facing - at), Math.cos(w.facing - at)))).toBeLessThan(0.02);
+      }
+      for (const [, { pet, transform: t }] of g.world.query("pet", "transform")) {   // the dogs and cats too
+        const at = Math.atan2(king.y - t.y, king.x - t.x);
+        expect(Math.abs(Math.atan2(Math.sin(pet.facing - at), Math.cos(pet.facing - at)))).toBeLessThan(0.02);
+      }
+      checked = true;
+    }
+    expect(checked).toBe(true);
+  });
+
+  it("take the stalls down for the King's reading, keep the townsfolk off the bridge for the Vael, and put it all back after", async () => {
+    const g = await atTheCastle();
+    g.events.on("area", () => enterTownsfolk(g));                                // the townsfolk come out, as in the game
+    toTheKing(g);
+    await rollCredits(g);
+    let market = false, bridge = false;
+    for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60); i++) {
+      const says = creditsShot(g)?.says ?? "";
+      if (says.startsWith(SHOT_SAYS.chronicle)) {
+        expect(g.area.layout.props.some(p => p.kind === "stall")).toBe(false);
+        expect(g.world.query("walker").length).toBeGreaterThan(0);                // the city's still there to hear him
+        market = true;
+      }
+      if (says === SHOT_SAYS.eggs) {
+        expect(g.world.query("walker")).toHaveLength(0);
+        bridge = true;
+      }
+    }
+    expect([market, bridge]).toEqual([true, true]);
+    endCredits(g);
+    enterArea(g, await loadArea("capital"), "stone");
+    expect(g.area.layout.props.some(p => p.kind === "stall")).toBe(true);        // the market as it was
+  });
+
+  it("can be started from any shot and any moment in it, as it would be by then (playtesting: ?shot=eggs&at=gilding)", async () => {
+    expect(Object.keys(SHOT_MOMENTS).sort()).toEqual(["chronicle", "eggs", "fells", "greyed", "hatch", "slimes"]);
+    const at = async (moment: string) => {
+      const g = await atTheCastle();
+      toTheKing(g);
+      creditsFrom(g, "eggs", moment);
+      await rollCredits(g);
+      for (let i = 0; i < 600 && creditsShot(g)?.says !== SHOT_SAYS.eggs; i++) updateCredits(g, 1 / 60);
+      updateCredits(g, 1 / 60);
+      return g;
+    };
+    const gilt = (g: Game) => g.world.query("egg").map(([, c]) => c.egg.gilt);
+    expect(gilt(await at("start")).every(v => v === 1)).toBe(true);           // still gilded
+    expect(gilt(await at("glow")).every(v => v === 0)).toBe(true);            // the gold all off by then
+    const g = await at("eggs"), her = g.world.query("dragon")[0]![1].dragon;
+    const egg = g.world.query("egg", "transform")[1]![1].transform;
+    expect(Math.abs(her.y - egg.y)).toBeLessThan(3 * T);                       // right over them
   });
 
   it("keep what it all meant short, and let the pictures carry it", () => {

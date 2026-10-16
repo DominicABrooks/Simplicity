@@ -1,7 +1,8 @@
 // One-shot effects from gameplay (src/game/fx.ts) turned into sparks and short-lived meshes:
-// hit sparks, bursts, Frost Nova's ring, lightning columns and the level-up pillar; and the city's unease after dark
+// hit sparks, bursts, Frost Nova's burst of ice, lightning columns and the level-up pillar; and the city's unease after dark
 // (src/game/eerie.ts): a banging shutter, footprints nobody made, breaths of mist, a far-off bell's ring.
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { EERIE } from "../data/eerie.ts";
 import { PAL } from "../data/palette.ts";
 import type { Fx } from "../game/fx.ts";
@@ -22,6 +23,30 @@ interface Transient {
   rise?: boolean;
   /** Its opacity at the start (fading to nothing): 0.9 unless it says. */
   peak?: number;
+  /** Shoots up out of the ground in the first moment, stands, and only fades at the end (Frost Nova's ice). */
+  erupt?: boolean;
+}
+
+/**
+ * Frost Nova's ice: a ring of shards bursting up out of the ground round the edge of the blast, leaning out, big and
+ * small, and a ring of smaller ones inside it; as one mesh, at the blast's middle, `R` tiles out. And the same again
+ * `pad` tiles thicker all round, for the thin ink outline (drawn inside out), so it reads on snow.
+ */
+function novaIce(R: number, seed: number, pad = 0): THREE.BufferGeometry {
+  const shards: THREE.BufferGeometry[] = [];
+  const ring = (n: number, out: number, h: number, w: number) => {
+    for (let i = 0; i < n; i++) {
+      const k = Math.sin(seed * 12.9 + i * 78.2) * 0.5 + 0.5, a = ((i + k * 0.6) / n) * Math.PI * 2, tall = h * (0.65 + k * 0.6) + pad * 2;
+      const shard = new THREE.ConeGeometry(w + pad, tall, 5).translate(0, tall / 2 - pad, 0);
+      shard.rotateZ(-0.35 - k * 0.2);                                      // leaning out, away from the middle
+      shard.rotateY(-a);
+      shard.translate(Math.cos(a) * out, 0, Math.sin(a) * out);
+      shards.push(shard);
+    }
+  };
+  ring(Math.round(R * 7), R * 0.9, 0.75, 0.12);
+  ring(Math.round(R * 4), R * 0.5, 0.45, 0.09);
+  return mergeGeometries(shards);
 }
 
 /** A shutter swinging on its hinge (src/data/eerie.ts EERIE.shutter): its hinge, its window, and how long it's been going. */
@@ -76,9 +101,15 @@ export function createFxView(ctx: RenderContext): FxView {
             else particles.burst(SPARK_PAIRS[f.palette], 10, x, 0.4, z, 2.5, rise, 0.25);
             break;
           case "nova": {
-            const R = f.radius / PX_PER_TILE;
-            add(new THREE.Mesh(new THREE.RingGeometry(R * 0.8, R, 24).rotateX(-Math.PI / 2), additive(PAL.W, onGround(GROUND.marker))), x, 0.05, z, 0.35, { grow: true });
-            particles.burst(SPARK_PAIRS.frost, 10, x, 0.4, z, 2.5, rise, 0.25);
+            // Ice bursts up out of the ground all round, outlined to read on the white, and a ring of frost runs out
+            // across the ground under it: pale, with a deep blue edge.
+            const R = f.radius / PX_PER_TILE, seed = Math.random();
+            const frost = (c: string, o: THREE.MeshBasicMaterialParameters = {}) => basic(c, { transparent: true, opacity: 0.9, depthWrite: false, ...o });
+            add(new THREE.Mesh(new THREE.RingGeometry(R * 0.86, R, 28).rotateX(-Math.PI / 2), frost("#2f6fe8", onGround(GROUND.marker))), x, 0.05, z, 0.6, { grow: true, peak: 0.85 });
+            add(new THREE.Mesh(new THREE.CircleGeometry(R * 0.86, 28).rotateX(-Math.PI / 2), frost("#9fd8ff", onGround(GROUND.marker))), x, 0.045, z, 0.6, { grow: true, peak: 0.4 });
+            add(new THREE.Mesh(novaIce(R, seed, 0.025), basic("#14101e", { transparent: true, side: THREE.BackSide })), x, 0, z, 0.9, { erupt: true, peak: 1 });
+            add(new THREE.Mesh(novaIce(R, seed), frost("#a6e4ff")), x, 0, z, 0.9, { erupt: true, peak: 0.95 });
+            particles.burst(SPARK_PAIRS.frost, 16, x, 0.4, z, 2.5, rise, 0.3);
             break;
           }
           case "toll": {
@@ -150,8 +181,9 @@ export function createFxView(ctx: RenderContext): FxView {
         const tr = transients[i]!, m = tr.mesh;
         tr.life -= dt;
         const k = Math.max(0, tr.life / tr.total);
-        m.material.opacity = k * (tr.peak ?? 0.9);
+        m.material.opacity = (tr.erupt ? Math.min(1, k / 0.4) : k) * (tr.peak ?? 0.9);
         if (tr.grow) m.scale.setScalar(0.4 + (1 - k) * 0.6);
+        if (tr.erupt) m.scale.set(1, Math.max(0.01, Math.min(1, (1 - k) / 0.15)), 1);   // up in an instant, then standing
         if (tr.rise) m.scale.set(1 + (1 - k) * 0.3, 0.6 + (1 - k) * 0.6, 1 + (1 - k) * 0.3);
         if (tr.life <= 0) {
           scene.remove(m);

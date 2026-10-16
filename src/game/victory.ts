@@ -30,6 +30,9 @@ export function celebrate(g: Game, name: string, title: string, x: number, y: nu
   sound(g, "victory");
 }
 
+/** Cut it short (the credits are starting): no more banner or fireworks, and nothing after it. */
+export function endCelebration(g: Game): void { victories.delete(g); }
+
 const PALETTES: readonly BurstPalette[] = ["fire", "spark", "arcane", "frost", "slime"];
 
 /** Every frame: the fireworks, round the hero, while the celebration lasts; and once it's over, what comes after. */
