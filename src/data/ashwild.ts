@@ -2,7 +2,7 @@
 // gone ash-grey, cold cracks run through the ground, the Ember mages hunt, and Cinder waits at the Greyed's
 // camp. Here: the woodwardens and what they say, and Cinder.
 
-import type { ItemType, Rarity, Stats } from "./items.ts";
+import type { KitPiece } from "./items.ts";
 import { WATCHWORD } from "./king.ts";
 
 /** The King's woodwardens at the barricade across the trail south: friendly, firm. */
@@ -46,9 +46,6 @@ export const CINDER = {
   /** Experience for beating him (a mage is worth 50). */
   xp: 200,
 } as const;
-
-/** A piece of gear to hand the hero: its type, rarity, affixes and name. */
-export type KitPiece = readonly [type: ItemType, rarity: Rarity, mods: Stats, name: string];
 
 /**
  * What a hero on the straight path has on reaching Cinder (the tables in STORY.md and GEAR.md): about level 5,

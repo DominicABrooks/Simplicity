@@ -14,8 +14,25 @@
 // too, among the graves after dark, grey as ash, ringing a handbell that no living hand is ringing,
 // trying to wake a city that won't listen. Lay her to rest and the whispers die down for a while.
 
+import type { KitPiece } from "./items.ts";
+
 /** Her name over her head, as a target. */
 export const GHOST_NAME = "The Grey Ringer";
+
+/**
+ * What a hero has when he first walks the city by night, round about meeting the King (STORY.md, GEAR.md):
+ * about level 2, in the Ranger's Spares. Worn when you go straight to her to playtest (src/debug.ts). Her
+ * health grows with his level, so she's a fair fight at any; this is the first one a player will have.
+ */
+export const RINGER_READY = {
+  level: 2,
+  kit: [
+    ["blade", "normal", {}, "Rusty Blade"],
+    ["hood", "normal", {}, "Worn Hood"],
+    ["robe", "normal", {}, "Worn Robe"],
+    ["boots", "normal", {}, "Worn Boots"],
+  ] satisfies readonly KitPiece[],
+} as const;
 
 /**
  * Tuning. Distances in px, times in seconds, speeds in px/s. Damage is in hearts (the hero starts with 5).

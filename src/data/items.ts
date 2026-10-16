@@ -116,6 +116,9 @@ export const RARE_B = ["Shroud", "Fang", "Ward", "Whisper", "Veil", "Bite", "Son
 /** Loot rarity odds: 12% rare, 33% magic, the rest normal. */
 export const RARITY_ODDS = { rare: 0.12, magic: 0.45 } as const;
 
+/** A piece of gear to hand the hero ready-made (see the bosses' READY kits): its type, rarity, affixes and name. */
+export type KitPiece = readonly [type: ItemType, rarity: Rarity, mods: Stats, name: string];
+
 /** What you start with, in the bag. */
 export const STARTER_KIT: [ItemType, string][] = [
   ["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"],

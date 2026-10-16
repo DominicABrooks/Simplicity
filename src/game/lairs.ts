@@ -1,0 +1,42 @@
+// Where to find each boss, for playtesting (src/debug.ts): their area and the way in, the level and gear a
+// hero on the straight path has on reaching them, and how to set the fight up once he's there.
+import { CINDER_READY } from "../data/ashwild.ts";
+import { RINGER_READY } from "../data/ghost.ts";
+import type { KitPiece } from "../data/items.ts";
+import { HALF, T } from "../data/world.ts";
+import type { Prop } from "../world/area.ts";
+import type { Point } from "../world/collision.ts";
+import type { Game } from "./game.ts";
+import { churchyardOf, ghostOut, hauntingOf, riseGhost } from "./ghost.ts";
+
+export interface Lair {
+  area: string;
+  entry: string;
+  ready: { level: number; kit: readonly KitPiece[] };
+  /** In the area, levelled and dressed: bring the boss out if need be; where the hero stands to face them (cell top-left). */
+  stage(g: Game): Point;
+}
+
+export const LAIRS = {
+  /** Cinder, waiting in his arena at the end of the Ashwild (src/game/bosses.ts). */
+  cinder: {
+    area: "ashwild", entry: "witchwood", ready: CINDER_READY,
+    stage(g) {
+      const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "cinder")!;
+      return { x: at.x - HALF, y: at.y - HALF + 5 * T };
+    },
+  },
+  /** The Grey Ringer, in St Mary's churchyard: made night, and up she comes, rumour or none (src/game/ghost.ts). */
+  ringer: {
+    area: "capital", entry: "southgate", ready: RINGER_READY,
+    stage(g) {
+      g.hour = 22;                                            // the start of the night: hours of it before dawn sends her back
+      const yard = churchyardOf(g)!;
+      hauntingOf(g).night = "risen";
+      if (ghostOut(g) === null) riseGhost(g, yard);
+      return { x: yard.x + yard.w - 16 - 6 * T, y: yard.y + yard.h + T };   // on the street, west of her grave
+    },
+  },
+} satisfies Record<string, Lair>;
+
+export type LairName = keyof typeof LAIRS;

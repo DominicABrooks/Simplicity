@@ -3,7 +3,7 @@
 // and hurried along here: his casts, sheep orbs and blinks come back faster. Beat him and he stays beaten
 // for the run; he always leaves a fine weapon behind; and the game says so.
 import type { Entity } from "../core/ecs.ts";
-import { CINDER, CINDER_FALLS, CINDER_READY, type KitPiece } from "../data/ashwild.ts";
+import { CINDER, CINDER_FALLS } from "../data/ashwild.ts";
 import { MAGE_TARGET } from "../data/enemies.ts";
 import { XP } from "../data/progression.ts";
 import { rollItem } from "../items/items.ts";
@@ -12,15 +12,7 @@ import { grantXP } from "./combat.ts";
 import { dropLoot } from "./spawn.ts";
 import { toast, type Game } from "./game.ts";
 
-export type Who = "cinder";
-
-/**
- * Where each boss waits (their area, and the way in the hero comes by), and the level and gear a hero on
- * the straight path has on reaching them: for playtesting (see src/debug.ts).
- */
-export const LAIRS: Record<Who, { area: string; entry: string; ready: { level: number; kit: readonly KitPiece[] } }> = {
-  cinder: { area: "ashwild", entry: "witchwood", ready: CINDER_READY },
-};
+type Who = "cinder";
 
 /** Who's been beaten this run (by name), and the boss in the area now, with where they last stood. */
 interface Bosses { beaten: Set<Who>; here: { e: Entity; who: Who; x: number; y: number } | null }
