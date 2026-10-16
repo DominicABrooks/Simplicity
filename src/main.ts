@@ -42,7 +42,7 @@ import { createAudioPlayer } from "./audio/player.ts";
 import { createMusicPlayer } from "./audio/music.ts";
 import { exposeDebug, wantsDebug } from "./debug.ts";
 import { useCurio } from "./game/quay.ts";
-import { followAcorn, holdForFey } from "./game/underhill.ts";
+import { followAcorn, holdForFey, hurryErlKing } from "./game/underhill.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -107,13 +107,15 @@ g.events.on("state", ({ state }) => {
 });
 // Talking: clicking someone friendly (or E with them targeted) talks instead of attacking; while they're
 // talking, a click or Enter, Space or E goes on, and Escape ends it. In a cutscene the same goes on through
-// what's said, nothing else does anything, and Escape skips the scene.
+// what's said, nothing else does anything, and Escape skips the scene. The Erl-King likewise: on to his next line, or
+// Escape for past all of it.
 const SAY_ON = ["enter", " ", "e", "j"];
 const input = bindInput(g, {
   toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels,
   talkClick: at => {
     if (sleeping(g)) { wake(g); return true; }              // asleep: a click wakes him, and does nothing else
     if (talking(g)) { advanceTalk(g); return true; }
+    if (hurryErlKing(g, false)) return true;
     if (cutscene(g)) return true;
     const hit = pickTarget(g, view, at);
     return knock(g, hit) || startResting(g, hit) || startSleeping(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; a tent or a bed: sleep; a dog or cat: pet it; someone: talk
@@ -121,6 +123,7 @@ const input = bindInput(g, {
   talkKey: k => {
     if (sleeping(g)) { wake(g); return true; }              // and so does any key
     if (cutscene(g) && k === "escape") { skipCutscene(g); return true; }
+    if ((k === "escape" || SAY_ON.includes(k)) && hurryErlKing(g, k === "escape")) return true;
     if (cutscene(g) && !talking(g)) return k === "e";       // nobody to talk to but who the scene says
     if (talking(g)) {
       if (k === "escape") { endTalk(g); return true; }

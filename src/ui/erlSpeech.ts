@@ -1,5 +1,5 @@
 // The Erl-King speaking (src/game/underhill.ts): each line over his head, large and glowing gold, fading in, held long
-// enough to read, and fading out before the next.
+// enough to read, and fading out before the next; and under it all, how to hurry him.
 import { THRONE, UNDERHILL as U } from "../data/underhill.ts";
 import { HALF, T } from "../data/world.ts";
 import { erlKingSays } from "../game/underhill.ts";
@@ -12,11 +12,15 @@ const ABOVE = 5.2;
 export function createErlSpeech(g: Game, view: Projector): { draw(): void } {
   const el = document.createElement("div");
   el.id = "erlSpeech";
-  document.body.append(el);
+  const hint = document.createElement("div");
+  hint.id = "erlSkip";
+  hint.textContent = "Enter: next   Esc: skip";
+  document.body.append(el, hint);
   let line = "";
   return {
     draw() {
       const s = erlKingSays(g);
+      hint.classList.toggle("on", !!s);
       if (!s || s.age < 0) { el.style.opacity = "0"; return; }
       const text = s.lines[s.i]!;
       if (text !== line) el.textContent = line = text;

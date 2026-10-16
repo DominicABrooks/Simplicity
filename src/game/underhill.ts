@@ -3,7 +3,8 @@
 // while it clears, before the Erl-King. The first time, the Erl-King tells him the secret under all the others and
 // gives him the Ring of the Long Reel; the second, one thing more and a warning; from the third time on the throne is
 // empty, and watchers stand all round the glade, staring at him, until he takes the path back out. How many times he's
-// been is the world's, not the run's: it's kept across runs, like the hour.
+// been is the world's, not the run's: it's kept across runs, like the hour. The Erl-King can be hurried: on to his next
+// line, or past all of it (his gift still given).
 import { FIRST_VISIT, GLADE_MID, REEL_RING, SECOND_VISIT, UNDERHILL as U } from "../data/underhill.ts";
 import { HALF, T } from "../data/world.ts";
 import { makeItem, type Item } from "../items/items.ts";
@@ -99,6 +100,22 @@ function speak(g: Game, s: State, dt: number): void {
   if (sp.i + 1 < sp.lines.length) { sp.i++; sp.age = 0; sp.hold = holdOf(sp.lines[sp.i]!); return; }
   s.speech = null;
   if (sp.then === "gift") give(g);
+}
+
+/**
+ * Hurry the Erl-King on: on to his next line (this one fades now; in the hush before his first word, it comes now), or
+ * with `all`, past everything he has to say, his gift still given. False if he isn't saying anything.
+ */
+export function hurryErlKing(g: Game, all: boolean): boolean {
+  const s = state(g), sp = s.speech, L = U.line;
+  if (!sp) return false;
+  if (all) {
+    s.speech = null;
+    if (sp.then === "gift") give(g);
+  } else if (sp.age < 0) sp.age = 0;
+  else if (sp.age < L.in + sp.hold) sp.age = L.in + sp.hold;
+  else sp.age = L.in + sp.hold + L.out + L.gap;
+  return true;
 }
 
 /** The Ring of the Long Reel, into his hand. */
