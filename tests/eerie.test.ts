@@ -1,6 +1,7 @@
 // The city after dark: now and then, while the hero walks the Market Quarter's streets at night, something
 // unsettling happens. Never by day, never indoors or anywhere else, never while he's busy or the Grey Ringer's
-// out, never by her churchyard; and each one only where it can (a lamp to gutter, a well to whisper).
+// out, never by her churchyard; and each one only where it can (a lamp to gutter, a well to whisper). Nothing says
+// so: each is seen and heard (sounds and effects), never told in a message.
 import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { EERIE, type EerieId } from "../src/data/eerie.ts";
@@ -32,6 +33,8 @@ const place = (g: Game, spot: { x: number; y: number }) => Object.assign(g.world
 const run = (g: Game, seconds: number) => { for (let t = 0; t < seconds; t += DT) { eerieSystem(g, DT); } };
 /** The square's middle, by the fountain: open street, lamps round about, away from the churchyard. */
 const square = (g: Game) => { const f = g.area.layout.props.find(p => p.kind === "fountain")!; return { x: f.x, y: f.y + 40 }; };
+/** Halfway down the high street, between its houses. */
+const highStreet = { x: 48.5 * 8, y: 62 * 8 };
 
 describe("the city after dark", () => {
   it("only in the city's streets, only at night", async () => {
@@ -108,6 +111,34 @@ describe("the city after dark", () => {
 });
 
 describe("each of them", () => {
+  it("is never told in a message, only seen and heard", async () => {
+    const g = await at("capital", MIDNIGHT), told: string[] = [];
+    g.events.on("toast", ({ text }) => told.push(text));
+    const well = g.area.layout.props.find(p => p.kind === "well")!;
+    g.world.need(g.player, "motion").moving = true;
+    for (const [id, spot] of [["watcher", square(g)], ["footsteps", square(g)], ["well", { x: well.x + 16, y: well.y }], ["shutter", highStreet]] as const) {
+      place(g, spot);
+      startEerie(g, id);
+      run(g, 16);
+    }
+    expect(uneaseOf(g).tonight).toBeGreaterThan(2);
+    expect(told).toEqual([]);
+  });
+
+  it("a shutter swings out over the street from a house in sight, and slams, and slams, and slams", async () => {
+    const g = await at("capital", MIDNIGHT);
+    place(g, highStreet);
+    expect(eerieCan(g, "shutter")).toBe(true);
+    expect(startEerie(g, "shutter")).toBe(true);
+    const fx = g.fx.find(f => f.type === "shutter");
+    expect(fx && fx.type === "shutter" && fx.facing).not.toBe("north");   // its back's to us: we'd never see it
+    let jolts = 0;
+    for (let t = 0; t < 5; t += DT) { g.shake = 0; run(g, DT); if (g.shake > 0) jolts++; }
+    expect(jolts).toBe(EERIE.shutter.slams.length);
+    expect(g.sfx.filter(s => s.id === "shutter").length).toBe(EERIE.shutter.slams.length);
+    expect(eerieNow(g)).toBeNull();
+  });
+
   it("footsteps only follow a hero who's walking, and stop when he does", async () => {
     const g = await at("capital", MIDNIGHT), motion = () => g.world.need(g.player, "motion");
     place(g, square(g));
@@ -117,6 +148,9 @@ describe("each of them", () => {
     expect(startEerie(g, "footsteps")).toBe(true);
     run(g, EERIE.footsteps.least + 0.5);
     expect(g.sfx.some(s => s.id === "footstep")).toBe(true);
+    const prints = g.fx.filter(f => f.type === "footprint");
+    expect(prints.length).toBeGreaterThan(1);                // a print for every step, left and right
+    expect(new Set(prints.map(f => f.type === "footprint" && f.left)).size).toBe(2);
     expect(eerieNow(g)).toBe("footsteps");
     motion().moving = false;
     run(g, DT * 2);
@@ -130,9 +164,13 @@ describe("each of them", () => {
     place(g, { x: lamp.x + 10, y: lamp.y });
     expect(lampLit(lamp)).toBe(true);
     expect(startEerie(g, "lamp")).toBe(true);
-    expect(lampLit(lamp)).toBe(false);
-    run(g, EERIE.lamp.out + 0.1);
-    expect(lampLit(lamp)).toBe(true);
+    let flickers = 0, was = lampLit(lamp);
+    for (let t = 0; t < EERIE.lamp.gutter; t += DT) { run(g, DT); if (lampLit(lamp) !== was) { flickers++; was = !was; } }
+    expect(flickers).toBeGreaterThan(2);                     // it sputters first
+    run(g, 0.2);
+    expect(lampLit(lamp)).toBe(false);                       // then it's out
+    run(g, EERIE.lamp.out + EERIE.lamp.catch);
+    expect(lampLit(lamp)).toBe(true);                        // and back
     expect(eerieNow(g)).toBeNull();
   });
 
@@ -144,6 +182,7 @@ describe("each of them", () => {
     expect(startEerie(g, "well")).toBe(true);
     run(g, EERIE.well.gap * (EERIE.well.lines + 1));
     expect(g.floaters.length).toBeGreaterThanOrEqual(EERIE.well.lines);
+    expect(g.fx.filter(f => f.type === "puff").length).toBe(EERIE.well.lines);   // a breath of mist with each
     expect(eerieNow(g)).toBeNull();
   });
 
@@ -172,6 +211,9 @@ describe("each of them", () => {
     expect(startEerie(g, "curfew")).toBe(true);
     run(g, EERIE.curfew.gap * (EERIE.curfew.strokes + 1));
     expect(g.sfx.filter(s => s.id === "handbell").length).toBe(EERIE.curfew.strokes);
+    const rings = g.fx.filter(f => f.type === "chime"), hero = g.world.need(g.player, "transform");
+    expect(rings.length).toBe(EERIE.curfew.strokes);         // each stroke seen as a ring, from the river's side
+    expect(rings.every(f => f.y > hero.y)).toBe(true);
     expect(eerieCan(g, "curfew")).toBe(false);               // rung tonight
 
     const h = await at("capital", 21.5);

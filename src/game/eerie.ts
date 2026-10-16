@@ -2,16 +2,17 @@
 // streets at night, every so often something happens: a shutter bangs, footsteps follow him, someone watches him
 // from the end of the street, a lamp gutters out, a well whispers, a little bell rings nine. Never by day, never
 // indoors, never while he's busy (talking, resting, in a scene) and never anywhere near St Mary's churchyard,
-// which belongs to the Grey Ringer (src/game/ghost.ts). None of it can hurt him; it's only the city.
+// which belongs to the Grey Ringer (src/game/ghost.ts). None of it can hurt him; it's only the city. And nothing
+// tells the player about it: it's there to be seen and heard (the fx it raises, src/game/fx.ts), or missed.
 import type { Entity } from "../core/ecs.ts";
 import { isDay } from "../data/daylight.ts";
-import { EERIE, EERIE_SAYS, type EerieId } from "../data/eerie.ts";
+import { EERIE, WHISPERS, type EerieId } from "../data/eerie.ts";
 import { HALF } from "../data/world.ts";
 import { blocked } from "../world/collision.ts";
 import { combatText } from "./combat.ts";
 import { carryingCurio, spentCurios } from "./curios.ts";
 import { cutscene } from "./cutscene.ts";
-import { toast, type Game } from "./game.ts";
+import type { Game } from "./game.ts";
 import { churchyardOf, ghostOut } from "./ghost.ts";
 import { lampLit, lampsHere, snuffLamp, type Lamp } from "./lamps.ts";
 import { resting } from "./resting.ts";
@@ -20,12 +21,14 @@ import { sleeping } from "./sleeping.ts";
 import { talking } from "./talk.ts";
 
 type Spot = { x: number; y: number };
+type Front = Spot & { facing: "north" | "south" | "east" | "west" };
 
 /** What's going on now, if anything, and how far along it is. */
 type Happening =
-  | { id: "footsteps"; t: number; next: number; from: Spot; heading: Spot }
+  | { id: "shutter"; t: number; at: Front; slammed: number }
+  | { id: "footsteps"; t: number; next: number; from: Spot; heading: Spot; left: boolean }
   | { id: "watcher"; t: number; e: Entity }
-  | { id: "lamp"; t: number; lamp: Lamp }
+  | { id: "lamp"; t: number; lamp: Lamp; next: number }
   | { id: "well"; t: number; at: Spot; said: number; next: number; lines: string[] }
   | { id: "curfew"; t: number; at: Spot | null; rung: number; next: number };
 
@@ -69,13 +72,18 @@ function unbusy(g: Game): boolean {
   return !yard || p.x < yard.x - m || p.x > yard.x + yard.w + m || p.y < yard.y - m || p.y > yard.y + yard.h + m;
 }
 
-/** The house fronts this near (in EERIE.shutter.near), the middle of their street side. */
-function shutterSpots(g: Game): Spot[] {
+/**
+ * The house fronts this near (in EERIE.shutter.near): the middle of their street side, and which way it faces. Not
+ * those facing north: the hero sees the city from the south, and would only see their backs.
+ */
+function shutterSpots(g: Game): Front[] {
   const p = heroAt(g), [lo, hi] = EERIE.shutter.near;
   return g.area.layout.props.flatMap(h => {
-    if (h.kind !== "house") return [];
-    const r = h.rect, at = { x: r.x + r.w / 2, y: r.y + r.h / 2 }, d = dist(at, p);
-    return d >= lo && d <= hi ? [at] : [];
+    if (h.kind !== "house" || h.doorSide === "north") return [];
+    const r = h.rect, f = h.doorSide;
+    const at = { x: f === "east" ? r.x + r.w : f === "west" ? r.x : r.x + r.w / 2, y: f === "south" ? r.y + r.h : r.y + r.h / 2, facing: f };
+    const d = dist(at, p), { wide, up } = EERIE.shutter;
+    return d >= lo && d <= hi && Math.abs(at.x - p.x) <= wide && at.y >= p.y - up ? [at] : [];
   });
 }
 
@@ -171,33 +179,27 @@ export function startEerie(g: Game, id: EerieId): boolean {
   switch (id) {
     case "shutter": {
       const spots = shutterSpots(g), at = spots[g.rng.int(0, spots.length - 1)]!;
-      sound(g, "shutter", at);
-      toast(g, EERIE_SAYS.shutter[g.rng.int(0, EERIE_SAYS.shutter.length - 1)]!);
+      g.fx.push({ type: "shutter", x: at.x - HALF, y: at.y - HALF, facing: at.facing });
+      s.now = { id, t: 0, at, slammed: 0 };
       return true;
     }
     case "footsteps":
-      s.now = { id, t: 0, next: EERIE.footsteps.gap, from: p, heading: { x: 0, y: 1 } };
-      toast(g, EERIE_SAYS.footsteps);
+      s.now = { id, t: 0, next: EERIE.footsteps.gap, from: p, heading: { x: 0, y: 1 }, left: false };
       return true;
     case "watcher": {
       const at = watcherSpot(g)!;
       const e = g.world.create({ transform: { x: at.x - HALF, y: at.y - HALF }, watcher: { shown: 0, going: false }, renderable: { kind: "watcher" } });
       s.now = { id, t: 0, e };
-      toast(g, EERIE_SAYS.watcher);
       return true;
     }
     case "lamp": {
-      const lamp = lampNear(g)!;
-      snuffLamp(lamp, true);
-      s.now = { id, t: 0, lamp };
-      toast(g, EERIE_SAYS.lamp);
+      s.now = { id, t: 0, lamp: lampNear(g)!, next: 0 };
       return true;
     }
     case "well": {
-      const all = [...EERIE_SAYS.whispers], lines: string[] = [];
+      const all: string[] = [...WHISPERS.lines], lines: string[] = [];
       while (lines.length < EERIE.well.lines && all.length) lines.push(all.splice(g.rng.int(0, all.length - 1), 1)[0]!);
       s.now = { id, t: 0, at: wellNear(g)!, said: 0, next: 0.4, lines };
-      toast(g, EERIE_SAYS.well);
       return true;
     }
     case "curfew": {
@@ -205,7 +207,6 @@ export function startEerie(g: Game, id: EerieId): boolean {
       // Carried, it rings in the bag; otherwise far off toward the river, where it went in.
       const at = carryingCurio(g, "bell") ? null : { x: p.x, y: p.y + EERIE.curfew.away };
       s.now = { id, t: 0, at, rung: 0, next: 0 };
-      toast(g, at ? EERIE_SAYS.curfew : EERIE_SAYS.curfewBag);
       return true;
     }
   }
@@ -216,39 +217,60 @@ function go(g: Game, s: Unease, h: Happening, dt: number): void {
   h.t += dt;
   const p = heroAt(g);
   switch (h.id) {
+    case "shutter": {
+      // It slams, and slams, and slams: the street jolts each time.
+      const slams = EERIE.shutter.slams;
+      if (h.slammed < slams.length && h.t >= slams[h.slammed]!) {
+        h.slammed++;
+        sound(g, "shutter", h.at);
+        g.shake = Math.max(g.shake, EERIE.shutter.jolt);
+      }
+      if (h.slammed >= slams.length) s.now = null;
+      return;
+    }
     case "footsteps": {
       // Somebody a few steps behind him, the way he's come, keeping pace; when he stops, they stop.
       const F = EERIE.footsteps, dx = p.x - h.from.x, dy = p.y - h.from.y, d = Math.hypot(dx, dy);
       if (d > 0.5) { h.heading = { x: dx / d, y: dy / d }; h.from = p; }
-      if (!g.world.need(g.player, "motion").moving && h.t >= F.least) { toast(g, EERIE_SAYS.footstepsStop); s.now = null; return; }
-      if (h.t >= F.last) { toast(g, EERIE_SAYS.footstepsFade); s.now = null; return; }
+      if ((!g.world.need(g.player, "motion").moving && h.t >= F.least) || h.t >= F.last) { s.now = null; return; }
       if ((h.next -= dt) <= 0 && g.world.need(g.player, "motion").moving) {
+        // A step, and a print where it fell: on his own track, a little to the side for each foot.
         h.next = F.gap;
-        sound(g, "footstep", { x: p.x - h.heading.x * F.behind, y: p.y - h.heading.y * F.behind });
+        h.left = !h.left;
+        const side = h.left ? -1.2 : 1.2, at = { x: p.x - h.heading.x * F.behind - h.heading.y * side, y: p.y - h.heading.y * F.behind + h.heading.x * side };
+        sound(g, "footstep", at);
+        g.fx.push({ type: "footprint", x: at.x - HALF, y: at.y - HALF, angle: Math.atan2(h.heading.y, h.heading.x), left: h.left });
       }
       return;
     }
     case "watcher": {
       const W = EERIE.watcher, w = g.world.get(h.e, "watcher"), at = g.world.get(h.e, "transform");
       if (!w || !at) { s.now = null; return; }
-      if (!w.going && dist({ x: at.x + HALF, y: at.y + HALF }, p) < W.near) { w.going = true; toast(g, EERIE_SAYS.watcherGone); }
-      else if (!w.going && h.t >= W.last) { w.going = true; toast(g, EERIE_SAYS.watcherLeft); }
+      if (!w.going && (h.t >= W.last || dist({ x: at.x + HALF, y: at.y + HALF }, p) < W.near)) {
+        w.going = true;
+        g.fx.push({ type: "puff", x: at.x, y: at.y, n: 12 });
+      }
       // In slowly; out all at once, before he can get a proper look.
       w.shown = w.going ? Math.max(0, w.shown - dt * 4) : Math.min(1, w.shown + dt / W.fade);
       if (w.going && w.shown <= 0) { g.world.destroy(h.e); s.now = null; }
       return;
     }
-    case "lamp":
-      if (h.t < EERIE.lamp.out) return;
-      snuffLamp(h.lamp, false);
-      toast(g, EERIE_SAYS.lampBack);
-      s.now = null;
+    case "lamp": {
+      // It sputters, goes out, stays out a while, and sputters back.
+      const L = EERIE.lamp, back = L.gutter + L.out;
+      if (h.t >= back + L.catch) { snuffLamp(h.lamp, false); s.now = null; return; }
+      if (h.t >= L.gutter && h.t < back) { snuffLamp(h.lamp, true); return; }
+      if ((h.next -= dt) > 0) return;
+      h.next = between(g, L.flicker);
+      snuffLamp(h.lamp, !h.lamp.snuffed);
       return;
+    }
     case "well":
       if ((h.next -= dt) > 0) return;
       if (h.said >= h.lines.length) { s.now = null; return; }
       sound(g, "whisper", h.at);
-      combatText(g, h.at.x, h.at.y - 6, h.lines[h.said++]!, EERIE_SAYS.whisperColor, false, 1.8);
+      g.fx.push({ type: "puff", x: h.at.x - HALF, y: h.at.y - HALF, n: 6 });
+      combatText(g, h.at.x, h.at.y - 6, h.lines[h.said++]!, WHISPERS.color, false, 1.8);
       h.next = EERIE.well.gap;
       return;
     case "curfew":
@@ -256,8 +278,10 @@ function go(g: Game, s: Unease, h: Happening, dt: number): void {
       if (h.rung >= EERIE.curfew.strokes) { s.now = null; return; }
       h.rung++;
       h.next = EERIE.curfew.gap;
+      // Heard from the river's side, and seen as a faint ring of sound coming up the street from there (or from his bag).
       if (h.at) sound(g, "handbell", { x: p.x, y: p.y + EERIE.curfew.away });
       else sound(g, "handbell");
+      g.fx.push({ type: "chime", x: p.x - HALF, y: p.y - HALF + (h.at ? EERIE.curfew.ring.at : 0), radius: EERIE.curfew.ring.radius });
       return;
   }
 }

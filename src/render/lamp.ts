@@ -55,6 +55,7 @@ export function buildLamp(ctx: RenderContext, parent: THREE.Group, p: PropOf<"la
         was = on;
         panes.material = on ? lit : dark;
         if (on) for (let i = 0; i < 5; i++) particles.spawn("fire", x, LAMP_HEAD + 0.1, z, (Math.random() - 0.5) * 0.5, 0.6 + Math.random() * 0.5, (Math.random() - 0.5) * 0.5, 0.4);   // it catches
+        else for (let i = 0; i < 4; i++) particles.spawn("dust", x + (Math.random() - 0.5) * 0.1, LAMP_HEAD + 0.2, z + (Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.3, 3.4 + Math.random(), (Math.random() - 0.5) * 0.3, 0.45);   // a thread of smoke as it dies
       }
       flame.visible = on;
       if (on) flame.scale.y = 0.85 + Math.sin(t * 11 + x) * 0.12 + Math.sin(t * 23 + z) * 0.06;
