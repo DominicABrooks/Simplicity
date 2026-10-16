@@ -134,22 +134,32 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     return Math.min(southCap(z), Math.max(0, Math.pow(rise, 1.3) * (3.5 + 11 * ridge(x, z)) + (hash(x, z, 40) - 0.5) * 1.8 * rise));
   };
   if (!indoors) {                                            // indoors, nothing past the walls
-    const STEP = 2, MR = 34, pos: number[] = [], colors: number[] = [], c = new THREE.Color();
+    const STEP = 2, MR = 34, pos: number[] = [], colors: number[] = [], embers: number[] = [], c = new THREE.Color();
     const vtx = (x: number, z: number): V3 => [x, mountainHeight(x, z), z];
-    // Colour each facet by its height: mossy foothills, grey stone, snow on the peaks.
+    // Colour each facet by its height: mossy foothills, grey stone, snow on the peaks. Round the ash woods
+    // the fire's been over them: ash-grey foothills, charred black rock, peaks dusted with ash instead of snow.
     const facetColor = (hAvg: number, x: number, z: number) => {
       const n = hash(x, z, 41);
       if (snow) return snowFacet(c, hAvg, n);
+      if (ash) {
+        if (hAvg < 0.7) return c.set("#77736b").multiplyScalar(0.85 + n * 0.2);
+        if (hAvg < 2.2) return c.set(n < 0.5 ? "#5a5650" : "#4d4945");
+        if (hAvg < 8.5) return c.set(["#3c3836", "#4a4542", "#33302e", "#57514c"][Math.floor(n * 4)]!);
+        return c.set(n < 0.6 ? "#a8a39b" : "#8e8982");
+      }
       if (hAvg < 0.7) return c.set(PAL.v).multiplyScalar(0.85 + n * 0.2);
       if (hAvg < 2.2) return c.set(n < 0.5 ? "#4f6b46" : "#5f6f52");
       if (hAvg < 8.5) return c.set(["#8a8378", "#9d968a", "#77706a", "#6b655f"][Math.floor(n * 4)]!);
       return c.set(n < 0.6 ? PAL.W : "#d9d4c8");
     };
+    /** In the ash, now and then a facet of the rock still smoulders. */
+    const smoulders = (hAvg: number, x: number, z: number) => ash && hAvg > 2.2 && hAvg < 8.5 && hash(x, z, 42) < 0.025;
     for (let z = -MR; z < H + MR; z += STEP) for (let x = -MR; x < W + MR; x += STEP) {
       if (x >= 0 && z >= 0 && x + STEP <= W && z + STEP <= H) continue;     // the map itself
       const a = vtx(x, z), b = vtx(x, z + STEP), cc = vtx(x + STEP, z + STEP), d = vtx(x + STEP, z);
       for (const tri of [[a, b, cc], [a, cc, d]]) {
         const hAvg = (tri[0]![1] + tri[1]![1] + tri[2]![1]) / 3;
+        if (smoulders(hAvg, x + tri[1]![0], z + tri[2]![2])) { for (const pt of tri) embers.push(pt[0], pt[1] + 0.01, pt[2]); continue; }
         facetColor(hAvg, x + tri[1]![0], z + tri[2]![2]);
         for (const pt of tri) { pos.push(...pt); colors.push(c.r, c.g, c.b); }
       }
@@ -159,6 +169,11 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     geo.computeVertexNormals();
     world.add(new THREE.Mesh(geo, lambert("#ffffff", { vertexColors: true, side: THREE.DoubleSide })));
+    if (embers.length) {                                     // the smouldering facets: a dull glow of their own, day and night
+      const hot = new THREE.BufferGeometry();
+      hot.setAttribute("position", new THREE.Float32BufferAttribute(embers, 3));
+      world.add(new THREE.Mesh(hot, ctx.glow("#6b2a14", { side: THREE.DoubleSide })));
+    }
   }
 
   // Trees: map trees (nudged off the grid) plus a band of trees climbing the foothills. Some are firs:
