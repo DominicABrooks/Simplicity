@@ -349,6 +349,23 @@ function dragonAt(g: Game, d: Partial<Dragon> & Pick<Dragon, "x" | "y" | "size" 
     renderable: { kind: "dragon" },
   });
 }
+/**
+ * How high the Old Mother flies over the King's Bridge (world units): low over the bridge itself, so it shakes; and up
+ * over what stands across her way, the bridge's gatehouse at its south end (towers and gilded domes, about 13 at the
+ * top) and the city wall at Southgate (towers 13 high and their roofs: src/areas/kingsroad.ts), with room for her
+ * wings and her legs and tail, which hang some 6 below her, rising smoothly to each and down again; and on up away over
+ * the city.
+ */
+const MOTHER = { low: 9.5, overGate: 19.5, overWall: 21, reach: 7 * T, away: 23 };
+/** Her height (world units) at y (px) on her way north, given where the bridge's gatehouse and the city wall stand (px). */
+function motherHeight(y: number, gate: number, wall: number): number {
+  const hill = (at: number, top: number) => {
+    const k = Math.max(0, 1 - Math.abs(y - at) / MOTHER.reach);
+    return MOTHER.low + (top - MOTHER.low) * Math.sin((k * Math.PI) / 2) ** 2;
+  };
+  const past = y < wall ? MOTHER.overWall + (MOTHER.away - MOTHER.overWall) * Math.min(1, (wall - y) / (2 * MOTHER.reach)) : 0;
+  return Math.max(hill(gate, MOTHER.overGate), hill(wall, MOTHER.overWall), past);
+}
 /** One of the three eggs, standing (cell top-left). */
 const eggAt = (g: Game, school: Egg["school"], x: number, y: number, gilt: number, glow = 0): Entity =>
   g.world.create({ transform: { x, y }, egg: { school, gilt, glow, crack: 0, open: false, hatch: 0 }, renderable: { kind: "egg" } });
@@ -448,7 +465,9 @@ const SHOTS: readonly Shot[] = [
         e: greyed(g, ORDERS[i % 3]!, 0, 0), dx: ((i % 3) - 1) * 1.4 * T, back: Math.floor(i / 3) * 2 * T,
       }));
       const near = top + 3.4 * T, from = foot + 24 * T, to = top - 30 * T;
-      const her = dragonAt(g, { x: x - HALF, y: from, height: 11, facing: -Math.PI / 2, size: 5, hide: "mother", pose: "fly" }, { x: x - HALF, y: ey - HALF });
+      const barbican = propOf(g, "barbican")?.rect, wall = g.area.layout.props.find(p => p.kind === "curtainWall");
+      const gateY = barbican ? barbican.y + barbican.h / 2 : foot + 6 * T, wallY = wall?.kind === "curtainWall" ? wall.points[0]!.y : top - 2 * T;
+      const her = dragonAt(g, { x: x - HALF, y: from, height: motherHeight(from, gateY, wallY), facing: -Math.PI / 2, size: 5, hide: "mother", pose: "fly" }, { x: x - HALF, y: ey - HALF });
       const keyed = keys([
         [0, cam(x, foot, 0.8, 0.4)], [0.34, cam(x, ey + T, 0.7, 0.1)], [0.42, cam(x, ey, 0.5, -0.05)],
         [0.55, cam(x, ey, 2.1, -0.15)], [0.85, cam(x, ey, 2.3, -0.3)], [1, cam(x, ey + T, 1.6, -0.35)],
@@ -476,7 +495,7 @@ const SHOTS: readonly Shot[] = [
           });
           const d = g.world.need(her, "dragon"), f = ramp(k, 0.42, 1);
           d.y = lerp(from, to, f);
-          d.height = 6.5 - 2.5 * Math.sin(Math.PI * f);
+          d.height = motherHeight(d.y, gateY, wallY);         // low over the bridge, up over the gatehouse and the wall
           if (f > 0 && f < 1) beat(g, d, dt, 2.2);
           if (!roared && d.y <= ey + 3 * T) { roared = true; sound(g, "roar"); g.shake = Math.max(g.shake, 2.5); }
           settle(g, dt);

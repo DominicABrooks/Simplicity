@@ -41,6 +41,8 @@ interface DragonView {
   legs: Leg[]; neck: THREE.Group[]; head: THREE.Group; jaw: THREE.Group; mouth: THREE.Object3D; tail: THREE.Group[];
   wings: [THREE.Group, THREE.Group]; wrists: [THREE.Group, THREE.Group]; folds: [(k: number) => void, (k: number) => void];
   light: THREE.PointLight; k: number;
+  /** The jet of breath out of its mouth (see makeJet), and its cones' materials, outside in. */
+  jet: THREE.Group; jetMats: THREE.MeshBasicMaterial[];
 }
 
 /** A hind leg: turned at the hip, bent at the knee, the foot kept level. */
@@ -148,7 +150,7 @@ const FOLDED = [-2.15, -2.25, -2.35];
  * the body and neck together, ending in a broad spiked club. A hatchling is the same but young: a bigger head for its
  * size, small wings, stubby horns.
  */
-function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, "shadow" | "light" | "k"> {
+function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, "shadow" | "light" | "k" | "jet" | "jetMats"> {
   const h: Hide = HIDES[hide], young = hide !== "mother", group = new THREE.Group(), flat = { flatShading: true }, both = { side: THREE.DoubleSide, ...flat };
   const skin = ctx.lambert(h.skin, flat), belly = ctx.lambert(h.belly, flat), horn = ctx.lambert(h.horn, flat), mark = ctx.lambert(h.mark, flat), eye = ctx.glow(h.eye);
   const top = ctx.lambert(h.wing, both), pale = ctx.lambert(h.pale, both), tooth = ctx.lambert("#f6f0e2", flat);
@@ -265,6 +267,28 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
 }
 
 const forward = new THREE.Vector3(), at = new THREE.Vector3();
+
+/**
+ * A dragon's breath as it leaves the mouth: a jet of it, flickering, in three cones one inside the other (its colour
+ * outside, hotter in, white-hot at the core), widening away from the mouth along the way the head points. Big enough
+ * to see from far off, unlike the sparks thrown with it. In the mouth's own frame: it points along +X.
+ */
+const JET: Record<Dragon["hide"], [string, string, string]> = {
+  mother: ["#ff4a14", "#ffa030", "#fff2b0"], ember: ["#ff4a14", "#ffa030", "#fff2b0"],
+  frost: ["#6fb8ff", "#bfe6ff", "#ffffff"], storm: ["#6a4cff", "#b4a2ff", "#ffffff"],
+};
+function makeJet(ctx: RenderContext, hide: Dragon["hide"], mouth: THREE.Object3D): { jet: THREE.Group; mats: THREE.MeshBasicMaterial[] } {
+  const jet = new THREE.Group(), mats: THREE.MeshBasicMaterial[] = [];
+  JET[hide].forEach((c, i) => {
+    const len = 1.5 - i * 0.35, wide = 0.32 - i * 0.09;
+    const m = ctx.glow(c, { transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+    jet.add(new THREE.Mesh(new THREE.ConeGeometry(wide, len, 8, 1, true).rotateZ(Math.PI / 2).translate(len / 2, 0, 0), m));
+    mats.push(m);
+  });
+  jet.visible = false;
+  mouth.add(jet);
+  return { jet, mats };
+}
 /** The folded wing at rest (radians): the arm down and forward from the shoulder to the ground, the hand tilted out. */
 const REST = { down: 1.2, forward: 0.5, tilt: 0.35 };
 const ease = (k: number) => k * k * (3 - 2 * k);
@@ -274,8 +298,9 @@ export const dragon: EntityView<DragonView> = {
     const d = g.world.need(e, "dragon"), parts = makeDragon(ctx, d.hide), shadow = addShadow(ctx, 1);
     const light = new THREE.PointLight(HIDES[d.hide].light, 0, 8, 1.2);
     parts.mouth.add(light);
+    const { jet, mats } = makeJet(ctx, d.hide, parts.mouth);
     ctx.scene.add(parts.group, shadow);
-    return { ...parts, shadow, light, k: (e * 1.37) % 10 };
+    return { ...parts, shadow, light, k: (e * 1.37) % 10, jet, jetMats: mats };
   },
   update(ctx, v, e, g, f) {
     const d = g.world.need(e, "dragon"), [x, z] = toWorld(d.x, d.y), t = f.t + v.k, grow = Math.max(0.001, d.grow);
@@ -334,8 +359,15 @@ export const dragon: EntityView<DragonView> = {
     v.shadow.position.set(x, SHADOW_Y, z);
     v.shadow.scale.set(size * (flying ? 1.6 : 1.1), 1, size * (flying ? 2.2 : 0.9));
     v.shadow.rotation.y = -d.facing;
-    // Her breath, out of her mouth along the way her head points, lighting what's round her.
+    // Her breath, out of her mouth along the way her head points, lighting what's round her: a jet of it, flickering,
+    // and sparks of it thrown off.
     v.light.intensity = d.fire * 6 * Math.min(2, d.size);
+    v.jet.visible = d.fire > 0.02;
+    if (v.jet.visible) {
+      const flick = 0.85 + Math.sin(t * 31) * 0.1 + Math.sin(t * 17) * 0.05;
+      v.jet.scale.set(d.fire * flick, d.fire * (0.9 + Math.sin(t * 23) * 0.12), d.fire * (0.9 + Math.cos(t * 19) * 0.12));
+      v.jetMats.forEach((m, i) => { m.opacity = d.fire * (0.55 + i * 0.15) * (0.85 + Math.sin(t * 41 + i) * 0.15); });
+    }
     if (d.fire > 0.02) {
       v.group.updateMatrixWorld(true);
       v.mouth.getWorldPosition(at);
