@@ -14,6 +14,7 @@ import { mageSystem } from "./mage.ts";
 import { petSystem } from "../game/pets.ts";
 import { travelSystem } from "../game/travel.ts";
 import { bossSystem } from "../game/bosses.ts";
+import { cinderFightSystem } from "../game/cinderfight.ts";
 import { undercroftSystem } from "../game/undercroft.ts";
 import { wardenSystem } from "../game/watchword.ts";
 import { quaySystem } from "../game/quay.ts";
@@ -43,7 +44,7 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [arrowSystem, enemyPhysicsSystem, hauntSystem, mageSystem, bossSystem, ghostSystem, slimeSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, petSystem, undercroftSystem, quaySystem],
+  [arrowSystem, enemyPhysicsSystem, hauntSystem, mageSystem, bossSystem, cinderFightSystem, ghostSystem, slimeSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, petSystem, undercroftSystem, quaySystem],
   [boltSystem, strikeSystem],
 ];
 

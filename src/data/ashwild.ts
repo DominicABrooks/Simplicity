@@ -50,6 +50,37 @@ export const CINDER = {
 } as const;
 
 /**
+ * Cinder's fight, in his arena (src/game/cinderfight.ts). Step in among the stones and fire leaps up between
+ * them: there's no way out until one of you falls. Then the ground erupts under you, a few spots at a time
+ * (each marked a moment before it goes up, then burning a while after: dash or jump clear), and every so
+ * often a wall of fire sweeps across the circle from one side to the other (jump it, or dash through).
+ * Below half health he's angry, and all of it comes faster. Distances in game px, times in seconds.
+ */
+export const CINDER_FIGHT = {
+  /** How far in from the stones (px from the middle) the hero has to come for the fire to shut him in, and how far in it then keeps him. */
+  shutAt: 40, keepIn: 45,
+  /** Below this share of his health, he's angry. */
+  angry: 0.5,
+  flare: {
+    /** Seconds between rounds of eruptions: calm, angry. How many each round: calm, angry (one always under the hero). */
+    every: [2.8, 1.8], count: [2, 4],
+    /** How long each is marked on the ground before it goes up, and burns after; how wide; how much it hurts. */
+    warn: 1.1, burn: 1.6, radius: 8, damage: 1,
+  },
+  beam: {
+    /** Seconds before the first sweep, and between them: calm, angry. */
+    first: 4, every: [8, 5],
+    /** How long it smoulders at its edge first, how long it takes to cross, how thick (px either side), how much it hurts. */
+    warn: 1.1, sweep: 2.6, width: 3.5, damage: 2,
+  },
+  say: {
+    shut: "Fire leaps up between the stones! There's no way out.",
+    beam: "Cinder sweeps a wall of fire across the circle!",
+    open: "The fire between the stones gutters out.",
+  },
+} as const;
+
+/**
  * What a hero on the straight path has on reaching Cinder (the tables in STORY.md and GEAR.md): about level 5,
  * the King's Errand pieces (Hammond Steel, the Signet of Aurenmark) and a Cinderward piece or two. Worn when
  * you go straight to him to playtest (src/debug.ts), so the fight is the one a player will have.

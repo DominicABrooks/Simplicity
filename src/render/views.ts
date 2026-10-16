@@ -21,6 +21,7 @@ import { hourOf, residentById } from "../game/townsfolk.ts";
 import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { animateCinder, makeCinder, type CinderParts } from "./models/cinder.ts";
+import { blaze } from "./blaze.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
 import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
@@ -702,4 +703,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, cinder, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman } satisfies { [K in ViewKind]: EntityView<object> };
