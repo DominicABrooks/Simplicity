@@ -1,6 +1,6 @@
 // The Ashwild: the first of the deep woods past the King's woodwardens (see STORY.md), where the trees have
 // gone ash-grey, cold cracks run through the ground, the Ember mages hunt, and Cinder waits at the Greyed's
-// camp. Here: the woodwardens and what they say, and Cinder.
+// camp. Here: the woodwardens and what they say, Cinder, and Yssa on the track west to the Frozen Hollow.
 
 import type { KitPiece } from "./items.ts";
 import { WATCHWORD } from "./king.ts";
@@ -97,8 +97,64 @@ export const CINDER_READY = {
   ] satisfies readonly KitPiece[],
 } as const;
 
-/** When Cinder falls. */
-export const CINDER_FALLS = [
-  "Cinder crumbles to grey stone. A spark flies south.",
-  "Somewhere in Kingsholm, a sheep sneezes.",
+/**
+ * Yssa of the Frost (HERO.md), on the narrow track west out of the Ashwild, down to the Frozen Hollow. She doesn't fight;
+ * she lets nobody by who doesn't know her name, and the woodcutters only ever called her the white lady. The hero can't
+ * talk, so she hands him a curl of birch bark and a stub of charcoal: the player writes it (src/game/yssa.ts). Two
+ * places tell it: Cinder, as the grey goes out of him (CINDER_FALLS), and a carving on the woodcutters' hut door
+ * (HUT_CARVING). A player who knows it already can walk straight past the camp.
+ */
+export const YSSA = {
+  /** What her target shows: what the woodcutters called her. */
+  name: "The White Lady",
+  /** The word she waits for, any case. */
+  word: "Yssa",
+  /** What the bark asks for. */
+  hint: "Write her name",
+} as const;
+
+/**
+ * The track west (tiles): one tile wide along `row`, from the cracked glade out to the west edge. She stands in it at
+ * `post`, and once she's read her name steps aside into the notch north of it.
+ */
+export const YSSA_TRACK = { row: 29, post: 11 } as const;
+
+export const YSSA_TALK = {
+  ask: [
+    "(A tall woman in frost-white robes stands in the track. The cold comes off her the way light comes off a lamp.)",
+    "You aren't one of them. Good. Down this track the wood turns to winter, and the Greyed walk on the ice.",
+    "I let nobody by who doesn't know me. Not what the woodcutters call me. My name.",
+    "(She holds out a curl of birch bark and a stub of charcoal.)",
+  ],
+  right: [
+    '(She reads the bark, and something in her face thaws.) "Yssa." Six hundred years since anyone wrote it.',
+    "Who told you? No. I can guess. Go on, then. Mind the ice.",
+  ],
+  wrong: [
+    '(She reads the bark.) "{written}." (She lets it fall. It frosts over before it lands.)',
+    "That isn't my name. Come back when you know me.",
+  ],
+  blank: ["(She turns the bare bark over, and back.) Nothing.", "Come back when you know me."],
+  kept: ["Keep it, then. Come back when you know me."],
+  through: ["The track is open to you. Go carefully. The Hollow is colder than it looks."],
+  /** Walking into her before she's read her name: one of these over her, and back you step. */
+  stop: ["Not yet.", "Do you know me?", "(The cold off her stops you dead.)", "Who am I, little one?"],
+} as const;
+
+/** Cut into the woodcutters' hut door: read by walking up to it. */
+export const HUT_CARVING = {
+  name: "Carved in the door",
+  lines: [
+    "(Someone has cut letters into the door with a knife, deep and in a hurry.)",
+    "IF THE WHITE LADY STOPS YOU ON THE WEST TRACK DONT RUN. GIVE HER HER NAME. SHES YSSA. MOTHER KNEW HER. WAT",
+  ],
+} as const;
+
+/** When Cinder falls: his last words, in the dialogue box (a toast shows only one line at a time, and this is the one that matters)... */
+export const CINDER_LAST_WORDS = [
+  `(As the grey goes out of him, Cinder looks up, and knows you.) "Tell the white lady... tell ${YSSA.word}... I'm sorry."`,
+  "(He crumbles to grey stone. A spark flies south.)",
 ] as const;
+
+/** ...and then, across the top. */
+export const CINDER_FALLS = ["Somewhere in Kingsholm, a sheep sneezes."] as const;

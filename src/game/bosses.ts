@@ -4,7 +4,7 @@
 // and hurried along here: his casts, sheep orbs and blinks come back faster. Beat him and he stays beaten
 // for the run; he always leaves a fine weapon behind; and the game says so.
 import type { Entity } from "../core/ecs.ts";
-import { CINDER, CINDER_FALLS } from "../data/ashwild.ts";
+import { CINDER, CINDER_FALLS, CINDER_LAST_WORDS } from "../data/ashwild.ts";
 import { MAGE_TARGET } from "../data/enemies.ts";
 import { XP } from "../data/progression.ts";
 import { rollItem } from "../items/items.ts";
@@ -102,7 +102,8 @@ export function bossSystem(g: Game, dt: number): void {
   for (let i = 0; i < 20 && item.slot !== "weapon"; i++) item = rollItem(g.rng, "rare");
   dropLoot(g, here.x, here.y, item);
   grantXP(g, CINDER.xp - XP.mage, here.x, here.y);          // the mage's own share comes with the kill
-  CINDER_FALLS.forEach((line, i) => toast(g, line, i === 0));
+  CINDER_FALLS.forEach(line => toast(g, line));
+  g.world.add(g.player, "conversation", { with: g.player, name: CINDER.name, key: "cinder", lines: [...CINDER_LAST_WORDS], line: 0, t: 0 });
   s.here = null;
 }
 

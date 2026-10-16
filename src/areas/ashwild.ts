@@ -3,7 +3,9 @@
 // faint wrong light in them, and the slimes thick. The trail winds south through it from glade to glade:
 // past the woodcutters' huts, left in a hurry; through glades where the Ember mages hunt; down to the
 // Greyed's first camp at the far end: a ring of burnt standing stones round a scorched circle, where Cinder waits.
+// Off the cracked glade, a narrow track runs west to the Frozen Hollow, and Yssa stands in it (src/game/yssa.ts).
 import { Rng } from "../core/rng.ts";
+import { YSSA_TRACK } from "../data/ashwild.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
 import { reachableFrom } from "../world/map.ts";
@@ -81,14 +83,26 @@ function build(): AreaLayout {
     i++;
   }
 
+  // The track west to the Frozen Hollow: one tile wide, out of the cracked glade to the west edge, with a notch north
+  // of it where Yssa steps aside once she's let him by.
+  for (let x = 0; x <= Math.round(GLADES[1].x); x++) town.set(x, YSSA_TRACK.row, Tile.Path);
+  town.set(YSSA_TRACK.post, YSSA_TRACK.row - 1, Tile.Grass);
+
   // Anywhere the trees have cut off from the trail is forest too.
   const reached = reachableFrom({ width: W, height: H, tiles: town.tiles, solids: [] }, trailX(1), 1);
   town.paint((x, y) => town.open(x, y) && !reached.has(y * W + x), Tile.Tree);
 
   const layout = town.layout(
     // Down the trail from the Witchwood, a few steps in from the edge.
-    { witchwood: { x: (trailX(3) + 0.5) * T, y: 3 * T } },
-    [{ rect: { x: trailX(0) * T, y: 0, w: 2 * T, h: 6 }, to: { area: "witchwood", entry: "ashwild" } }],
+    {
+      witchwood: { x: (trailX(3) + 0.5) * T, y: 3 * T },
+      // Back up the track from the Frozen Hollow, a few steps in from the edge.
+      hollow: { x: 3 * T, y: YSSA_TRACK.row * T },
+    },
+    [
+      { rect: { x: trailX(0) * T, y: 0, w: 2 * T, h: 6 }, to: { area: "witchwood", entry: "ashwild" } },
+      { rect: { x: 0, y: YSSA_TRACK.row * T, w: 6, h: T }, to: { area: "hollow", entry: "ashwild" } },
+    ],
   );
   return { ...layout, map: { ...layout.map, look: "ash" } };
 }

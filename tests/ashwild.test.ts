@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { area as ashwild, CINDER_AT } from "../src/areas/ashwild.ts";
 import { area as witchwood } from "../src/areas/witchwood.ts";
-import { CINDER, CINDER_FALLS, WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
+import { CINDER, CINDER_FALLS, CINDER_LAST_WORDS, WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
 import { WATCHWORD } from "../src/data/king.ts";
 import { beaten, bossSystem } from "../src/game/bosses.ts";
 import { cinderFightSystem } from "../src/game/cinderfight.ts";
@@ -134,10 +134,10 @@ describe("the Ashwild", () => {
     return cinder(g);
   }
 
-  it("is ash woods, back up the trail to the Witchwood", () => {
+  it("is ash woods, back up the trail to the Witchwood, and down Yssa's track to the Frozen Hollow", () => {
     const layout = ashwild.build();
     expect(layout.map.look).toBe("ash");
-    expect(layout.exits.map(x => x.to)).toEqual([{ area: "witchwood", entry: "ashwild" }]);
+    expect(layout.exits.map(x => x.to)).toEqual([{ area: "witchwood", entry: "ashwild" }, { area: "hollow", entry: "ashwild" }]);
     expect(layout.props.filter(p => p.kind === "crack").length).toBeGreaterThan(10);
   });
 
@@ -177,6 +177,7 @@ describe("the Ashwild", () => {
     deathSystem(g);
     expect(beaten(g, "cinder")).toBe(true);
     expect(toasts).toEqual(expect.arrayContaining([...CINDER_FALLS]));
+    expect(talking(g)?.lines).toEqual(CINDER_LAST_WORDS);   // his last words, in the dialogue box
     expect(g.world.query("pickup").some(([, { pickup }]) => pickup.kind === "loot" && pickup.item.slot === "weapon" && pickup.item.rarity === "rare")).toBe(true);
     expect(g.world.has(e, "transform")).toBe(false);
     enterArea(g, await loadArea("ashwild"), "witchwood");
