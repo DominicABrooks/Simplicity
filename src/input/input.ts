@@ -2,6 +2,7 @@
 import { DASH } from "../data/player.ts";
 import { setState, type Game } from "../game/game.ts";
 import { resetGame } from "../game/reset.ts";
+import { wakeOnStone } from "../game/stones.ts";
 import { isHandled, isUiTarget } from "../ui/dom.ts";
 
 export interface InputHooks {
@@ -32,7 +33,8 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
     const k = e.key.toLowerCase();
     if (NO_SCROLL.includes(k)) e.preventDefault();
     if (g.state !== "play") {
-      // Any key starts from the title; R rises again after a fall.
+      // Any key starts from the title; R rises again after a fall: on the last old stone he touched, or as a new run.
+      if (g.state === "dead" && k === "r" && wakeOnStone(g)) { g.resetLatch = true; return; }
       if (g.state === "title" || (g.state === "dead" && k === "r")) {
         resetGame(g);
         setState(g, "play");

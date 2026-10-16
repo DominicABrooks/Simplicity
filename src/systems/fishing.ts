@@ -1,5 +1,6 @@
 // The fishing pole: press winds up a cast, release throws it at the cursor. Over water the line
 // goes out: wait for a bite, then click during the bite to catch. Released over land, it's a weak bonk.
+// Through a hole in the ice (the Frozen Hollow's lake), it's always the big one: a golden koi.
 import { CATCH_ODDS, CURIO_IDS, type CurioId, type Rarity } from "../data/items.ts";
 import { FISHING } from "../data/player.ts";
 import { HALF, T, Tile } from "../data/world.ts";
@@ -12,11 +13,12 @@ import { makeCurio, makeFish } from "../items/items.ts";
 import { tileAt, type Point } from "../world/collision.ts";
 import { onFountainPool } from "../world/plans.ts";
 
-/** What water a cast at (x, y) lands in: a pond or river, a fountain's pool up in its basin, or none (land). */
-export function waterAt(g: Game, x: number, y: number): "open" | "basin" | null {
+/** What water a cast at (x, y) lands in: a pond or river, a fountain's pool up in its basin, a hole in the ice, or none (land). */
+export function waterAt(g: Game, x: number, y: number): "open" | "basin" | "hole" | null {
   const cx = x + HALF, cy = y + HALF;
   for (const p of g.area.layout.props) if (p.kind === "fountain" && onFountainPool(p, cx / T, cy / T)) return "basin";
-  return tileAt(g.map, cx, cy) === Tile.Water ? "open" : null;
+  if (tileAt(g.map, cx, cy) !== Tile.Water) return null;
+  return [[T, 0], [-T, 0], [0, T], [0, -T]].some(([dx, dy]) => tileAt(g.map, cx + dx!, cy + dy!) === Tile.Ice) ? "hole" : "open";
 }
 
 /** A curiosity still in the water for the hero to find: not one he's carrying, left lying about, or given up (none, once he has them all). */
@@ -50,9 +52,9 @@ export function fishingSystem(g: Game, dt: number): void {
     else if (f.t >= f.biteAt) { f.phase = "bite"; f.t = 0; sound(g, "bite", f); }
   } else if (f.phase === "bite") {
     if (input.attackPressed) {
-      const r = g.rng.next();
-      const rarity: Rarity = r < CATCH_ODDS.rare ? "rare" : r < CATCH_ODDS.magic ? "magic" : "normal";
-      const curio = curioDue(g) ? curioToFind(g) : null;                 // now and then, something that isn't a fish at all
+      const r = g.rng.next(), hole = waterAt(g, f.x, f.y) === "hole";
+      const rarity: Rarity = hole || r < CATCH_ODDS.rare ? "rare" : r < CATCH_ODDS.magic ? "magic" : "normal";
+      const curio = !hole && curioDue(g) ? curioToFind(g) : null;        // now and then, something that isn't a fish at all (never through the ice)
       const item = curio ? makeCurio(curio) : makeFish(rarity);
       if (!g.inventory.add(item)) dropLoot(g, pos.x, pos.y, item, true);
       sound(g, "catch");

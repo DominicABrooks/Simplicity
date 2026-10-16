@@ -142,7 +142,9 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       const lookX = shot ? shot.x / PX_PER_TILE : px, lookZ = shot ? shot.y / PX_PER_TILE : pz;
       camTarget.set(smooth(camTarget.x, lookX, dt, ease), 0, smooth(camTarget.z, lookZ, dt, ease));
       camZoom = smooth(camZoom, shot?.zoom ?? 1, dt, shot ? 1.6 : 3);
-      weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z);   // no rain indoors
+      // No rain indoors; where it's always winter, it's always snowing, and the rain comes down as more snow.
+      const winter = g.map.look === "snow";
+      weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : winter ? { ...g.weather, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z, winter ? 0.45 + g.weather.rain * 0.55 : 0);
       // How much light there is now, from the sky light and the sun as the hour and weather leave them (1 by day,
       // about a third at night): flat colours are shaded by it, and enemies glow a little more the darker it gets.
       ctx.light.value = THREE.MathUtils.clamp((fill.intensity * 0.6 + sun.intensity * 0.25) / 1.5, 0.22, 1);

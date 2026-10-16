@@ -118,7 +118,7 @@ export function propSolids(p: Prop): Shape[] {
       const x0 = p.rect.x / T, z = p.rect.y / T + p.rect.h / T / 2, w = p.rect.w / T, gx0 = x0 + p.gate, gx1 = gx0 + p.gateW;
       return [[x0, gx0], [gx1, x0 + w]].filter(([a, b]) => b! - a! > 0.1).map(([a, b]) => box((a! + b!) / 2, z, b! - a!, 0.5));
     }
-    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": return [];
+    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": case "oldStone": case "rimeStage": return [];
   }
 }
 

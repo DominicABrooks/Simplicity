@@ -19,6 +19,7 @@ import type { Occluder } from "./occlusion.ts";
 import { buildBridge, buildCurtainWall, buildHouse, buildKeep } from "./town.ts";
 import { buildArena, buildBarricade, buildCrack } from "./wild.ts";
 import { buildCryptDoor, buildStoneRing, buildTomb } from "./undercroft.ts";
+import { buildOldStone, buildRimeStage } from "./hollow.ts";
 
 /** What a built prop gives back: a per-frame update if it animates, and occluders if it's tall. */
 export type PropView = { update?(t: number, dt: number): void; occluders?: Occluder[] } | void;
@@ -86,6 +87,8 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   cryptDoor: buildCryptDoor,
   tomb: buildTomb,
   stoneRing: buildStoneRing,
+  oldStone: buildOldStone,
+  rimeStage: buildRimeStage,
   boss: () => undefined,                                    // a game entity (see src/game/bosses.ts), drawn by its view
 };
 

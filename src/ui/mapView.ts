@@ -17,6 +17,8 @@ const INK = {
   cobble: "#c9c0a8",
   wall: "#7d7466",
   water: "#86a7c4",
+  ice: "#c9dde6",
+  iceCrack: "#9fbccb",
   shore: "#5f7fa0",
   tree: "#7d8f5a",
   treeDot: "#5f6f45",
@@ -66,6 +68,10 @@ function drawTerrain(c: HTMLCanvasElement, map: TileMap): void {
     } else if (t === Tile.Path) {
       g.fillStyle = INK.path;
       g.fillRect(px, py, S, S);
+    } else if (t === Tile.Ice) {
+      g.fillStyle = INK.ice;
+      g.fillRect(px, py, S, S);
+      if (hash(x, y) < 0.2) { g.fillStyle = INK.iceCrack; g.fillRect(px + 1, py + Math.floor(hash(y, x) * S), S - 2, 1); }
     } else {
       g.fillStyle = INK.ground;
       g.fillRect(px, py, S, S);

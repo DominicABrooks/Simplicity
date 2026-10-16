@@ -54,11 +54,11 @@ export function moveBy(map: TileMap, p: Point, dx: number, dy: number, blocksWat
 /** Two cells overlap enough to touch (pickups, contact damage). */
 export const overlap = (a: Point, b: Point): boolean => Math.abs(a.x - b.x) < 6 && Math.abs(a.y - b.y) < 6;
 
-/** A random open-ground cell at least minDist px from `from`, or null after 200 tries. */
-export function randomGroundSpot(map: TileMap, rng: Rng, from: Point, minDist: number): Point | null {
+/** A random open-ground cell (or one of tile `on`) at least minDist px from `from`, or null after 200 tries. */
+export function randomGroundSpot(map: TileMap, rng: Rng, from: Point, minDist: number, on?: Tile): Point | null {
   for (let i = 0; i < 200; i++) {
-    const x = rng.int(1, map.width - 2) * T, y = rng.int(1, map.height - 2) * T;
-    if (isOpenGround(map.tiles[y / T]![x / T]!) && !hitsSolid(map, x, y) && Math.hypot(x - from.x, y - from.y) >= minDist) return { x, y };
+    const x = rng.int(1, map.width - 2) * T, y = rng.int(1, map.height - 2) * T, t = map.tiles[y / T]![x / T]!;
+    if ((on === undefined ? isOpenGround(t) : t === on) && !hitsSolid(map, x, y) && Math.hypot(x - from.x, y - from.y) >= minDist) return { x, y };
   }
   return null;
 }
