@@ -25,6 +25,7 @@ import { fairyRingSystem } from "../game/fairyring.ts";
 import { oakSystem } from "../game/oaks.ts";
 import { rimeFightSystem } from "../game/rimefight.ts";
 import { calderFightSystem } from "../game/calderfight.ts";
+import { homeStoneSystem } from "../game/ending.ts";
 import { hunterHutSystem } from "../game/hunterhut.ts";
 import { spiritSystem } from "../game/spirits.ts";
 import { greatKoiSystem } from "../game/greatkoi.ts";
@@ -56,7 +57,7 @@ export const HERO_SYSTEMS: System[] = [
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
   [arrowSystem, enemyPhysicsSystem, hauntSystem, eerieSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, calderFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, fairyRingSystem, oakSystem, hunterHutSystem, petSystem, undercroftSystem, quaySystem],
-  [boltSystem, strikeSystem, riftSystem],
+  [boltSystem, strikeSystem, riftSystem, homeStoneSystem],
 ];
 
 /** Combat numbers drift up and fade. */

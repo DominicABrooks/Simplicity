@@ -328,6 +328,11 @@ export interface Walker {
   catchingUp: boolean;
   /** Running from the ghost: home, or out of the area, as fast as they can go. */
   fleeing?: boolean;
+  /**
+   * The hero home with Calder's head (src/game/crowd.ts): stopped to stare as he goes by (and whether they were walking
+   * before), following him in the crowd (their place in it), or done with all that and back to their day.
+   */
+  crowd?: { mode: "stare" | "follow" | "seen"; slot: number; was: boolean };
 }
 
 /** How a dog or cat is holding itself: up on its feet, nose down sniffing, sitting, or lying down. */
@@ -416,7 +421,7 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit" | "watcher";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head";
 
 /** A beaten lieutenant's spirit, in the middle of their arena (src/game/spirits.ts): whose. */
 export interface Spirit { who: "cinder" | "rime" }

@@ -8,6 +8,7 @@ import type { Entity } from "../core/ecs.ts";
 import { TALK } from "../data/dialogue.ts";
 import { WARDEN_TALK, WOODWARDEN } from "../data/ashwild.ts";
 import { KING_AGAIN, KING_AUDIENCE, KING_WATCHWORD_AGAIN, KINGS_TASK } from "../data/king.ts";
+import { KING_AFTER, KING_NO_PROOF, KING_STEPS } from "../data/ending.ts";
 import { isGhostRumour } from "../data/ghost.ts";
 import type { GiftKind } from "../data/items.ts";
 import { GIFT_OF } from "../data/voices.ts";
@@ -27,6 +28,9 @@ import { curioClue } from "./clues.ts";
 import { gilLines, isGil } from "./quay.ts";
 import { isYssa, yssaAsking, yssaAsks, yssaLines } from "./yssa.ts";
 import { spiritLines } from "./spirits.ts";
+import { beaten } from "./bosses.ts";
+import { headLaid } from "./ending.ts";
+import { carryingHead } from "./head.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -55,10 +59,10 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   // They only offer something if they haven't given the hero anything yet and it'll fit in the bag.
   const gives: CanGive = kind => !giftsFrom(g).has(key) && g.inventory.freeSpot(makeGift(kind)) !== null;
   // The King gives you your task the first time, and reminds you of it after.
-  if (isKing && visits === 0) toast(g, KINGS_TASK, true);
+  if (isKing && visits === 0 && !beaten(g, "calder")) toast(g, KINGS_TASK, true);
   // The woodwardens at the barricade ask for the King's watchword, and hand him paper to write it on; once he's through, he's through.
   const warden = name === WOODWARDEN.name, yssa = isYssa(g, e), asking = (warden && !passedBarricade(g)) || (yssa && yssaAsking(g));
-  const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!, KING_WATCHWORD_AGAIN])
+  const lines = isKing ? kingLines(g, visits)
     : warden ? [...(asking ? WARDEN_TALK.ask : WARDEN_TALK.through)]
     : yssa ? yssaLines(g)
     : g.world.has(e, "spirit") ? spiritLines(g, e)
@@ -76,6 +80,13 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0, ...(asking ? { then: "paper" as const } : {}) });
   said(g);
   return true;
+}
+
+/** What the King says: his task the first time, and reminders after; once Calder's gone, he wants the proof, and once he's had it, thanks. */
+function kingLines(g: Game, visits: number): string[] {
+  if (headLaid(g)) return [KING_AFTER[Math.max(0, visits - 1) % KING_AFTER.length]!];
+  if (beaten(g, "calder")) return [...(carryingHead(g) ? KING_STEPS : KING_NO_PROOF)];
+  return visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!, KING_WATCHWORD_AGAIN];
 }
 
 /** Everyone who has given the hero something this run, by their key: nobody gives twice. */

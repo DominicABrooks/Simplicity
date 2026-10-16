@@ -19,7 +19,7 @@ import type { Components } from "./components.ts";
 import type { Fx } from "./fx.ts";
 
 /** "travel": walking through an exit; the world holds still until the next area is ready. */
-export type GameState = "title" | "play" | "dead" | "travel";
+export type GameState = "title" | "play" | "dead" | "travel" | "credits";
 
 /** The area you're in, and its built layout. */
 export interface CurrentArea {

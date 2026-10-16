@@ -4,7 +4,7 @@
 // skips to the end, with everything the scene would have given already given. It lives on the hero (see
 // Cutscene), so it's gone with the area; each scene plays once a run.
 import type { Entity } from "../core/ecs.ts";
-import { SCENES, type Beat, type Scene } from "../data/cutscenes.ts";
+import { SCENES, type Beat, type Cue, type Scene } from "../data/cutscenes.ts";
 import { GIFT_OF } from "../data/voices.ts";
 import { HALF } from "../data/world.ts";
 import { toast, type Game } from "./game.ts";
@@ -25,12 +25,29 @@ function playedIn(g: Game): Set<string> {
   return seen;
 }
 
+/** What the game does on each cue, and when a scene that waits for the hero to come near can play: set by whoever owns them. */
+const cues = new Map<Cue, (g: Game) => void>(), conditions = new Map<string, (g: Game) => boolean>();
+export function onCue(cue: Cue, act: (g: Game) => void): void { cues.set(cue, act); }
+export function onlyIf(scene: string, can: (g: Game) => boolean): void { conditions.set(scene, can); }
+const cue = (g: Game, c: Cue | undefined) => { if (c) cues.get(c)?.(g); };
+const canPlay = (g: Game, scene: Scene) => !playedIn(g).has(scene.id) && (conditions.get(scene.id)?.(g) ?? true);
+
 /** Play an area's scene the first time the hero arrives there. Call once, at start-up. */
 export function watchCutscenes(g: Game): void {
   playedIn(g);
   g.events.on("area", ({ def }) => {
-    const scene = SCENES.find(s => s.area === def.id && !playedIn(g).has(s.id));
+    const scene = SCENES.find(s => s.area === def.id && s.near === undefined && canPlay(g, s));
     if (scene && speakerOf(g, scene)) startCutscene(g, scene.id);
+  });
+}
+
+/** A scene that waits for him to come near whoever speaks in it: is he near enough now? */
+function sceneNear(g: Game): Scene | undefined {
+  const hero = g.world.need(g.player, "transform");
+  return SCENES.find(s => {
+    if (s.near === undefined || s.area !== g.area.def.id || !canPlay(g, s)) return false;
+    const them = speakerOf(g, s), at = them && g.world.get(them, "transform");
+    return !!at && Math.hypot(at.x - hero.x, at.y - hero.y) <= s.near;
   });
 }
 
@@ -62,8 +79,10 @@ export function holdInput(g: Game): void {
 
 /** After the hero's moved, every frame: play the beat (walk, hold, speak), point the camera, and on to the next. */
 export function updateCutscene(g: Game, dt: number): void {
+  if (g.state !== "play") return;
+  if (!cutscene(g)) { const near = sceneNear(g); if (near) startCutscene(g, near.id); }
   const c = cutscene(g);
-  if (!c || g.state !== "play") return;
+  if (!c) return;
   const scene = SCENES.find(s => s.id === c.scene)!, beat = scene.beats[c.beat]!, them = speakerOf(g, scene);
   if (!them) { endCutscene(g, scene); return; }
   const hero = g.world.need(g.player, "transform"), motion = g.world.need(g.player, "motion"), at = g.world.need(them, "transform");
@@ -72,6 +91,7 @@ export function updateCutscene(g: Game, dt: number): void {
   const there = !beat.approach || walkUp(hero, at, facingOf(g, them), beat.approach, scene.pace * dt);
   motion.moving = !there;
   motion.aim = Math.atan2(at.y - hero.y, at.x - hero.x);
+  if (there && c.t === 0) cue(g, beat.cue);
   if (there) c.t += dt;
   if (there && beat.say && !c.spoken && c.t >= (beat.hold ?? 0)) { speak(g, them, scene.key, beat.say); c.spoken = true; }
   c.cam = aim(beat, hero, at);
@@ -93,6 +113,7 @@ export function skipCutscene(g: Game): void {
     const hero = g.world.need(g.player, "transform"), at = g.world.need(them, "transform");
     for (const beat of scene.beats.slice(c.beat)) {
       if (beat.approach) walkUp(hero, at, facingOf(g, them), beat.approach, Infinity);
+      if (beat !== scene.beats[c.beat] || c.t === 0) cue(g, beat.cue);   // the cues still to come
       for (const line of beat.say ?? []) { const kind = GIFT_OF.get(line); if (kind) receive(g, scene.key, kind); }
     }
   }
@@ -103,6 +124,7 @@ function endCutscene(g: Game, scene: Scene): void {
   g.world.remove(g.player, "cutscene");
   g.world.need(g.player, "motion").moving = false;
   if (scene.after) toast(g, scene.after, true);
+  cue(g, scene.then);
 }
 
 /** A step toward standing `gap` px in front of them (the way they face). True once there. */

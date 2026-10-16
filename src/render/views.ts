@@ -42,6 +42,7 @@ import { loadOf } from "../world/workplaces.ts";
 import { ringstone } from "./undercroft.ts";
 import { boatman } from "./quay.ts";
 import { yssa } from "./yssa.ts";
+import { head, homestone } from "./homecoming.ts";
 
 export interface Frame {
   /** Game clock, for animation. */
@@ -827,4 +828,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, cinder, blaze, rime, rimefrost, calder, tempest, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa, spirit, watcher } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, rime, rimefrost, calder, tempest, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa, spirit, watcher, homestone, head } satisfies { [K in ViewKind]: EntityView<object> };

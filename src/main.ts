@@ -31,6 +31,8 @@ import { startResting, updateResting } from "./game/resting.ts";
 import { sleeping, startSleeping, updateSleeping, wake } from "./game/sleeping.ts";
 import { cutscene, holdInput, skipCutscene, updateCutscene, watchCutscenes } from "./game/cutscene.ts";
 import { createLetterbox } from "./ui/letterbox.ts";
+import { createCredits } from "./ui/credits.ts";
+import { watchEnding } from "./game/ending.ts";
 import { createSleepShade } from "./ui/sleepShade.ts";
 import { createFeyFade } from "./ui/feyFade.ts";
 import { createFeySayings } from "./ui/feySayings.ts";
@@ -58,6 +60,8 @@ const feyFade = createFeyFade(g);
 const feySayings = createFeySayings(g);
 const oakWhisper = createOakWhisper(g, view);
 watchCutscenes(g);
+watchEnding(g);
+const credits = createCredits(g);
 const audio = createAudioPlayer();
 bindOverlay(g);
 bindToasts(g);
@@ -167,6 +171,7 @@ function frame(now: number): void {
   dialogue.draw();
   paper.draw();
   letterbox.draw();
+  credits.draw(dt);
   feyFade.draw(dt);                                        // deep in a fairy ring, the screen's own furniture fades
   feySayings.draw();                                       // and the fair folk talk to him
   oakWhisper.draw();                                       // and the oaks he's grown from their acorns whisper

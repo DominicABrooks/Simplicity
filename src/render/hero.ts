@@ -7,6 +7,7 @@ import { PAL } from "../data/palette.ts";
 import { BOW, FISHING, JUMP_TIME, THRUST } from "../data/player.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
+import { processionOn } from "../game/crowd.ts";
 import { GROUND, MARKER_Y, SHADOW_Y, onGround, WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
 import { dressBody, makeBody, type Body } from "./models/body.ts";
 
@@ -56,10 +57,28 @@ export function createHeroView(ctx: RenderContext): HeroView {
   aura.position.set(0, 2.6, 0);
   hero.group.add(aura);
 
+  // ---------- Calder's head ----------
+  // Carried home up through the city in both hands, held out in front of him (src/game/crowd.ts), the weapon put away.
+  const heldHead = new THREE.Group(), headStone = lambert("#8d8a84");
+  const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 1), headStone);
+  ball.scale.set(1, 1.08, 0.95);
+  const brow = new THREE.Mesh(box(0.03, 0.03, 0.17), lambert("#5e5b56"));
+  brow.position.set(0.15, 0.06, 0);
+  heldHead.add(ball, brow);
+  heldHead.position.set(0.36, 0.44, 0);
+  heldHead.visible = false;
+  hero.group.add(heldHead);
+  let carrying = false;
+
   // ---------- Hands ----------
   const grip = new THREE.Vector3(), handTarget = new THREE.Vector3();
   function animateHands(h: HeroParts, t: number, dt: number): void {
     const { motion: m, actions: a } = h, sw = hero.sword;
+    if (carrying && a.attack <= 0) {                         // both hands under the head
+      heldHead.position.y = 0.44 + (m.moving ? Math.abs(Math.sin(t * 12)) * 0.03 : Math.sin(t * 2.5) * 0.01);
+      hero.hands.forEach((hand, i) => hand.position.lerp(handTarget.set(0.3, heldHead.position.y - 0.06, (i === 0 ? 1 : -1) * 0.18), 1 - Math.exp(-dt * 20)));
+      return;
+    }
     // A new attack starts when the timer jumps up; alternate punching hands.
     if (a.attack > lastAttack + 1e-4) punchSide ^= 1;
     lastAttack = a.attack;
@@ -247,6 +266,9 @@ export function createHeroView(ctx: RenderContext): HeroView {
       // The weapon floats at the side, and poses per weapon and action.
       const sw = hero.sword, weapon = gear?.weaponType;
       sw.visible = !m.swimming && !bed && !!gear?.weapon;    // put down to sleep
+      carrying = !m.swimming && !bed && status.sheep <= 0 && processionOn(g);
+      heldHead.visible = carrying;
+      if (carrying && a.attack <= 0) sw.visible = false;     // put away while he carries the head
       hero.ring.rotation.y = t * 1.8;                        // the ring orbits the hero
       hero.ring.position.y = Math.sin(t * 2.4) * 0.05;
       if (hero.bow) {

@@ -1,0 +1,200 @@
+// The end of the story path (STORY.md, "0:55 The head, the King, the credits"): Calder beaten and the crack shut, the
+// rift stone glows; touching it wakes the hero at the fountain stone at dawn; the townsfolk stop and stare at him
+// carrying the head, and fall in behind him; on the keep steps he sets it at the King's feet, the King has his say,
+// and the credits roll; after, the game goes on.
+import { describe, expect, it } from "vitest";
+import { loadArea } from "../src/areas/index.ts";
+import { area as capital } from "../src/areas/capital.ts";
+import { area as castle } from "../src/areas/castle.ts";
+import { area as kingsroad } from "../src/areas/kingsroad.ts";
+import { CALDER_STAND } from "../src/areas/rift.ts";
+import { SCENES } from "../src/data/cutscenes.ts";
+import { CROWD, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF } from "../src/data/ending.ts";
+import { CALDER_FIGHT as F, CALDERS_HEAD } from "../src/data/rift.ts";
+import { HALF, T } from "../src/data/world.ts";
+import { beaten, bossSystem } from "../src/game/bosses.ts";
+import { calderFightSystem } from "../src/game/calderfight.ts";
+import { crowdOf, placeInCrowd, processionOn } from "../src/game/crowd.ts";
+import { cutscene, holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
+import { endCredits, headLaid, homeStoneSystem, watchEnding, wayHomeOpen } from "../src/game/ending.ts";
+import { createGame, setState, type Game } from "../src/game/game.ts";
+import { carryingHead, giveUpHead } from "../src/game/head.ts";
+import { resetGame } from "../src/game/reset.ts";
+import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "../src/game/talk.ts";
+import { populate, setCensus, updateTownsfolk } from "../src/game/townsfolk.ts";
+import { arrive, enterArea } from "../src/game/travel.ts";
+import { makeItem } from "../src/items/items.ts";
+import { deathSystem } from "../src/systems/enemies.ts";
+import { residentsOf } from "../src/world/residents.ts";
+
+const people = setCensus(residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props }));
+const DT = 1 / 30;
+const homecoming = SCENES.find(s => s.id === "homecoming")!;
+
+/** A run with Calder just beaten at the edge of the great crack, the hero standing in the glade. */
+async function calderBeaten(): Promise<Game> {
+  const g = createGame();
+  watchCutscenes(g);
+  watchEnding(g);
+  resetGame(g);
+  setState(g, "play");
+  enterArea(g, await loadArea("rift"), "stone");
+  for (const [e] of g.world.query("enemy")) g.world.destroy(e);
+  Object.assign(g.world.need(g.player, "transform"), { x: CALDER_STAND.x * T, y: (CALDER_STAND.y + 4) * T });
+  calderFightSystem(g, DT);
+  const calder = g.world.query("renderable", "health").find(([, c]) => c.renderable.kind === "calder")!;
+  calder[1].health.hp = 0;
+  bossSystem(g, DT);
+  deathSystem(g);
+  calderFightSystem(g, DT);
+  endTalk(g);
+  return g;
+}
+const riftStone = (g: Game) => g.area.layout.props.find(p => p.kind === "oldStone")!;
+const glowing = (g: Game) => g.world.query("renderable").some(([, c]) => c.renderable.kind === "homestone");
+const kingOf = (g: Game) => g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king");
+const frame = (g: Game) => { holdInput(g); updateCutscene(g, DT); updateTalk(g, DT); };
+
+/** Home: from the glowing rift stone to the fountain stone, carrying the head. */
+async function home(): Promise<Game> {
+  const g = await calderBeaten();
+  g.inventory.add(makeItem(...CALDERS_HEAD));
+  for (let t = 0; t < F.crack.shut + 0.1; t += DT) calderFightSystem(g, DT);
+  const stone = riftStone(g);
+  Object.assign(g.world.need(g.player, "transform"), { x: stone.x - HALF, y: stone.y - HALF });
+  homeStoneSystem(g);
+  arrive(g, await loadArea("capital"));
+  return g;
+}
+
+describe("the end of the story path", () => {
+  it("the rift stone glows once Calder's gone and the crack has shut, and not before", async () => {
+    const g = await calderBeaten();
+    expect(beaten(g, "calder")).toBe(true);
+    homeStoneSystem(g);
+    expect(wayHomeOpen(g)).toBe(false);                      // the crack's still groaning shut
+    expect(glowing(g)).toBe(false);
+    for (let t = 0; t < F.crack.shut + 0.1; t += DT) calderFightSystem(g, DT);
+    const toasts: string[] = [];
+    g.events.on("toast", ({ text }) => toasts.push(text));
+    homeStoneSystem(g);
+    expect(wayHomeOpen(g)).toBe(true);
+    expect(glowing(g)).toBe(true);
+    expect(toasts).toContain(HOMECOMING.glows);
+    expect(g.state).toBe("play");                            // he's not touched it yet
+  });
+
+  it("touching it wakes him at the fountain stone, at dawn, the head still in his bag", async () => {
+    const g = await home();
+    expect(g.area.def.id).toBe("capital");
+    expect(g.world.need(g.player, "transform")).toMatchObject(g.area.layout.entries.stone!);
+    expect(g.hour).toBe(HOMECOMING.dawn);
+    expect(carryingHead(g)).toBe(true);
+    expect(processionOn(g)).toBe(true);
+  });
+
+  it("the stone stays dark in a run where he hasn't beaten Calder", async () => {
+    const g = createGame();
+    resetGame(g);
+    setState(g, "play");
+    enterArea(g, await loadArea("rift"), "stone");
+    const stone = riftStone(g);
+    Object.assign(g.world.need(g.player, "transform"), { x: stone.x - HALF, y: stone.y - HALF });
+    homeStoneSystem(g);
+    expect(glowing(g)).toBe(false);
+    expect(g.travel).toBeNull();
+  });
+
+  it("people stop and stare as he goes by with it, and some fall in behind him, who come along into the castle", async () => {
+    const g = await home();
+    populate(g, people);
+    const hero = g.world.need(g.player, "transform");
+    const walkers = () => g.world.query("walker", "transform");
+    // Go and stand by each of them in turn.
+    let stared = 0;
+    for (const [e] of walkers()) {
+      const t = g.world.get(e, "transform"), w = g.world.get(e, "walker");
+      if (!t || !w || w.follow || w.crowd) continue;
+      Object.assign(hero, { x: t.x + 10, y: t.y });
+      updateTownsfolk(g, DT);
+      if ((w.crowd as { mode: string } | undefined)?.mode === "stare") stared++;   // set by the frame just run
+      expect(w.moving).toBe(false);
+      Object.assign(hero, { x: t.x + 400, y: t.y });
+      updateTownsfolk(g, DT);
+    }
+    expect(stared).toBeGreaterThan(3);
+    const following = [...crowdOf(g).following];
+    expect(following.length).toBeGreaterThan(0);
+    expect(following.length).toBeLessThanOrEqual(CROWD.most);
+    // In rows behind him, as he walks north up toward the castle.
+    for (let i = 0; i < 20; i++) { hero.y -= 2; updateTownsfolk(g, DT); }
+    const [x, y] = placeInCrowd(g, 0);
+    expect(y).toBeGreaterThan(hero.y + HALF);
+    expect(Math.abs(x - hero.x - HALF)).toBeLessThan(CROWD.side * 2);
+    // Up into the castle: they come too.
+    enterArea(g, await loadArea("castle"), "town");
+    populate(g, people);
+    const there = walkers().filter(([, c]) => c.walker.crowd?.mode === "follow").map(([, c]) => c.walker.id);
+    expect(there.sort()).toEqual(following.sort());
+  });
+
+  it("on the keep steps he sets the head at the King's feet, the King has his say, and the credits roll", async () => {
+    const g = await home();
+    enterArea(g, await loadArea("castle"), "town");
+    const king = kingOf(g);
+    expect(king).toBeDefined();
+    expect(king![1].transform).toEqual(g.area.layout.entries.keep);   // at the foot of the keep's stairs
+    // Coming up to him: the scene starts once he's near.
+    const hero = g.world.need(g.player, "transform"), at = king![1].transform;
+    Object.assign(hero, { x: at.x, y: at.y + homecoming.near! + 20 });
+    frame(g);
+    expect(cutscene(g)).toBeNull();
+    Object.assign(hero, { x: at.x, y: at.y + homecoming.near! - 4 });
+    frame(g);
+    expect(cutscene(g)?.scene).toBe("homecoming");
+    const heard: string[] = [];
+    for (let t = 0; t < 120 && cutscene(g); t += DT) {
+      const c = talking(g);
+      if (c) { heard.push(c.lines[c.line]!); advanceTalk(g); advanceTalk(g); }
+      frame(g);
+    }
+    expect(heard).toEqual(KING_HOMECOMING);
+    expect(headLaid(g)).toBe(true);
+    expect(carryingHead(g)).toBe(false);
+    expect(g.world.query("renderable").some(([, c]) => c.renderable.kind === "head")).toBe(true);
+    expect(g.state).toBe("credits");
+    endCredits(g);
+    expect(g.state).toBe("play");
+    // Talking to him afterwards: thanks, not the task.
+    endTalk(g);
+    Object.assign(hero, { x: at.x, y: at.y + 10 });
+    startTalk(g, king![0]);
+    expect(KING_AFTER).toContain(talking(g)!.lines[0]);
+  });
+
+  it("skipping the scene still sets the head down and rolls the credits", async () => {
+    const g = await home();
+    enterArea(g, await loadArea("castle"), "town");
+    const at = kingOf(g)![1].transform;
+    Object.assign(g.world.need(g.player, "transform"), { x: at.x, y: at.y + 40 });
+    frame(g);
+    expect(cutscene(g)).not.toBeNull();
+    skipCutscene(g);
+    expect(headLaid(g)).toBe(true);
+    expect(g.state).toBe("credits");
+  });
+
+  it("without the head, the King isn't on the steps, and on his throne he wants proof", async () => {
+    const g = await home();
+    giveUpHead(g);
+    enterArea(g, await loadArea("castle"), "town");
+    expect(kingOf(g)).toBeUndefined();
+    enterArea(g, await loadArea("throneroom"), "door");
+    if (cutscene(g)) skipCutscene(g);
+    endTalk(g);
+    const [king, { transform }] = kingOf(g)!;
+    Object.assign(g.world.need(g.player, "transform"), { x: transform.x, y: transform.y + 10 });
+    startTalk(g, king);
+    expect(talking(g)!.lines).toEqual(KING_NO_PROOF);
+  });
+});
