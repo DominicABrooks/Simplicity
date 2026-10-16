@@ -4,8 +4,8 @@
 // Then the ground erupts under the hero a few
 // spots at a time, and walls of fire sweep across the circle for him to jump. Down to a quarter of his health, he
 // steps out through the fire, out of reach, and the circle becomes a furnace for a while (the inferno): a wheel of fire
-// turning from the middle, and fans of fire thrown across it from wherever he's pacing round outside; then he bursts
-// back in. Drawn by the blaze view (src/render/blaze.ts), on an entity made for the fight at the circle's middle.
+// turning from the middle, embers pulsing out of it in rings and then streaming out between its spokes, and fans of fire
+// thrown across it from wherever he's pacing round outside; then he bursts back in. Drawn by the blaze view (src/render/blaze.ts), on an entity made for the fight at the circle's middle.
 import type { Entity } from "../core/ecs.ts";
 import { CINDER_FIGHT as F } from "../data/ashwild.ts";
 import { MAGE } from "../data/enemies.ts";
@@ -31,7 +31,13 @@ export interface Spoke { off: number; t: number }
  * The inferno, while it lasts: seconds in; where he stands outside the fire (an angle round the circle); the wheel of
  * fire's angle, which way it turns first, and its spokes; and seconds to his next fan of fire.
  */
-export interface Inferno { t: number; at: number; wheel: number; spin: 1 | -1; spokes: Spoke[]; nextFan: number }
+export interface Inferno {
+  t: number; at: number; wheel: number; spin: 1 | -1; spokes: Spoke[];
+  /** Seconds to his next fan of fire, and whether he's winding up for it. */
+  nextFan: number; windingUp: boolean;
+  /** Seconds to the next ring of embers, and how many there've been (the gap steps round one sector each); seconds to the next ember down the arms. */
+  nextRing: number; rings: number; nextArm: number;
+}
 
 export interface CinderFight {
   /** The circle's middle (cell top-left) and how far in it keeps you (px). */
@@ -164,7 +170,10 @@ function startInferno(g: Game, f: CinderFight, cinder: Entity): void {
   f.flares = []; f.beams = [];
   const at = Math.atan2(him.y - f.y, him.x - f.x) + Math.PI;  // out the far side from where he was
   const spokes = Array.from({ length: I.wheel.spokes }, (_, i) => ({ off: (i / I.wheel.spokes) * Math.PI * 2, t: 0 }));
-  f.inferno = { t: 0, at, wheel: g.rng.next() * Math.PI * 2, spin: g.rng.next() < 0.5 ? 1 : -1, spokes, nextFan: I.fan.first };
+  f.inferno = {
+    t: 0, at, wheel: g.rng.next() * Math.PI * 2, spin: g.rng.next() < 0.5 ? 1 : -1, spokes,
+    nextFan: I.fan.first, windingUp: false, nextRing: I.rings.first, rings: 0, nextArm: 0,
+  };
   g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "arcane" });
   standOutside(f, him);
   g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "fire" });
@@ -250,26 +259,64 @@ function inferno(g: Game, f: CinderFight, cinder: Entity, dt: number, safe: bool
   if (was < T.still && inf.t >= T.still) { addSpoke(f, inf, h.pos); sound(g, "cast", him); g.shake = Math.max(g.shake, 1.5); }
   if (was < T.again && inf.t >= T.again) sound(g, "nova", h.pos);                          // and off it goes, the other way
   if (!safe && spokesOf(f).some(s => s.live && fromSpoke(f, s.a, h.pos) < W.width)) damagePlayer(g, f.x, f.y, W.damage);
-  // His fans of fire, aimed at the hero from wherever he stands; held while the wheel turns back.
-  const turning = inf.t >= T.slowing && inf.t < T.again;
-  if (turning) inf.nextFan = Math.max(inf.nextFan, 0.6);
-  if ((inf.nextFan -= dt) <= 0) {
-    inf.nextFan = I.fan.every;
-    const aim = Math.atan2(h.pos.y - him.y, h.pos.x - him.x), o = MAGE.boltOffset;
-    for (let i = 0; i < I.fan.count; i++) {
-      const a = aim + (i / (I.fan.count - 1) - 0.5) * I.fan.spread;
-      flame(g, him.x + Math.cos(a) * o, him.y + Math.sin(a) * o, a, I.fan.speed);
-    }
-    sound(g, "cast", him);
-  }
+  embers(g, f, inf, him, dt, T);
   if (inf.t >= I.last) endInferno(g, f, cinder);
 }
 
-/** A bolt of fire flying straight out at `a`, long-lived enough to cross the circle from outside it. */
-function flame(g: Game, x: number, y: number, a: number, speed: number): void {
+/** The middles of the gaps between the spokes (game angles), in order round the wheel. */
+function gapsOf(inf: Inferno): number[] {
+  const offs = inf.spokes.map(s => s.off).sort((a, b) => a - b);
+  return offs.map((o, i) => inf.wheel + (o + (i + 1 < offs.length ? offs[i + 1]! : offs[0]! + Math.PI * 2)) / 2);
+}
+
+/**
+ * The embers, in two acts: rings with a gap that steps from one gap between the spokes to the next, and his wound-up
+ * fans, until the wheel turns back; then streams out along the middle of each gap, turning with the wheel. Nothing
+ * while it's turning back.
+ */
+function embers(g: Game, f: CinderFight, inf: Inferno, him: Transform, dt: number, T: ReturnType<typeof turnBack>): void {
+  const I = F.inferno, R = I.rings, A = I.arms, N = I.fan;
+  const reach = (speed: number) => (f.r + 2) / speed;       // embers from the middle go out at the fire
+  if (inf.t < T.slowing) {
+    if ((inf.nextRing -= dt) <= 0) {
+      inf.nextRing = R.every;
+      const gaps = gapsOf(inf), gap = gaps[inf.rings++ % gaps.length]!, step = (Math.PI * 2) / R.count;
+      for (let i = 0; i < R.count; i++) {
+        const off = (i + 0.5) * step - Math.PI;              // round the ring, from the far side of the gap
+        if (Math.abs(off) < (R.gap / 2) * step) continue;      // the gap itself, centred on `gap`
+        flame(g, f.x, f.y, gap + off, R.speed, reach(R.speed));
+      }
+      g.fx.push({ type: "burst", x: f.x, y: f.y, palette: "fire" });
+      sound(g, "boltPop", { x: f.x, y: f.y });
+    }
+    // His fans: a flash and a sound as he winds up, then the fire.
+    inf.nextFan -= dt;
+    if (!inf.windingUp && inf.nextFan <= N.windup) {
+      inf.windingUp = true;
+      g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "fire" });
+      sound(g, "spell", him);
+    }
+    if (inf.nextFan <= 0) {
+      inf.nextFan = N.every;
+      inf.windingUp = false;
+      const h = heroParts(g), aim = Math.atan2(h.pos.y - him.y, h.pos.x - him.x), o = MAGE.boltOffset;
+      for (let i = 0; i < N.count; i++) {
+        const a = aim + (i / (N.count - 1) - 0.5) * N.spread;
+        flame(g, him.x + Math.cos(a) * o, him.y + Math.sin(a) * o, a, N.speed, N.life);
+      }
+      sound(g, "cast", him);
+    }
+  } else if (inf.t >= T.full && (inf.nextArm -= dt) <= 0) {
+    inf.nextArm = A.every;
+    for (const a of gapsOf(inf)) flame(g, f.x, f.y, a, A.speed, reach(A.speed));
+  }
+}
+
+/** A bolt of fire flying straight out at `a`, for `life` seconds. */
+function flame(g: Game, x: number, y: number, a: number, speed: number, life: number): void {
   const b = g.world.need(spawnBolt(g, "fire", x, y, Math.cos(a) * speed, Math.sin(a) * speed), "bolt");
   b.lost = true;
-  b.life = F.inferno.fan.life;
+  b.life = life;
 }
 
 /** The furnace is spent: he bursts back into the middle, a ring of fire flying out round him, and the fight goes on. */
@@ -280,7 +327,7 @@ function endInferno(g: Game, f: CinderFight, cinder: Entity): void {
   him.x = f.x; him.y = f.y;
   g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "fire" });
   const turn = g.rng.next() * Math.PI * 2;
-  for (let i = 0; i < B.count; i++) flame(g, him.x, him.y, turn + (i / B.count) * Math.PI * 2, B.speed);
+  for (let i = 0; i < B.count; i++) flame(g, him.x, him.y, turn + (i / B.count) * Math.PI * 2, B.speed, F.inferno.fan.life);
   g.world.need(cinder, "mage").held = false;
   enemy.warded = false;
   enemy.wardSay = undefined;

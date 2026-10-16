@@ -97,11 +97,54 @@ describe("Cinder's inferno", () => {
     expect(Math.abs(back)).toBeLessThan(Math.abs(full));                        // and gathering speed
   });
 
-  it("throws fans of fire across the circle from outside", async () => {
+  /** The fire bolts in flight: where they are, and which way they're heading (a game angle). */
+  const bolts = (g: Game) => g.world.query("bolt", "transform").filter(([, c]) => c.bolt.kind === "fire")
+    .map(([, c]) => ({ x: c.transform.x, y: c.transform.y, heading: Math.atan2(c.bolt.vy, c.bolt.vx) }));
+  const apart = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+
+  it("pulses rings of embers out of the middle, each with its gap halfway between two spokes, stepping round", async () => {
     const g = await inFight();
     toAQuarter(g);
-    run(g, F.inferno.fan.first + 0.1);
-    expect(fires(g)).toBeGreaterThanOrEqual(F.inferno.fan.count);
+    const f = cinderFight(g)!, R = F.inferno.rings, step = (Math.PI * 2) / R.count;
+    for (const [e] of g.world.query("bolt")) g.world.destroy(e);
+    const gapFor = (k: number) => { const [s0] = spokesOf(f); return s0!.a + Math.PI / 2 + k * Math.PI; };   // two spokes: their gaps, in turn
+    for (let k = 0; k < 2; k++) {
+      run(g, k === 0 ? R.first + 0.02 : R.every);
+      const ring = bolts(g).filter(b => Math.hypot(b.x - f.x, b.y - f.y) < 4);   // just out of the middle
+      expect(ring).toHaveLength(R.count - R.gap);
+      const gap = gapFor(k);
+      for (const b of ring) expect(apart(b.heading, gap)).toBeGreaterThan((R.gap / 2) * step - 0.01);   // none in the gap
+      expect(Math.min(...ring.map(b => apart(b.heading, gap)))).toBeLessThan((R.gap / 2 + 1) * step);   // and it's no wider
+      for (const [e] of g.world.query("bolt")) g.world.destroy(e);
+    }
+  });
+
+  it("winds up before each fan of fire he throws from outside, so it's never a surprise", async () => {
+    const g = await inFight();
+    toAQuarter(g);
+    const f = cinderFight(g)!, N = F.inferno.fan, fromHim = () => bolts(g).filter(b => Math.hypot(b.x - f.x, b.y - f.y) > f.r);
+    g.sfx.length = 0;
+    run(g, N.first - N.windup + 0.05);
+    expect(g.sfx.map(s => s.id)).toContain("spell");                       // winding up
+    expect(fromHim()).toHaveLength(0);                                      // nothing thrown yet
+    run(g, N.windup);
+    expect(fromHim().length).toBeGreaterThanOrEqual(N.count);               // and there it goes
+  });
+
+  it("streams embers out along the middle of each gap once the wheel's turned back, turning with it", async () => {
+    const g = await inFight();
+    toAQuarter(g);
+    const f = cinderFight(g)!, B = F.inferno.wheel.turnBack;
+    run(g, B.at + B.slow + B.hold + B.rise + 0.3);
+    for (const [e] of g.world.query("bolt")) g.world.destroy(e);
+    run(g, F.inferno.arms.every + 0.01);
+    const fresh = bolts(g).filter(b => Math.hypot(b.x - f.x, b.y - f.y) < 3);
+    const spokes = spokesOf(f).map(s => s.a);
+    expect(fresh).toHaveLength(spokes.length);                              // one stream to each gap
+    for (const b of fresh) {
+      const nearest = Math.min(...spokes.map(a => apart(b.heading, a)));
+      expect(nearest).toBeGreaterThan(Math.PI / 5);                         // well clear of every spoke (the wheel turns on a little as it flies)
+    }
   });
 
   it("bursts back into the middle when it's spent, in a ring of fire, and doesn't come again", async () => {
