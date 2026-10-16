@@ -15,6 +15,7 @@ import { heroParts } from "../game/hero.ts";
 import { dropLoot, spawnEnemy, spawnPotion } from "../game/spawn.ts";
 import { rollItem } from "../items/items.ts";
 import { moveBy, overlap } from "../world/collision.ts";
+import { atPeace } from "../game/peace.ts";
 
 /** Hit flashes fade, and knockback slides enemies along (they can't be knocked into water). A dummy stays on its post; blows pass through a ghost. */
 export function enemyPhysicsSystem(g: Game, dt: number): void {
@@ -28,20 +29,20 @@ export function enemyPhysicsSystem(g: Game, dt: number): void {
 
 /** Slimes hop: toward the hero when they can see you (and you're not swimming), otherwise anywhere. Touching you hurts. */
 export function slimeSystem(g: Game, dt: number): void {
-  const { pos: p, motion, status } = heroParts(g);
+  const { pos: p, motion, status } = heroParts(g), calm = atPeace(g);   // once it's all over, they let him be (src/game/peace.ts)
   for (const [, { transform: s, slime, enemy }] of g.world.query("slime", "transform", "enemy")) {
     if (slime.hop > 0) {
       slime.hop = Math.max(0, slime.hop - dt);
       moveBy(g.map, s, slime.dx * SLIME.hopSpeed * dt, slime.dy * SLIME.hopSpeed * dt, true);
     } else if ((slime.timer -= dt) <= 0) {
       const dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy);
-      if (d < SLIME.sight && !motion.swimming) { slime.dx = dx / d; slime.dy = dy / d; }
+      if (d < SLIME.sight && !motion.swimming && !calm) { slime.dx = dx / d; slime.dy = dy / d; }
       else { const a = g.rng.next() * Math.PI * 2; slime.dx = Math.cos(a); slime.dy = Math.sin(a); }
       if (slime.dx) enemy.face = Math.sign(slime.dx);
       slime.hop = SLIME.hopTime;
       slime.timer = SLIME.hopEvery + g.rng.next() * SLIME.hopEvery;
     }
-    if (status.hurt <= 0 && motion.jump <= 0 && motion.dash <= 0 && overlap(p, s)) damagePlayer(g, s.x, s.y);
+    if (!calm && status.hurt <= 0 && motion.jump <= 0 && motion.dash <= 0 && overlap(p, s)) damagePlayer(g, s.x, s.y);
   }
 }
 

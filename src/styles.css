@@ -213,7 +213,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 #credits.ended .veil { opacity: 1 !important; transition: opacity 0.8s; }
 #credits .bar { position: absolute; left: 0; right: 0; height: 12vh; background: #000; display: flex; align-items: center; justify-content: center; }
 #credits .bar.top { top: 0; }
-#credits .bar.bottom { bottom: 0; }
+#credits .bar.bottom { bottom: 0; height: auto; min-height: 12vh; padding: 8px 0; box-sizing: border-box; }   /* a long line gets the room it needs */
 #credits.ended .bar { display: none; }
 #credits .caption { margin: 0 24px; max-width: min(820px, 90vw); text-align: center; font-size: 18px; line-height: 26px; opacity: 0; }
 #credits .end, #credits .sum, #credits .more { position: absolute; margin: 0; opacity: 0; pointer-events: none; }

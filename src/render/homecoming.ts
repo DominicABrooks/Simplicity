@@ -1,6 +1,7 @@
 // The end of the story path (src/game/ending.ts), drawn: the rift stone once Calder's gone, glowing brighter than any
 // stone has before, a column of warm light standing up out of it and motes drifting up through it; and Calder's head
-// set down at the King's feet, a round grey stone with the dark gone out of its face.
+// set down at the King's feet, a round grey stone with the dark gone out of its face; and, last of all in the credits,
+// the lantern of his own on the sill of his room at the Fells'.
 import * as THREE from "three";
 import { put } from "./castle.ts";
 import { GROUND, SHADOW_Y, addShadow, onGround, toWorld, type RenderContext } from "./context.ts";
@@ -67,6 +68,42 @@ export const head: EntityView<HeadView> = {
   update() {},
   remove(ctx, v) {
     ctx.scene.remove(v.group, v.shadow);
+    disposeTree(v.group);
+  },
+};
+
+/**
+ * His own lantern, at the end of the credits (src/game/credits.ts): a little iron-framed lantern stood on the sill by his
+ * bed in the top room of the Fells' house, its flame breathing warm light over the room.
+ */
+interface LanternView { group: THREE.Group; flame: THREE.MeshBasicMaterial; light: THREE.PointLight; k: number }
+export const lantern: EntityView<LanternView> = {
+  create(ctx, e, g) {
+    const group = new THREE.Group(), iron = ctx.lambert("#2e2a28"), flame = ctx.glow(WARM, { transparent: true, opacity: 0.95 });
+    put(group, new THREE.BoxGeometry(0.42, 0.12, 0.3), ctx.lambert("#6a4a30"), 0, 0.72, 0);                  // the sill
+    put(group, new THREE.BoxGeometry(0.2, 0.03, 0.2), iron, 0, 0.8, 0);                                      // its foot
+    put(group, new THREE.BoxGeometry(0.16, 0.22, 0.16), ctx.glow(WHITE, { transparent: true, opacity: 0.35 }), 0, 0.92, 0);   // the glass
+    for (const [x, z] of [[-0.08, -0.08], [0.08, -0.08], [-0.08, 0.08], [0.08, 0.08]] as const) put(group, new THREE.BoxGeometry(0.02, 0.24, 0.02), iron, x, 0.92, z);
+    put(group, new THREE.ConeGeometry(0.12, 0.08, 4).rotateY(Math.PI / 4), iron, 0, 1.07, 0);               // its cap
+    put(group, new THREE.TorusGeometry(0.04, 0.01, 4, 8), iron, 0, 1.13, 0);                                 // and the ring to carry it by
+    put(group, new THREE.IcosahedronGeometry(0.045, 0).scale(1, 1.6, 1), flame, 0, 0.91, 0);
+    put(group, new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2), ctx.glow(WARM, { transparent: true, opacity: 0.35, depthWrite: false, map: softDisc(), ...onGround(GROUND.marker) }), 0, 0.02, 0).scale.setScalar(1.3);   // its light on the floor
+    const light = new THREE.PointLight(WARM, 2.6, 6, 1.3);
+    light.position.set(0, 1.1, 0);
+    group.add(light);
+    const t = g.world.need(e, "transform"), [x, z] = toWorld(t.x, t.y);
+    group.position.set(x, 0, z);
+    group.scale.setScalar(1.5);                              // big enough to see from across the room
+    ctx.scene.add(group);
+    return { group, flame, light, k: (t.x * 3 + t.y * 7) % 6 };
+  },
+  update(_ctx, v, _e, _g, f) {
+    const b = Math.sin(f.t * 7 + v.k) * 0.5 + Math.sin(f.t * 13 + v.k) * 0.3;   // a candle's flicker
+    v.flame.opacity = 0.85 + b * 0.1;
+    v.light.intensity = 2.6 + b * 0.35;
+  },
+  remove(ctx, v) {
+    ctx.scene.remove(v.group);
     disposeTree(v.group);
   },
 };

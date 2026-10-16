@@ -10,6 +10,7 @@ import type { Item } from "../items/items.ts";
 import { randomGroundSpot } from "../world/collision.ts";
 import type { Game } from "./game.ts";
 import { toast } from "./game.ts";
+import { atPeace } from "./peace.ts";
 
 export function createHero(g: Game): Entity {
   return g.world.create({
@@ -39,7 +40,8 @@ export function spawnEnemy(g: Game, minDist: number): void {
   // Where the area says which mages live there (the deep woods), they come from the start, and more of them.
   const mages = g.area.def.life?.mages, schools = mages?.schools ?? SCHOOL_ORDER;
   const cap = mageCap(level) + (mages?.extra ?? 0), chance = mages ? Math.max(0.45, mageChance(level)) : mageChance(level);
-  if ((mages || g.kills >= MAGE_MIN_KILLS) && g.world.count("mage") < cap && g.rng.next() < chance) {
+  // Once Calder's head is at the King's feet, no more of the Greyed come (src/game/peace.ts).
+  if (!atPeace(g) && (mages || g.kills >= MAGE_MIN_KILLS) && g.world.count("mage") < cap && g.rng.next() < chance) {
     const school = schools[Math.floor(g.rng.next() * schools.length)]!;
     const hp = mageHp(level), at = (mages?.on !== undefined && randomGroundSpot(g.map, g.rng, hero, minDist, mages.on)) || p;
     g.world.create({

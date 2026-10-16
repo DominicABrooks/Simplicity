@@ -24,6 +24,15 @@ export interface SoundRecipe {
   jitter?: number;
 }
 
+/** The credits' tune: seconds a beat, and its notes (Hz, which beat, how many beats); and the low notes under it. */
+const BEAT = 0.55;
+const TUNE: readonly (readonly [number, number, number])[] = [
+  [440, 0, 1], [587, 1, 1], [740, 2, 1], [659, 3, 1], [587, 4, 1], [440, 5, 1], [494, 6, 1], [587, 7, 2],
+  [392, 9, 1], [494, 10, 1], [587, 11, 1], [554, 12, 1], [587, 13, 2], [659, 15, 1], [740, 16, 1], [880, 17, 1],
+  [740, 18, 1], [659, 19, 1], [587, 20, 4],
+];
+const BASS: readonly (readonly [number, number, number])[] = [[147, 0, 4], [196, 4, 5], [196, 9, 4], [220, 13, 5], [147, 18, 6]];
+
 export const SFX = {
   // The hero
   swing: { tones: [{ wave: "noise", from: 1800, to: 700, dur: 0.14, gain: 0.25, q: 1.2 }], jitter: 0.15 },
@@ -64,6 +73,10 @@ export const SFX = {
   castLine: { tones: [{ wave: "noise", from: 2500, to: 1000, dur: 0.25, gain: 0.12, q: 3 }] },
   bite: { tones: [{ wave: "noise", from: 900, to: 400, dur: 0.15, gain: 0.25, q: 2 }, { wave: "sine", from: 600, to: 300, dur: 0.1, gain: 0.1 }] },
   catch: { tones: [{ wave: "noise", from: 700, to: 300, dur: 0.3, gain: 0.25, q: 1 }, { wave: "square", from: 784, dur: 0.1, gain: 0.07, delay: 0.1 }, { wave: "square", from: 1047, dur: 0.14, gain: 0.07, delay: 0.18 }] },
+
+  // The credits (src/game/credits.ts): a slow, warm air in D as the run plays back, a soft low note under each phrase.
+  credits: { tones: [...TUNE.map(([f, beat, beats]) => ({ wave: "triangle" as const, from: f, dur: beats * BEAT * 0.95, gain: 0.07, delay: beat * BEAT })),
+    ...BASS.map(([f, beat, beats]) => ({ wave: "sine" as const, from: f, dur: beats * BEAT, gain: 0.05, delay: beat * BEAT }))] },
 } satisfies Record<string, SoundRecipe>;
 
 export type SfxId = keyof typeof SFX;

@@ -73,7 +73,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
    * (after The End). `crowd` is how many follow him (castle and on). `full`: the rest of the run done too, for the
    * credits to show it all: Cinder and Rime beaten for real, the barricade and both of Yssa's words passed, the King's
    * audience heard, the hunter's bow taken, the Great Koi landed and the Grey Ringer laid to rest. `shot`: the credits
-   * start from that shot (woke, king, barricade, yssa, cinder, rime, ringer, calder, home, steps).
+   * start from that shot (woke, king, barricade, yssa, cinder, rime, ringer, calder, greyed, slimes, chronicle, eggs, milk, fells).
    */
   async function ending(stage: string = "stone", crowd = 8, full = false, shot?: string): Promise<string> {
     const STAGES = ["stone", "home", "castle", "king", "credits", "card"];

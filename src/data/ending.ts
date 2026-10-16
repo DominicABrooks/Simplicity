@@ -79,8 +79,8 @@ export const KING_NO_PROOF: readonly string[] = [
  * The credits: short shots of this run, in the places it happened (src/game/credits.ts), each with a line under it.
  * A shot only plays if the run got there; some lines change with what else it did.
  */
-export type ShotId = "woke" | "king" | "barricade" | "yssa" | "cinder" | "rime" | "ringer" | "calder" | "home" | "steps"
-  | "greyed" | "slimes" | "chronicle" | "milk";
+export type ShotId = "woke" | "king" | "barricade" | "yssa" | "cinder" | "rime" | "ringer" | "calder"
+  | "greyed" | "slimes" | "chronicle" | "eggs" | "milk" | "fells";
 export const SHOT_SAYS: Record<ShotId, string> = {
   woke: "You woke on a stone by the Ranger's fire, with nothing but a note in your hand.",
   king: "King Osric read the Ranger's note, went very red, and sent you deep into the Witchwood after Calder.",
@@ -90,22 +90,34 @@ export const SHOT_SAYS: Record<ShotId, string> = {
   rime: "Out on the frozen lake, Rime sang a line about the river Aurel as she fell, and the ice let go.",
   ringer: "One night in St Mary's churchyard, you laid the Grey Ringer to rest.",
   calder: "At the edge of the great crack Calder looked at you and said, \"Oh. He sent you. Good.\" Then the crack ground shut.",
-  home: "You came home at dawn with his head, and half the city followed you up the hill.",
-  steps: "You set it at the King's feet. \"...You did it.\" And then he told them the rest.",
   // And what it meant (HERO.md, "The end"): the aftermath, after his own story's told.
   greyed: "With Calder gone, the Greyed had no one left to follow. One by one the grey went out of them and their sparks went home, and in time the cracks under the Witchwood closed.",
   slimes: "The slimes stopped bouncing. With the valley whole, the Frost order could unscramble them at last, and within the year they were the people of the Deep Hall again.",
   chronicle: "Next morning the King stood at the market cross and read the city the true chronicle, the Founder's letter and all. He went very red. The Edict was torn up.",
+  eggs: "The Vael came north over the King's Bridge, openly, for the first time in six hundred years, and this time the King gave them back their eggs. Under the Greyspines, beside their mother, three small dragons hatched, and the valley was whole again.",
   milk: "Yssa let the frost go at last. She walked over the King's Bridge, set a bowl of milk at the foot of the fountain, and stayed.",
+  // And last, his own ending: what the King's "anything Aurenmark can give" came to.
+  fells: "The King had promised you anything Aurenmark could give. You never asked for a thing. Meg Fell gave you the room at the top of her house, and on Lantern Night, for the first time, one of the lanterns in the windows was yours.",
 };
 /** Said instead, or after, when the run went that way. */
 export const SHOT_SAYS_TOO = {
+  /** After the chronicle, by how many followed him up the hill with the head: nobody, a few, or a crowd. */
+  followed: {
+    none: "",
+    few: "The few who'd followed you up the hill had the best places.",
+    crowd: "Half the city had followed you up the hill, and the other half came to hear.",
+  },
   bow: "You kept your distance with the hunter's bow. Rime sang a line about the river Aurel as she fell, and the ice let go.",
   koi: "And down under the ice, you landed the Great Koi.",
 } as const;
 
-/** How the credits run (s): the dark before them, each shot's fade in and out, how long each is, and The End held before the card. */
-export const CREDITS_TIME = { dark: 1.4, fade: 0.9, shot: 7.5, end: 3 } as const;
+/**
+ * How the credits run (s): the dark before them, each shot's fade in and out, how long each shot is at the least, how
+ * many words a second its line can be read at (a long line holds its shot longer), and The End held before the card.
+ */
+export const CREDITS_TIME = { dark: 1.4, fade: 0.9, shot: 7.5, read: 3, end: 3 } as const;
+/** How many have to follow him up for it to be a crowd. */
+export const CROWD_OF = 5;
 
 /** Under The End: how this run went. */
 export const RUN_SUMS = { level: "Level {n}", kills: "{n} foes beaten", curios: "{n} curiosities found", curio: "1 curiosity found" } as const;
