@@ -191,7 +191,7 @@ function distortion(ctx: AudioContext, amount: number): { input: AudioNode; outp
   }
   shaper.curve = curve;
   shaper.oversample = "4x";
-  drive.gain.value = 3;
+  drive.gain.value = 2;
   trim.gain.value = 0.2;
   drive.connect(shaper).connect(trim);
   return { input: drive, output: trim };

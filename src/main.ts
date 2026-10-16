@@ -37,6 +37,7 @@ import { createSleepShade } from "./ui/sleepShade.ts";
 import { createFeyFade } from "./ui/feyFade.ts";
 import { createFeySayings } from "./ui/feySayings.ts";
 import { createErlSpeech } from "./ui/erlSpeech.ts";
+import { createWatched } from "./ui/watched.ts";
 import { enterPets } from "./game/pets.ts";
 import { createAudioPlayer } from "./audio/player.ts";
 import { createMusicPlayer } from "./audio/music.ts";
@@ -60,6 +61,7 @@ const sleepShade = createSleepShade(g, view);
 const feyFade = createFeyFade(g);
 const feySayings = createFeySayings(g);
 const erlSpeech = createErlSpeech(g, view);
+const watchedView = createWatched(g, view);
 watchCutscenes(g);
 watchEnding(g);
 const credits = createCredits(g);
@@ -183,6 +185,7 @@ function frame(now: number): void {
   feyFade.draw(dt);                                        // deep in a fairy ring, the screen's own furniture fades
   feySayings.draw();                                       // and the fair folk talk to him
   erlSpeech.draw();                                        // and under the hill, their king
+  watchedView.draw(dt);                                    // or, with the throne empty, the watchers murmuring, and the screen going wrong
   requestAnimationFrame(frame);
 }
 

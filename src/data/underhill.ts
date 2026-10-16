@@ -27,6 +27,13 @@ export const UNDERHILL = {
   /** The watchers, from the third time on: how many at first, how many more each time after, at most; how far out
    * (tiles from the glade's middle) at first and how much nearer each time, at least; and how long they take to show (s). */
   watchers: { first: 7, more: 2, most: 19, far: 7.5, nearer: 0.7, nearest: 3.5, fade: 3 },
+  /**
+   * And they murmur: once they're out of the dark (`from` s after he arrives), every so often (`every`, s [min, max])
+   * one of them says something, over its head, in a low voice; each line comes and goes over `life` s.
+   */
+  murmurs: { lines: ["This was a mistake.", "What have you done."], from: 3, every: [2.5, 5.5], life: 3.4 },
+  /** And while they're there, the screen goes wrong: a jolt every so often (`every`, s [min, max]) lasting `last` s [min, max]. */
+  glitch: { every: [0.5, 2.6], last: [0.06, 0.32] },
   says: {
     cannot: "It won't hum here. It wants the sky over it.",
     gift: "The Erl-King's gift drops into your hand.",

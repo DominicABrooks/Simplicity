@@ -124,6 +124,10 @@ export const SFX = {
   feyVoice: { tones: [...fey([[294, 0], [370, 0.15], [466, 0.3]], 2.8, 0.018, 1.03, "triangle", 0.8),
     { wave: "noise", from: 700, to: 1000, dur: 2.2, gain: 0.03, q: 1.5, attack: 0.9 }], jitter: 0.08 },
 
+  // The watchers murmuring, under the hill (src/game/underhill.ts): a low, muffled voice, words you can't make out.
+  murmur: { tones: [{ wave: "noise", from: 520, to: 380, dur: 1.4, gain: 0.12, q: 5, attack: 0.2 }, { wave: "noise", from: 900, to: 650, dur: 1.1, gain: 0.05, q: 6, delay: 0.25, attack: 0.15 },
+    { wave: "triangle", from: 130, to: 110, dur: 1.5, gain: 0.05, attack: 0.25 }, { wave: "triangle", from: 123, to: 98, dur: 0.9, gain: 0.04, delay: 0.6, attack: 0.1 }], jitter: 0.15 },
+
   // Pickups and fishing
   pickup: { tones: [{ wave: "square", from: 660, dur: 0.06, gain: 0.08 }, { wave: "square", from: 990, dur: 0.08, gain: 0.08, delay: 0.06 }] },
   drink: { tones: [0, 0.07, 0.14].map(delay => ({ wave: "sine" as const, from: 400, to: 700, dur: 0.07, gain: 0.15, delay })), jitter: 0.05 },

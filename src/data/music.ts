@@ -83,7 +83,7 @@ export const THEMES = {
    * distortion and smothered.
    */
   watchers: { root: 38, mode: [0, 1, 6, 7], chords: [0, 1, 0, 2, 0, 3, 1, 0], bpm: 40, pad: "sawtooth", lead: "triangle", density: 0.16, bright: 1300, sky: false,
-    drone: true, detune: 35, wobble: 70, wobbleRate: 0.7, warp: 30, sag: 0.6, swell: true, distort: 0.85, gain: 0.85 },
+    drone: true, detune: 20, wobble: 40, wobbleRate: 0.7, warp: 16, sag: 0.3, swell: true, distort: 0.45, gain: 0.8 },
   /** Inside someone's house: by the fire. */
   hearth: { root: 53, mode: IONIAN, chords: [0, 3, 0, 4], bpm: 72, pad: "triangle", lead: "triangle", density: 0.35, bright: 1600, sky: false },
 } satisfies Record<string, Theme>;
