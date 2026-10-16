@@ -37,6 +37,9 @@ import { FAMILIES } from "../src/world/people.ts";
 import { layoutOf } from "../src/world/layouts.ts";
 import { isMeg, megLines } from "../src/game/fells.ts";
 import { residentsOf } from "../src/world/residents.ts";
+import { solidAt } from "../src/world/collision.ts";
+import { weatherSystem } from "../src/systems/weather.ts";
+import { FIGHT_CLEARS } from "../src/data/weather.ts";
 
 const people = setCensus(residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props }));
 const DT = 1 / 30;
@@ -110,6 +113,33 @@ describe("the credits", () => {
       expect(shotLength(says)).toBeGreaterThanOrEqual(words(says) / CREDITS_TIME.read + 2 * CREDITS_TIME.fade - 1e-9);
     }
     expect(shotLength(SHOT_SAYS.eggs)).toBeGreaterThan(CREDITS_TIME.shot);
+  });
+
+  it("are all under a clear sky, the weather cleared on the way up with the head and again as they start", async () => {
+    const g = await atTheCastle();
+    Object.assign(g.weather, { kind: "rain", rain: 1, fog: 0.8, timer: 300 });
+    for (let t = 0; t < FIGHT_CLEARS + 0.1; t += DT) weatherSystem(g, DT);       // walking up to the King with it
+    expect(g.weather).toMatchObject({ kind: "clear", rain: 0, fog: 0 });
+    toTheKing(g);
+    Object.assign(g.weather, { kind: "fog", rain: 0, fog: 1 });                  // however it got there
+    await rollCredits(g);
+    expect(g.weather).toMatchObject({ kind: "clear", rain: 0, fog: 0 });
+  });
+
+  it("stand the King clear of the market stalls at the cross, reading the chronicle", async () => {
+    const g = await atTheCastle();
+    toTheKing(g);
+    await rollCredits(g);
+    let checked = false;
+    for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60) && !checked; i++) {
+      if (!creditsShot(g)?.says.startsWith(SHOT_SAYS.chronicle)) continue;
+      const king = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")?.[1].transform;
+      if (!king) continue;
+      const x = king.x + 4, y = king.y + 4;
+      for (const [dx, dy] of [[0, 0], [T, 0], [-T, 0], [0, T], [0, -T]]) expect(solidAt(g.map, x + dx!, y + dy!), `${dx},${dy}`).toBe(false);
+      checked = true;
+    }
+    expect(checked).toBe(true);
   });
 
   it("keep what it all meant short, and let the pictures carry it", () => {

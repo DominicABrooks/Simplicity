@@ -17,6 +17,7 @@ import { MAGE_TARGET, SCHOOLS, SLIME, SLIME_TARGET, type School } from "../data/
 import { SPAWN } from "../areas/witchwood.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, Prop } from "../world/area.ts";
+import { solidAt } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { interiorOf, type Spot } from "../world/interiors.ts";
 import type { Resident } from "../world/residents.ts";
@@ -29,6 +30,7 @@ import { curioFound } from "./curios.ts";
 import type { Game } from "./game.ts";
 import type { Bed, Dragon, Egg } from "./components.ts";
 import { sound } from "./sfx.ts";
+import { endCelebration } from "./victory.ts";
 import { spawnKing } from "./spawn.ts";
 import { loadCensus } from "./townsfolk.ts";
 import { standIn as standInside } from "./interiors.ts";
@@ -126,6 +128,8 @@ export async function rollCredits(g: Game): Promise<void> {
   const run = readRun(g), had = SHOTS.filter(s => s.had(run)), p = g.world.need(g.player, "transform");
   const from = had.findIndex(s => s.id === startAt.get(g)), shots = from > 0 ? had.slice(from) : had;
   startAt.delete(g);
+  Object.assign(g.weather, { kind: "clear", fog: 0, rain: 0 });   // every shot under a clear sky
+  endCelebration(g);                                          // and nothing over them
   const reel: Reel = {
     shots, run, defs: new Map(), ready: false, at: -1, t: 0, staged: null, length: CREDITS_TIME.shot, cam: null,
     back: { area: g.area.def, x: p.x, y: p.y, hour: g.hour }, turn: 0, music: CREDITS_AIR.every,
@@ -232,6 +236,19 @@ const keys = (frames: readonly [number, Cam][]) => (k: number): Cam => {
   return { x: lerp(from.x, to.x, e), y: lerp(from.y, to.y, e), zoom: lerp(from.zoom, to.zoom, e), yaw: lerp(from.yaw, to.yaw, e) };
 };
 const propOf = <K extends Prop["kind"]>(g: Game, kind: K) => g.area.layout.props.find((p): p is Extract<Prop, { kind: K }> => p.kind === kind);
+
+/**
+ * The first of these places (px, centres) with nothing solid within `room` px of it (no stall, no wall), and nothing
+ * between it and the camera (south of it, `view` px down), so whoever stands there stands clear in the shot, not
+ * hidden behind a stall's awning; or the first, if none is.
+ */
+function clearOf(g: Game, spots: readonly (readonly [number, number])[], room = T, view = 3 * T): [number, number] {
+  const around = [[0, 0], [room, 0], [-room, 0], [0, room], [0, -room]];
+  for (let down = T; down <= view; down += T) around.push([0, down], [-room, down], [room, down]);
+  const clear = ([x, y]: readonly [number, number]) => around.every(([dx, dy]) => !solidAt(g.map, x + dx!, y + dy!));
+  const at = spots.find(clear) ?? spots[0]!;
+  return [at[0], at[1]];
+}
 
 /** Stand him at (x, y) (px, his centre), looking toward (tx, ty); walking, if he's moving. */
 function heroAt(g: Game, x: number, y: number, tx: number, ty: number, walking = false): void {
@@ -366,8 +383,10 @@ const SHOTS: readonly Shot[] = [
     // The market cross the next morning: the King on its steps reading the true chronicle, the city gathered round.
     id: "chronicle", area: "capital", hour: 9.5, had: () => true,
     stage(g, run) {
-      const cross = propOf(g, "cross")!, x = cross.x, y = cross.y;
-      const ky = y + 2.2 * T;                                // on the cross's steps, in front of it
+      // At the cross: on its steps in front of it if there's room there, or else beside it along the aisle, out past
+      // the stalls (the market's rows of them run close in front of it, and would hide him).
+      const cross = propOf(g, "cross")!, along = [2.4, -2.4, 4.6, -4.6, 6.6, -6.6].map(k => [cross.x + k * T, cross.y + 0.4 * T] as const);
+      const [x, ky] = clearOf(g, [[cross.x, cross.y + 2.2 * T], ...along]);
       spawnKing(g, x - HALF, ky - HALF, Math.PI / 2);
       gatherRound(g, x, ky, 3.2 * T);
       heroAt(g, x + 4 * T, ky + 3 * T, x, ky);

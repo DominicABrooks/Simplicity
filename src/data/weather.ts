@@ -18,7 +18,7 @@ export interface Weather {
 
 /** Seconds for a change of weather to fully roll in (or clear). */
 export const WEATHER_EASE = 10;
-/** Seconds for fog or rain to clear when a boss fight starts (there's no weather in a boss fight: src/systems/weather.ts). */
+/** Seconds for fog or rain to clear when a boss fight starts, the walk up to the ending, or a cutscene (none of them has weather: src/systems/weather.ts). */
 export const FIGHT_CLEARS = 1.5;
 
 /** How long a spell of each weather lasts, seconds [min, max]. */
