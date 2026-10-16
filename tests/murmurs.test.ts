@@ -56,7 +56,7 @@ describe("the watchers' murmurs", () => {
 
   it("stop when he leaves", async () => {
     const g = await third();
-    run(g, UNDERHILL.murmurs.from + 1);
+    for (let t = 0; t < 20 && !murmurOf(g); t += 0.1) underhillSystem(g, 0.1);   // till one of them's murmuring
     expect(murmurOf(g)).not.toBeNull();
     enterArea(g, HOME, "start");
     underhillSystem(g, 0.1);
