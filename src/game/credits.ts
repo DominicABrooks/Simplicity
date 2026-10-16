@@ -436,7 +436,8 @@ const SHOTS: readonly Shot[] = [
     // their own colours to the King waiting under Southgate, and on the stones before him the three eggs, still in the
     // gold leaf they've worn six hundred years as "altar stones". It flakes off them in showers of sparks, one after
     // another, and each glows its own colour; and then the Old Mother comes up the river behind the Vael, low enough to
-    // shake the bridge, her shadow going over the whole of it, and roars as she goes over her eggs and on over the city.
+    // shake the bridge (but well over Southgate's towers), her shadow going over the whole of it, and roars as she goes
+    // over her eggs and on over the city.
     id: "eggs", area: "kingsroad", load: bridgeCleared, hour: 8, had: () => true,
     stage(g) {
       const deck = propOf(g, "stoneBridge")!.rect, x = deck.x + deck.w / 2, top = deck.y + 2 * T, foot = deck.y + deck.h - 4 * T;
@@ -447,7 +448,7 @@ const SHOTS: readonly Shot[] = [
         e: greyed(g, ORDERS[i % 3]!, 0, 0), dx: ((i % 3) - 1) * 1.4 * T, back: Math.floor(i / 3) * 2 * T,
       }));
       const near = top + 3.4 * T, from = foot + 24 * T, to = top - 30 * T;
-      const her = dragonAt(g, { x: x - HALF, y: from, height: 6.5, facing: -Math.PI / 2, size: 5, hide: "mother", pose: "fly" }, { x: x - HALF, y: ey - HALF });
+      const her = dragonAt(g, { x: x - HALF, y: from, height: 11, facing: -Math.PI / 2, size: 5, hide: "mother", pose: "fly" }, { x: x - HALF, y: ey - HALF });
       const keyed = keys([
         [0, cam(x, foot, 0.8, 0.4)], [0.34, cam(x, ey + T, 0.7, 0.1)], [0.42, cam(x, ey, 0.5, -0.05)],
         [0.55, cam(x, ey, 2.1, -0.15)], [0.85, cam(x, ey, 2.3, -0.3)], [1, cam(x, ey + T, 1.6, -0.35)],

@@ -367,6 +367,8 @@ interface Chip { mesh: THREE.Mesh; v: THREE.Vector3; spin: THREE.Vector3 }
 interface EggView {
   group: THREE.Group; shadow: THREE.Mesh; lid: THREE.Group; shell: THREE.MeshLambertMaterial; pool: THREE.MeshBasicMaterial; seam: THREE.MeshBasicMaterial;
   light: THREE.PointLight; hue: THREE.Color; gilt: number; open: boolean; chips: Chip[]; k: number;
+  /** Flakes of gold still to throw off (a fraction carried from frame to frame). */
+  flakes: number;
 }
 
 export const egg: EntityView<EggView> = {
@@ -411,17 +413,19 @@ export const egg: EntityView<EggView> = {
       group.add(mesh);
       return { mesh, v: new THREE.Vector3(), spin: new THREE.Vector3() };
     });
-    return { group, shadow, lid, shell, pool, seam, light, hue, gilt: s.gilt, open: false, chips, k: (e * 0.77) % 10 };
+    return { group, shadow, lid, shell, pool, seam, light, hue, gilt: s.gilt, open: false, chips, k: (e * 0.77) % 10, flakes: 0 };
   },
   update(ctx, v, e, g, f) {
     const s = g.world.need(e, "egg"), p = v.group.position, t = f.t + v.k, [a, b] = BURST[s.school];
-    // The gilding: gold over its own colour; as it comes off, flakes of gold go up off it.
+    // The gilding: gold over its own colour; as it comes off, flakes of gold fly off it, from all over its surface and
+    // out and up, a shower round it rather than a cloud over it (so the egg can be seen coming out from under).
     v.shell.color.copy(v.hue).lerp(GOLD, s.gilt);
     v.shell.emissive.copy(v.hue).multiplyScalar(s.glow * 0.45);
-    const flaked = v.gilt - s.gilt;
-    if (flaked > 0) for (let i = 0; i < Math.ceil(flaked * 60); i++) {
-      const ang = Math.random() * Math.PI * 2;
-      ctx.particles.spawn(Math.random() < 0.5 ? "spark" : "sparkLight", p.x + Math.cos(ang) * 0.2, 0.15 + Math.random() * 0.45, p.z + Math.sin(ang) * 0.2, Math.cos(ang) * 0.6, 0.8 + Math.random(), Math.sin(ang) * 0.6, 0.9);
+    v.flakes += Math.max(0, v.gilt - s.gilt) * 16;
+    for (; v.flakes >= 1; v.flakes--) {
+      const ang = Math.random() * Math.PI * 2, out = 1.2 + Math.random() * 0.9;
+      ctx.particles.spawn(Math.random() < 0.5 ? "spark" : "sparkLight", p.x + Math.cos(ang) * 0.3, 0.1 + Math.random() * 0.6, p.z + Math.sin(ang) * 0.3,
+        Math.cos(ang) * out, 1.4 + Math.random() * 1.2, Math.sin(ang) * out, 0.55);
     }
     v.gilt = s.gilt;
     const pale = s.school === "frost" ? 0.4 : 1;              // white glows white-hot: less of it
