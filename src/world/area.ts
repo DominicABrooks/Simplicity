@@ -150,6 +150,8 @@ export type Prop =
   | { kind: "tomb"; x: number; y: number; facing: Facing; effigy: boolean }
   /** A ring of `stones` old grey standing stones, `radius` tiles out, the `gap`th (from the north, clockwise) missing. */
   | { kind: "stoneRing"; x: number; y: number; radius: number; stones: number; gap: number }
+  /** A fairy ring (src/render/fey.ts): pale mushrooms in a circle `radius` tiles out, lights drifting round it after dark. Not solid. */
+  | { kind: "fairyRing"; x: number; y: number; radius: number }
   /** A barricade of sharpened stakes across a trail, open only at its gate: `gate` tiles from its west end, `gateW` wide. */
   | { kind: "barricade"; rect: Rect; gate: number; gateW: number }
   /** A cold crack in the ground, `len` tiles long, turned `angle` (a game angle): where the dark gets in. Not solid. */

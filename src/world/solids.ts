@@ -120,7 +120,7 @@ export function propSolids(p: Prop): Shape[] {
       return [[x0, gx0], [gx1, x0 + w]].filter(([a, b]) => b! - a! > 0.1).map(([a, b]) => box((a! + b!) / 2, z, b! - a!, 0.5));
     }
     case "greatCrack": return greatCrackPlan(p).map(s => capsule(s.a, s.b, s.r));
-    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": case "oldStone": return [];
+    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": case "oldStone": case "fairyRing": return [];
   }
 }
 
