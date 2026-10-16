@@ -39,7 +39,7 @@ import { createFeySayings } from "./ui/feySayings.ts";
 import { createErlSpeech } from "./ui/erlSpeech.ts";
 import { enterPets } from "./game/pets.ts";
 import { createAudioPlayer } from "./audio/player.ts";
-import { exposeDebug } from "./debug.ts";
+import { exposeDebug, wantsDebug } from "./debug.ts";
 import { useCurio } from "./game/quay.ts";
 import { followAcorn, holdForFey } from "./game/underhill.ts";
 
@@ -179,8 +179,9 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
-// Debug handle for the browser console in development, and for the end-to-end specs (e2e/) in their build.
-if (import.meta.env.DEV || import.meta.env.MODE === "e2e") exposeDebug(g, view);
+// Debug handle for the browser console in development, and for the end-to-end specs (e2e/) in their build; on the
+// site itself, only when the address asks for it (?area=hollow, ?try=deep and so on: see src/debug.ts).
+if (import.meta.env.DEV || import.meta.env.MODE === "e2e" || wantsDebug(location.search)) exposeDebug(g, view);
 
 resize();
 resetGame(g);

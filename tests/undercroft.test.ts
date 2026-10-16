@@ -290,6 +290,7 @@ describe("the deep places behind the door", () => {
 
   it("tells what the nest was, and leaves him a warden's wrap, once", async () => {
     const { g, toasts } = await at("sealchamber", "door");
+    pastTheEye(g);
     const nest = nestAt();
     for (let y = hero(g).y; y > nest.y + CHAMBER.near - 2; y -= 2) expect(blocked(g.map, hero(g).x, y, true)).toBe(false);
     Object.assign(hero(g), { y: nest.y + CHAMBER.near - 4 });
@@ -307,7 +308,7 @@ describe("the crack in the deep places", () => {
   it("is held by the Vael's stitches, coming loose, an eye under it; the pendant, worn, pulls them tight, once", async () => {
     const { g, toasts } = await wearing();
     enterArea(g, await loadArea("sealchamber"), "door");
-    step(g, DT);
+    pastTheEye(g);
     expect(stitchesMended(g)).toBe(false);
     expect(g.world.query("renderable").filter(([, c]) => c.renderable.kind === "stitches")).toHaveLength(1);
     expect(blocked(g.map, crackAt().x, crackAt().y, true)).toBe(false);
@@ -320,6 +321,7 @@ describe("the crack in the deep places", () => {
 
   it("stays loose without the pendant on, and says something of Ael's would know how", async () => {
     const { g, toasts } = await at("sealchamber", "door");
+    pastTheEye(g);
     Object.assign(hero(g), crackAt());
     step(g, DT);
     expect(stitchesMended(g)).toBe(false);
@@ -336,6 +338,8 @@ describe("the crack in the deep places", () => {
 
 /** A frame as the game plays it, with the cutscene's part (src/main.ts). */
 const frame = (g: Game) => { holdInput(g); step(g, DT); updateCutscene(g, DT); };
+/** Come in and skip the eye's scene: the crack waits for it. */
+function pastTheEye(g: Game): void { frame(g); frame(g); skipCutscene(g); }
 
 describe("the eye, the first time in", () => {
   it("plays once as he comes in: he's held while the camera goes down to the eye and back, then he's free", async () => {
@@ -360,5 +364,17 @@ describe("the eye, the first time in", () => {
     frame(g); frame(g);
     skipCutscene(g);
     expect(cutscene(g)).toBeNull();
+  });
+});
+
+describe("the crack, coming in still walking", () => {
+  it("waits for the eye's scene: he can't mend it before he's seen what's under it", async () => {
+    const { g } = await wearing();
+    enterArea(g, await loadArea("sealchamber"), "door");
+    Object.assign(hero(g), crackAt());                       // as if he'd walked straight on in
+    step(g, DT);
+    expect(stitchesMended(g)).toBe(false);
+    frame(g);
+    expect(cutscene(g)?.scene).toBe("eye");
   });
 });

@@ -40,6 +40,8 @@ export const PENDANT = {
  * Ael's warmth, pulls them tight again (src/game/sealchamber.ts).
  */
 export const CHAMBER = {
+  /** The nest's middle (tiles, in src/areas/sealchamber.ts's room). */
+  nest: { x: 5, y: 3.8 },
   /** How near the nest (px) he comes to read it, and what's left by it, once a run. How near the crack's middle to reach the stitches. */
   near: 18, crack: 10,
   gift: { type: "hood" as ItemType, rarity: "legendary" as Rarity, name: "Warden's Wrap", mods: { life: 4, speed: 8, dash: 25 } satisfies Stats,

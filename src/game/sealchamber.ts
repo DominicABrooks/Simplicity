@@ -2,12 +2,11 @@
 // across it, two snapped, an eye under it looking up; worn, the burning pendant pulls them tight and the eye shuts
 // (once a run; not worn, a hint that it would). At the nest, what it was for and what that means now the eggs are warm
 // over the crack upstairs, and a warden's wrap left by it. Nothing's said that can be seen.
-import { NEST } from "../areas/sealchamber.ts";
 import { CHAMBER, CHAMBER_SAYS } from "../data/undercroft.ts";
 import { HALF, T } from "../data/world.ts";
 import { makeItem } from "../items/items.ts";
 import { toast, type Game } from "./game.ts";
-import { cutscene } from "./cutscene.ts";
+import { cutscene, scenePlayed } from "./cutscene.ts";
 import { wearingPendant } from "./pendant.ts";
 import { sound } from "./sfx.ts";
 import { dropLoot } from "./spawn.ts";
@@ -28,8 +27,8 @@ function runOf(g: Game): Run {
 }
 
 /** Where the nest is, and the middle of the crack below it (game px, an entity's top-left). */
-export const nestAt = (): { x: number; y: number } => ({ x: NEST.x * T - HALF, y: NEST.y * T - HALF });
-export const crackAt = (): { x: number; y: number } => ({ x: NEST.x * T - HALF, y: (NEST.y + CRACK_Z) * T - HALF });
+export const nestAt = (): { x: number; y: number } => ({ x: CHAMBER.nest.x * T - HALF, y: CHAMBER.nest.y * T - HALF });
+export const crackAt = (): { x: number; y: number } => ({ x: CHAMBER.nest.x * T - HALF, y: (CHAMBER.nest.y + CRACK_Z) * T - HALF });
 
 /** Has the pendant pulled the stitches tight this run? */
 export const stitchesMended = (g: Game): boolean => runOf(g).mended;
@@ -41,7 +40,7 @@ export function sealChamberSystem(g: Game): void {
   if (!g.world.query("renderable").some(([, c]) => c.renderable.kind === "stitches")) {
     g.world.create({ transform: crackAt(), renderable: { kind: "stitches" } });   // drawn by src/render/undercroft.ts
   }
-  if (cutscene(g)) return;                                   // the eye's scene: he only watches
+  if (cutscene(g) || !scenePlayed(g, "eye")) return;        // the eye's scene first (he may come in still walking): he only watches
   const p = g.world.need(g.player, "transform"), nest = nestAt(), crack = crackAt();
   if (!run.mended && Math.hypot(p.x - crack.x, p.y - crack.y) < CHAMBER.crack) {
     if (wearingPendant(g)) {

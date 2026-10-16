@@ -7,8 +7,10 @@ import { GIL } from "./data/quay.ts";
 import { churchyardOf } from "./game/ghost.ts";
 import { makeCurio } from "./items/items.ts";
 import { PENDANT, UNDERCROFT } from "./data/undercroft.ts";
-import { spendCurio } from "./game/curios.ts";
-import { chargePendant, pendantCharge } from "./game/pendant.ts";
+import { spendCurio, spentCurios } from "./game/curios.ts";
+import { chargePendant, pendantCharge, wearingPendant } from "./game/pendant.ts";
+import { sealOpen } from "./game/undercroft.ts";
+import { stitchesMended } from "./game/sealchamber.ts";
 
 /** The five old stones the Ringstone Pendant drinks from: area, entry, name. */
 const SEAL_STONES = [
@@ -49,6 +51,15 @@ import { ZONES } from "./game/zones.ts";
 import { layoutOf } from "./world/layouts.ts";
 import type { KitPiece } from "./data/items.ts";
 import type { Renderer } from "./render/renderer.ts";
+
+/** The query parameters the handle reads (see the end of exposeDebug): ?area=hollow, ?boss=cinder, ?curio=key, ?try=deep, ?ending=home... */
+export const DEBUG_PARAMS = ["area", "entry", "boss", "hour", "ending", "curio", "try", "god", "freeze"] as const;
+
+/** Does this page's address ask for any of them? Then the handle's on even in the site's own build, so they work there too. */
+export const wantsDebug = (search: string): boolean => {
+  const q = new URLSearchParams(search);
+  return DEBUG_PARAMS.some(k => q.has(k));
+};
 
 export function exposeDebug(g: Game, view: Renderer): void {
   /** Level him and dress him: `kit` worn, `bag` and the rest of the starter kit in the bag, at full health. */
@@ -195,15 +206,42 @@ export function exposeDebug(g: Game, view: Renderer): void {
    * The little door behind the Undercroft's ring (docs/CURIOSITIES.md): a fresh run in the Undercroft with the ring
    * woken, the Ringstone Pendant on, drunk from all five old stones (or `stones` of them), stood just before the door.
    */
-  async function seal(stones = PENDANT.stones): Promise<string> {
+  async function seal(stones: number = PENDANT.stones): Promise<string> {
     const there = await area("undercroft");
+    wearPendant(stones);
+    const at = g.area.layout.entries.seal;
+    if (at) Object.assign(g.world.need(g.player, "transform"), at);
+    return `${there}. The pendant's on, ${pendantCharge(g)} of ${PENDANT.stones}. Walk up into the little door.`;
+  }
+  /** The ring woken (its stone spent) and the Ringstone Pendant on, drunk from the first `stones` old stones, quietly. */
+  function wearPendant(stones: number): void {
     spendCurio(g, "stone");
     const r = UNDERCROFT.reward;
     g.inventory.equip.amulet = { ...makeItem(r.type, r.rarity, { ...r.mods }, r.name), note: PENDANT.note(0) };
     for (const [area, entry, name] of SEAL_STONES.slice(0, stones)) chargePendant(g, { area, entry, name }, true);
-    const at = g.area.layout.entries.seal;
-    if (at) Object.assign(g.world.need(g.player, "transform"), at);
-    return `${there}. The pendant's on, ${pendantCharge(g)} of ${PENDANT.stones}. Walk up into the little door.`;
+  }
+  /**
+   * Trying St Mary's later pieces (docs/CURIOSITIES.md), each a fresh run set up for it (or load the page with
+   * ?try=seal, &stones=3 for a part-charged pendant):
+   *   seal     before the little door behind the ring, the pendant on and burning: walk up into it;
+   *   deep     in the deep places behind it, the pendant on: the eye's scene plays, then walk onto the crack;
+   *   pendant  the ring woken, the pendant on but cool, on the Ranger's stone: it drinks (1 of 5), then the other four;
+   *   porch    in the street below St Mary's churchyard: walk up the path to the porch door.
+   */
+  const TRIES: Record<string, (stones: number) => Promise<string>> = {
+    seal,
+    deep: async stones => { const there = await area("sealchamber"); wearPendant(stones); return `${there}. Watch the eye; then walk up onto the crack.`; },
+    pendant: async () => { const there = await area("witchwood", "start"); wearPendant(0); return `${there}. The pendant's on, cool: stand on the old stones.`; },
+    porch: async () => {
+      const there = await area("capital");
+      const yard = g.area.layout.props.find(p => p.kind === "graves" && p.path);
+      if (yard?.kind === "graves" && yard.path) Object.assign(g.world.need(g.player, "transform"), { x: yard.path.x * T - HALF, y: yard.rect.y + yard.rect.h + 1.2 * T });
+      return `${there}. Walk north up the churchyard path to St Mary's porch.`;
+    },
+  };
+  async function tryOut(id = "seal", stones: number = PENDANT.stones): Promise<string> {
+    const set = TRIES[id];
+    return set ? set(stones) : `Nothing to try called "${id}". Try: ${Object.keys(TRIES).join(", ")}`;
   }
   Object.assign(window, {
     simplicity: {
@@ -229,6 +267,10 @@ export function exposeDebug(g: Game, view: Renderer): void {
       /** The little door behind the Undercroft's ring: seal() stands him before it with the pendant on and burning
        *  (seal(3): only three stones drunk), or load the page with ?try=seal. */
       seal,
+      /** St Mary's later pieces: tryOut("deep"), "pendant", "porch" or "seal" (see TRIES), or load the page with ?try=deep. */
+      tryOut,
+      /** How the Undercroft's pieces stand this run: the ring, the pendant's charge, the little door, the crack's stitches. */
+      undercroft: () => ({ ringWoken: spentCurios(g).has("stone"), wearing: wearingPendant(g), charge: pendantCharge(g), sealOpen: sealOpen(g), mended: stitchesMended(g) }),
       /** The time of day: hour(23) makes it 11 at night (or load the page with ?hour=23); with nothing, the hour it is now. */
       hour: (h?: number) => (h === undefined ? g.hour : setHour(h)),
       god: (on = !isGod(g)) => `god ${setGod(g, on) ? "on" : "off"}`,
@@ -250,5 +292,5 @@ export function exposeDebug(g: Game, view: Renderer): void {
   else if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
   else if (cur !== null) void curio(cur || "bell").then(said => console.info(said));
-  else if (q.get("try") === "seal") void seal().then(said => console.info(said));
+  else if (q.has("try")) void tryOut(q.get("try") || "seal", Number(q.get("stones") ?? PENDANT.stones)).then(said => console.info(said));
 }
