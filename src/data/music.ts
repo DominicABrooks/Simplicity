@@ -2,7 +2,8 @@
 // theme (a key, a mode, a run of chords, a pace and the voices that play it), and the sky colours it: by night it's
 // slower, sparser, lower and in a darker mode; rain brings a low drone and drops of high notes; fog thins the tune
 // out and lets it echo. Indoors and under the ground the sky can't reach it. In a fairy ring's spell, whatever was
-// playing gives way to the fair folk's own music, Under the Hill's. Tune it here; the synth that plays it is
+// playing gives way to the fair folk's own music, Under the Hill's; and once the Erl-King's throne is empty and only
+// the watchers are there, theirs, which is barely music at all. Tune it here; the synth that plays it is
 // src/audio/music.ts.
 import type { Weather } from "./weather.ts";
 
@@ -28,6 +29,16 @@ export interface Theme {
   detune?: number;
   /** The tune wavers, this many cents either way, like a voice or a theremin; and slides from each note to the next. */
   wobble?: number;
+  /** How fast it wavers, times a second (3-5.5 if not given). */
+  wobbleRate?: number;
+  /** Every note this many cents out of tune, either way, at random: a warped record. */
+  warp?: number;
+  /** Every note sags this many semitones as it sounds, like a tape running down. */
+  sag?: number;
+  /** The chords swell in over the whole bar and are cut off dead, like a tape played backwards. */
+  swell?: boolean;
+  /** How hard it's driven into distortion, 0-1. */
+  distort?: number;
   /** How bright it sounds: the low-pass filter's cutoff, Hz. */
   bright: number;
   /** Loudness, about 1. */
@@ -66,6 +77,13 @@ export const THEMES = {
    */
   underhill: { root: 50, mode: WHOLE_TONE, chords: [0, 1, 0, 4, 3, 1], bpm: 52, pad: "triangle", lead: "sine", density: 0.22, arp: true, bright: 2400, sky: false,
     drone: true, detune: 16, wobble: 30, gain: 1.1 },
+  /**
+   * The watchers' (the third time under the hill and after, the throne empty): slow and low, in semitones and tritones,
+   * everything out of tune and sagging, swelling up backwards and cut off dead, a wavering drone, all of it driven into
+   * distortion and smothered.
+   */
+  watchers: { root: 38, mode: [0, 1, 6, 7], chords: [0, 1, 0, 2, 0, 3, 1, 0], bpm: 40, pad: "sawtooth", lead: "triangle", density: 0.16, bright: 1300, sky: false,
+    drone: true, detune: 35, wobble: 70, wobbleRate: 0.7, warp: 30, sag: 0.6, swell: true, distort: 0.85, gain: 0.85 },
   /** Inside someone's house: by the fire. */
   hearth: { root: 53, mode: IONIAN, chords: [0, 3, 0, 4], bpm: 72, pad: "triangle", lead: "triangle", density: 0.35, bright: 1600, sky: false },
 } satisfies Record<string, Theme>;
@@ -77,12 +95,16 @@ export const MUSIC_VOLUME = 0.16;
 /** Seconds one area's music takes to fade out and the next in. */
 export const MUSIC_FADE = 2.5;
 
-/** Which theme plays: the area's own, a house's hearth, the fair folk's in their ring's spell, or none (an area with no theme yet is quiet). */
-export function themeFor(state: string, area: { id: string; indoors?: boolean }, fey = false): ThemeId | null {
+/**
+ * Which theme plays: the area's own, a house's hearth, the fair folk's in their ring's spell (`fey`), the watchers' when
+ * it's only them under the hill (`watched`), or none (an area with no theme yet is quiet).
+ */
+export function themeFor(state: string, area: { id: string; indoors?: boolean }, now: { fey?: boolean; watched?: boolean } = {}): ThemeId | null {
   if (state === "title") return "title";
   if (state !== "play" && state !== "travel") return null;           // dead, and the credits, which have their own tune
-  if (fey) return "underhill";
-  if (area.id in THEMES && area.id !== "title" && area.id !== "hearth") return area.id as ThemeId;
+  if (now.watched) return "watchers";
+  if (now.fey) return "underhill";
+  if (area.id in THEMES && !["title", "hearth", "watchers"].includes(area.id)) return area.id as ThemeId;
   if (area.id.startsWith("inside:")) return "hearth";
   return null;
 }

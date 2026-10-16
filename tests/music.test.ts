@@ -16,9 +16,14 @@ describe("music", () => {
   });
 
   it("gives way to the fair folk's own music in a fairy ring's spell", () => {
-    expect(themeFor("play", { id: "witchwood" }, true)).toBe("underhill");
-    expect(themeFor("dead", { id: "witchwood" }, true)).toBeNull();
+    expect(themeFor("play", { id: "witchwood" }, { fey: true })).toBe("underhill");
+    expect(themeFor("dead", { id: "witchwood" }, { fey: true })).toBeNull();
     expect(THEMES.underhill.mode).toEqual([0, 2, 4, 6, 8, 10]);
+  });
+
+  it("is the watchers' own once only they are under the hill", () => {
+    expect(themeFor("play", { id: "underhill" })).toBe("underhill");
+    expect(themeFor("play", { id: "underhill" }, { watched: true })).toBe("watchers");
   });
 
   it("is light by day, dark by night, and eases through dawn and dusk", () => {
