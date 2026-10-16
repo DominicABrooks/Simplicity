@@ -2,10 +2,13 @@
 // hero steps in among the stones: then fire shuts the circle, Cinder steps out of it into the middle, and
 // nobody leaves until one of them falls (so there's no picking at him from outside, or slipping out to heal).
 // Then the ground erupts under the hero a few
-// spots at a time, and walls of fire sweep across the circle for him to jump. Drawn by the blaze view
-// (src/render/blaze.ts), on an entity made for the fight at the circle's middle.
+// spots at a time, and walls of fire sweep across the circle for him to jump. Down to a quarter of his health, he
+// steps out through the fire, out of reach, and the circle becomes a furnace for a while (the inferno): a wheel of fire
+// turning from the middle, and fans of fire thrown across it from wherever he's pacing round outside; then he bursts
+// back in. Drawn by the blaze view (src/render/blaze.ts), on an entity made for the fight at the circle's middle.
 import type { Entity } from "../core/ecs.ts";
 import { CINDER_FIGHT as F } from "../data/ashwild.ts";
+import { MAGE } from "../data/enemies.ts";
 import { HALF } from "../data/world.ts";
 import type { Transform } from "./components.ts";
 import { beaten, bossHere, bossWaiting, summonBoss } from "./bosses.ts";
@@ -14,6 +17,7 @@ import { damagePlayer } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
 import { heroParts } from "./hero.ts";
 import { sound } from "./sfx.ts";
+import { spawnBolt } from "./spawn.ts";
 
 /** A spot about to erupt (t < warn), or burning (t < warn + burn). Cell top-left, like everything. */
 export interface Flare { x: number; y: number; t: number; hit: boolean }
@@ -21,6 +25,11 @@ export interface Flare { x: number; y: number; t: number; hit: boolean }
 export type Sweep = "east" | "west" | "south" | "north";
 /** A wall of fire smouldering at its edge (t < warn), then sweeping across (t < warn + sweep). */
 export interface Beam { dir: Sweep; t: number; hit: boolean }
+/**
+ * The inferno, while it lasts: seconds in; where he stands outside the fire (an angle round the circle); the wheel of
+ * fire's angle and which way it's turning; and seconds to his next fan of fire.
+ */
+export interface Inferno { t: number; at: number; wheel: number; spin: 1 | -1; nextFan: number }
 
 export interface CinderFight {
   /** The circle's middle (cell top-left) and how far in it keeps you (px). */
@@ -28,6 +37,9 @@ export interface CinderFight {
   /** Seconds since the fire shut the circle. */
   t: number;
   angry: boolean;
+  /** The inferno, while it's on; and whether it's been (it comes once). */
+  inferno: Inferno | null;
+  infernoDone: boolean;
   flares: Flare[];
   beams: Beam[];
   nextFlares: number;
@@ -65,7 +77,7 @@ function shut(g: Game): CinderFight | null {
   const x = arena.x - HALF, y = arena.y - HALF, p = g.world.need(g.player, "transform");
   if (Math.hypot(p.x - x, p.y - y) > F.shutAt) return null;
   const view = g.world.create({ transform: { x, y }, renderable: { kind: "blaze" } });
-  const f: CinderFight = { x, y, r: F.keepIn, t: 0, angry: false, flares: [], beams: [], nextFlares: 1.5, nextBeam: F.beam.first, view };
+  const f: CinderFight = { x, y, r: F.keepIn, t: 0, angry: false, inferno: null, infernoDone: false, flares: [], beams: [], nextFlares: 1.5, nextBeam: F.beam.first, view };
   fights.set(g, f);
   g.shake = Math.max(g.shake, 2);
   sound(g, "nova", p);
@@ -88,9 +100,11 @@ function run(g: Game, f: CinderFight, cinder: Entity, dt: number): void {
   f.angry = hp.hp <= hp.maxHp * F.angry;
   keepIn(f, h.pos);
   const at = g.world.get(cinder, "transform");
-  if (at) keepIn(f, at);
+  if (at && !f.inferno) keepIn(f, at);
   if (isFrozen(g)) return;                                  // playtesting: the fire holds still with him
   const safe = h.status.hurt > 0 || h.motion.dash > 0 || h.motion.jump > 0;   // a dash or a jump clears the fire
+  if (!f.infernoDone && hp.hp <= hp.maxHp * F.inferno.at) startInferno(g, f, cinder);
+  if (f.inferno) { inferno(g, f, cinder, dt, safe); return; }
 
   // The ground erupts: one spot right under the hero, the rest anywhere in the circle.
   if ((f.nextFlares -= dt) <= 0) {
@@ -139,6 +153,99 @@ function run(g: Game, f: CinderFight, cinder: Entity, dt: number): void {
     }
   }
   f.beams = f.beams.filter(b => b.t < F.beam.warn + F.beam.sweep);
+}
+
+/** Down to a quarter: he steps out through the fire, out of reach, and the furnace begins. */
+function startInferno(g: Game, f: CinderFight, cinder: Entity): void {
+  const I = F.inferno, him = g.world.need(cinder, "transform"), enemy = g.world.need(cinder, "enemy");
+  f.infernoDone = true;
+  f.flares = []; f.beams = [];
+  const at = Math.atan2(him.y - f.y, him.x - f.x) + Math.PI;  // out the far side from where he was
+  f.inferno = { t: 0, at, wheel: g.rng.next() * Math.PI * 2, spin: g.rng.next() < 0.5 ? 1 : -1, nextFan: I.fan.first };
+  g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "arcane" });
+  standOutside(f, him);
+  g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "fire" });
+  Object.assign(g.world.need(cinder, "mage"), { casting: false, castK: 0, spell: null, melee: false, swing: null, held: true });
+  enemy.warded = true;
+  enemy.wardSay = I.warded;
+  g.shake = Math.max(g.shake, 2.5);
+  sound(g, "blink", him);
+  sound(g, "nova", him);
+  toast(g, F.say.inferno, true);
+}
+
+/** Where he stands in the inferno: out past the fire, at his angle round the circle. */
+function standOutside(f: CinderFight, him: Transform): void {
+  const d = f.r + F.inferno.orbit, a = f.inferno!.at;
+  him.x = f.x + Math.cos(a) * d;
+  him.y = f.y + Math.sin(a) * d;
+}
+
+/** The angles of the wheel's spokes of fire now. */
+export function spokesOf(f: CinderFight): number[] {
+  const inf = f.inferno;
+  if (!inf) return [];
+  const W = F.inferno.wheel, n = inf.t >= W.more ? W.spokes[1] : W.spokes[0];
+  return Array.from({ length: n }, (_, i) => inf.wheel + (i / n) * Math.PI * 2);
+}
+
+/** How far the hero (cell top-left) is from a spoke of fire running out from the middle at `a` (px). */
+function fromSpoke(f: CinderFight, a: number, p: { x: number; y: number }): number {
+  const dx = p.x - f.x, dy = p.y - f.y, along = Math.max(0, Math.min(f.r, dx * Math.cos(a) + dy * Math.sin(a)));
+  return Math.hypot(dx - Math.cos(a) * along, dy - Math.sin(a) * along);
+}
+
+/** The furnace: the wheel turning, fans of fire thrown across it, him pacing outside; then back in he bursts. */
+function inferno(g: Game, f: CinderFight, cinder: Entity, dt: number, safe: boolean): void {
+  const I = F.inferno, W = I.wheel, inf = f.inferno!, h = heroParts(g), him = g.world.need(cinder, "transform");
+  const was = inf.t;
+  inf.t += dt;
+  inf.at += I.pace * dt;
+  standOutside(f, him);
+  g.world.need(cinder, "mage").held = true;
+  // The wheel: smouldering first, then turning; halfway through it stops dead and turns back the other way.
+  if (was < I.last / 2 && inf.t >= I.last / 2) { inf.spin = inf.spin === 1 ? -1 : 1; sound(g, "nova", h.pos); g.shake = Math.max(g.shake, 1.5); }
+  if (inf.t >= W.warn) inf.wheel += inf.spin * W.turn * dt;
+  if (was < W.warn && inf.t >= W.warn) sound(g, "nova", h.pos);
+  if (was < W.more && inf.t >= W.more) { sound(g, "cast", him); g.shake = Math.max(g.shake, 1.5); }
+  if (inf.t >= W.warn && !safe && spokesOf(f).some(a => fromSpoke(f, a, h.pos) < W.width)) damagePlayer(g, f.x, f.y, W.damage);
+  // His fans of fire, aimed at the hero from wherever he stands.
+  if ((inf.nextFan -= dt) <= 0) {
+    inf.nextFan = I.fan.every;
+    const aim = Math.atan2(h.pos.y - him.y, h.pos.x - him.x), o = MAGE.boltOffset;
+    for (let i = 0; i < I.fan.count; i++) {
+      const a = aim + (i / (I.fan.count - 1) - 0.5) * I.fan.spread;
+      flame(g, him.x + Math.cos(a) * o, him.y + Math.sin(a) * o, a, I.fan.speed);
+    }
+    sound(g, "cast", him);
+  }
+  if (inf.t >= I.last) endInferno(g, f, cinder);
+}
+
+/** A bolt of fire flying straight out at `a`, long-lived enough to cross the circle from outside it. */
+function flame(g: Game, x: number, y: number, a: number, speed: number): void {
+  const b = g.world.need(spawnBolt(g, "fire", x, y, Math.cos(a) * speed, Math.sin(a) * speed), "bolt");
+  b.lost = true;
+  b.life = F.inferno.fan.life;
+}
+
+/** The furnace is spent: he bursts back into the middle, a ring of fire flying out round him, and the fight goes on. */
+function endInferno(g: Game, f: CinderFight, cinder: Entity): void {
+  const B = F.inferno.burst, him = g.world.need(cinder, "transform"), enemy = g.world.need(cinder, "enemy");
+  f.inferno = null;
+  g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "arcane" });
+  him.x = f.x; him.y = f.y;
+  g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "fire" });
+  const turn = g.rng.next() * Math.PI * 2;
+  for (let i = 0; i < B.count; i++) flame(g, him.x, him.y, turn + (i / B.count) * Math.PI * 2, B.speed);
+  g.world.need(cinder, "mage").held = false;
+  enemy.warded = false;
+  enemy.wardSay = undefined;
+  f.nextFlares = 2; f.nextBeam = 4;
+  g.shake = Math.max(g.shake, 3);
+  sound(g, "blink", him);
+  sound(g, "nova", him);
+  toast(g, F.say.back, true);
 }
 
 /** Nobody leaves the circle: kept within its fire. */

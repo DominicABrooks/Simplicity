@@ -73,8 +73,26 @@ export const CINDER_FIGHT = {
     /** How long it smoulders at its edge first, how long it takes to cross, how thick (px either side), how much it hurts. */
     warn: 1.1, sweep: 2.6, width: 3.5, damage: 2,
   },
+  /**
+   * The inferno: the first time he's down to `at` of his health, he steps out through the fire and stands among the
+   * stones, out of reach (warded: `warded` is what a blow on him says), and for `last` seconds the circle is a furnace.
+   * He paces round outside it (`orbit` px out past the fire, `pace` radians a second). Spokes of fire flare up from the
+   * middle (`warn` seconds smouldering first) and turn like a wheel (`turn` radians a second), `spokes` of them, more
+   * after `more` seconds, and halfway through the wheel stops and turns the other way; they're `width` px thick and
+   * hurt `damage`, and a jump or a dash clears them. And every `every` seconds he throws a fan of fire from where he
+   * stands, `count` bolts `spread` radians wide at `speed` px/s, lasting `life` s; the standing stones stop them. At the
+   * end he bursts back into the middle, throwing a ring of `burst` bolts out round him.
+   */
+  inferno: {
+    at: 0.25, last: 16, warded: "Out of reach!", orbit: 10, pace: 0.35,
+    wheel: { spokes: [2, 3], more: 8, warn: 1.4, turn: 0.75, width: 3.5, damage: 1 },
+    fan: { first: 2.2, every: 1.5, count: 5, spread: 0.6, speed: 38, life: 5 },
+    burst: { count: 14, speed: 42 },
+  },
   say: {
     shut: "Fire leaps up between the stones! There's no way out.",
+    inferno: "Cinder steps out through the fire! The circle becomes a furnace!",
+    back: "Cinder bursts back into the circle!",
     rise: "Cinder steps out of the flames.",
     beam: "Cinder sweeps a wall of fire across the circle!",
     open: "The fire between the stones gutters out.",
