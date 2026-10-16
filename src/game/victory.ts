@@ -1,15 +1,15 @@
 // Beating a boss (any of them: the three lieutenants, src/game/bosses.ts; the Grey Ringer, src/systems/enemies.ts; the
 // Great Koi, src/game/greatkoi.ts) is a moment: the world stops dead for a breath, a blaze of light goes up where they
 // fell, a fanfare plays (the music holds off for it: src/audio/music.ts), fireworks go off round the hero for a few
-// seconds, and VICTORY goes up across the screen over their name, golden, with confetti coming down
-// (src/ui/victory.ts). The rules are VICTORY, in src/data/victory.ts.
+// seconds, and VICTORY goes up across the screen, golden, with confetti coming down (src/ui/victory.ts). Whatever
+// comes after (a lieutenant's last words) waits till it's all over. The rules are VICTORY, in src/data/victory.ts.
 import { VICTORY as V } from "../data/victory.ts";
 import type { BurstPalette } from "./fx.ts";
 import type { Game } from "./game.ts";
 import { sound } from "./sfx.ts";
 
-/** A victory being celebrated: whose fall, how long since, where, and seconds to the next firework. */
-export interface Victory { name: string; title: string; t: number; x: number; y: number; nextBang: number; n: number }
+/** A victory being celebrated: whose fall, how long since, where, seconds to the next firework; and what's to happen once it's over. */
+export interface Victory { name: string; title: string; t: number; x: number; y: number; nextBang: number; n: number; then: (() => void) | null }
 
 const victories = new WeakMap<Game, Victory>();
 
@@ -19,9 +19,10 @@ export function victoryOf(g: Game): Victory | null {
   return v && v.t < V.last ? v : null;
 }
 
-/** A boss has fallen at (x, y) (cell top-left): celebrate. */
-export function celebrate(g: Game, name: string, title: string, x: number, y: number): void {
-  victories.set(g, { name, title, t: 0, x, y, nextBang: V.fireworks.first, n: 0 });
+/** A boss has fallen at (x, y) (cell top-left): celebrate; and once it's over, `then`. */
+export function celebrate(g: Game, name: string, title: string, x: number, y: number, then?: () => void): void {
+  victories.get(g)?.then?.();                               // one still going (two bosses at once?): its business first
+  victories.set(g, { name, title, t: 0, x, y, nextBang: V.fireworks.first, n: 0, then: then ?? null });
   g.hitstop = Math.max(g.hitstop, V.hitstop);
   g.shake = Math.max(g.shake, V.shake);
   g.fx.push({ type: "levelUp", x, y });
@@ -31,11 +32,17 @@ export function celebrate(g: Game, name: string, title: string, x: number, y: nu
 
 const PALETTES: readonly BurstPalette[] = ["fire", "spark", "arcane", "frost", "slime"];
 
-/** Every frame: the fireworks, round the hero, while the celebration lasts. */
+/** Every frame: the fireworks, round the hero, while the celebration lasts; and once it's over, what comes after. */
 export function victorySystem(g: Game, dt: number): void {
   const v = victoryOf(g);
   if (!v) return;
   v.t += dt;
+  if (v.t >= V.last) {
+    const then = v.then;
+    v.then = null;
+    then?.();
+    return;
+  }
   const F = V.fireworks;
   if (v.t > F.until || (v.nextBang -= dt) > 0) return;
   v.nextBang = F.every[0] + Math.random() * (F.every[1] - F.every[0]);

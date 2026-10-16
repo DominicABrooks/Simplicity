@@ -12,6 +12,8 @@ import { makeItem } from "../src/items/items.ts";
 import { T, Tile } from "../src/data/world.ts";
 import { bossBar } from "../src/game/bossbar.ts";
 import { beaten, bossSystem, bossWaiting } from "../src/game/bosses.ts";
+import { victorySystem } from "../src/game/victory.ts";
+import { VICTORY } from "../src/data/victory.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { bowSpot, hunterHutSystem, tookBow } from "../src/game/hunterhut.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -137,6 +139,7 @@ describe("Rime", () => {
     expect(g.world.isAlive(e)).toBe(false);
     expect(rimeFight(g)).toBeNull();
     expect(toasts).toEqual(expect.arrayContaining([...RIME_FALLS, RIME_FIGHT.say.thaw]));
+    victorySystem(g, VICTORY.last);                          // the victory celebrated: then the last words
     expect(talking(g)?.lines).toEqual(RIME_LAST_WORDS);
     expect(g.world.query("pickup").some(([, { pickup }]) => pickup.kind === "loot" && pickup.item.name === RIME_CIRCLET[3])).toBe(true);
 

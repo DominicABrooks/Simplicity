@@ -1,5 +1,5 @@
 // Beating a boss is a moment: the world stops dead, a blaze of light, a fanfare (the music holding off for it),
-// fireworks round the hero for a few seconds, and VICTORY over their name.
+// fireworks round the hero for a few seconds, and VICTORY; and a lieutenant's last words wait till it's over.
 import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { CINDER_AT } from "../src/areas/ashwild.ts";
@@ -42,6 +42,15 @@ describe("a boss beaten", () => {
     expect(g.sfx.filter(s => s.id === "firework").length).toBeGreaterThan(5);
     for (let t = 0; t < V.last; t += 0.05) victorySystem(g, 0.05);
     expect(victoryOf(g)).toBeNull();
+  });
+
+  it("keeps a lieutenant's last words till it's over", async () => {
+    const g = await cinderFalls();
+    expect(g.world.get(g.player, "conversation")).toBeUndefined();
+    for (let t = 0; t < V.last - 0.2; t += 0.05) victorySystem(g, 0.05);
+    expect(g.world.get(g.player, "conversation")).toBeUndefined();   // still celebrating
+    for (let t = 0; t < 0.4; t += 0.05) victorySystem(g, 0.05);
+    expect(g.world.get(g.player, "conversation")).toMatchObject({ name: CINDER.name, line: 0 });
   });
 
   it("is the same for the Great Koi on the end of the line", () => {

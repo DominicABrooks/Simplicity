@@ -12,6 +12,8 @@ import { MAGE } from "../src/data/enemies.ts";
 import { HALF, T, Tile } from "../src/data/world.ts";
 import { bossBar } from "../src/game/bossbar.ts";
 import { beaten, bossSystem, bossWaiting } from "../src/game/bosses.ts";
+import { victorySystem } from "../src/game/victory.ts";
+import { VICTORY } from "../src/data/victory.ts";
 import { calderFight, calderFightSystem, crackSealed, crackWidth, nearestOnCrack } from "../src/game/calderfight.ts";
 import { damagePlayer, hitEnemy } from "../src/game/combat.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
@@ -359,6 +361,7 @@ describe("Calder's fight", () => {
     expect(g.world.isAlive(e)).toBe(false);
     expect(calderFight(g)).toBeNull();
     expect(toasts).toEqual(expect.arrayContaining([...CALDER_FALLS, F.say.shutCrack]));
+    victorySystem(g, VICTORY.last);                          // the victory celebrated: then the last words
     expect(talking(g)?.lines).toEqual(CALDER_LAST_WORDS);
     expect(CALDER_LAST_WORDS.join(" ")).toContain("Oh. He sent you. Good.");
     const head = g.world.query("pickup").find(([, { pickup }]) => pickup.kind === "loot" && pickup.item.name === CALDERS_HEAD[3]);
