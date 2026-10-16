@@ -120,7 +120,6 @@ export const END_CARD = {
   help: "with help from AI",
   note: [
     "I have no plans to ever monetize this game. It's a passion project.",
-    "I've wanted to build something like this since I was a kid, and I still find it super cool that I finally have the resources to make it.",
   ],
   donate: "If you'd like to donate, 100% of anything you give goes back into improving the game.",
   donateUrl: "https://buymeacoffee.com/domab",
