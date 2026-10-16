@@ -415,7 +415,10 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit";
+
+/** A beaten lieutenant's spirit, in the middle of their arena (src/game/spirits.ts): whose. */
+export interface Spirit { who: "cinder" | "rime" }
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -451,4 +454,5 @@ export interface Components {
   cutscene: Cutscene;
   walker: Walker;
   pet: Pet;
+  spirit: Spirit;
 }

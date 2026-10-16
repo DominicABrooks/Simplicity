@@ -1,6 +1,7 @@
 // King Osric IV, the Gilded, on his throne in the keep: who gives the Foreigner his task (see STORY.md,
 // "The King"). The first time you go before him he reads the Ranger's note you carry and asks you to go
-// deep into the Witchwood and kill Calder, leader of the mages. After that he reminds you, less patiently.
+// deep into the Witchwood and kill Calder, leader of the mages. After that he reminds you, less patiently, and tells
+// you the watchword again.
 
 /** As a target: named, never hostile. A little taller than his guards, for the crown. */
 export const KING = { name: "King Osric", radius: 5, height: 1.75 } as const;
@@ -14,6 +15,9 @@ export const WATCHWORD = "Gilded Oak";
 /** Telling the hero the watchword. It's up to the player to remember it: the wardens ask (see src/game/watchword.ts). */
 export const KING_WATCHWORD =
   `My woodwardens will ask you for the watchword. It's "${WATCHWORD}". Remember it. You can't say it, I know, but they keep paper for the woodcutters who can't spell.`;
+
+/** Said after every reminder: the watchword again, for anyone who's forgotten it. */
+export const KING_WATCHWORD_AGAIN = `And the watchword for my woodwardens, since I can see you've forgotten it: "${WATCHWORD}". Write it on your hand.`;
 
 /** Going before the King for the first time. */
 export const KING_AUDIENCE: readonly string[] = [

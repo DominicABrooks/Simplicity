@@ -146,6 +146,15 @@ export const HUNTER_NOTE = {
   ],
 } as const;
 
+/** Her spirit, out in the middle of her stage once she's fallen (src/game/spirits.ts): the river's name again, for anyone who missed it. */
+export const RIME_SPIRIT = {
+  name: "Rime's Spirit",
+  lines: [
+    "(Rime's spirit hangs over the ice, humming the river song now instead of the one note.)",
+    '"...out of the crack the Aurel runs, cold and young..." The Aurel. Yssa will want to hear its name.',
+  ],
+} as const;
+
 /** ...and then, across the top. */
 export const RIME_FALLS = ["The Hollow goes quiet. The Frost mages stop humming."] as const;
 

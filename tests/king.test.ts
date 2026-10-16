@@ -5,7 +5,7 @@ import { loadArea } from "../src/areas/index.ts";
 import { area as castle } from "../src/areas/castle.ts";
 import { area as throneroom } from "../src/areas/throneroom.ts";
 import { TALK } from "../src/data/dialogue.ts";
-import { KING, KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../src/data/king.ts";
+import { KING, KING_AGAIN, KING_AUDIENCE, KING_WATCHWORD_AGAIN, KINGS_TASK, WATCHWORD } from "../src/data/king.ts";
 import { T } from "../src/data/world.ts";
 import { createGame, setState } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -56,7 +56,7 @@ describe("the King", () => {
     expect(g.world.need(king, "targetable")).toMatchObject({ hostile: false, name: KING.name });
   });
 
-  it("gives you your task the first time, and reminds you after", async () => {
+  it("gives you your task the first time, and reminds you after, watchword and all", async () => {
     const { g, king } = await before();
     const toasts: string[] = [];
     g.events.on("toast", ({ text }) => toasts.push(text));
@@ -65,7 +65,8 @@ describe("the King", () => {
     expect(toasts).toContain(KINGS_TASK);
     endTalk(g);
     startTalk(g, king);
-    expect(talking(g)!.lines).toEqual([KING_AGAIN[0]]);
+    expect(talking(g)!.lines).toEqual([KING_AGAIN[0], KING_WATCHWORD_AGAIN]);
+    expect(KING_WATCHWORD_AGAIN).toContain(WATCHWORD);
     expect(toasts.filter(t => t === KINGS_TASK)).toHaveLength(1);
   });
 });

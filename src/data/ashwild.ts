@@ -156,5 +156,14 @@ export const CINDER_LAST_WORDS = [
   "(He crumbles to grey stone. A spark flies south.)",
 ] as const;
 
+/** His spirit, in the middle of his arena once he's fallen (src/game/spirits.ts): Yssa's name again, for anyone who missed it. */
+export const CINDER_SPIRIT = {
+  name: "Cinder's Spirit",
+  lines: [
+    "(Cinder's spirit flickers over the cold stones: warm now, the grey all gone out of it.)",
+    `The white lady on the west track. Her name is ${YSSA.word}. Tell her I'm sorry.`,
+  ],
+} as const;
+
 /** ...and then, across the top. */
 export const CINDER_FALLS = ["Somewhere in Kingsholm, a sheep sneezes."] as const;

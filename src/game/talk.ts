@@ -7,7 +7,7 @@
 import type { Entity } from "../core/ecs.ts";
 import { TALK } from "../data/dialogue.ts";
 import { WARDEN_TALK, WOODWARDEN } from "../data/ashwild.ts";
-import { KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../data/king.ts";
+import { KING_AGAIN, KING_AUDIENCE, KING_WATCHWORD_AGAIN, KINGS_TASK } from "../data/king.ts";
 import { isGhostRumour } from "../data/ghost.ts";
 import type { GiftKind } from "../data/items.ts";
 import { GIFT_OF } from "../data/voices.ts";
@@ -24,6 +24,7 @@ import { heardRumour } from "./ghost.ts";
 import { curioClue } from "./clues.ts";
 import { gilLines, isGil } from "./quay.ts";
 import { isYssa, yssaAsking, yssaAsks, yssaLines } from "./yssa.ts";
+import { spiritLines } from "./spirits.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -55,9 +56,10 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   if (isKing && visits === 0) toast(g, KINGS_TASK, true);
   // The woodwardens at the barricade ask for the King's watchword, and hand him paper to write it on; once he's through, he's through.
   const warden = name === WOODWARDEN.name, yssa = isYssa(g, e), asking = (warden && !passedBarricade(g)) || (yssa && yssaAsking(g));
-  const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!])
+  const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!, KING_WATCHWORD_AGAIN])
     : warden ? [...(asking ? WARDEN_TALK.ask : WARDEN_TALK.through)]
     : yssa ? yssaLines(g)
+    : g.world.has(e, "spirit") ? spiritLines(g, e)
     : isGil(g, e) ? gilLines(g)
     : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
