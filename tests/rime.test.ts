@@ -18,6 +18,7 @@ import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { inThaw, rimeFight, rimeFightSystem } from "../src/game/rimefight.ts";
 import { talking } from "../src/game/talk.ts";
+import { hitEnemy } from "../src/game/combat.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { deathSystem, spawnerSystem } from "../src/systems/enemies.ts";
 import { mageSystem, novaRadius } from "../src/systems/mage.ts";
@@ -153,6 +154,113 @@ describe("Rime", () => {
     enterArea(g, await loadArea("hollow"), "stone");
     expect(standOff(g, 3)).toBeDefined();
     expect(g.map).toBe(g.area.layout.map);
+  });
+});
+
+describe("Rime's icicles and her ice block", () => {
+  /** Her fight, risen, with the hero standing `tiles` south of the middle. */
+  async function fighting(tiles = 3) {
+    const g = await inHollow(), [e] = standOff(g, tiles)!;
+    return { g, e, f: rimeFight(g)! };
+  }
+  const icicles = (g: Game) => g.world.query("bolt", "transform").filter(([, c]) => c.bolt.kind === "icicle");
+
+  it("stands still and draws the cold in, then throws rings of icicles, each ring turned from the last", async () => {
+    const { g, e, f } = await fighting();
+    f.nextVolley = 0;
+    f.nextPattern = "rings";
+    rimeFightSystem(g, DT);
+    expect(f.volley?.pattern).toBe("rings");
+    expect(g.world.need(e, "mage").held).toBe(true);        // winding up: still
+    expect(icicles(g)).toHaveLength(0);
+    rimeFightSystem(g, RIME_FIGHT.volley.wind);
+    rimeFightSystem(g, DT);
+    const first = icicles(g), V = RIME_FIGHT.volley;
+    expect(first).toHaveLength(V.rings.count[0]);
+    // Flying straight out from her, at the icicles' speed.
+    const angles = first.map(([, c]) => Math.atan2(c.bolt.vy, c.bolt.vx));
+    for (const [, c] of first) expect(Math.hypot(c.bolt.vx, c.bolt.vy)).toBeCloseTo(V.speed);
+    rimeFightSystem(g, V.rings.gap + 0.001);
+    const second = icicles(g).slice(first.length).map(([, c]) => Math.atan2(c.bolt.vy, c.bolt.vx));
+    expect(second).toHaveLength(V.rings.count[0]);
+    const step = (Math.PI * 2) / V.rings.count[0], near = (a: number) => Math.min(...angles.map(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)))));
+    for (const a of second) expect(near(a)).toBeCloseTo(step / 2);   // into the last ring's gaps
+    for (let i = 0; i < 10; i++) rimeFightSystem(g, V.rings.gap + 0.001);
+    expect(f.volley).toBeNull();
+    expect(f.nextPattern).toBe("spiral");
+    expect(g.world.need(e, "mage").held).toBe(false);
+  });
+
+  it("throws a spiral too, its arms turning as they fire; and the icicles shatter on the wall", async () => {
+    const { g, f } = await fighting();
+    f.nextVolley = 0;
+    f.nextPattern = "spiral";
+    rimeFightSystem(g, DT);
+    rimeFightSystem(g, RIME_FIGHT.volley.wind);
+    const S = RIME_FIGHT.volley.spiral;
+    for (let i = 0; i < S.shots[0]; i++) rimeFightSystem(g, S.gap + 0.001);
+    expect(icicles(g)).toHaveLength(S.arms[0] * S.shots[0]);
+    const [, last] = icicles(g).at(-1)!, [, first] = icicles(g)[0]!;
+    const turned = Math.atan2(last.bolt.vy, last.bolt.vx) - Math.atan2(first.bolt.vy, first.bolt.vx);
+    expect(Math.abs(Math.atan2(Math.sin(turned), Math.cos(turned)))).toBeGreaterThan(0.1);
+    // One out past the wall goes.
+    const [, out] = icicles(g)[0]!;
+    Object.assign(out.transform, { x: f.x + RIME_FIGHT.keepIn + 10, y: f.y });
+    rimeFightSystem(g, DT);
+    expect(out.bolt.life).toBe(0);
+  });
+
+  it("seals herself in ice when he carves too much off her up close (arrows don't count), and nothing hurts her in it", async () => {
+    const { g, e, f } = await fighting(), hp = g.world.need(e, "health"), enemy = g.world.need(e, "enemy");
+    g.rng.next = () => 0.5;                                   // no crits
+    for (let i = 0; i < 6; i++) hitEnemy(g, e, 2, false);     // shot, from range
+    rimeFightSystem(g, DT);
+    expect(f.block).toBeNull();
+    for (let i = 0; i < 5; i++) hitEnemy(g, e, 2);            // up close
+    rimeFightSystem(g, DT);
+    expect(f.block).not.toBeNull();
+    expect(enemy.warded).toBe(true);
+    expect(g.world.need(e, "mage").held).toBe(true);
+    const before = hp.hp;
+    expect(hitEnemy(g, e, 5)).toBe(0);
+    expect(hp.hp).toBe(before);
+  });
+
+  it("a few blows spread out don't do it: the melee wears off", async () => {
+    const { g, e, f } = await fighting();
+    g.rng.next = () => 0.5;
+    for (let i = 0; i < 8; i++) { hitEnemy(g, e, 2); for (let t = 0; t < 2; t += 0.1) rimeFightSystem(g, 0.1); }
+    expect(f.block).toBeNull();
+  });
+
+  it("fills the floor with falling icicles while she's in the block, then bursts out freezing anyone at her side", async () => {
+    const { g, e, f } = await fighting(), B = RIME_FIGHT.block;
+    g.world.need(e, "enemy").melee = B.melee + 1;
+    rimeFightSystem(g, DT);
+    expect(f.block).not.toBeNull();
+    f.nextPatches = 99;
+    const me = g.world.need(g.player, "transform"), health = g.world.need(g.player, "health"), status = g.world.need(g.player, "status");
+    for (let t = 0; t < 2; t += 0.05) rimeFightSystem(g, 0.05);
+    expect(f.falls.length).toBeGreaterThan(B.falls.count);
+    for (const fa of f.falls) expect(Math.hypot(fa.x - f.x, fa.y - f.y)).toBeLessThanOrEqual(RIME_FIGHT.keepIn);
+    // One right on him: it hurts as it lands, unless he dashes.
+    status.hurt = 0;
+    const hp0 = health.hp;
+    f.falls = [{ x: me.x, y: me.y, t: B.falls.warn - 0.01, hit: false }];
+    rimeFightSystem(g, 0.02);
+    expect(health.hp).toBe(hp0 - B.falls.damage);
+    // Out she bursts, freezing him up against her.
+    const her = g.world.need(e, "transform");
+    Object.assign(me, { x: her.x + 10, y: her.y });
+    status.frozen = 0; f.falls = [];
+    rimeFightSystem(g, B.hold);
+    expect(f.block).toBeNull();
+    expect(g.world.need(e, "enemy").warded).toBe(false);
+    expect(status.frozen).toBe(B.burst.freeze);
+    // And not again straight away.
+    g.world.need(e, "enemy").melee = B.melee * 2;
+    rimeFightSystem(g, DT);
+    expect(f.block).toBeNull();
   });
 });
 

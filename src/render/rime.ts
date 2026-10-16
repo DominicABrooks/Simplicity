@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { RIME_FIGHT as F } from "../data/hollow.ts";
 import { Tile } from "../data/world.ts";
 import { fellAt } from "../game/bosses.ts";
-import { inThaw, rimeFight, type Patch, type RimeFight } from "../game/rimefight.ts";
+import { inThaw, rimeFight, type Fall, type Patch, type RimeFight } from "../game/rimefight.ts";
 import { GROUND, PX_PER_TILE, onGround, toWorld, type RenderContext } from "./context.ts";
 import type { TileMap } from "../world/map.ts";
 import { disposeTree } from "./dispose.ts";
@@ -17,9 +17,11 @@ import type { EntityView } from "./views.ts";
 const FROST = "#dff6ff", GLINT = "#9fe3ff";
 
 interface PatchMesh { group: THREE.Group; edge: THREE.Mesh; fill: THREE.Mesh; crystals: THREE.Group; mats: THREE.MeshBasicMaterial[] }
+interface FallMesh { group: THREE.Group; edge: THREE.Mesh; fill: THREE.Mesh; icicle: THREE.Mesh; shards: THREE.Group; mats: THREE.MeshBasicMaterial[] }
 export interface RimeFrostView {
   group: THREE.Group;
   patches: PatchMesh[];
+  falls: FallMesh[];
   /** The wall of ice between the pillars, while the fight's on, its shards, and how far round it stands (tiles). */
   wall: THREE.Group | null;
   shards: THREE.Mesh[];
@@ -64,6 +66,41 @@ function posePatch(m: PatchMesh, f: RimeFight, pa: Patch, t: number): void {
   m.mats[2]!.opacity = 0.9 * fade;
 }
 
+/** A falling icicle: a ring on the ice filling as its shadow gathers, the icicle dropping out of the cold, then its shards. */
+function makeFall(ctx: RenderContext, parent: THREE.Group): FallMesh {
+  const R = F.block.falls.radius / PX_PER_TILE, group = new THREE.Group();
+  const decal = { transparent: true, depthWrite: false, ...onGround(GROUND.marker) };
+  const edgeMat = ctx.glow(GLINT, { ...decal, opacity: 0.85 }), fillMat = ctx.basic("#2a4a63", { ...decal, opacity: 0.35 }), iceMat = ctx.glow(FROST, { transparent: true, opacity: 0.95 });
+  const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.07, R, 18).rotateX(-Math.PI / 2), edgeMat);
+  const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 18).rotateX(-Math.PI / 2), fillMat);
+  edge.position.y = fill.position.y = 0.036;
+  const icicle = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.1, 5).rotateX(Math.PI).translate(0, 0.55, 0), iceMat);   // point down
+  const shards = new THREE.Group();
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2, s = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), iceMat);
+    s.position.set(Math.cos(a) * R * 0.5, 0.05, Math.sin(a) * R * 0.5);
+    s.scale.set(1, 1.8, 1);
+    shards.add(s);
+  }
+  group.add(edge, fill, icicle, shards);
+  parent.add(group);
+  return { group, edge, fill, icicle, shards, mats: [edgeMat, fillMat, iceMat] };
+}
+
+function poseFall(m: FallMesh, f: RimeFight, fa: Fall, t: number): void {
+  const L = F.block.falls, falling = fa.t < L.warn, after = fa.t - L.warn;
+  m.group.position.set((fa.x - f.x) / PX_PER_TILE, 0, (fa.y - f.y) / PX_PER_TILE);
+  m.edge.visible = m.fill.visible = falling;
+  m.fill.scale.setScalar(Math.max(0.01, fa.t / L.warn));            // its shadow gathering
+  m.mats[0]!.opacity = 0.55 + Math.sin(t * 24) * 0.3;
+  const drop = Math.max(0, (fa.t - (L.warn - 0.3)) / 0.3);           // it drops in the last moment
+  m.icicle.visible = falling && drop > 0;
+  m.icicle.position.y = (1 - drop) * 4;
+  m.shards.visible = !falling;
+  m.shards.children.forEach((s, i) => { s.position.y = 0.05 + Math.max(0, Math.sin(Math.min(1, after / L.shatter) * Math.PI)) * 0.3 * (1 + (i % 2)); });
+  m.mats[2]!.opacity = falling ? 0.95 : 0.95 * Math.max(0, 1 - after / L.shatter);
+}
+
 /** The thawed ring: open water over the ice tiles it covers, and floes of broken ice along its edges. Local to the group (at where she fell). */
 function makeThaw(ctx: RenderContext, map: TileMap, at: { x: number; y: number }): THREE.Group {
   const group = new THREE.Group(), [cx, cz] = toWorld(at.x, at.y);
@@ -106,7 +143,7 @@ export const rimefrost: EntityView<RimeFrostView> = {
     group.position.set(x, 0, z);
     ctx.scene.add(group);
     const stage = g.area.layout.props.find(p => p.kind === "rimeStage"), ringR = stage?.kind === "rimeStage" ? stage.radius : F.keepIn / PX_PER_TILE + 1;
-    const v: RimeFrostView = { group, wall: null, shards: [], ringR, patches: [], thaw: null, thawK: 0 };
+    const v: RimeFrostView = { group, wall: null, shards: [], ringR, patches: [], falls: [], thaw: null, thawK: 0 };
     if (rimeFight(g)?.view === e) makeWall(ctx, v);
     return v;
   },
@@ -116,6 +153,10 @@ export const rimefrost: EntityView<RimeFrostView> = {
     while (v.patches.length < patches.length) v.patches.push(makePatch(ctx, v.group));
     while (v.patches.length > patches.length) { const m = v.patches.pop()!; m.group.removeFromParent(); disposeTree(m.group); }
     if (fight) patches.forEach((pa, i) => posePatch(v.patches[i]!, fight, pa, f.t));
+    const falls = fight && fight.view === e ? fight.falls : [];
+    while (v.falls.length < falls.length) v.falls.push(makeFall(ctx, v.group));
+    while (v.falls.length > falls.length) { const m = v.falls.pop()!; m.group.removeFromParent(); disposeTree(m.group); }
+    if (fight) falls.forEach((fa, i) => poseFall(v.falls[i]!, fight, fa, f.t));
     if (v.wall && fight) {                                    // shooting up as the ice shuts him in, then glinting
       v.wall.scale.y = Math.min(1, fight.t * 2.2);
       v.shards.forEach((s, i) => { s.rotation.y = Math.sin(f.t * 0.6 + i) * 0.15; });

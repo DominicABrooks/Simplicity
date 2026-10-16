@@ -23,6 +23,8 @@ import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { animateCinder, makeCinder, type CinderParts } from "./models/cinder.ts";
 import { RIME_SCALE, animateRime, makeRime, type RimeParts } from "./models/rime.ts";
 import { rimefrost } from "./rime.ts";
+import { rimeFight } from "../game/rimefight.ts";
+import { RIME_FIGHT } from "../data/hollow.ts";
 import { blaze } from "./blaze.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
@@ -89,7 +91,7 @@ const slime: EntityView<SlimeView> = {
 // The same body as the hero, dressed in its school's tier, with glowing eyes.
 const SCHOOL_SPARKS: Record<School, SparkPair> = { ember: "fire", frost: "frost", storm: "spark" };
 /** Which orb a mage holds while charging each spell. */
-const CAST_ORB: Record<SpellName, BoltKind> = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark", wisp: "wisp" };
+const CAST_ORB: Record<SpellName, BoltKind> = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark", wisp: "wisp", icicle: "icicle" };
 
 interface MageView extends Body {
   orbs: Record<BoltKind, THREE.Group>;
@@ -207,7 +209,10 @@ const rime: EntityView<RimeView> = {
     mage.update(ctx, v, e, g, f);
     const b = g.world.need(e, "mage"), o = g.world.need(e, "transform");
     v.novaFill.scale.multiplyScalar(v.novaK);
-    animateRime(v.rime, f.t, b.casting ? b.castK : 0);
+    // Drawing the cold in for a volley; or sealed in her block of ice.
+    const fight = rimeFight(g), vol = fight?.volley, wind = vol ? (vol.wind > 0 ? 1 - vol.wind / RIME_FIGHT.volley.wind : 1) : 0;
+    const sealed = fight?.block ? Math.min(1, fight.block.t / 0.25, (RIME_FIGHT.block.hold - fight.block.t) / 0.15) : 0;
+    animateRime(v.rime, f.t, b.casting ? b.castK : wind, sealed);
     if (Math.random() < f.dt * 6) {                          // frost always drifting off her
       const [x, z] = toWorld(o.x, o.y);
       ctx.particles.spawn(Math.random() < 0.5 ? "snow" : "ice", x + (Math.random() - 0.5) * 0.7, 0.3 + Math.random() * 1.1, z + (Math.random() - 0.5) * 0.7,
@@ -306,7 +311,7 @@ const arrow: EntityView<ArrowView> = {
 };
 
 // ---------- Spell bolt ----------
-const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost" };
+const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost", icicle: "frost" };
 const bolt: EntityView<Simple> = {
   create(ctx, e, g) {
     const group = makeOrbMesh(ctx, g.world.need(e, "bolt").kind);
@@ -315,11 +320,12 @@ const bolt: EntityView<Simple> = {
     return { group, shadow };
   },
   update(ctx, v, e, g, f) {
-    const o = g.world.need(e, "transform"), kind = g.world.need(e, "bolt").kind, [x, z] = toWorld(o.x, o.y);
+    const o = g.world.need(e, "transform"), bolt = g.world.need(e, "bolt"), kind = bolt.kind, [x, z] = toWorld(o.x, o.y);
     v.group.position.set(x, 0.55 + Math.sin(f.t * 12 + o.x + HALF) * 0.03, z);
-    v.group.rotation.set(f.t * 6, f.t * 7, 0);
+    if (kind === "icicle") v.group.rotation.set(f.t * 3, -Math.atan2(bolt.vy, bolt.vx), 0, "YXZ");   // point first, turning slowly about its length
+    else v.group.rotation.set(f.t * 6, f.t * 7, 0);
     v.shadow.position.set(x, SHADOW_Y, z);
-    if (Math.random() < f.dt * 30) {                         // ember trail
+    if (Math.random() < f.dt * (kind === "icicle" ? 8 : 30)) { // ember trail
       const pair = SPARK_PAIRS[BOLT_SPARKS[kind]];
       ctx.particles.spawn(pair[Math.random() < 0.5 ? 0 : 1], x, 0.55, z, (Math.random() - 0.5) * 0.6, 0.8 + Math.random() * 0.6, (Math.random() - 0.5) * 0.6, 0.25);
     }

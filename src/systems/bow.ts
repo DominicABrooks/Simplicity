@@ -57,7 +57,7 @@ export function arrowSystem(g: Game, dt: number): void {
     for (const [s, { transform: t }] of w.query("enemy", "transform")) {
       if (Math.hypot(t.x - p.x, t.y - p.y) >= BOW.hitRadius) continue;
       const d = Math.hypot(a.vx, a.vy) || 1;
-      hitEnemy(g, s, a.damage);
+      hitEnemy(g, s, a.damage, false);
       stagger(g, s, a.vx / d, a.vy / d, BOW.knock);
       hit = true;
       break;

@@ -128,6 +128,10 @@ export interface Enemy {
   /** White flash after a hit. */
   flash: number;
   face: number;
+  /** Melee damage taken lately, wearing off (Rime watches it: src/game/rimefight.ts). */
+  melee?: number;
+  /** Nothing hurts it (Rime in her ice block). */
+  warded?: boolean;
 }
 
 export interface SlimeBrain {
@@ -165,6 +169,8 @@ export interface MageBrain {
   swingRel: number;
   /** A lieutenant's (src/game/bosses.ts): how much wider its novas are, and faster its bolts, than its school's. */
   boost?: { nova: number; bolt: number };
+  /** Held still by its fight (Rime winding up a volley, or sealed in ice): it doesn't move, cast or blink. */
+  held?: boolean;
 }
 
 /** What the Grey Ringer is doing (see src/systems/ghost.ts). */

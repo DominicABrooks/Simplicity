@@ -16,6 +16,7 @@ export function mageSystem(g: Game, dt: number): void {
   const h = heroParts(g);
   for (const [e, { transform, mage, enemy }] of g.world.query("mage", "transform", "enemy")) {
     enemy.face = h.pos.x - transform.x >= 0 ? 1 : -1;
+    if (mage.held) { mage.moving = false; continue; }
     updateMage(g, h, e, transform, mage, dt);
   }
 }

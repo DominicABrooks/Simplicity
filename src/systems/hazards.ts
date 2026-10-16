@@ -9,7 +9,7 @@ import { sound } from "../game/sfx.ts";
 import { heroParts } from "../game/hero.ts";
 import { solidAt, type Point } from "../world/collision.ts";
 
-const BOLT_BURST: Record<BoltKind, BurstPalette> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost" };
+const BOLT_BURST: Record<BoltKind, BurstPalette> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost", icicle: "frost" };
 /** Bolt hit radius, px between cell positions. */
 const BOLT_HIT = 5;
 

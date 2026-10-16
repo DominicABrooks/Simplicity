@@ -36,9 +36,35 @@ export const RIME_FIGHT = {
     /** How long each creeps over the ice before it freezes hard, and stays frozen after; how wide (px); how long it freezes him. */
     warn: 1.2, hold: 2.4, radius: 9, freeze: 1.2,
   },
+  /**
+   * Icicle volleys: every so often she stands still, draws the cold in round her (`wind` seconds to see it coming), and
+   * throws icicles out across the ice in one of two patterns: rings (`waves` of them, each `count` icicles, each ring
+   * turned half a gap from the last so the safe lanes move), or a spiral (`arms` streams turning as they fire, `shots`
+   * each). Calm, angry. Icicles fly straight at `speed` (px/s), shatter on the wall, and a dash or a jump goes through them.
+   */
+  volley: {
+    first: 4, every: [6.5, 4.5], wind: 0.8, speed: 44,
+    rings: { waves: [3, 5], count: [12, 16], gap: 0.45 },
+    spiral: { arms: [3, 4], shots: [10, 14], gap: 0.14, turn: 0.32 },
+  },
+  /**
+   * The ice block: carve `melee` damage off her up close within about `window` seconds and she seals herself in ice
+   * for `hold` seconds. Nothing hurts her in there, and the floor fills: frost patches, and icicles falling out of the
+   * cold (marked on the ice `warn` seconds before they land, `radius` px across). Then she bursts out in a nova that
+   * freezes anyone still up against her. Not again for `cooldown` seconds after.
+   */
+  block: {
+    melee: 9, window: 4, hold: 7, cooldown: 14,
+    patches: { every: 1.1, count: 3 },
+    falls: { every: 0.45, count: 3, warn: 1, radius: 7, damage: 1, shatter: 0.5 },
+    burst: { radius: 34, freeze: 1.5 },
+  },
   /** When she falls, the lake thaws in a ring round where she stood: from this far out to this far (tiles). */
   thaw: { inner: 2, outer: 3.6 },
   say: {
+    block: "Rime seals herself in ice! The cold comes down all round you.",
+    burst: "The ice block bursts!",
+    warded: "Ice!",
     shut: "Ice shoots up between the pillars! There's no way out.",
     rise: "Something hums under the ice. Rime rises out of it.",
     open: "The wall of ice cracks, and falls away in shards.",

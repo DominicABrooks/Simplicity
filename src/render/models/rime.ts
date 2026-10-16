@@ -22,6 +22,8 @@ export interface RimeParts {
   frost: THREE.MeshBasicMaterial;
   /** The note she hums: a ring rippling out over the ice. */
   hum: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+  /** The block of ice she seals herself in: clear, faceted, a little taller than she is. */
+  block: THREE.Group;
   /** A pool of rime-light on the ice under her. */
   pool: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   light: THREE.PointLight;
@@ -88,13 +90,30 @@ export function makeRime(ctx: RenderContext, m: Body): RimeParts {
   light.position.set(0.2, 1, 0);
   m.group.add(light);
 
+  // The block of ice: a faceted clear column round her, a bluer core, and a few crystals jutting from its sides.
+  const block = new THREE.Group();
+  const clear = lambert("#e3f4fb", { transparent: true, opacity: 0.55, depthWrite: false }), core = lambert("#8fc3dd", { transparent: true, opacity: 0.35, depthWrite: false });
+  put(block, new THREE.CylinderGeometry(0.62, 0.7, 1.75, 6), clear, 0, 0.87, 0);
+  put(block, new THREE.ConeGeometry(0.62, 0.35, 6), clear, 0, 1.92, 0);
+  put(block, new THREE.CylinderGeometry(0.45, 0.5, 1.5, 6), core, 0, 0.75, 0, 0, 0.5, 0);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + 0.3;
+    put(block, new THREE.ConeGeometry(0.12, 0.55, 4), clear, Math.cos(a) * 0.62, 0.35 + (i % 3) * 0.4, Math.sin(a) * 0.62, Math.sin(a) * 1.1, 0, -Math.cos(a) * 1.1);
+  }
+  block.visible = false;
+  m.group.add(block);
+
   m.group.scale.setScalar(RIME_SCALE);
   m.shadow.scale.setScalar(RIME_SCALE * 1.1);
-  return { crown, shards, frost, hum, pool, light };
+  return { crown, shards, frost, hum, pool, light, block };
 }
 
-/** Every frame: the crown turns, the shards circle, her note ripples out, and it all brightens as she casts (k: 0..1). */
-export function animateRime(r: RimeParts, t: number, k: number): void {
+/** Every frame: the crown turns, the shards circle, her note ripples out, and it all brightens as she casts (k: 0..1);
+ *  and sealed (0..1), the block of ice closes round her. */
+export function animateRime(r: RimeParts, t: number, k: number, sealed = 0): void {
+  r.block.visible = sealed > 0;
+  r.block.scale.set(0.6 + sealed * 0.4, sealed, 0.6 + sealed * 0.4);
+  r.block.rotation.y = 0.3;
   r.crown.rotation.y = -t * 0.5;
   r.crown.position.y = 1.1 + Math.sin(t * 1.6) * 0.03 + k * 0.08;
   r.shards.rotation.y = -t * (1.2 + k * 3);

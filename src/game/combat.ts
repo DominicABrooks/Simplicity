@@ -15,12 +15,18 @@ export function combatText(g: Game, x: number, y: number, text: string, color: s
   g.floaters.push({ x, y, text, color, crit, life, t: 1, jx: Math.round((Math.random() - 0.5) * 10) });
 }
 
-/** Hit an enemy: 10% crits for double damage, with a flash, a number, and extra weight on crits. */
-export function hitEnemy(g: Game, e: Entity, damage: number): number {
+/** Hit an enemy (with a blade or a fist: `melee`; or a shot): 10% crits for double damage, with a flash, a number, and extra weight on crits. */
+export function hitEnemy(g: Game, e: Entity, damage: number, melee = true): number {
   const health = g.world.need(e, "health"), enemy = g.world.need(e, "enemy"), at = g.world.need(e, "transform");
+  if (enemy.warded) {                                        // sealed in ice: it glances off
+    sound(g, "dud", at);
+    combatText(g, at.x, at.y, "Ice!", COMBAT_COLORS.hit);
+    return 0;
+  }
   const crit = g.rng.next() < CRIT.chance;
   const dealt = crit ? damage * CRIT.multiplier : damage;
   health.hp -= dealt;
+  if (melee) enemy.melee = (enemy.melee ?? 0) + dealt;
   enemy.flash = crit ? 0.22 : 0.15;
   sound(g, crit ? "crit" : "hit", at);
   combatText(g, at.x, at.y, crit ? `${dealt}!` : `${dealt}`, crit ? COMBAT_COLORS.crit : COMBAT_COLORS.hit, crit);
