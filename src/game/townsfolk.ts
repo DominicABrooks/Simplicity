@@ -540,8 +540,9 @@ function comeOut(g: Game, s: Streets, along = 0): void {
         party = [r, ...mates].sort((a, b) => b.age - a.age);
       }
     } else if (!fromWork && !(crew.has(r.id) && lampsDue()) && s.rng.next() < 0.45) party = [r, ...kidsOf(s, r).slice(0, s.rng.int(1, 2))];
-    const leader = party[0]!, kids = party.length > 1 && leader.age < 14;
-    let plan = kids ? "play" : decide(g, s, leader, null, false);
+    // A band of children goes off to play, but only in the day: after dark they stay in like any child (decide).
+    const leader = party[0]!;
+    let plan = decide(g, s, leader, null, false);
     if (fromWork) plan = plan === "drink" ? "drink" : "home";   // done for the day: home (or the inn)
     else if (plan === "home") continue;                       // they'd only go straight back in
     if (party.length > 1 && plan === "drink") plan = "shop";   // not with the children

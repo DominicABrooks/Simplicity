@@ -502,7 +502,8 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     id: "fell", name: "The Fells", rank: "labouring", trade: "The Ranger's family; laundress",
-    seat: { district: "capital", storeys: 3, stone: false },
+    // A house with the lane open in front of it, so the grey cloak at its window can be seen from the street.
+    seat: { district: "capital", tile: [31, 52] },
     home: "A timber house in the Wallside lanes, a grey cloak at the window every evening", household: 0,
     members: [
       { name: "Wystan Fell", age: 40, gone: true, role: "The King's Ranger", note: "Taken into the keep and not seen since." },

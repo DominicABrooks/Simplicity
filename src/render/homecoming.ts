@@ -81,13 +81,14 @@ interface CloakView { group: THREE.Group; cloth: THREE.Group; k: number }
 export const cloak: EntityView<CloakView> = {
   create(ctx, e, g) {
     const c = g.world.need(e, "cloak"), t = g.world.need(e, "transform"), [x, z] = toWorld(t.x, t.y);
-    const group = new THREE.Group(), cloth = new THREE.Group(), grey = ctx.lambert("#7d8188"), dark = ctx.lambert("#5d6168");
-    group.position.set(x, c.y - 0.22, z);
+    // A pale grey, to stand out against the dark timbers and shutters from the street.
+    const group = new THREE.Group(), cloth = new THREE.Group(), grey = ctx.lambert("#aeb3bb"), dark = ctx.lambert("#8a8f98");
+    group.position.set(x, c.y - 0.2, z);
     group.rotation.y = c.yaw;
     group.add(cloth);
-    put(cloth, new THREE.BoxGeometry(0.4, 0.08, 0.1), dark, 0, 0, 0.02);                  // the hood, over the sill
-    put(cloth, new THREE.BoxGeometry(0.38, 0.62, 0.03).translate(0, -0.31, 0), grey, 0, -0.03, 0.0);
-    for (const sx of [-0.09, 0.1]) put(cloth, new THREE.BoxGeometry(0.06, 0.6, 0.035).translate(0, -0.3, 0), dark, sx, -0.04, 0.01);   // the folds
+    put(cloth, new THREE.BoxGeometry(0.56, 0.1, 0.12), dark, 0, 0, 0.03);                  // the hood, over the sill
+    put(cloth, new THREE.BoxGeometry(0.52, 0.95, 0.03).translate(0, -0.47, 0), grey, 0, -0.04, 0.0);
+    for (const sx of [-0.13, 0.12]) put(cloth, new THREE.BoxGeometry(0.07, 0.92, 0.035).translate(0, -0.46, 0), dark, sx, -0.05, 0.01);   // the folds
     ctx.scene.add(group);
     return { group, cloth, k: (e * 0.61) % 10 };
   },
