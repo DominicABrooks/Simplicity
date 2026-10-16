@@ -19,7 +19,7 @@ import { calderFightSystem } from "../src/game/calderfight.ts";
 import { CREDITS_AIR } from "../src/data/sfx.ts";
 import { BEFORE_ONLY, EDICT, EDICT_AFTER, STALE_AFTER } from "../src/data/voices.ts";
 import { folkLines, guardLines } from "../src/game/conversation.ts";
-import { creditsAsleep, creditsShot, rollCredits, shotLength, updateCredits } from "../src/game/credits.ts";
+import { SHOT_MOMENTS, creditsAsleep, creditsFrom, creditsShot, rollCredits, shotLength, updateCredits } from "../src/game/credits.ts";
 import { Rng } from "../src/core/rng.ts";
 import { crowdOf } from "../src/game/crowd.ts";
 import { holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
@@ -176,6 +176,25 @@ describe("the credits", () => {
     endCredits(g);
     enterArea(g, await loadArea("capital"), "stone");
     expect(g.area.layout.props.some(p => p.kind === "stall")).toBe(true);        // the market as it was
+  });
+
+  it("can be started from any shot and any moment in it, as it would be by then (playtesting: ?shot=eggs&at=gilding)", async () => {
+    expect(Object.keys(SHOT_MOMENTS).sort()).toEqual(["chronicle", "eggs", "fells", "greyed", "hatch", "slimes"]);
+    const at = async (moment: string) => {
+      const g = await atTheCastle();
+      toTheKing(g);
+      creditsFrom(g, "eggs", moment);
+      await rollCredits(g);
+      for (let i = 0; i < 600 && creditsShot(g)?.says !== SHOT_SAYS.eggs; i++) updateCredits(g, 1 / 60);
+      updateCredits(g, 1 / 60);
+      return g;
+    };
+    const gilt = (g: Game) => g.world.query("egg").map(([, c]) => c.egg.gilt);
+    expect(gilt(await at("start")).every(v => v === 1)).toBe(true);           // still gilded
+    expect(gilt(await at("glow")).every(v => v === 0)).toBe(true);            // the gold all off by then
+    const g = await at("eggs"), her = g.world.query("dragon")[0]![1].dragon;
+    const egg = g.world.query("egg", "transform")[1]![1].transform;
+    expect(Math.abs(her.y - egg.y)).toBeLessThan(3 * T);                       // right over them
   });
 
   it("keep what it all meant short, and let the pictures carry it", () => {

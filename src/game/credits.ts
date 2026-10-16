@@ -58,12 +58,13 @@ interface Staged {
   camAt?(k: number): Cam;
   /** How long (s) it holds at the least, if there's more to see in it than its line takes to read. */
   hold?: number;
+  /**
+   * Its moments, by name: how far through the shot each comes (0 to 1), to start it there when playtesting
+   * (?shot=eggs&at=gilding: see creditsFrom). Every shot has "start" and "end" as well.
+   */
+  moments?: Record<string, number>;
 }
 
-/**
- * Each shot: whether this run had it, where it's set (or how to make the place, if it isn't one of the areas: null if
- * it can't be), the hour there, and how to stage it once there.
- */
 /**
  * A shot: where (`area`, or a place made for it by `load`), at what hour, whether this run had it, and how it's staged.
  * `alters`: its place is the real area made over for it (the same id, so its townsfolk come out), so the real one's
@@ -88,6 +89,8 @@ interface Reel {
   /** The tune: which time round it's on, and how long (s) till it comes round again. */
   turn: number;
   music: number;
+  /** Playtesting: where in the first shot to start (a moment's name, or seconds in), till it's been jumped to. */
+  jump: string | null;
 }
 const reels = new WeakMap<Game, Reel>();
 
@@ -126,19 +129,30 @@ function readRun(g: Game): Run {
 }
 
 /** Where the next credits start (getting about quickly in development: src/debug.ts), if not at the beginning. */
-const startAt = new WeakMap<Game, ShotId>();
-export function creditsFrom(g: Game, id: ShotId): void { startAt.set(g, id); }
+/** Where the next credits are to start (playtesting): from which shot, and where in it (a moment's name, or seconds in). */
+const startAt = new WeakMap<Game, { shot: ShotId; at: string | null }>();
+/** Start the next credits from shot `id`, and in it from `at`: one of its moments (see Staged), or a number of seconds in. */
+export function creditsFrom(g: Game, id: ShotId, at: string | null = null): void { startAt.set(g, { shot: id, at }); }
+/** Every shot's id and its moments' names (the moments are known once it's staged; these are the names it gives them). */
+export const SHOT_MOMENTS: Record<ShotId, readonly string[]> = {
+  greyed: ["start", "first", "half", "last", "end"],
+  slimes: ["start", "end"],
+  chronicle: ["start", "end"],
+  eggs: ["start", "vael", "gilding", "glow", "gatehouse", "eggs", "wall", "away", "end"],
+  hatch: ["start", "first", "second", "third", "out", "rear", "roar", "breaths", "song", "end"],
+  fells: ["start", "end"],
+};
 
 /** Start the reel: read the run, choose its shots, strike up the tune, and load their areas (dark till then). */
 export async function rollCredits(g: Game): Promise<void> {
   const run = readRun(g), had = SHOTS.filter(s => s.had(run)), p = g.world.need(g.player, "transform");
-  const from = had.findIndex(s => s.id === startAt.get(g)), shots = from > 0 ? had.slice(from) : had;
+  const start = startAt.get(g), from = had.findIndex(s => s.id === start?.shot), shots = from > 0 ? had.slice(from) : had;
   startAt.delete(g);
   Object.assign(g.weather, { kind: "clear", fog: 0, rain: 0 });   // every shot under a clear sky
   endCelebration(g);                                          // and nothing over them
   g.hitstop = 0;                                              // nor a freeze-frame left over: it only runs down in play, so it'd hold everything still
   const reel: Reel = {
-    shots, run, defs: new Map(), ready: false, at: -1, t: 0, staged: null, length: CREDITS_TIME.shot, cam: null,
+    shots, run, defs: new Map(), ready: false, at: -1, t: 0, staged: null, length: CREDITS_TIME.shot, cam: null, jump: start?.at ?? null,
     back: { area: g.area.def, x: p.x, y: p.y, hour: g.hour }, turn: 0, music: CREDITS_AIR.every,
   };
   reels.set(g, reel);
@@ -223,8 +237,19 @@ function nextShot(g: Game, r: Reel): boolean {
   r.staged = shot.stage(g, r.run);
   r.length = Math.max(shotLength(r.staged.says), r.staged.hold ?? 0);
   r.staged.play?.(0, 0);
-  aim(g, r, 0);
+  if (r.jump !== null) { skipTo(r, r.jump); r.jump = null; }
+  aim(g, r, Math.min(1, r.t / r.length));
   return false;
+}
+
+/** Playtesting: on into the shot to `at` (a moment's name, or seconds in), playing it through on the way so it's as it would be by then. */
+function skipTo(r: Reel, at: string): void {
+  const s = r.staged!, named = { start: 0, end: 0.95, ...s.moments }[at], secs = Number(at);
+  const k = named ?? (at.trim() !== "" && Number.isFinite(secs) ? secs / r.length : null);
+  if (k === null) { console.warn(`No moment "${at}" in this shot. Try: ${Object.keys({ start: 0, ...s.moments, end: 1 }).join(", ")}, or a number of seconds`); return; }
+  const to = Math.max(0, Math.min(0.999, k)) * r.length, step = 1 / 30;
+  for (; r.t + step < to; r.t += step) s.play?.((r.t + step) / r.length, step);
+  r.t = to;
 }
 
 /** Set aside the layouts of the places made over for shots (built afresh as the shot, and as themselves again after). */
@@ -420,6 +445,7 @@ const SHOTS: readonly Shot[] = [
       heroAt(g, x, y + 5 * T, x, y);
       return {
         from: cam(x, y + 1.5 * T, 1.3, -0.4), to: cam(x, y + 1.5 * T, 1.1, 0.4), says: SHOT_SAYS.greyed,
+        moments: { first: them[0]!.at + 0.02, half: them[Math.floor(n / 2)]!.at + 0.02, last: them[n - 1]!.at + 0.04 },
         play: k => { for (const m of them) if (k >= m.at && g.world.isAlive(m.e)) crumble(g, m.e, palette[m.school]); },
       };
     },
@@ -486,9 +512,12 @@ const SHOTS: readonly Shot[] = [
         return { ...c, y: lerp(c.y, (y + HALF + ey) / 2, w * 0.8) };
       };
       const gilded = [false, false, false];
+      // Her flight takes the last part of the shot (from FLY on), north at an even pace: when she's over where y is.
+      const FLY = 0.42, over = (y: number) => Math.min(0.97, FLY + (1 - FLY) * (from - y) / (from - to));
       let roared = false;
       return {
         from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.eggs, hold: 16,
+        moments: { vael: 0.15, gilding: 0.37, glow: 0.5, gatehouse: over(gateY), eggs: over(ey), wall: over(wallY), away: over(wallY - 10 * T) },
         play: (k, dt) => {
           const u = ramp(k, 0, 0.34);
           for (const m of them) {
@@ -501,7 +530,7 @@ const SHOTS: readonly Shot[] = [
             egg.glow = ramp(k, a + 0.02, a + 0.08);
             if (!gilded[i] && k >= a) { gilded[i] = true; sound(g, "gilding"); }
           });
-          const d = g.world.need(her, "dragon"), f = ramp(k, 0.42, 1);
+          const d = g.world.need(her, "dragon"), f = ramp(k, FLY, 1);
           d.y = lerp(from, to, f);
           d.height = motherHeight(d.y, gateY, wallY);         // low over the bridge, up over the gatehouse and the wall
           if (f > 0 && f < 1) beat(g, d, dt, 2.2);
@@ -533,6 +562,9 @@ const SHOTS: readonly Shot[] = [
       ]);
       return {
         from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.hatch, hold: 19,
+        // Each egg hatches at 0.12 apart from 0.12 (its head out a moment after); she rears from 0.52, breathes fire from
+        // 0.6; their first breaths from 0.8; the song at 0.84.
+        moments: { first: 0.15, second: 0.27, third: 0.39, out: 0.5, rear: 0.57, roar: 0.67, breaths: 0.81, song: 0.87 },
         play: (k, dt) => {
           eggs.forEach((e, i) => {
             const a = 0.05 + i * 0.12, h = a + 0.07, egg = g.world.need(e, "egg"), at = g.world.need(e, "transform");
