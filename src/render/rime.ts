@@ -15,6 +15,11 @@ import { hash } from "./terrain.ts";
 import type { EntityView } from "./views.ts";
 
 const FROST = "#dff6ff", GLINT = "#9fe3ff";
+/**
+ * What warns on the ice, where white and cyan vanish: a deep indigo (the edge pulsing, the fill gathering), so a patch
+ * about to set or an icicle about to land reads at a glance on the white.
+ */
+const WARN_EDGE = "#3348c8", WARN_FILL = "#2a3590";
 
 interface PatchMesh { group: THREE.Group; edge: THREE.Mesh; fill: THREE.Mesh; crystals: THREE.Group; mats: THREE.MeshBasicMaterial[] }
 interface FallMesh { group: THREE.Group; edge: THREE.Mesh; fill: THREE.Mesh; icicle: THREE.Mesh; shards: THREE.Group; mats: THREE.MeshBasicMaterial[] }
@@ -34,7 +39,7 @@ export interface RimeFrostView {
 function makePatch(ctx: RenderContext, parent: THREE.Group): PatchMesh {
   const R = F.patch.radius / PX_PER_TILE, group = new THREE.Group();
   const decal = { transparent: true, depthWrite: false, ...onGround(GROUND.marker) };
-  const edgeMat = ctx.glow(GLINT, { ...decal, opacity: 0.8 }), fillMat = ctx.glow(FROST, { ...decal, opacity: 0.45 });
+  const edgeMat = ctx.basic(WARN_EDGE, { ...decal, opacity: 0.8 }), fillMat = ctx.basic(WARN_FILL, { ...decal, opacity: 0.45 });
   const crystalMat = ctx.glow(FROST, { transparent: true, opacity: 0.9 });
   const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.08, R, 20).rotateX(-Math.PI / 2), edgeMat);
   const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 20).rotateX(-Math.PI / 2), fillMat);
@@ -70,7 +75,7 @@ function posePatch(m: PatchMesh, f: RimeFight, pa: Patch, t: number): void {
 function makeFall(ctx: RenderContext, parent: THREE.Group): FallMesh {
   const R = F.block.falls.radius / PX_PER_TILE, group = new THREE.Group();
   const decal = { transparent: true, depthWrite: false, ...onGround(GROUND.marker) };
-  const edgeMat = ctx.glow(GLINT, { ...decal, opacity: 0.85 }), fillMat = ctx.basic("#2a4a63", { ...decal, opacity: 0.35 }), iceMat = ctx.glow(FROST, { transparent: true, opacity: 0.95 });
+  const edgeMat = ctx.basic(WARN_EDGE, { ...decal, opacity: 0.85 }), fillMat = ctx.basic(WARN_FILL, { ...decal, opacity: 0.4 }), iceMat = ctx.glow(FROST, { transparent: true, opacity: 0.95 });
   const edge = new THREE.Mesh(new THREE.RingGeometry(R - 0.07, R, 18).rotateX(-Math.PI / 2), edgeMat);
   const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 18).rotateX(-Math.PI / 2), fillMat);
   edge.position.y = fill.position.y = 0.036;

@@ -401,10 +401,15 @@ const arrow: EntityView<ArrowView> = {
 
 // ---------- Spell bolt ----------
 const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost", icicle: "frost" };
+/** Under one of Rime's icicles, instead of a soft shadow: a dark dot on the ice just the size of the part that hurts. */
+const icicleDot = (ctx: RenderContext) => new THREE.Mesh(
+  new THREE.CircleGeometry(SPELLS.icicle.hit! / PX_PER_TILE, 14).rotateX(-Math.PI / 2),
+  ctx.basic("#1b2a6b", { transparent: true, opacity: 0.6, depthWrite: false, ...onGround(GROUND.marker) }),
+);
 const bolt: EntityView<Simple> = {
   create(ctx, e, g) {
-    const group = makeOrbMesh(ctx, g.world.need(e, "bolt").kind);
-    const shadow = addShadow(ctx, 0.35);
+    const kind = g.world.need(e, "bolt").kind, group = makeOrbMesh(ctx, kind);
+    const shadow = kind === "icicle" ? icicleDot(ctx) : addShadow(ctx, 0.35);
     ctx.scene.add(group, shadow);
     return { group, shadow };
   },
