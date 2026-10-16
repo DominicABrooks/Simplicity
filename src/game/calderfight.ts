@@ -4,7 +4,9 @@
 // lightning strikes at a time), and over it, all the shapes lightning makes, in three moods as he weakens: his sparks
 // forking as they fly, and strikes walking out at the hero in a line or bursting out from him in a star; then three
 // iron rods driven into the ground with lightning running round the triangle between them, and him blinking from rod
-// to rod, the air crackling behind him; then the eye of the storm, the whole triangle at once, the rods arcing to him,
+// to rod, the air crackling behind him; at half his health, the storm proper, a cage of lightning round him in the
+// middle of the ring while sparks spiral and ring out of it, walls of lightning sweep across and strikes come down
+// under the hero, until it bursts and he staggers out; then the eye of the storm, the whole triangle at once, the rods arcing to him,
 // and rings of strikes closing in on the hero. After every blink he stops to earth himself, the moment for a blade.
 // His static turns any arrow short of a full draw. And the crack opens wider every time the hero's knocked back and
 // closes a little every time he lands a hit, its cold dragging at him and its dark spreading across the ground the
@@ -31,6 +33,14 @@ interface Point { x: number; y: number }
 export interface Arc { a: Point; b: Point; t: number; warn: number; live: number; hit: boolean }
 /** His three moods: the storm walks, the rods, the eye of the storm. */
 export type Mood = 0 | 1 | 2;
+/** Which way a wall of lightning sweeps across the ring: east is from the west side across to the east. */
+export type Sweep = "east" | "west" | "south" | "north";
+/** The storm proper, while it lasts: seconds in; the spiral's angle; seconds to its next round, the next ring, wall and
+ *  strike; how many rings there've been; the walls sweeping (each an arc whose ends move with it). */
+export interface Storm {
+  t: number; angle: number; next: number; nextRing: number; nextWall: number; nextStrike: number; rings: number;
+  walls: { dir: Sweep; arc: Arc }[];
+}
 
 export interface CalderFight {
   /** The ring's middle (cell top-left), and how far out it is (px). */
@@ -50,6 +60,8 @@ export interface CalderFight {
   nextBlink: number; rod: number;
   /** Earthing himself after a blink (seconds left). */
   earth: number;
+  /** The storm proper, while he's in his cage; and whether it's been yet (it comes once). */
+  storm: Storm | null; stormed: boolean;
   /** His sparks still to fork: each one, and how long it's been flying. */
   forks: Map<Entity, number>;
   /** Where he stood last frame, his health and melee damage taken then, and the hero's hurt (to see blinks, hits and knocks). */
@@ -128,7 +140,7 @@ function shut(g: Game): void {
   const hp = e === null ? 0 : g.world.need(e, "health").hp;
   fights.set(g, {
     ...mid, r: A.r * T, t: 0, mood: 0, open: F.crack.start, nextShape: F.shapes.first, shapes: 0,
-    rods: [], planted: 0, arcs: [], nextArc: 0, side: 0, nextBlink: F.rods.blink, rod: 0, earth: 0, forks: new Map(),
+    rods: [], planted: 0, arcs: [], nextArc: 0, side: 0, nextBlink: F.rods.blink, rod: 0, earth: 0, storm: null, stormed: false, forks: new Map(),
     last: { ...stand, hp, melee: 0, hurt: heroParts(g).status.hurt }, letGo: 0, toldStatic: false, view,
   });
   g.shake = Math.max(g.shake, 2.5);
@@ -170,8 +182,19 @@ function run(g: Game, f: CalderFight, calder: Entity, dt: number): void {
   const remember = () => { f.last = { x: him.x, y: him.y, hp: hp.hp, melee, hurt: h.status.hurt }; };
   if (hp.hp <= 0 || isFrozen(g)) { remember(); return; }   // (playtesting: the storm holds still with him)
 
+  // At half his health, the storm proper: nothing else while it lasts.
+  const share = hp.hp / hp.maxHp;
+  if (!f.stormed && share <= F.shield.at) startStorm(g, f, calder);
+  if (f.storm) {
+    theStorm(g, f, calder, dt);
+    theCrack(g, f, brain, dt);
+    arcs(g, f, dt);
+    remember();
+    return;
+  }
+
   // His mood, as he weakens: at the rods' turn, in they go.
-  const share = hp.hp / hp.maxHp, mood: Mood = share <= F.phases[1] ? 2 : share <= F.phases[0] ? 1 : 0;
+  const mood: Mood = share <= F.phases[1] ? 2 : share <= F.phases[0] ? 1 : 0;
   if (mood > f.mood) {
     if (f.mood === 0) plantRods(g, f);
     if (mood === 2) { toast(g, F.say.eye, true); g.shake = Math.max(g.shake, 2); sound(g, "thunder", him); f.nextShape = Math.min(f.nextShape, 1.5); }
@@ -198,6 +221,105 @@ function run(g: Game, f: CalderFight, calder: Entity, dt: number): void {
   remember();
 }
 
+/** Half his health gone: he blinks to the middle and wraps himself in lightning, and the storm proper begins. */
+function startStorm(g: Game, f: CalderFight, calder: Entity): void {
+  const S = F.shield, him = g.world.need(calder, "transform"), enemy = g.world.need(calder, "enemy"), brain = g.world.need(calder, "mage");
+  f.stormed = true;
+  g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "arcane" });
+  him.x = f.x; him.y = f.y;
+  g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "spark" });
+  f.storm = { t: 0, angle: g.rng.next() * Math.PI * 2, next: 0.6, nextRing: S.rings.first, nextWall: S.walls.first, nextStrike: S.strikes.first, rings: 0, walls: [] };
+  f.arcs = [];
+  f.earth = 0;
+  for (const [e] of g.world.query("strike")) g.world.destroy(e);
+  Object.assign(brain, { casting: false, castK: 0, spell: null, melee: false, swing: null, held: true });
+  enemy.warded = true;
+  enemy.wardSay = F.say.warded;
+  g.shake = Math.max(g.shake, 2.5);
+  sound(g, "blink", him);
+  sound(g, "thunder", him);
+  toast(g, F.say.shield, true);
+}
+
+/** The storm proper: held in his cage in the middle, sparks pouring out of it, walls sweeping across, strikes under
+ *  the hero; until it's done and the cage bursts. */
+function theStorm(g: Game, f: CalderFight, calder: Entity, dt: number): void {
+  const S = F.shield, s = f.storm!, h = heroParts(g), him = g.world.need(calder, "transform"), o = MAGE.boltOffset;
+  him.x = f.x; him.y = f.y;
+  g.world.need(calder, "mage").held = true;
+  s.t += dt;
+  const safe = h.motion.dash > 0 || h.motion.jump > 0;
+  const fire = (a: number, v: number) => {
+    const spark = spawnBolt(g, "spark", him.x + Math.cos(a) * o, him.y + Math.sin(a) * o, Math.cos(a) * v, Math.sin(a) * v);
+    g.world.need(spark, "bolt").lost = true;                 // flying straight out
+  };
+  // The cage: come too close and it throws him back.
+  const d = Math.hypot(h.pos.x - him.x, h.pos.y - him.y);
+  if (d < S.radius && h.status.hurt <= 0 && !safe) { damagePlayer(g, him.x, him.y, 1); toast(g, F.say.cage); }
+  // Sparks shatter on the ring of lightning round the glade.
+  for (const [, { bolt, transform: b }] of g.world.query("bolt", "transform"))
+    if (bolt.kind === "spark" && Math.hypot(b.x - f.x, b.y - f.y) > f.r + 6) bolt.life = 0;
+  if (s.t < S.hold) {
+    // The spiral, turning one way and then back the other.
+    if ((s.next -= dt) <= 0) {
+      const P = S.spiral;
+      s.next = P.gap;
+      s.angle += P.turn * (Math.floor(s.t / P.flip) % 2 ? -1 : 1);
+      for (let i = 0; i < P.arms; i++) fire(s.angle + (i / P.arms) * Math.PI * 2, P.speed);
+      sound(g, "cast", him);
+    }
+    // Rings through it, each turned half a gap from the last.
+    if ((s.nextRing -= dt) <= 0) {
+      const R = S.rings;
+      s.nextRing = R.every;
+      for (let i = 0; i < R.count; i++) fire(((i + (s.rings % 2) / 2) / R.count) * Math.PI * 2, R.speed);
+      s.rings++;
+    }
+    // A wall of lightning, from a side he isn't expecting.
+    if ((s.nextWall -= dt) <= 0) {
+      s.nextWall = S.walls.every;
+      const dirs: Sweep[] = ["east", "west", "south", "north"], last = s.walls.at(-1)?.dir, pick = dirs.filter(x => x !== last);
+      const dir = pick[Math.floor(g.rng.next() * pick.length)]!;
+      const arc: Arc = { a: { x: 0, y: 0 }, b: { x: 0, y: 0 }, t: 0, warn: S.walls.warn, live: S.walls.sweep, hit: false };
+      s.walls.push({ dir, arc });
+      f.arcs.push(arc);
+      sound(g, "cast", him);
+    }
+    // A strike marked under his feet.
+    if ((s.nextStrike -= dt) <= 0) {
+      s.nextStrike = S.strikes.every;
+      spawnStrike(g, h.pos.x, h.pos.y, F.warn);
+    }
+  }
+  // The walls, where they are now along their sweep.
+  for (const w of s.walls) wallAt(f, w.dir, w.arc);
+  s.walls = s.walls.filter(w => w.arc.t < w.arc.warn + w.arc.live);
+  if (s.t < S.hold || s.walls.length) return;
+  // Out of it: the cage bursts, and he staggers, spent.
+  f.storm = null;
+  const enemy = g.world.need(calder, "enemy");
+  enemy.warded = false;
+  g.world.need(calder, "mage").held = false;
+  f.earth = S.after;
+  f.nextShape = Math.max(f.nextShape, S.after + 1);
+  f.nextArc = Math.max(f.nextArc, S.after);
+  f.nextBlink = Math.max(f.nextBlink, S.after + 1);
+  g.fx.push({ type: "nova", x: him.x, y: him.y, radius: S.burst });
+  g.shake = Math.max(g.shake, 2.5);
+  sound(g, "thunder", him);
+  toast(g, F.say.shieldOut, true);
+  if (!safe && Math.hypot(h.pos.x - him.x, h.pos.y - him.y) < S.burst) damagePlayer(g, him.x, him.y, 1);
+}
+
+/** Where a wall of lightning stands along its sweep: a chord of the ring, from one side across to the other. */
+export function wallAt(f: Pick<CalderFight, "x" | "y" | "r">, dir: Sweep, arc: Arc): void {
+  const k = Math.min(1, Math.max(0, (arc.t - arc.warn) / arc.live)), edge = 0.92 * f.r;
+  const across = -edge + 2 * edge * k, half = Math.sqrt(Math.max(0, f.r * f.r - across * across));
+  const along = dir === "east" || dir === "south" ? across : -across;
+  if (dir === "east" || dir === "west") { arc.a = { x: f.x + along, y: f.y - half }; arc.b = { x: f.x + along, y: f.y + half }; }
+  else { arc.a = { x: f.x - half, y: f.y + along }; arc.b = { x: f.x + half, y: f.y + along }; }
+}
+
 /** His static: anything short of a full draw is turned aside. */
 function staticField(g: Game, f: CalderFight, him: Point): void {
   for (const [e, { arrow, transform: a }] of g.world.query("arrow", "transform")) {
@@ -213,7 +335,7 @@ function staticField(g: Game, f: CalderFight, him: Point): void {
 function forkSparks(g: Game, f: CalderFight, him: Point, dt: number): void {
   const K = F.fork;
   for (const [e, { bolt, transform: b }] of g.world.query("bolt", "transform")) {
-    if (bolt.kind !== "spark" || f.forks.has(e) || Math.hypot(b.x - him.x, b.y - him.y) > MAGE.boltOffset + 4) continue;
+    if (bolt.kind !== "spark" || bolt.lost || f.forks.has(e) || Math.hypot(b.x - him.x, b.y - him.y) > MAGE.boltOffset + 4) continue;
     f.forks.set(e, 0);
   }
   for (const [e, t] of f.forks) {

@@ -35,6 +35,12 @@ export const CALDER = {
  *   runs between them, one side of the triangle after another, round and round (each side marked by a flicker first;
  *   jump or dash over it). He blinks from rod to rod, so fast he seems to be in three places, and the air he went
  *   through crackles behind him.
+ * - at half his health, the storm proper: he blinks to the middle of the ring and wraps himself in a cage of lightning
+ *   nothing gets through, and for `shield.hold` seconds the whole ring is his: sparks streaming out of the cage in a
+ *   turning spiral (like Rime's icicles), rings of them through it, walls of lightning sweeping across the ring from
+ *   one side or another (like Cinder's fire: jump or dash them), and strikes marked under the hero's feet (like Cinder's
+ *   eruptions). Come too close and the cage throws you back. Then it bursts, and he staggers out spent, a long moment
+ *   for a blade.
  * - the eye of the storm (below `phases[1]`): the whole triangle at once, or a rod at a time arcing to where he stands;
  *   and the bullseye, rings of strikes round the hero closing in to where he stood.
  * Whenever he blinks he stops a moment after to earth himself, and a blade in that moment cuts twice as deep. His
@@ -71,6 +77,16 @@ export const CALDER_FIGHT = {
     /** Seconds between his blinks from rod to rod, and how soon the air he went through crackles live (s) and how long. */
     blink: 4, trail: { warn: 0.2, live: 0.4 },
   },
+  /** The storm proper, at half his health (see above). Speeds are px/s; the spiral's `turn` is radians a round. */
+  shield: {
+    at: 0.5, hold: 12, radius: 16,
+    spiral: { arms: 3, gap: 0.2, turn: 0.21, flip: 4, speed: 36 },
+    rings: { first: 1.5, every: 3, count: 14, speed: 30 },
+    walls: { first: 2.5, every: 4, warn: 0.8, sweep: 2.4 },
+    strikes: { first: 1, every: 2.2 },
+    /** As it bursts: anyone this close is struck (px); and how long he staggers after (s). */
+    burst: 26, after: 2.2,
+  },
   /** After any blink, he stops this long to earth himself (s); a blade in that moment: damage times `cut`. How far he
    *  has to have moved in a frame to count as a blink (px). */
   earth: 0.9, cut: 2, jump: 20,
@@ -98,6 +114,10 @@ export const CALDER_FIGHT = {
     cold: "The dark in the crack bites!",
     caught: "Caught!",
     rods: "Calder drives three iron rods into the ground. Lightning runs between them!",
+    shield: "Calder blinks to the middle and wraps himself in lightning! Survive the storm!",
+    shieldOut: "The cage of lightning bursts! Calder staggers, spent. Strike now!",
+    warded: "Shielded!",
+    cage: "The cage of lightning throws you back!",
     eye: "The sky over the glade goes white. Calder calls the whole storm down!",
     shutCrack: "The great crack groans, and grinds shut.",
   },

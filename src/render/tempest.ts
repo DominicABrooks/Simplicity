@@ -1,13 +1,14 @@
 // The storm of Calder's fight (src/game/calderfight.ts), drawn on the entity made for it at the glade's middle:
 // lightning standing all round the glade in a great ring while it's on, flickering; the three iron rods he drives into the
 // ground, going in and then humming with their tips lit; the lightning along the lines between them (and behind his
-// blinks), a faint crawling flicker on the ground where it's going to be, then a white-hot jagged bolt along it; and
+// blinks, and the walls sweeping across the ring in the storm proper), a faint crawling flicker on the ground where it's
+// going to be, then a white-hot jagged bolt along it; the cage of lightning round him in the storm proper; and
 // the great crack itself (src/render/wild.ts), drawn as wide as the fight has it. Once he's fallen, on the entity that
 // keeps it shut: his spark flying home south over the trees, and the crack groaning shut, sealed over with grey stone.
 import * as THREE from "three";
 import { CALDER_FIGHT as F } from "../data/rift.ts";
 import { calderFight, calderGone, crackSealed, crackWidth, type Arc, type CalderFight } from "../game/calderfight.ts";
-import { GROUND, onGround, toWorld, type RenderContext } from "./context.ts";
+import { GROUND, PX_PER_TILE, onGround, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { GREAT_CRACK_NAME } from "./wild.ts";
 import type { EntityView } from "./views.ts";
@@ -35,6 +36,8 @@ export interface TempestView {
   /** How far out the ring is (world units: tiles). */
   r: number;
   rods: RodMesh[];
+  /** The cage of lightning round him in the storm proper: a band on the ground, and bolts arching up over him. */
+  cage: { group: THREE.Group; bolts: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> } | null;
   arcs: ArcMesh[];
   /** His spark, going home. */
   spark: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
@@ -48,7 +51,7 @@ export const tempest: EntityView<TempestView> = {
     const spark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 1), additive(ctx, BOLT, 0.95));
     spark.visible = false;
     group.add(spark);
-    const v: TempestView = { group, ring: null, pillars: null, r: F.arena.r, rods: [], arcs: [], spark };
+    const v: TempestView = { group, ring: null, pillars: null, r: F.arena.r, rods: [], cage: null, arcs: [], spark };
     if (calderFight(g)?.view === e) makeRing(ctx, v);
     return v;
   },
@@ -65,6 +68,10 @@ export const tempest: EntityView<TempestView> = {
     if (v.ring && v.pillars) {
       v.ring.visible = v.pillars.visible = !!mine;
       if (mine) flickerPillars(v, f.t);
+    }
+    if (v.cage) {
+      v.cage.group.visible = !!mine?.storm;
+      if (mine?.storm) poseCage(v.cage, mine.storm.t, f.t);
     }
     if (mine) {
       poseRods(ctx, v, mine, f.t);
@@ -107,6 +114,40 @@ function makeRing(ctx: RenderContext, v: TempestView): void {
   v.group.add(ring, pillars);
   v.ring = ring;
   v.pillars = pillars;
+  // The cage, ready for the storm proper.
+  const cage = new THREE.Group(), R = F.shield.radius / PX_PER_TILE;
+  const floor = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R + 0.12, 40).rotateX(-Math.PI / 2), additive(ctx, BOLT, 0.7, true));
+  floor.position.y = 0.035;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), additive(ctx, TRIM, 0.12));
+  const bolts = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: BOLT, transparent: true, opacity: 0.95 }));
+  bolts.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(CAGE_BOLTS * CAGE_STEPS * 6), 3));
+  bolts.frustumCulled = false;
+  cage.add(floor, dome, bolts);
+  cage.visible = false;
+  v.group.add(cage);
+  v.cage = { group: cage, bolts };
+}
+
+/** Bolts in the cage, and points along each. */
+const CAGE_BOLTS = 9, CAGE_STEPS = 7;
+
+/** The cage: bolts arching up from the band on the ground over him, redrawn as they flicker; rising up as it closes. */
+function poseCage(cage: NonNullable<TempestView["cage"]>, k: number, t: number): void {
+  const R = F.shield.radius / PX_PER_TILE, pos = cage.bolts.geometry.getAttribute("position") as THREE.BufferAttribute;
+  cage.group.scale.set(1, Math.min(1, k * 3), 1);
+  let n = 0;
+  for (let b = 0; b < CAGE_BOLTS; b++) {
+    const a = (b / CAGE_BOLTS) * Math.PI * 2 + t * 0.6, lit = Math.sin(t * (17 + b) + b * 5) > -0.2;
+    let from = { x: Math.cos(a) * R, y: 0, z: Math.sin(a) * R };
+    for (let i = 1; i <= CAGE_STEPS; i++) {
+      const p = i / CAGE_STEPS, up = Math.sin(p * Math.PI / 2), r = R * Math.cos(p * Math.PI / 2), j = i === CAGE_STEPS ? 0 : 0.18;
+      const to = lit ? { x: Math.cos(a + p * 0.6) * r + (Math.random() - 0.5) * j, y: up * R, z: Math.sin(a + p * 0.6) * r + (Math.random() - 0.5) * j } : from;
+      pos.setXYZ(n++, from.x, from.y, from.z);
+      pos.setXYZ(n++, to.x, to.y, to.z);
+      from = to;
+    }
+  }
+  pos.needsUpdate = true;
 }
 
 /** Redraw the bolts round the ring, a few lit at a time, each a jagged line from the ground up into the sky. */

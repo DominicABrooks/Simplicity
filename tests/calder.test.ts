@@ -216,9 +216,69 @@ describe("Calder's fight", () => {
     expect(now - health.hp).toBe(3);
   });
 
+  it("at half his health blinks to the middle into a cage of lightning, and the whole ring is his until it bursts", async () => {
+    const { g, e, f } = await fighting(), toasts: string[] = [];
+    g.events.on("toast", ({ text }) => toasts.push(text));
+    weaken(g, e, 0.6);
+    weaken(g, e, F.shield.at);
+    const him = g.world.need(e, "transform"), enemy = g.world.need(e, "enemy"), S = F.shield;
+    expect(f.storm).not.toBeNull();
+    expect(toasts).toContain(F.say.shield);
+    expect({ x: him.x, y: him.y }).toEqual({ x: f.x, y: f.y });
+    // Nothing gets through the cage.
+    const health = g.world.need(e, "health"), hp = health.hp;
+    expect(hitEnemy(g, e, 5, true)).toBe(0);
+    expect(health.hp).toBe(hp);
+    expect(enemy.wardSay).toBe(F.say.warded);
+    // The hero, standing off to one side (the test only counts what comes at him).
+    const me = g.world.need(g.player, "transform");
+    let walls = 0, rings = 0, strikesUnder = 0;
+    const dirs = new Set<string>();
+    for (let t = 0; t < S.hold + S.walls.sweep + 1 && f.storm; t += DT) {
+      Object.assign(me, { x: f.x + 30, y: f.y + 20 });
+      g.world.need(g.player, "status").hurt = 1;              // (so nothing knocks him about)
+      const before = g.world.count("strike"), w = f.storm.walls.length, r = f.storm.rings;
+      calderFightSystem(g, DT);
+      if (!f.storm) break;
+      if (f.storm.walls.length > w) { walls++; dirs.add(f.storm.walls.at(-1)!.dir); }
+      if (f.storm.rings > r) rings++;
+      if (g.world.count("strike") > before) strikesUnder++;
+      expect({ x: him.x, y: him.y }).toEqual({ x: f.x, y: f.y });   // held in the middle throughout
+      for (const sw of f.storm.walls) {                      // each wall a chord of the ring
+        expect(Math.hypot(sw.arc.a.x - f.x, sw.arc.a.y - f.y)).toBeCloseTo(f.r, 0);
+        expect(Math.hypot(sw.arc.b.x - f.x, sw.arc.b.y - f.y)).toBeCloseTo(f.r, 0);
+      }
+    }
+    expect(walls).toBeGreaterThanOrEqual(2);
+    expect(dirs.size).toBeGreaterThanOrEqual(2);
+    expect(rings).toBeGreaterThanOrEqual(3);
+    expect(strikesUnder).toBeGreaterThanOrEqual(4);
+    // Then the cage bursts.
+    expect(f.storm).toBeNull();
+    expect(toasts).toContain(F.say.shieldOut);
+    expect(enemy.warded).toBe(false);
+    expect(f.earth).toBeGreaterThan(S.after - 0.1);         // staggering, spent: a long moment for a blade
+    // It comes once.
+    weaken(g, e, 0.45);
+    expect(f.storm).toBeNull();
+  });
+
+  it("throws the hero back if he comes too close to the cage", async () => {
+    const { g, e, f } = await fighting();
+    weaken(g, e, F.shield.at);
+    const me = g.world.need(g.player, "transform"), hp = g.world.need(g.player, "health");
+    g.world.need(g.player, "status").hurt = 0;
+    Object.assign(me, { x: f.x + F.shield.radius - 4, y: f.y });
+    const before = hp.hp;
+    calderFightSystem(g, DT);
+    expect(hp.hp).toBe(before - 1);
+    expect(g.world.need(g.player, "knockback").vx).toBeGreaterThan(0);   // thrown out, away from him
+  });
+
   it("calls the whole storm down at the end: rings of strikes closing in on the hero, the last where he stood", async () => {
     const { g, e, f } = await fighting(), toasts: string[] = [];
     g.events.on("toast", ({ text }) => toasts.push(text));
+    f.stormed = true;                                         // (the storm proper's had its turn)
     weaken(g, e, 0.3);
     expect(f.mood).toBe(2);
     expect(f.rods).toHaveLength(3);                            // straight past the rods: in they go too

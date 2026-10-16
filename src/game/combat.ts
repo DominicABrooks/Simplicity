@@ -18,9 +18,9 @@ export function combatText(g: Game, x: number, y: number, text: string, color: s
 /** Hit an enemy (with a blade or a fist: `melee`; or a shot): 10% crits for double damage, with a flash, a number, and extra weight on crits. */
 export function hitEnemy(g: Game, e: Entity, damage: number, melee = true): number {
   const health = g.world.need(e, "health"), enemy = g.world.need(e, "enemy"), at = g.world.need(e, "transform");
-  if (enemy.warded) {                                        // sealed in ice: it glances off
+  if (enemy.warded) {                                        // sealed in (ice, lightning): it glances off
     sound(g, "dud", at);
-    combatText(g, at.x, at.y, "Ice!", COMBAT_COLORS.hit);
+    combatText(g, at.x, at.y, enemy.wardSay ?? "Ice!", COMBAT_COLORS.hit);
     return 0;
   }
   const crit = g.rng.next() < CRIT.chance;

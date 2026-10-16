@@ -130,8 +130,9 @@ export interface Enemy {
   face: number;
   /** Melee damage taken lately, wearing off (Rime watches it: src/game/rimefight.ts). */
   melee?: number;
-  /** Nothing hurts it (Rime in her ice block). */
+  /** Nothing hurts it (Rime in her ice block, Calder in his cage of lightning), and what it says when a blow glances off. */
   warded?: boolean;
+  wardSay?: string;
   /** One last stand in it (Rime): the first blow that would finish it doesn't ("ready" -> "taken"), and its fight
    *  answers (src/game/rimefight.ts) until it's "spent"; then the next one does. */
   lastStand?: "ready" | "taken" | "spent";
