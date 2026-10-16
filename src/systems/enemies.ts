@@ -1,7 +1,8 @@
 // Every enemy: knockback and hit flashes, slime AI, deaths and drops, and spawning more.
 import { DROPS } from "../data/items.ts";
 import { SLIME, SPAWNING } from "../data/enemies.ts";
-import { GHOST } from "../data/ghost.ts";
+import { GHOST, GHOST_NAME, GHOST_TITLE } from "../data/ghost.ts";
+import { celebrate } from "../game/victory.ts";
 import { XP } from "../data/progression.ts";
 import { damagePlayer, grantXP } from "../game/combat.ts";
 import { BESTIARY, type BestiaryId } from "../data/bestiary.ts";
@@ -91,6 +92,7 @@ function layGhost(g: Game, x: number, y: number): void {
   for (let i = 0; i < GHOST.reward.items; i++) dropLoot(g, x + (i - (GHOST.reward.items - 1) / 2) * 10, y, rollItem(g.rng, "rare"));
   for (let i = 0; i < GHOST.reward.potions; i++) spawnPotion(g, x + (i - (GHOST.reward.potions - 1) / 2) * 10, y + 9);
   laidToRest(g);
+  celebrate(g, GHOST_NAME, GHOST_TITLE, x, y);
 }
 
 /** Every few seconds, top the enemies up. The cap grows with kills. */

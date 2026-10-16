@@ -19,6 +19,7 @@ import { grantXP } from "./combat.ts";
 import type { MageBrain, RenderKind } from "./components.ts";
 import { dropLoot } from "./spawn.ts";
 import { toast, type Game } from "./game.ts";
+import { celebrate } from "./victory.ts";
 
 export type Who = "cinder" | "rime" | "calder";
 
@@ -178,7 +179,12 @@ export function bossSystem(g: Game, dt: number): void {
   if (L.keeps) g.world.remove(left, "despawn");
   grantXP(g, L.xp - XP.mage, here.x, here.y);               // the mage's own share comes with the kill
   L.falls.forEach(line => toast(g, line));
-  g.world.add(g.player, "conversation", { with: g.player, name: L.name, key: here.who, lines: [...L.lastWords], line: 0, t: 0 });
+  // Their last words, once the victory's been celebrated (src/game/victory.ts), and if he's still there to hear them.
+  const who = here.who, where = g.area;
+  celebrate(g, L.name, L.title, here.x, here.y, () => {
+    if (g.area !== where || g.state !== "play") return;
+    g.world.add(g.player, "conversation", { with: g.player, name: L.name, key: who, lines: [...L.lastWords], line: 0, t: 0 });
+  });
   s.here = null;
 }
 

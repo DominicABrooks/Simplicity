@@ -70,4 +70,27 @@ describe("the woodwardens", () => {
     enterArea(g, HOME, "start");
     expect(walkThrough(g)).toBeLessThan(2 * T);              // a new run: back in the gate
   });
+  it("mind him as they step aside: they wait while he's in the way, and are never solid round him", () => {
+    const g = createGame();
+    resetGame(g);
+    setState(g, "play");
+    enterArea(g, HOME, "start");
+    const wardens = g.world.query("targetable").filter(([, c]) => c.targetable.name === WOODWARDEN.name).map(([e]) => g.world.need(e, "transform"));
+    const west = wardens.reduce((a, b) => (b.x < a.x ? b : a));
+    handPaper(g, g.world.query("targetable").find(([, c]) => c.targetable.name === WOODWARDEN.name)![0]);
+    // He stands right where the west warden's post is, writing (the way that used to shut him in).
+    const hero = g.world.need(g.player, "transform");
+    hero.x = west.x - 1.1 * T; hero.y = west.y;
+    handBack(g, WATCHWORD);
+    for (let i = 0; i < 100; i++) wardenSystem(g, 1 / 20);
+    expect(Math.abs(west.x - hero.x)).toBeGreaterThanOrEqual(0.8 * T - 1);   // waited for him, not on top of him
+    for (const [dx, dy] of [[-T, 0], [0, -T], [T, 0]]) {      // and he can still walk off any way
+      const from = { x: hero.x, y: hero.y }, moved = { ...from };
+      moveBy(g.map, moved, dx!, dy!, false);
+      expect(Math.hypot(moved.x - from.x, moved.y - from.y)).toBeGreaterThan(0);
+    }
+    hero.y -= 3 * T;                                         // he walks off: the warden goes to his post
+    for (let i = 0; i < 100; i++) wardenSystem(g, 1 / 20);
+    expect(walkThrough(g)).toBe(3 * T);                      // and the way's open
+  });
 });

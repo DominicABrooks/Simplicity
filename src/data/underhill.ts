@@ -27,11 +27,61 @@ export const UNDERHILL = {
   /** The watchers, from the third time on: how many at first, how many more each time after, at most; how far out
    * (tiles from the glade's middle) at first and how much nearer each time, at least; and how long they take to show (s). */
   watchers: { first: 7, more: 2, most: 19, far: 7.5, nearer: 0.7, nearest: 3.5, fade: 3 },
+  /**
+   * And they murmur (WATCHER_MURMURS): once they're out of the dark (`from` s after he arrives), every so often
+   * (`every`, s [min, max]) one of them says something, over its head, in a low voice; each line comes and goes over
+   * `life` s.
+   */
+  murmurs: { from: 3, every: [2.5, 5.5], life: 3.4 },
+  /**
+   * And while they're there, their magic gets into everything: every so often (`every`, s [min, max]) the world swims and
+   * glows for `last` s [min, max], rising and falling away.
+   */
+  glitch: { every: [1.4, 4], last: [0.7, 1.8] },
   says: {
     cannot: "It won't hum here. It wants the sky over it.",
     gift: "The Erl-King's gift drops into your hand.",
   },
 } as const;
+
+/**
+ * What the watchers murmur, the third time under the hill and after: the others who dance under the hill, that the
+ * Erl-King warned him of, who've been learning the way. All of them are said before any is said again.
+ */
+export const WATCHER_MURMURS: readonly string[] = [
+  "This was a mistake.",
+  "What have you done.",
+  "He told you not to come a third time.",
+  "The throne is empty. Where do you think he went?",
+  "You stand so well.",
+  "Little stone. Little stone. Little stone.",
+  "We have learned the way now. Thank you.",
+  "Go up, then. We will be right behind you.",
+  "The grass has stopped talking.",
+  "You smell of Ael. It is fading.",
+  "Count us. Now count us again.",
+  "There were fewer of us last time.",
+  "Next time there will be more.",
+  "We danced here before the dancers.",
+  "Don't look at us.",
+  "Look at us.",
+  "You came for a secret. We are the secret.",
+  "The eye on the other side of the door can see you down here.",
+  "It is smiling wider.",
+  "Nobody up there knows where you are.",
+  "Hang the acorn by your door, he said.",
+  "Who let you in? You did.",
+  "Six hundred years we waited at the edge of the light.",
+  "Your face is so warm. Come closer.",
+  "We were stones once too.",
+  "The Old Mother is still lying very still.",
+  "Stay. Stay. Stay.",
+  "You can still go back. For now.",
+  "Every time you leave, the door stays open a little longer.",
+  "Something is already on the path behind you.",
+  "Shh. It's listening.",
+  "We know the way to your camp.",
+];
 
 /** What the Erl-King gives him, the first time: the Founder's own ring, dropped dancing. */
 export const REEL_RING = {

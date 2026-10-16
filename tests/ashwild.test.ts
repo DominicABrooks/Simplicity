@@ -8,6 +8,8 @@ import { area as witchwood } from "../src/areas/witchwood.ts";
 import { CINDER, CINDER_FALLS, CINDER_LAST_WORDS, WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
 import { WATCHWORD } from "../src/data/king.ts";
 import { beaten, bossSystem } from "../src/game/bosses.ts";
+import { victorySystem } from "../src/game/victory.ts";
+import { VICTORY } from "../src/data/victory.ts";
 import { cinderFightSystem } from "../src/game/cinderfight.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -198,6 +200,7 @@ describe("the Ashwild", () => {
     deathSystem(g);
     expect(beaten(g, "cinder")).toBe(true);
     expect(toasts).toEqual(expect.arrayContaining([...CINDER_FALLS]));
+    victorySystem(g, VICTORY.last);                          // the victory celebrated: then the last words
     expect(talking(g)?.lines).toEqual(CINDER_LAST_WORDS);   // his last words, in the dialogue box
     expect(g.world.query("pickup").some(([, { pickup }]) => pickup.kind === "loot" && pickup.item.slot === "weapon" && pickup.item.rarity === "rare")).toBe(true);
     expect(g.world.has(e, "transform")).toBe(false);

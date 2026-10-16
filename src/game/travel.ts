@@ -12,6 +12,7 @@ import { spawnBed, spawnTent } from "./sleeping.ts";
 import { lockedOut } from "./undercroft.ts";
 import { passedBarricade, wardenStops, wardenSystem } from "./watchword.ts";
 import { cancelActions } from "./combat.ts";
+import { breakRings } from "./fairyring.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { spawnCampfire, spawnEnemy, spawnGuard, spawnKing, spawnPotion, spawnTraining } from "./spawn.ts";
 
@@ -56,6 +57,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
       if (p) spawnPotion(g, p.x, p.y);
     }
   }
+  breakRings(g);                                             // the Witchwood's fairy ring, broken once the watchers have come
   g.events.emit("area", g.area);
 }
 

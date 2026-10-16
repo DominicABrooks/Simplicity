@@ -1,6 +1,7 @@
 // The title / death overlay, toasts and the hold-R reset bar.
 import { RESET_HOLD } from "../data/player.ts";
 import { TOAST_MS, TOAST_READ_MS } from "../data/ui.ts";
+import { inBossFight } from "../game/bossbar.ts";
 import type { Game } from "../game/game.ts";
 import { byId } from "./dom.ts";
 
@@ -16,12 +17,14 @@ export function bindOverlay(g: Game): void {
 /**
  * Short messages across the top of the screen ("Level 3!", "Inventory full"). Several said at once (a story told in
  * lines: the ring waking, the nest behind the sealed door) take turns, each up long enough to read, rather than each
- * wiping out the last; the same line said again while it's up or waiting isn't said twice.
+ * wiping out the last; the same line said again while it's up or waiting isn't said twice. In a boss fight they keep
+ * quiet: nothing's said from the moment it starts till the victory's been celebrated (src/game/bossbar.ts inBossFight).
  */
 export function bindToasts(g: Game): void {
   const el = byId("toast"), waiting: { text: string; good: boolean }[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined, showing: string | null = null;
   const next = (): void => {
+    if (inBossFight(g)) waiting.length = 0;                  // a fight's begun: what was still to say goes unsaid
     const t = waiting.shift();
     if (!t) { el.hidden = true; showing = null; timer = undefined; return; }
     el.textContent = showing = t.text;
@@ -30,6 +33,7 @@ export function bindToasts(g: Game): void {
     timer = setTimeout(next, waiting.length || t.text.length > 40 ? Math.max(TOAST_MS, t.text.length * TOAST_READ_MS) : TOAST_MS);
   };
   g.events.on("toast", ({ text, good }) => {
+    if (inBossFight(g)) return;
     if (text === showing || waiting.some(w => w.text === text)) return;
     waiting.push({ text, good });
     if (timer === undefined) next();

@@ -1,7 +1,7 @@
 // Simplicity: a tiny top-down fantasy RPG. Gameplay is 2D (src/game, src/systems); the 3D view only
 // draws it. This file wires the pieces together and runs the loop.
 import "./styles.css";
-import { createGame, setState, toast } from "./game/game.ts";
+import { createGame, setState, tickRunTime, toast } from "./game/game.ts";
 import { dropItem, eatItem } from "./game/actions.ts";
 import { resetGame } from "./game/reset.ts";
 import { bindInput } from "./input/input.ts";
@@ -35,13 +35,16 @@ import { createCredits } from "./ui/credits.ts";
 import { watchEnding } from "./game/ending.ts";
 import { createSleepShade } from "./ui/sleepShade.ts";
 import { createFeyFade } from "./ui/feyFade.ts";
+import { createVictory } from "./ui/victory.ts";
 import { createFeySayings } from "./ui/feySayings.ts";
 import { createErlSpeech } from "./ui/erlSpeech.ts";
+import { createWatched } from "./ui/watched.ts";
 import { enterPets } from "./game/pets.ts";
 import { createAudioPlayer } from "./audio/player.ts";
+import { createMusicPlayer } from "./audio/music.ts";
 import { exposeDebug, wantsDebug } from "./debug.ts";
 import { useCurio } from "./game/quay.ts";
-import { followAcorn, holdForFey } from "./game/underhill.ts";
+import { followAcorn, holdForFey, hurryErlKing } from "./game/underhill.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -57,12 +60,15 @@ const paper = createPaper(g);
 const letterbox = createLetterbox(g);
 const sleepShade = createSleepShade(g, view);
 const feyFade = createFeyFade(g);
+const victory = createVictory(g);
 const feySayings = createFeySayings(g);
 const erlSpeech = createErlSpeech(g, view);
+const watchedView = createWatched(g, view);
 watchCutscenes(g);
 watchEnding(g);
 const credits = createCredits(g);
 const audio = createAudioPlayer();
+const music = createMusicPlayer();
 bindOverlay(g);
 bindToasts(g);
 bindFade(g);
@@ -105,13 +111,15 @@ g.events.on("state", ({ state }) => {
 });
 // Talking: clicking someone friendly (or E with them targeted) talks instead of attacking; while they're
 // talking, a click or Enter, Space or E goes on, and Escape ends it. In a cutscene the same goes on through
-// what's said, nothing else does anything, and Escape skips the scene.
+// what's said, nothing else does anything, and Escape skips the scene. The Erl-King likewise: on to his next line, or
+// Escape for past all of it.
 const SAY_ON = ["enter", " ", "e", "j"];
 const input = bindInput(g, {
   toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels,
   talkClick: at => {
     if (sleeping(g)) { wake(g); return true; }              // asleep: a click wakes him, and does nothing else
     if (talking(g)) { advanceTalk(g); return true; }
+    if (hurryErlKing(g, false)) return true;
     if (cutscene(g)) return true;
     const hit = pickTarget(g, view, at);
     return knock(g, hit) || startResting(g, hit) || startSleeping(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; a tent or a bed: sleep; a dog or cat: pet it; someone: talk
@@ -119,6 +127,7 @@ const input = bindInput(g, {
   talkKey: k => {
     if (sleeping(g)) { wake(g); return true; }              // and so does any key
     if (cutscene(g) && k === "escape") { skipCutscene(g); return true; }
+    if ((k === "escape" || SAY_ON.includes(k)) && hurryErlKing(g, k === "escape")) return true;
     if (cutscene(g) && !talking(g)) return k === "e";       // nobody to talk to but who the scene says
     if (talking(g)) {
       if (k === "escape") { endTalk(g); return true; }
@@ -144,6 +153,7 @@ addEventListener("resize", resize);
 let last = performance.now();
 function frame(now: number): void {
   const dt = Math.min(0.05, (now - last) / 1000);
+  tickRunTime(g, (now - last) / 1000);                     // the speedrun timer goes by the wall clock, not the capped step
   last = now;
   const mouse = input.mouse();
   g.input.pointer = mouse && view.screenToGame(mouse.x, mouse.y);
@@ -161,6 +171,7 @@ function frame(now: number): void {
   updatePetting(g, g.hitstop > 0 ? 0 : dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
   audio.play(g.sfx, g.world.get(g.player, "transform"));
+  music.update(g);                                         // the area's tune, coloured by the hour and the weather
   menu.setActive(MENU.inventory, inventory.isOpen());
   menu.setActive(MENU.map, map.isOpen());
   menu.setActive(MENU.journal, journal.isOpen());
@@ -174,8 +185,10 @@ function frame(now: number): void {
   letterbox.draw();
   credits.draw(dt);
   feyFade.draw(dt);                                        // deep in a fairy ring, the screen's own furniture fades
+  victory.draw();                                          // a boss beaten: VICTORY across the screen
   feySayings.draw();                                       // and the fair folk talk to him
   erlSpeech.draw();                                        // and under the hill, their king
+  watchedView.draw(dt);                                    // or, with the throne empty, the watchers murmuring, and the screen going wrong
   requestAnimationFrame(frame);
 }
 

@@ -9,6 +9,7 @@ import { FACING_ANGLE, type Prop } from "../world/area.ts";
 import { HALF } from "../data/world.ts";
 import { beaten, type Who } from "./bosses.ts";
 import type { Game } from "./game.ts";
+import { victoryOf } from "./victory.ts";
 
 /** Who leaves a spirit behind: not Calder, whose spark flies home south as he falls. */
 export type Spirited = Exclude<Who, "calder">;
@@ -23,12 +24,12 @@ export const spiritLines = (g: Game, e: Entity): string[] => [...SPIRITS[g.world
 export const spiritHere = (g: Game): Entity | null => g.world.query("spirit")[0]?.[0] ?? null;
 
 /**
- * Every frame: in a beaten lieutenant's lair (their "boss" prop marks the middle of the arena), once nobody's talking
- * (their last words come first), their spirit rises there, if it hasn't already this visit.
+ * Every frame: in a beaten lieutenant's lair (their "boss" prop marks the middle of the arena), once the victory's been
+ * celebrated and nobody's talking (their last words come first), their spirit rises there, if it hasn't already this visit.
  */
 export function spiritSystem(g: Game): void {
   const lair = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss");
-  if (!lair || lair.who === "calder" || !beaten(g, lair.who) || spiritHere(g) !== null || g.world.has(g.player, "conversation")) return;
+  if (!lair || lair.who === "calder" || !beaten(g, lair.who) || spiritHere(g) !== null || victoryOf(g) || g.world.has(g.player, "conversation")) return;
   const x = lair.x - HALF, y = lair.y - HALF, look = FACING_ANGLE.south;
   g.world.create({
     transform: { x, y },

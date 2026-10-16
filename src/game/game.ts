@@ -85,6 +85,8 @@ export interface Game {
   player: Entity;
   /** Seconds of play this run (stops during hitstop). */
   clock: number;
+  /** Seconds since this run began, by the wall clock: the speedrun timer, shown under The End (src/ui/credits.ts). */
+  runTime: number;
   /** The hour of the day, 0-24 (fractional). Runs on through play and carries across runs. */
   hour: number;
   /** Clear, foggy or rainy. Carries across runs, like the hour. */
@@ -120,11 +122,26 @@ export function createGame(): Game {
     floaters: [],
     state: "title",
     player: 0,
-    clock: 0, hour: START_HOUR, weather: createWeather(), hitstop: 0, shake: 0, kills: 0, spawnTimer: 0, resetHold: 0, resetLatch: false, target: null,
+    clock: 0, runTime: 0, hour: START_HOUR, weather: createWeather(), hitstop: 0, shake: 0, kills: 0, spawnTimer: 0, resetHold: 0, resetLatch: false, target: null,
     journal: emptyJournal(),
   };
   g.inventory.subscribe(stats => applyStats(g, stats));
   return g;
+}
+
+/**
+ * Run the speedrun timer on by `dt` real seconds: through play, deaths and travel, never on the title or in the
+ * credits. A long gap (the tab put away) isn't counted.
+ */
+export function tickRunTime(g: Game, dt: number): void {
+  if (g.state === "play" || g.state === "dead" || g.state === "travel") g.runTime += Math.min(dt, 1);
+}
+
+/** A run's time as a speedrun timer reads: 1:02:03.45, or 2:03.45 under the hour. */
+export function formatRunTime(seconds: number): string {
+  const cs = Math.floor(seconds * 100), h = Math.floor(cs / 360000), m = Math.floor(cs / 6000) % 60, s = Math.floor(cs / 100) % 60;
+  const two = (n: number) => `${n}`.padStart(2, "0");
+  return `${h ? `${h}:${two(m)}` : m}:${two(s)}.${two(cs % 100)}`;
 }
 
 /** Equipment and level totals feed straight into the hero's numbers. */

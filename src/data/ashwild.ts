@@ -20,7 +20,7 @@ export const WARDEN_TALK = {
     "Can't talk? Half the woodcutters can't either. Here: paper, and a crayon. Write it down.",
   ],
   right: [
-    `(The warden squints at your crayon letters.) "${WATCHWORD}." That's the one. Well.`,
+    `(The warden squints at your crayon letters, and folds the paper away quick.) "${WATCHWORD}." That's the one. We don't say it out loud.`,
     "Through you go, then. Mind yourself in there. The trees aren't the right colour any more.",
   ],
   wrong: [
@@ -73,8 +73,38 @@ export const CINDER_FIGHT = {
     /** How long it smoulders at its edge first, how long it takes to cross, how thick (px either side), how much it hurts. */
     warn: 1.1, sweep: 2.6, width: 3.5, damage: 2,
   },
+  /**
+   * The inferno: the first time he's down to `at` of his health, he steps out through the fire and stands among the
+   * stones, out of reach (warded: `warded` is what a blow on him says), and for `last` seconds the circle is a furnace.
+   * He paces round outside it (`orbit` px out past the fire, `pace` radians a second). `spokes` spokes of fire flare up
+   * from the middle (`warn` seconds smouldering first, harmless) and turn like a wheel (`turn` radians a second); they're
+   * `width` px thick and hurt `damage`, and a jump or a dash clears them. Then the wheel turns back (`turnBack`), never
+   * all at once: `at` seconds in it slows to a stop over `slow` s, stands still for `hold` s, flickering, while `adds`
+   * more spokes smoulder up in its widest gaps (the first on the side away from the hero; the others don't move), so the
+   * bar becomes a cross, and he holds his fire; then it gathers speed the other way over `rise` s.
+   *
+   * And the embers, in two acts, always in the same order and rhythm, so they can be learned. Before the wheel turns
+   * back: `rings`, a ring of `count` embers pulsing out from the middle every `every` s (from `first` s in) at `speed`
+   * px/s, with `gap` of them missing, the gap always halfway between two spokes and stepping round one gap to the next
+   * each ring; and his `fan`, every `every` s, `count` bolts `spread` radians wide at `speed` px/s, thrown from where he
+   * stands at the hero, but only after `windup` s of winding up (a flash on him, a sound) so it's never a surprise; the
+   * standing stones stop them. After it turns back: `arms`, a stream of embers flowing out from the middle along the
+   * middle of each gap, one every `every` s at `speed` px/s, turning with the wheel: the safe ground is the pocket
+   * between a spoke and the stream ahead of it, and it moves at the wheel's pace. Embers from the middle go out at the
+   * fire. At the end he bursts back into the middle, throwing a ring of `burst` bolts out round him.
+   */
+  inferno: {
+    at: 0.25, last: 16, warded: "Out of reach!", orbit: 10, pace: 0.35,
+    wheel: { spokes: 2, adds: 2, warn: 1.4, turn: 0.75, width: 3.5, damage: 1, turnBack: { at: 7, slow: 1.2, hold: 1.8, rise: 1.2 } },
+    rings: { first: 2.2, every: 1.2, count: 20, gap: 4, speed: 26 },
+    fan: { first: 3.4, every: 2.4, windup: 0.6, count: 3, spread: 0.35, speed: 40, life: 5 },
+    arms: { every: 0.16, speed: 30 },
+    burst: { count: 14, speed: 42 },
+  },
   say: {
     shut: "Fire leaps up between the stones! There's no way out.",
+    inferno: "Cinder steps out through the fire! The circle becomes a furnace!",
+    back: "Cinder bursts back into the circle!",
     rise: "Cinder steps out of the flames.",
     beam: "Cinder sweeps a wall of fire across the circle!",
     open: "The fire between the stones gutters out.",
