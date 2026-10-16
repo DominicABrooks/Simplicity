@@ -39,6 +39,7 @@ import { createFeySayings } from "./ui/feySayings.ts";
 import { createErlSpeech } from "./ui/erlSpeech.ts";
 import { enterPets } from "./game/pets.ts";
 import { createAudioPlayer } from "./audio/player.ts";
+import { createMusicPlayer } from "./audio/music.ts";
 import { exposeDebug, wantsDebug } from "./debug.ts";
 import { useCurio } from "./game/quay.ts";
 import { followAcorn, holdForFey } from "./game/underhill.ts";
@@ -63,6 +64,7 @@ watchCutscenes(g);
 watchEnding(g);
 const credits = createCredits(g);
 const audio = createAudioPlayer();
+const music = createMusicPlayer();
 bindOverlay(g);
 bindToasts(g);
 bindFade(g);
@@ -162,6 +164,7 @@ function frame(now: number): void {
   updatePetting(g, g.hitstop > 0 ? 0 : dt);
   view.render(g, g.hitstop > 0 ? 0 : dt);
   audio.play(g.sfx, g.world.get(g.player, "transform"));
+  music.update(g);                                         // the area's tune, coloured by the hour and the weather
   menu.setActive(MENU.inventory, inventory.isOpen());
   menu.setActive(MENU.map, map.isOpen());
   menu.setActive(MENU.journal, journal.isOpen());
