@@ -23,6 +23,7 @@ import { endTalk, talking } from "../src/game/talk.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { deathSystem, spawnerSystem } from "../src/systems/enemies.ts";
 import type { Prop } from "../src/world/area.ts";
+import { blocked } from "../src/world/collision.ts";
 
 const DT = 1 / 60;
 /** Where he stands (cell top-left). */
@@ -336,6 +337,32 @@ describe("Calder's fight", () => {
     calderFightSystem(g, DT);
     expect(hp.hp).toBe(before - 1);
     expect(g.world.need(g.player, "knockback").vy).toBeGreaterThan(0);   // thrown south, away from it
+  });
+
+  it("drags at the hero with the crack's cold, but never into a tree", async () => {
+    // (The soak test found this: backed up against a tree at the ring's edge, the cold pulled him into it.)
+    const { g, f } = await fighting();
+    const crack = g.area.layout.props.find((p): p is Extract<Prop, { kind: "greatCrack" }> => p.kind === "greatCrack")!;
+    const me = g.world.need(g.player, "transform"), status = g.world.need(g.player, "status");
+    // Every spot in the ring where the hero's right up against a tree, with the crack on its far side.
+    const against: { x: number; y: number }[] = [];
+    for (let y = f.y - f.r; y <= f.y + f.r; y++) for (let x = f.x - f.r; x <= f.x + f.r; x++) {
+      if (Math.hypot(x - f.x, y - f.y) > f.r || blocked(g.map, x, y, false)) continue;
+      const near = nearestOnCrack(crack, { x, y }, 1), d = Math.hypot(near.x - x, near.y - y);
+      if (d > 0 && blocked(g.map, x + (near.x - x) / d, y + (near.y - y) / d, false)) against.push({ x, y });
+    }
+    expect(against.length).toBeGreaterThan(0);
+    f.open = 1;
+    f.nextShape = 99;
+    for (const at of against) {
+      Object.assign(me, at);
+      for (let t = 0; t < 1; t += DT) {
+        status.hurt = 0;
+        f.letGo = 0;
+        calderFightSystem(g, DT);
+        expect(blocked(g.map, me.x, me.y, false), `pulled from ${at.x},${at.y} to ${me.x},${me.y}`).toBe(false);
+      }
+    }
   });
 
   it("turns aside any arrow short of a full draw", async () => {

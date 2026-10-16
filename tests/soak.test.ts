@@ -36,11 +36,21 @@ const MAX_ENTITIES = 1500;
 /** More runs, each with its own dice: SOAK_SEEDS=50 npx vitest run tests/soak.test.ts digs deeper. */
 const SEEDS = Number(process.env.SOAK_SEEDS ?? 1);
 
+/**
+ * The game's own dice: from the clock, as a new run's are, so every run plays a little differently; unless
+ * SOAK_GAME_SEED=n pins them, to play a failure (it says its game seed) over again.
+ */
+const gameSeed = (): number => Number(process.env.SOAK_GAME_SEED) || (Date.now() % 100000) + 1;
+
 /** The monkey's own dice, so its moves don't disturb the game's seeded rolls. */
 function dice(seed: number): () => number {
   let s = seed % 2147483647 || 1;
   return () => (s = (s * 48271) % 2147483647) / 2147483647;
 }
+
+/** The monkey's dice for one run of an area's arrival point, with one weapon at one hour. */
+const monkeySeed = (run: number, id: string, entry: string, weapon: ItemType | null, hour: number): number =>
+  1 + run * 15485863 + WEAPONS.indexOf(weapon) * 7919 + hour * 104729 + [...`${id}:${entry}`].reduce((s, c) => (s * 31 + c.charCodeAt(0)) % 1e9, 0);
 
 /** A game wired up the way src/main.ts wires it, minus the DOM. */
 function wiredGame(): Game {
@@ -101,17 +111,18 @@ function check(g: Game, where: string): void {
  * areas visited.
  */
 async function monkey(areaId: string, entry: string, weapon: ItemType | null, hour: number, seed: number,
-  seconds = SECONDS, start?: (g: Game) => Promise<void>): Promise<string[]> {
+  seconds = SECONDS, start?: (g: Game) => Promise<void>, game = gameSeed()): Promise<string[]> {
   const g = wiredGame();
   g.hour = hour;
   g.inventory.reset(weapon ? [makeItem(weapon)] : []);
+  g.rng.reseed(game);
   enterArea(g, await loadArea(areaId), entry);
   if (start) await start(g);
   const roll = dice(seed);
   const visited = [areaId];
-  let holdFor = 0, goal: { x: number; y: number } | null = null;
+  let holdFor = 0, goal: { x: number; y: number } | null = null, deaths = 0;
   for (let f = 0; f < seconds / DT; f++) {
-    const where = `${visited.join(" > ")} (from ${areaId}:${entry} with ${weapon ?? "fists"} at ${hour}h, frame ${f})`;
+    const where = `${visited.join(" > ")} (from ${areaId}:${entry} with ${weapon ?? "fists"} at ${hour}h, game seed ${game}, frame ${f})`;
     // Walk one way for a second or two, as a player would, not jitter on the spot; or head for somewhere:
     // an exit, or someone or something to click on.
     if (--holdFor <= 0) {
@@ -156,6 +167,7 @@ async function monkey(areaId: string, entry: string, weapon: ItemType | null, ho
       arrive(g, await loadArea(g.travel.area));
     } else if (g.state === "dead") {
       resetGame(g);
+      g.rng.reseed(game + ++deaths);                       // (a new run's dice come from the clock too)
       setState(g, "play");
     }
     check(g, where);
@@ -173,15 +185,23 @@ describe("soak: playing about everywhere", async () => {
 
   it.each(cases)("%s, arriving at %s", async (id, entry) => {
     for (let run = 0; run < SEEDS; run++) {
-      for (const [i, weapon] of WEAPONS.entries()) {
+      for (const weapon of WEAPONS) {
         for (const hour of [12, 0, 7 + run % 14]) {
-          const seed = 1 + run * 15485863 + i * 7919 + hour * 104729 + [...`${id}:${entry}`].reduce((s, c) => (s * 31 + c.charCodeAt(0)) % 1e9, 0);
-          const visited = await monkey(id, entry, weapon, hour, seed);
+          const visited = await monkey(id, entry, weapon, hour, monkeySeed(run, id, entry, weapon, hour));
           if (process.env.SOAK_LOG) console.log(`VISITED ${visited.join(">")}`);
         }
       }
     }
   }, 120_000 * SEEDS);
+});
+
+describe("soak: the ones that have failed, with the game's dice as they were", () => {
+  beforeAll(async () => { await loadCensus(); });
+
+  // Backed up against a tree at the edge of Calder's glade, the crack's cold pulled the hero into it.
+  it("rift, arriving at stone, with a bow at 7h: game seed 14", async () => {
+    await monkey("rift", "stone", "bow", 7, monkeySeed(0, "rift", "stone", "bow", 7), SECONDS, undefined, 14);
+  });
 });
 
 describe("soak: inside every house", async () => {

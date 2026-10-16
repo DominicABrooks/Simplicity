@@ -19,6 +19,7 @@ import { MAGE } from "../data/enemies.ts";
 import { COMBAT_COLORS } from "../data/ui.ts";
 import { HALF, T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
+import { moveBy } from "../world/collision.ts";
 import { greatCrackSpine } from "../world/greatcrack.ts";
 import { beaten, bossHere, bossWaiting, fellAt, summonBoss } from "./bosses.ts";
 import { isFrozen } from "./cheats.ts";
@@ -372,9 +373,8 @@ function theCrack(g: Game, f: CalderFight, brain: { timer: number; blinkCD: numb
   const near = nearestOnCrack(crack, h.pos, crackWidth(g)), d = Math.hypot(near.x - h.pos.x, near.y - h.pos.y) || 1;
   f.letGo = Math.max(0, f.letGo - dt);
   if (!safe && h.status.hurt <= 0 && f.letGo <= 0) {
-    const pull = F.crack.pull * f.open * dt;
-    h.pos.x += ((near.x - h.pos.x) / d) * pull;
-    h.pos.y += ((near.y - h.pos.y) / d) * pull;
+    const pull = F.crack.pull * f.open * dt;                // a drag, not a hand: it can't pull him into a tree
+    moveBy(g.map, h.pos, ((near.x - h.pos.x) / d) * pull, ((near.y - h.pos.y) / d) * pull, false);
   }
   if (near.inside && !safe && h.status.hurt <= 0) {
     damagePlayer(g, near.x, near.y - 2 * T, 1);            // thrown back out of the dark, away from the crack
