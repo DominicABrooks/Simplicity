@@ -43,7 +43,7 @@ const INDOORS = { sky: "#120d10", fill: 0xffd8b0, fillI: 0.85, sun: 0xffc890, su
 /** ...and in a cave under the snow (the Koi Grotto): cold and blue, the light coming off the ice. */
 const ICE_CAVE = { sky: "#0a1016", fill: 0xc8e4ff, fillI: 0.9, sun: 0xb0d8ff, sunI: 0.5 } as const;
 /** ...and under the hill (src/areas/underhill.ts): a violet dusk that isn't a sky, a soft green light off the grass. */
-const UNDER_HILL = { sky: "#1a0f2e", fill: 0xc0a8ff, fillI: 1.1, sun: 0xb8ffd8, sunI: 0.6 } as const;
+const UNDER_HILL = { sky: "#120a24", fill: 0xb59cff, fillI: 0.8, sun: 0xb8ffd8, sunI: 0.45 } as const;   // dim enough that what glows under the hill, glows
 const CAM_OFFSET = new THREE.Vector3(0, 11.5, 8.5);
 /** The camera's offset turned round for a credits shot, and the axis it turns about. */
 const reelOffset = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
@@ -157,7 +157,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       koi.update(dt, t, px, pz, bobber, !greatKoiBeaten(g) && greatKoiOut(g) === null);   // the big one's under the ice till it's hooked
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
-      erlKing.update(g, t);
+      erlKing.update(g, t, dt);
       occlusion.update(reel ? camTarget.x : px, reel ? camTarget.z : pz, toCamera, dt);
       targetRing.update(g, t);
 
