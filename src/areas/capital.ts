@@ -6,7 +6,7 @@
 // runs north to the castle; East Street runs east past St Mary's and its churchyard. A road runs round inside the walls, lanes cross the quarter, and every street is lined with
 // tall, narrow town houses, gable end on, shops on the main streets, St Giles' chapel and the almshouse
 // among them. Street lamps stand along the main streets and round the square, lit at dusk by the lamplighter.
-import { T, Tile } from "../data/world.ts";
+import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout, Goods } from "../world/area.ts";
 import { houseDoor } from "../world/plans.ts";
 import { AWNINGS, Town, at, corner, edgeExit, hash, px, type TileRect } from "../world/townkit.ts";
@@ -15,6 +15,8 @@ import { CASTLE, castleCore } from "./castle.ts";
 const W = 96, H = 80;
 /** Southgate's line (the high street and Castle Street run on it), the south wall's row and the west wall's column. */
 const MID = 48.5, SOUTH_WALL = 74, WEST_WALL = 3;
+/** The fountain stone's row (tile corners): just clear of the fountain's basin, to its south. */
+const FOUNTAIN_STONE_Y = 44.7;
 /** Southgate: its line, the south wall's row, and the south wall's towers (columns). The King's Bridge, outside
  * it, lines its own wall up with these and shows this quarter's south end through the gate. */
 export const SOUTHGATE = { x: MID, y: SOUTH_WALL, towers: [19, 34, 63, 78] } as const;
@@ -77,6 +79,8 @@ function build(): AreaLayout {
   // four rows of stalls in pairs facing each other across their aisles, stock about, and bunting all round on masts.
   town.add({ kind: "plaza", rect: px([SQUARE.x0, SQUARE.y0, SQUARE.x1 - SQUARE.x0 + 1, SQUARE.y1 - SQUARE.y0 + 1]), centre: corner(MID, 41) });
   town.add({ kind: "fountain", ...corner(MID, 41), radius: 2.6 });
+  // The fountain stone, at the fountain's foot on the high street side: one of Ael's old stones (src/game/stones.ts).
+  town.add({ kind: "oldStone", ...corner(MID, FOUNTAIN_STONE_Y), name: "The fountain stone", entry: "stone" });
   town.add({ kind: "cross", ...at(38, 41) });
   town.add({ kind: "well", ...at(59, 41) });
   const stallXs = [31, 34, 37, 40, 55, 58, 61, 64];
@@ -124,6 +128,8 @@ function build(): AreaLayout {
     {
       southgate: { x: 48 * T, y: (SOUTH_WALL - 4) * T }, castle: { x: 48 * T, y: 1 * T },
       undercroft: { x: (UNDERCROFT_DOOR.x - 0.5) * T, y: (UNDERCROFT_DOOR.y + 1.3) * T },
+      // Waking by the fountain stone: just south of it, so he isn't standing on it.
+      stone: { x: MID * T - HALF, y: (FOUNTAIN_STONE_Y + 1.3) * T - HALF },
     },
     [
       { rect: { x: (HIGH.x0 + 1) * T, y: (SOUTH_WALL + 2) * T, w: 3 * T, h: 2 * T }, to: { area: "kingsroad", entry: "gate" } },

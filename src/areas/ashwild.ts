@@ -22,6 +22,8 @@ const GLADES = [
   { x: trailX(62), y: 62, rx: 9.5, ry: 8 },                  // the Greyed's camp, Cinder's arena
 ] as const;
 const CAMP_AT = GLADES[3];
+/** The ash stone's row, on the trail a few steps in from the north edge. */
+const ASH_STONE_Y = 6;
 /** The arena's ring of stones: how far out (tiles), and how many, one left out at the north for the trail. */
 const ARENA = { radius: 6.5, pillars: 14 } as const;
 
@@ -72,6 +74,9 @@ function build(): AreaLayout {
   town.add({ kind: "arena", ...mid, ...ARENA, gap: 0 });
   town.add({ kind: "boss", ...mid, who: "cinder" });
 
+  // The ash stone, on the trail just in from the barricade: one of Ael's old stones (src/game/stones.ts).
+  town.add({ kind: "oldStone", x: (trailX(ASH_STONE_Y) + 1) * T, y: (ASH_STONE_Y + 0.5) * T, name: "The ash stone", entry: "stone" });
+
   // The cold cracks: across the open ground, thickest in the second glade and toward the camp.
   for (let i = 0, tries = 0; i < 26 && tries < 400; tries++) {
     const x = 2 + rng.next() * (W - 4), y = 4 + rng.next() * (H - 8);
@@ -98,6 +103,8 @@ function build(): AreaLayout {
       witchwood: { x: (trailX(3) + 0.5) * T, y: 3 * T },
       // Back up the track from the Frozen Hollow, a few steps in from the edge.
       hollow: { x: 3 * T, y: YSSA_TRACK.row * T },
+      // Waking by the ash stone: a couple of steps on down the trail from it.
+      stone: { x: (trailX(ASH_STONE_Y + 2) + 0.5) * T, y: (ASH_STONE_Y + 2) * T },
     },
     [
       { rect: { x: trailX(0) * T, y: 0, w: 2 * T, h: 6 }, to: { area: "witchwood", entry: "ashwild" } },

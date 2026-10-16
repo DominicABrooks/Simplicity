@@ -131,6 +131,8 @@ export function buildMap(): TileMap {
 const PROPS: Prop[] = [
   { kind: "camp", ...CAMP },
   { kind: "cave", x: CAVE_X, y: 0, facing: "south" },
+  // The Ranger's stone, the oldest in the valley, where he wakes at the start of a run (src/game/stones.ts).
+  { kind: "oldStone", x: SPAWN.x + HALF, y: SPAWN.y + HALF, name: "The Ranger's stone", entry: "start" },
   // The King's woodwardens' barricade across the trail, two wardens standing in its gate until he's written them the
   // watchword; then they step aside, one to each post (src/game/watchword.ts).
   { kind: "barricade", rect: { x: (trailX(BAR_Y) - 6) * T, y: BAR_Y * T, w: 14 * T, h: T }, gate: 6, gateW: 2 },
