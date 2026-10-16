@@ -14,7 +14,7 @@ import { arrive, enterArea } from "../src/game/travel.ts";
 import { lastStone, stoneSystem, touchStone, wakeOnStone } from "../src/game/stones.ts";
 import { chargePendant, pendantCharge, pendantCharged } from "../src/game/pendant.ts";
 import { sealOf, sealOpen, socketOf } from "../src/game/undercroft.ts";
-import { nestAt } from "../src/game/sealchamber.ts";
+import { crackAt, nestAt, stitchesMended } from "../src/game/sealchamber.ts";
 import { CLUES } from "../src/data/clues.ts";
 import { makeCurio } from "../src/items/items.ts";
 import { step } from "../src/systems/index.ts";
@@ -285,7 +285,7 @@ describe("the little door, opened", () => {
   });
 });
 
-describe("the seal-keepers' chamber", () => {
+describe("the deep places behind the door", () => {
   it("has somewhere to come in, the nest to walk up to, and the way back out to the door behind the ring", async () => {
     const { g, toasts } = await at("sealchamber", "door");
     step(g, DT);
@@ -310,5 +310,39 @@ describe("the seal-keepers' chamber", () => {
     expect(wraps).toHaveLength(1);
     const [, c] = wraps[0]!;
     if (c.pickup.kind === "loot") expect(c.pickup.item.rarity).toBe("legendary");
+  });
+});
+
+describe("the crack in the deep places", () => {
+  it("is held by the Vael's stitches, coming loose, an eye under it; the pendant, worn, pulls them tight, once", async () => {
+    const { g, toasts } = await wearing();
+    enterArea(g, await loadArea("sealchamber"), "door");
+    step(g, DT);
+    expect(stitchesMended(g)).toBe(false);
+    expect(g.world.query("renderable").filter(([, c]) => c.renderable.kind === "stitches")).toHaveLength(1);
+    expect(blocked(g.map, crackAt().x, crackAt().y, true)).toBe(false);
+    Object.assign(hero(g), crackAt());
+    step(g, DT);
+    step(g, DT);
+    expect(stitchesMended(g)).toBe(true);
+    expect(toasts.filter(t => t === CHAMBER_SAYS.crack)).toHaveLength(1);
+    expect(toasts.filter(t => t === CHAMBER_SAYS.mend)).toHaveLength(1);
+    // The crack's told before the nest: he reaches it first, coming in.
+    expect(toasts.indexOf(CHAMBER_SAYS.crack)).toBeLessThan(toasts.indexOf(CHAMBER_SAYS.nest[0]));
+  });
+
+  it("stays loose without the pendant on, and says something of Ael's would know how", async () => {
+    const { g, toasts } = await at("sealchamber", "door");
+    Object.assign(hero(g), crackAt());
+    step(g, DT);
+    expect(stitchesMended(g)).toBe(false);
+    expect(toasts).toContain(CHAMBER_SAYS.unworn);
+  });
+
+  it("isn't reached on arrival: he walks up to it", async () => {
+    const { g, toasts } = await at("sealchamber", "door");
+    step(g, DT);
+    expect(toasts).not.toContain(CHAMBER_SAYS.crack);
+    expect(toasts).not.toContain(CHAMBER_SAYS.nest[0]);
   });
 });

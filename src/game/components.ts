@@ -421,7 +421,7 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "sealdoor" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head" | "lantern" | "dragon" | "egg" | "cloak";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "sealdoor" | "stitches" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head" | "lantern" | "dragon" | "egg" | "cloak";
 
 /** A beaten lieutenant's spirit, in the middle of their arena (src/game/spirits.ts): whose. */
 export interface Spirit { who: "cinder" | "rime" }

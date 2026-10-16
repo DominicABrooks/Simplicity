@@ -39,7 +39,7 @@ import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts"
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
 import { poseLoad, poseWork, type Worker } from "./work.ts";
 import { loadOf } from "../world/workplaces.ts";
-import { ringstone, sealdoor } from "./undercroft.ts";
+import { ringstone, sealdoor, stitches } from "./undercroft.ts";
 import { boatman } from "./quay.ts";
 import { yssa } from "./yssa.ts";
 import { cloak, head, homestone, lantern } from "./homecoming.ts";
@@ -829,4 +829,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, cinder, blaze, rime, rimefrost, calder, tempest, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, sealdoor, boatman, yssa, spirit, watcher, homestone, head, lantern, dragon, egg, cloak } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, rime, rimefrost, calder, tempest, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, sealdoor, stitches, boatman, yssa, spirit, watcher, homestone, head, lantern, dragon, egg, cloak } satisfies { [K in ViewKind]: EntityView<object> };

@@ -67,12 +67,17 @@ ring and the pendant and the door's three carved fires blaze, the Kellets' last 
 out on the dark (`src/game/undercroft.ts`; the door is the `sealdoor` view in `src/render/undercroft.ts`). It
 stays open the rest of the run. Without it burning, it won't move.
 
-Behind it, **the seal-keepers' chamber** (`src/areas/sealchamber.ts`, `src/game/sealchamber.ts`): a low round
-room older than the ring, two Vael lamps giving a cold light, the Song of the Seal on three slabs against the back
-wall (a flame, a snowflake, a bolt, the Old Mother's coils round three eggs), the crack across the floor stitched
-shut in the three fires' colours, and the stone nest where she laid the eggs, gilt still in its hollows, a bowl of
-milk beside it. Walk up to the nest and it tells what it was (`CHAMBER_SAYS`), and a **Warden's Wrap** (legendary
-hood) is left folded by it, once a run.
+Behind it, **the deep places** (`src/areas/sealchamber.ts`, `src/game/sealchamber.ts`). The door is the Vael's
+lock on somebody else's door (HISTORY.md, and the Erl-King says so): the somebody else's door is the crack across
+this floor. The Old Mother laid her eggs right on top of it to hold it shut; with them gone, only the Vael's
+stitches across it hold it, in the three fires' colours, and two have snapped, an eye under it, pale and not Ael's
+colour, looking up. Walk up to the crack wearing the pendant and Ael's warmth runs down into the stitches: they pull
+tight and the eye shuts, for now (not worn, it says something of Ael's would know how). So opening the lock makes
+the seal stronger, not weaker. Then the stone nest, gilt still in its three hollows, a bowl of milk beside it, two
+Vael lamps, the Song of the Seal on three slabs against the back wall; walking up to the nest tells what it was
+and what it means now: the eggs are a floor or two above, six hundred years warm in St Mary's treasury, right over
+this crack, and when they hatch there the seal hatches with them. A **Warden's Wrap** (legendary hood) lies by
+it, dropped not long ago by one of the wardens sent north to hold the cracks, once a run.
 
 To try it: `?try=seal`, or `simplicity.seal()` in the console (`seal(3)` for a pendant only part charged).
 

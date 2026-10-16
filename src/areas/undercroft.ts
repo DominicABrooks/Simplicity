@@ -53,7 +53,7 @@ function build(): AreaLayout {
     [
       // Back up the steps, into St Mary's churchyard.
       { rect: { x: DOOR_AT * T, y: (H - 1) * T + 3, w: 1.3 * T, h: T - 3 }, to: { area: "capital", entry: "undercroft" } },
-      // Through the little door behind the ring, once the burning pendant's opened it, into the seal-keepers' chamber.
+      // Through the little door behind the ring, once the burning pendant's opened it, into the deep places.
       // (Reaching just into the first row of open tiles, so the map knows it's walkable to.)
       { rect: { x: (MID - 0.4) * T, y: 0.4 * T, w: 0.8 * T, h: 0.6 * T + 1 }, to: { area: "sealchamber", entry: "door" }, sealed: true },
     ],

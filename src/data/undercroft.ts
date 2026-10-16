@@ -33,22 +33,31 @@ export const PENDANT = {
       + (n > 0 ? ` It's drunk from ${n} of the five.` : ""),
 } as const;
 
-/** Behind the little door: the seal-keepers' chamber, where the Old Mother laid the eggs (src/areas/sealchamber.ts). */
+/**
+ * Behind the little door, the Vael's lock (HISTORY.md, "What the chronicle doesn't say"): the deep places, where the
+ * Old Mother laid the eggs right on the crack to hold it shut (src/areas/sealchamber.ts). With the eggs gone, only the
+ * Vael's stitches across it hold the somebody else's door under it, and they're coming loose; the burning pendant,
+ * Ael's warmth, pulls them tight again (src/game/sealchamber.ts).
+ */
 export const CHAMBER = {
-  /** How near the nest (px) he comes to read it, and what's left folded beside it, once a run. */
-  near: 34,
+  /** How near the nest (px) he comes to read it, and what's left by it, once a run. How near the crack's middle to reach the stitches. */
+  near: 18, crack: 10,
   gift: { type: "hood" as ItemType, rarity: "legendary" as Rarity, name: "Warden's Wrap", mods: { life: 4, speed: 8, dash: 25 } satisfies Stats,
-    note: "A Vael warden's wrap, left folded by the empty nest. It smells of snow. The Vael hold their wraps on when they bow." },
+    note: "A Vael warden's wrap, dropped by the empty nest not long ago. One of the wardens sent north to hold the cracks came down here too. It smells of snow." },
 } as const;
 
 export const CHAMBER_SAYS = {
-  arrive: "Behind the Vael's door: a low round chamber, older than the ring, and cold.",
+  arrive: "Through the Vael's lock: the deep places. Cold, older than the ring, and something down here is awake.",
+  /** At the crack: what holds it, and then the pendant's doing (or, not worn, that it would). */
+  crack: "A crack across the floor, stitched shut in the three fires' colours, and two of the stitches have snapped. Cold comes up through it. Something under it is looking up.",
+  mend: "The Ringstone Pendant flares. Ael's warmth runs down into the stitches and they pull tight again. The eye under the crack closes. For now.",
+  unworn: "The stitches want holding shut. Something of Ael's, worn, would know how.",
   nest: [
-    "Three hollows worn smooth in a stone nest, flecks of gilt still in them. The eggs lay here, one for each fire, before Aldric came.",
-    "Carved round the walls: the Old Mother curled about her three eggs, and under them a crack, stitched shut with song.",
-    "The crack runs under the nest still, dark and quiet. The eggs are only a floor or two above you now, in St Mary's treasury. Close enough, it seems, to keep it sleeping.",
+    "Three hollows worn smooth in a stone nest, right over the crack, flecks of gilt still in them. The eggs lay here, one for each fire, to hold it shut.",
+    "Carved round the walls: the Old Mother curled about her three eggs, and under them the crack, stitched shut with song.",
+    "And now they're a floor or two above you, six hundred years warm in St Mary's treasury, right over this crack. When they hatch there, the seal hatches with them.",
   ],
-  gift: "Folded by the nest, as if someone meant to come back for it: a Vael warden's wrap.",
+  gift: "By the nest, dropped not long ago: a Vael warden's wrap.",
 } as const;
 
 export const UNDERCROFT_SAYS = {
@@ -79,7 +88,7 @@ export const UNDERCROFT_SAYS = {
   wake: [
     "The stone slides home into the socket, as if it had never left.",
     "One by one, the old stones wake, and in their warmth you know this place: the Vael's temple floor. Under it the Old Mother laid her three eggs, one for each fire.",
-    "Aldric stole them, and Hereward gilded them for his treasury. Ever since, the ring has held the crack under the hill as shut as it could, alone.",
+    "Aldric stole them, and Hereward gilded them for his treasury. Ever since, the ring has held the crack under the hill as shut as it could.",
     "The warmth goes right through you. The ring knows you now: fall, and Ael will wake you here.",
   ],
 } as const;

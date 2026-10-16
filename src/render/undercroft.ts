@@ -17,6 +17,7 @@ import { hash } from "./terrain.ts";
 import { DARK_WOOD, IRON, type PropOf } from "./town.ts";
 import type { EntityView } from "./views.ts";
 import { sealOpen } from "../game/undercroft.ts";
+import { stitchesMended } from "../game/sealchamber.ts";
 
 const STONE = "#8f8a80", PALE_STONE = "#b9b2a4", EFFIGY = "#cbc4b6", AEL = "#7fd8c4";
 
@@ -440,25 +441,20 @@ export const sealdoor: EntityView<SealdoorView> = {
 const ease = (k: number) => k * k * (3 - 2 * k);
 
 /**
- * The seal-keepers' chamber (src/areas/sealchamber.ts). In the middle, the nest: a low round dais of rough stone, a
+ * The deep places behind the little door (src/areas/sealchamber.ts). In the middle, the nest: a low round dais of rough stone, a
  * rim of set stones round it, three hollows worn smooth in its top, one for each fire, flecks of gilt still in them,
  * and an old stone bowl beside it, the milk the Vael always leave out. Under it, the crack, dark and jagged across the
- * floor, stitched shut with bars of the three fires' colours. Against the back wall, the Song of the Seal on three
+ * floor: the somebody else's door the Vael locked (its stitches, and the eye under it, are the stitches view). Against the back wall, the Song of the Seal on three
  * standing slabs: a flame, a snowflake, a bolt, and the Old Mother's coils across the middle one. Either side, a Vael
  * lamp: a stone post with a blue-green crystal on it, giving a cold light.
  */
 export function buildVaelNest(ctx: RenderContext, parent: THREE.Group, p: PropOf<"vaelNest">): PropView {
   const { lambert } = ctx, g = new THREE.Group(), rough = lambert(STONE, { map: ctx.tex.stone }), pale = lambert(PALE_STONE, { map: ctx.tex.stone });
   const hollow = lambert("#3d3a35"), gilt = lambert("#d8b04a", { emissive: new THREE.Color("#3a2a08") }), crack = ctx.basic("#060505");
-  const fires = [ctx.glow("#ff8a3a"), ctx.glow("#9fe0f0"), ctx.glow("#f0d860")], crystal = ctx.glow(AEL);
+  const fires = FIRES.map(c => ctx.glow(c)), crystal = ctx.glow(AEL);
   const x = p.x / T, z = p.y / T, k = hash(x, z, 77);
-  // The crack, first, so the nest sits over it: jagged, wider in the middle, stitched across.
-  const pts = [[-3.6, 1.9], [-2.3, 1.5], [-1.2, 1.9], [0, 1.3], [1.1, 1.8], [2.4, 1.4], [3.7, 1.7]] as const;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [ax, az] = pts[i]!, [bx, bz] = pts[i + 1]!, len = Math.hypot(bx - ax, bz - az), wide = i === 2 || i === 3 ? 0.16 : 0.09;
-    put(g, box(len + 0.05, 0.03, wide), crack, x + (ax + bx) / 2, 0.07, z + (az + bz) / 2, 0, -Math.atan2(bz - az, bx - ax), 0);
-    put(g, box(0.07, 0.05, 0.36), fires[i % 3]!, x + (ax + bx) / 2, 0.09, z + (az + bz) / 2, 0, -Math.atan2(bz - az, bx - ax), 0);
-  }
+  // The crack, first, so the nest sits over it: jagged, wider in the middle. (Its stitches are the stitches view.)
+  for (const c of crackSegments()) put(g, box(c.len + 0.05, 0.03, c.wide), crack, x + c.x, 0.07, z + c.z, 0, c.yaw, 0);
   // The nest: the dais, its rim of set stones, the three hollows and the gilt in them.
   put(g, new THREE.CylinderGeometry(NEST_R, NEST_R + 0.1, 0.22, 12), rough, x, 0.11, z);
   for (let i = 0; i < 14; i++) {
@@ -503,3 +499,70 @@ export function buildVaelNest(ctx: RenderContext, parent: THREE.Group, p: PropOf
   parent.add(g);
   return { update: (time: number) => { lights.forEach((l, i) => { l.intensity = 1.2 + Math.sin(time * 1.3 + i * 2) * 0.2; }); } };
 }
+
+/** The three fires' colours: ember, frost, storm. */
+const FIRES = ["#ff8a3a", "#9fe0f0", "#f0d860"] as const;
+
+/** The crack across the deep places' floor, as segments (tiles, from the nest's middle): where, how long, which way, how wide. */
+function crackSegments(): { x: number; z: number; len: number; yaw: number; wide: number }[] {
+  const pts = [[-3.6, 1.9], [-2.3, 1.5], [-1.2, 1.9], [0, 1.3], [1.1, 1.8], [2.4, 1.4], [3.7, 1.7]] as const;
+  return pts.slice(1).map(([bx, bz], i) => {
+    const [ax, az] = pts[i]!;
+    return { x: (ax + bx) / 2, z: (az + bz) / 2, len: Math.hypot(bx - ax, bz - az), yaw: -Math.atan2(bz - az, bx - ax), wide: i === 2 || i === 3 ? 0.16 : 0.09 };
+  });
+}
+
+/** Which of the stitches have snapped, till the pendant pulls them tight. */
+const SNAPPED = [1, 4];
+
+/**
+ * The stitches across the crack in the deep places (src/game/sealchamber.ts), one across each stretch of it in the
+ * three fires' colours: two snapped, their ends lifted, dim, and in the crack's widest stretch an eye, pale and not
+ * Ael's colour, looking up; till the burning pendant pulls them tight, when they're whole and bright and the eye shuts.
+ */
+interface StitchesView { group: THREE.Group; whole: THREE.Mesh[]; broken: THREE.Group; eye: THREE.Group; eyeGlow: THREE.MeshBasicMaterial; light: THREE.PointLight; bars: THREE.MeshBasicMaterial[]; shut: number }
+export const stitches: EntityView<StitchesView> = {
+  create(ctx, _e, g) {
+    const group = new THREE.Group(), broken = new THREE.Group(), eye = new THREE.Group(), whole: THREE.Mesh[] = [];
+    const bars = FIRES.map(c => ctx.glow(c, { transparent: true, opacity: 0.55 }));
+    for (const [i, c] of crackSegments().entries()) {
+      const bar = bars[i % 3]!;
+      whole.push(put(group, box(0.07, 0.05, 0.36), bar, c.x, 0.09, c.z, 0, c.yaw, 0));
+      if (SNAPPED.includes(i)) for (const s of [-1, 1]) {        // its two ends, pulled apart and lifting off the floor
+        const dx = Math.sin(c.yaw) * s * 0.14, dz = Math.cos(c.yaw) * s * 0.14;
+        put(broken, box(0.06, 0.04, 0.16), bar, c.x + dx, 0.11, c.z + dz, s * 0.5, c.yaw, 0);
+      }
+    }
+    group.add(broken);
+    const eyeGlow = ctx.glow("#c6b4ff", { transparent: true, opacity: 0.7 }), mid = crackSegments()[2]!;
+    put(eye, box(0.42, 0.02, 0.09), eyeGlow, 0, 0, 0);
+    put(eye, box(0.08, 0.025, 0.1), ctx.basic("#120a1c"), 0, 0.005, 0);   // its pupil
+    eye.position.set(mid.x, 0.09, mid.z);
+    eye.rotation.y = mid.yaw;
+    group.add(eye);
+    const light = new THREE.PointLight("#9a86e8", 0.8, 2.6, 1.6);
+    light.position.set(mid.x, 0.4, mid.z);
+    group.add(light);
+    const nest = g.area.layout.props.find((p): p is PropOf<"vaelNest"> => p.kind === "vaelNest");
+    if (nest) group.position.set(nest.x / T, 0, nest.y / T);
+    ctx.scene.add(group);
+    const shut = stitchesMended(g) ? 1 : 0;
+    return { group, whole, broken, eye, eyeGlow, light, bars, shut };
+  },
+  update(_ctx, v, _e, g, f) {
+    const mended = stitchesMended(g);
+    v.shut = Math.min(1, Math.max(0, v.shut + (mended ? 1 : -1) * f.dt * 0.8));
+    v.broken.visible = !mended;
+    v.whole.forEach((m, i) => { m.visible = mended || !SNAPPED.includes(i); });
+    for (const b of v.bars) b.opacity = mended ? 0.95 : 0.4 + Math.sin(f.t * 3) * 0.12;
+    const look = 1 - ease(v.shut);
+    v.eye.scale.set(1, 1, Math.max(0.01, look * (0.8 + Math.sin(f.t * 0.7) * 0.2)));
+    v.eye.visible = look > 0.02;
+    v.eyeGlow.opacity = 0.7 * look;
+    v.light.intensity = 0.8 * look;
+  },
+  remove(ctx, v) {
+    ctx.scene.remove(v.group);
+    disposeTree(v.group);
+  },
+};
