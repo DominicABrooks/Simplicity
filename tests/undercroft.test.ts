@@ -123,12 +123,11 @@ describe("the little sealed door behind the ring", () => {
     const seal = sealOf(g)!;
     expect(seal).not.toBeNull();
     expect(blocked(g.map, seal.x, seal.y, true)).toBe(false);
-    expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toEqual([]);
+    expect(toasts).not.toContain(UNDERCROFT_SAYS.seal);
     Object.assign(hero(g), seal);
     step(g, DT);
-    expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toEqual([...UNDERCROFT_SAYS.seal]);
     step(g, DT);
-    expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toHaveLength(UNDERCROFT_SAYS.seal.length);
+    expect(toasts.filter(t => t === UNDERCROFT_SAYS.seal)).toHaveLength(1);
   });
 });
 
@@ -170,14 +169,6 @@ describe("the ring, woken", () => {
     expect(toasts).toContain(`${UNDERCROFT.stone.name} glows under your hand`);
   });
 
-  it("quiets the sealed door: the cold stops coming under it", async () => {
-    const { g, toasts } = await woken();
-    Object.assign(hero(g), sealOf(g)!);
-    step(g, DT);
-    expect(toasts).toContain(UNDERCROFT_SAYS.seal[0]);
-    expect(toasts).toContain(UNDERCROFT_SAYS.sealCalm);
-    expect(toasts).not.toContain(UNDERCROFT_SAYS.seal[1]);
-  });
 });
 
 describe("the stone's clues", () => {
@@ -269,12 +260,11 @@ describe("the little door, opened", () => {
   });
 
   it("opens to the burning pendant (he's put back a step to see it), then lets him through into the chamber", async () => {
-    const { g, toasts } = await wearing();
+    const { g } = await wearing();
     for (const stone of OLD_STONES) chargePendant(g, stone);
     walkIn(g);
     expect(g.state).toBe("play");
     expect(sealOpen(g)).toBe(true);
-    for (const line of UNDERCROFT_SAYS.sealOpens) expect(toasts).toContain(line);
     expect(g.world.query("renderable").filter(([, c]) => c.renderable.kind === "sealdoor")).toHaveLength(1);
     walkIn(g);
     expect(g.state).toBe("play");                           // still swinging open: he's kept back to watch it
@@ -287,9 +277,8 @@ describe("the little door, opened", () => {
 
 describe("the deep places behind the door", () => {
   it("has somewhere to come in, the nest to walk up to, and the way back out to the door behind the ring", async () => {
-    const { g, toasts } = await at("sealchamber", "door");
+    const { g } = await at("sealchamber", "door");
     step(g, DT);
-    expect(toasts).toContain(CHAMBER_SAYS.arrive);
     expect(blocked(g.map, hero(g).x, hero(g).y, true)).toBe(false);
     const back = g.area.layout.exits[0]!;
     expect(back.to).toEqual({ area: "undercroft", entry: "seal" });
@@ -325,10 +314,7 @@ describe("the crack in the deep places", () => {
     step(g, DT);
     step(g, DT);
     expect(stitchesMended(g)).toBe(true);
-    expect(toasts.filter(t => t === CHAMBER_SAYS.crack)).toHaveLength(1);
-    expect(toasts.filter(t => t === CHAMBER_SAYS.mend)).toHaveLength(1);
-    // The crack's told before the nest: he reaches it first, coming in.
-    expect(toasts.indexOf(CHAMBER_SAYS.crack)).toBeLessThan(toasts.indexOf(CHAMBER_SAYS.nest[0]));
+    expect(toasts).not.toContain(CHAMBER_SAYS.unworn);       // nothing said: it's seen
   });
 
   it("stays loose without the pendant on, and says something of Ael's would know how", async () => {
@@ -342,7 +328,7 @@ describe("the crack in the deep places", () => {
   it("isn't reached on arrival: he walks up to it", async () => {
     const { g, toasts } = await at("sealchamber", "door");
     step(g, DT);
-    expect(toasts).not.toContain(CHAMBER_SAYS.crack);
+    expect(toasts).not.toContain(CHAMBER_SAYS.unworn);
     expect(toasts).not.toContain(CHAMBER_SAYS.nest[0]);
   });
 });

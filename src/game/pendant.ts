@@ -27,12 +27,13 @@ export const pendantCharge = (g: Game): number => state(g).size;
 /** Has it drunk from them all: is it burning? */
 export const pendantCharged = (g: Game): boolean => pendantCharge(g) >= PENDANT.stones;
 
-/** He's at an old stone (just touched, or standing on it again): worn, the pendant drinks from it, if it hasn't yet. */
-export function chargePendant(g: Game, stone: Touched): void {
+/** He's at an old stone (just touched, or standing on it again): worn, the pendant drinks from it, if it hasn't yet. Quietly, for trying it out (src/debug.ts). */
+export function chargePendant(g: Game, stone: Touched, quiet = false): void {
   const s = state(g), key = `${stone.area}:${stone.entry}`, pendant = g.inventory.equip.amulet;
   if (!wearingPendant(g) || !pendant || s.has(key) || s.size >= PENDANT.stones) return;
   s.add(key);
   pendant.note = PENDANT.note(s.size);
+  if (quiet) return;
   sound(g, s.size >= PENDANT.stones ? "toll" : "pickup");
   toast(g, s.size >= PENDANT.stones ? UNDERCROFT_SAYS.charged : UNDERCROFT_SAYS.drinks(stone.name, s.size), true);
 }

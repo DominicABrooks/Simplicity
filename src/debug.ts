@@ -200,7 +200,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
     spendCurio(g, "stone");
     const r = UNDERCROFT.reward;
     g.inventory.equip.amulet = { ...makeItem(r.type, r.rarity, { ...r.mods }, r.name), note: PENDANT.note(0) };
-    for (const [area, entry, name] of SEAL_STONES.slice(0, stones)) chargePendant(g, { area, entry, name });
+    for (const [area, entry, name] of SEAL_STONES.slice(0, stones)) chargePendant(g, { area, entry, name }, true);
     const at = g.area.layout.entries.seal;
     if (at) Object.assign(g.world.need(g.player, "transform"), at);
     return `${there}. The pendant's on, ${pendantCharge(g)} of ${PENDANT.stones}. Walk up into the little door.`;

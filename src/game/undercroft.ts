@@ -63,7 +63,6 @@ function sealedOut(g: Game, exit: ExitDef): boolean {
   g.fx.push({ type: "toll", x: at.x, y: at.y, radius: UNDERCROFT.wake });
   g.shake = Math.max(g.shake, 3);
   sound(g, "toll", at);
-  for (const line of UNDERCROFT_SAYS.sealOpens) toast(g, line, true);
   return true;
 }
 
@@ -97,14 +96,14 @@ export function sealOf(g: Game): { x: number; y: number } | null {
 const ringstoneHere = (g: Game) => g.world.query("renderable").some(([, c]) => c.renderable.kind === "ringstone");
 
 /** This run, per game: has he been down here yet (he's told where he is the first time), been told the ring's warm, seen the sealed door? */
-interface Run { visited: boolean; hinted: boolean; sealSeen: boolean; sealCalm: boolean; sealOpen: boolean; openedAt: number }
+interface Run { visited: boolean; hinted: boolean; sealSeen: boolean; sealOpen: boolean; openedAt: number }
 const runs = new WeakMap<Game, Run>();
 function runOf(g: Game): Run {
   let r = runs.get(g);
   if (!r) {
-    const fresh = { visited: false, hinted: false, sealSeen: false, sealCalm: false, sealOpen: false, openedAt: -Infinity };
+    const fresh = { visited: false, hinted: false, sealSeen: false, sealOpen: false, openedAt: -Infinity };
     runs.set(g, r = fresh);
-    g.events.on("reset", () => { fresh.visited = fresh.hinted = fresh.sealSeen = fresh.sealCalm = fresh.sealOpen = false; });
+    g.events.on("reset", () => { fresh.visited = fresh.hinted = fresh.sealSeen = fresh.sealOpen = false; });
   }
   return r;
 }
@@ -121,13 +120,7 @@ export function undercroftSystem(g: Game): void {
   const run = runOf(g);
   if (!run.visited) { run.visited = true; toast(g, UNDERCROFT_SAYS.arrive, true); }
   const seal = sealOf(g), me = g.world.need(g.player, "transform"), set = spentCurios(g).has("stone");
-  if (seal && Math.hypot(me.x - seal.x, me.y - seal.y) < UNDERCROFT.seal) {
-    if (!run.sealSeen) {
-      run.sealSeen = true;
-      if (set) { run.sealCalm = true; toast(g, UNDERCROFT_SAYS.seal[0]); toast(g, UNDERCROFT_SAYS.sealCalm); }
-      else for (const line of UNDERCROFT_SAYS.seal) toast(g, line);
-    } else if (set && !run.sealCalm) { run.sealCalm = true; toast(g, UNDERCROFT_SAYS.sealCalm); }
-  }
+  if (seal && !run.sealSeen && Math.hypot(me.x - seal.x, me.y - seal.y) < UNDERCROFT.seal) { run.sealSeen = true; toast(g, UNDERCROFT_SAYS.seal); }
   if (set && !ringstoneHere(g)) setStone(g, socket);
   if (seal && !g.world.query("renderable").some(([, c]) => c.renderable.kind === "sealdoor")) {
     g.world.create({ transform: { ...seal }, renderable: { kind: "sealdoor" } });   // its slab, shut or swung open (src/render/undercroft.ts)

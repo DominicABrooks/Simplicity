@@ -46,18 +46,15 @@ export const CHAMBER = {
     note: "A Vael warden's wrap, dropped by the empty nest not long ago. One of the wardens sent north to hold the cracks came down here too. It smells of snow." },
 } as const;
 
+/** What's said in the deep places: only what can't be seen there (the picture shows the rest). */
 export const CHAMBER_SAYS = {
-  arrive: "Through the Vael's lock: the deep places. Cold, older than the ring, and something down here is awake.",
-  /** At the crack: what holds it, and then the pendant's doing (or, not worn, that it would). */
-  crack: "A crack across the floor, stitched shut in the three fires' colours, and two of the stitches have snapped. Cold comes up through it. Something under it is looking up.",
-  mend: "The Ringstone Pendant flares. Ael's warmth runs down into the stitches and they pull tight again. The eye under the crack closes. For now.",
+  /** At the crack without the pendant on: a hint. */
   unworn: "The stitches want holding shut. Something of Ael's, worn, would know how.",
+  /** At the nest: what it was for, and what that means now. */
   nest: [
-    "Three hollows worn smooth in a stone nest, right over the crack, flecks of gilt still in them. The eggs lay here, one for each fire, to hold it shut.",
-    "Carved round the walls: the Old Mother curled about her three eggs, and under them the crack, stitched shut with song.",
-    "And now they're a floor or two above you, six hundred years warm in St Mary's treasury, right over this crack. When they hatch there, the seal hatches with them.",
+    "The eggs lay here, right on the crack, to hold it shut.",
+    "Now they're a floor or two above you, six hundred years warm in St Mary's treasury, over this same crack. When they hatch there, the seal hatches with them.",
   ],
-  gift: "By the nest, dropped not long ago: a Vael warden's wrap.",
 } as const;
 
 export const UNDERCROFT_SAYS = {
@@ -68,27 +65,17 @@ export const UNDERCROFT_SAYS = {
   arrive: "Under St Mary's: the church's dead, and something older.",
   /** Near the socket with the stone in the bag. */
   warm: "The stone in your bag is warm. It knows where it is.",
-  /** Up by the little door in the wall behind the ring (HISTORY.md: the Vael's lock on somebody else's door). */
-  seal: [
-    "A little door in the wall behind the ring, sealed and sealed again: iron bands, lead seals stamped with the Kellets' mark.",
-    "Older than the seals, cut into the stone: three flames, a snowflake and a lightning bolt. The top band has snapped. Cold air comes under it.",
-  ],
-  /** The sealed door, once the ring's whole again: said with the first of `seal` if he's not been up to it yet. */
-  sealCalm: "The three fires on the little door burn steady now the ring is whole, and no cold comes under it.",
+  /** Up by the little door behind the ring (HISTORY.md: the Vael's lock on somebody else's door): what can't be seen. */
+  seal: "The Kellets reseal this door every spring, and every spring it's come unlocked again.",
   /** The pendant, worn: drinking from an old stone, and full. */
   drinks: (stone: string, n: number): string => `The Ringstone Pendant drinks from ${stone[0]!.toLowerCase()}${stone.slice(1)}. (${n} of 5)`,
   charged: "The Ringstone Pendant burns with all five of Ael's stones. Under St Mary's, three carved fires would know it.",
-  /** At the little door: shut to him, and opening to the burning pendant. */
-  sealShut: "The little door won't move. The three fires carved on it are cold to your hand.",
-  sealOpens: [
-    "The Ringstone Pendant blazes, and the three fires on the little door blaze back.",
-    "The Kellets' last band snaps. The slab grinds open on the dark.",
-  ],
+  /** At the little door, without the pendant burning. */
+  sealShut: "It won't move.",
   /** Setting it back: what the ring was (HISTORY.md, "The Seal" and "88 AF"), and what it is to him now. */
   wake: [
-    "The stone slides home into the socket, as if it had never left.",
-    "One by one, the old stones wake, and in their warmth you know this place: the Vael's temple floor. Under it the Old Mother laid her three eggs, one for each fire.",
+    "In the ring's warmth you know this place: the Vael's temple floor. Under it the Old Mother laid her three eggs, one for each fire.",
     "Aldric stole them, and Hereward gilded them for his treasury. Ever since, the ring has held the crack under the hill as shut as it could.",
-    "The warmth goes right through you. The ring knows you now: fall, and Ael will wake you here.",
+    "The ring knows you now: fall, and Ael will wake you here.",
   ],
 } as const;
