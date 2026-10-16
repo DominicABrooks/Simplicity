@@ -18,6 +18,8 @@ import type { KitPiece } from "./items.ts";
 
 /** Her name over her head, as a target. */
 export const GHOST_NAME = "The Grey Ringer";
+/** Under her name on the boss bar. */
+export const GHOST_TITLE = "Ghost of St Mary's";
 
 /**
  * What a hero has when he first walks the city by night, round about meeting the King (STORY.md, GEAR.md):

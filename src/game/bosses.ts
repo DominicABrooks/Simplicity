@@ -27,6 +27,9 @@ function bossesOf(g: Game): Bosses {
   return s;
 }
 
+/** The boss in this area, if there's one still standing. */
+export const bossHere = (g: Game): Entity | null => state.get(g)?.here?.e ?? null;
+
 /** Whether the hero has beaten someone this run. */
 export const beaten = (g: Game, who: Who): boolean => bossesOf(g).beaten.has(who);
 

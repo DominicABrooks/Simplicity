@@ -37,6 +37,8 @@ export const WARDEN_TALK = {
 /** Cinder, the Ember lieutenant: an Ember mage, but far tougher, quicker to cast and quicker to blink. */
 export const CINDER = {
   name: "Cinder",
+  /** Under his name on the boss bar. */
+  title: "Ember Lieutenant of the Greyed",
   hp: 45,
   /** As a target: bigger than a mage. */
   radius: 7,

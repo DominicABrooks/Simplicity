@@ -1,7 +1,9 @@
-// The pixel HUD, drawn on its own low-res canvas over the 3D view: hearts, the day dial, the XP bar and combat text.
+// The pixel HUD, drawn on its own low-res canvas over the 3D view: hearts, the day dial, the boss bar, the XP bar
+// and combat text.
 import { dialPosition, isDay } from "../data/daylight.ts";
 import { PAL } from "../data/palette.ts";
 import { XP, xpToNext } from "../data/progression.ts";
+import { bossBar } from "../game/bossbar.ts";
 import type { Game } from "../game/game.ts";
 import type { Projector } from "../render/projector.ts";
 import { byId } from "./dom.ts";
@@ -58,6 +60,35 @@ export function createHud(g: Game, view: Projector): Hud {
     pixelDisc(ctx, cx, cy, 4.4, PAL.k);
     const label = String(hero.level);
     pixelText(ctx, label, cx - Math.floor(pixelTextWidth(label) / 2), cy - 2, PAL.Y);   // 5 rows centred on cy
+  }
+
+  // The boss bar, top centre under the day dial, while the hero's fighting one: their name in gold, a long
+  // blood-red bar on the XP bar's bark frame, a pale chip of what they've just lost draining after the hit,
+  // and their title beneath. In a boss's second wind the bar's top edge throbs.
+  let trail = 0, trailFor = "";
+  function drawBossBar(W: number): void {
+    const b = bossBar(g);
+    if (!b) { trailFor = ""; return; }
+    const frac = b.hp / b.maxHp;
+    if (trailFor !== b.name) { trailFor = b.name; trail = frac; }
+    trail = Math.max(frac, trail - 0.006);                   // the chip drains after the blow
+    const bw = Math.max(60, Math.min(160, W - 60)), x0 = Math.round((W - bw) / 2), inner = 4, y0 = 25;
+    const name = b.name.toUpperCase();
+    pixelText(ctx, name, Math.round((W - pixelTextWidth(name)) / 2), y0 - 9, PAL.Y);
+    ctx.fillStyle = PAL.K; ctx.fillRect(x0 - 2, y0 - 2, bw + 4, inner + 4);
+    ctx.fillStyle = PAL.n; ctx.fillRect(x0 - 1, y0 - 1, bw + 2, inner + 2);
+    ctx.fillStyle = PAL.N; ctx.fillRect(x0 - 1, y0 - 1, bw + 2, 1);
+    ctx.fillStyle = PAL.k; ctx.fillRect(x0, y0, bw, inner);
+    const tw = Math.round(bw * trail), fw = Math.round(bw * frac);
+    if (tw > fw) { ctx.fillStyle = PAL.W; ctx.fillRect(x0 + fw, y0, tw - fw, inner); }
+    if (fw > 0) {
+      ctx.fillStyle = PAL.R; ctx.fillRect(x0, y0, fw, inner);
+      ctx.fillStyle = b.angry && Math.floor(performance.now() / 150) % 2 ? PAL.Y : "#f07a6a"; ctx.fillRect(x0, y0, fw, 1);
+      ctx.fillStyle = "#7a1e22"; ctx.fillRect(x0, y0 + inner - 1, fw, 1);
+    }
+    for (let i = 1; i < 10; i++) { ctx.fillStyle = PAL.n; ctx.fillRect(x0 + Math.round((bw * i) / 10), y0, 1, inner); }
+    const title = b.title.toUpperCase();
+    pixelText(ctx, title, Math.round((W - pixelTextWidth(title)) / 2), y0 + inner + 4, PAL.w);
   }
 
   // The time of day, top centre, on a bark plate like the XP bar's frame: no numbers, just a notch
@@ -125,6 +156,7 @@ export function createHud(g: Game, view: Projector): Hud {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawHearts();
       drawClock(canvas.width);
+      drawBossBar(canvas.width);
       drawXPBar(canvas.width, canvas.height, (reserveRight * canvas.width) / innerWidth);
       drawCombatText(canvas.width, canvas.height);
     },
