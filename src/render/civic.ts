@@ -475,7 +475,7 @@ export function buildGraves(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
       put(to, new THREE.OctahedronGeometry(0.035, 0), blooms[Math.floor(hash(k, i, 433) * blooms.length)]!, fx, 0.11, fz);
     }
   };
-  for (const [i, s] of gravePlan(p.rect).entries()) {
+  for (const [i, s] of gravePlan(p).entries()) {
     const m = greys[Math.floor(hash(s.x, s.z, 434) * greys.length)]!, k = hash(s.x, s.z, 430), stone = new THREE.Group();
     switch (s.kind) {
       case 0: {                                                                         // a tall headstone on a plinth
@@ -528,6 +528,15 @@ export function buildGraves(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
       stone.rotation.x = (hash(s.x, s.z, 435) - 0.6) * 0.12;
     }
     g.add(stone);
+  }
+  // The path through, if it has one: worn flagstones up to the church door, standing clear of the grass.
+  if (p.path) {
+    const flag = lambert("#b9b2a4", { map: tex.stone }), z0 = p.rect.y / T, z1 = (p.rect.y + p.rect.h) / T;
+    for (let z = z0 + 0.35, n = 0; z < z1 - 0.2; z += 0.62, n++) {
+      const k = hash(p.path.x, z, 441);
+      put(g, box(p.path.w * (0.62 + k * 0.2), 0.05, 0.5), flag, p.path.x + (k - 0.5) * 0.18, 0.045, z, 0, (k - 0.5) * 0.25, 0);
+      if (n % 2) put(g, box(p.path.w * 0.28, 0.05, 0.3), flag, p.path.x + (k > 0.5 ? -1 : 1) * p.path.w * 0.42, 0.045, z + 0.1, 0, k, 0);
+    }
   }
   parent.add(g);
 }

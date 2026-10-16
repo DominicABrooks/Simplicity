@@ -85,7 +85,8 @@ export type Prop =
   /** An eight-sided chapter house. */
   | { kind: "chapterHouse"; x: number; y: number; radius: number }
   /** Rows of headstones and crosses in a churchyard. */
-  | { kind: "graves"; rect: Rect }
+  /** A churchyard's graves in rows across `rect`, kept off a path (world units, its middle `x` and width `w`) running through it, if it has one. */
+  | { kind: "graves"; rect: Rect; path?: { x: number; w: number } }
   /** A market cross on its stepped base. */
   | { kind: "cross"; x: number; y: number }
   /** A round dovecote, doves wheeling about it. */

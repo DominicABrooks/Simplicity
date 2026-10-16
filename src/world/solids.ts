@@ -71,7 +71,7 @@ export function propSolids(p: Prop): Shape[] {
     }
     case "cloister": return cloisterWalls(p);
     case "chapterHouse": return [circle(p.x / T, p.y / T, p.radius * 1.05)];
-    case "graves": return gravePlan(p.rect).map(g => { const [dz, w, d] = GRAVE_FOOT[g.kind]; return box(g.x, g.z + dz, w, d); });
+    case "graves": return gravePlan(p).map(g => { const [dz, w, d] = GRAVE_FOOT[g.kind]; return box(g.x, g.z + dz, w, d); });
     case "cross": return [circle(p.x / T, p.y / T, 1.1)];
     case "lion": { const d = LION_PLINTH + 0.1; return [p.facing === "north" || p.facing === "south" ? box(p.x / T, p.y / T, 1.3, d) : box(p.x / T, p.y / T, d, 1.3)]; }
     case "dovecote": return [circle(p.x / T, p.y / T, 1.15)];
@@ -163,13 +163,13 @@ export type GraveKind = 0 | 1 | 2 | 3 | 4 | 5;
 const GRAVE_FOOT: Record<GraveKind, [number, number, number]> = { 0: [0, 0.5, 0.25], 1: [0, 0.4, 0.3], 2: [0, 0.4, 0.2], 3: [0.35, 0.66, 1.06], 4: [0, 0.4, 0.3], 5: [0, 0.3, 0.15] };
 const GRAVE_KINDS: readonly GraveKind[] = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 5, 5];
 
-/** Graves in a churchyard: rows across the rect (world units), with the odd gap. */
-export function gravePlan(rect: Rect): { x: number; z: number; kind: GraveKind }[] {
+/** Graves in a churchyard: rows across the rect (world units), with the odd gap, and none on its path (graves past a church door). */
+export function gravePlan({ rect, path }: { rect: Rect; path?: { x: number; w: number } }): { x: number; z: number; kind: GraveKind }[] {
   const out: { x: number; z: number; kind: GraveKind }[] = [];
   const x0 = rect.x / T + 0.8, z0 = rect.y / T + 0.8, x1 = (rect.x + rect.w) / T - 0.8, z1 = (rect.y + rect.h) / T - 0.8;
   for (let z = z0, row = 0; z <= z1; z += 1.6, row++) for (let x = x0 + (row % 2) * 0.6; x <= x1; x += 1.3) {
     const h = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453, k = h - Math.floor(h);
-    if (k < 0.18) continue;
+    if (k < 0.18 || (path && Math.abs(x - path.x) < path.w / 2 + 0.35)) continue;
     out.push({ x, z, kind: GRAVE_KINDS[Math.floor(k * 1000) % GRAVE_KINDS.length]! });
   }
   return out;

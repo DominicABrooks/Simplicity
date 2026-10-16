@@ -59,7 +59,7 @@ describe("the residents of Kingsholm", () => {
   });
 
   it("buries someone in every grave, each born before they died", () => {
-    const graves = (["capital", "castle"] as const).flatMap(a => props[a].flatMap(p => (p.kind === "graves" ? gravePlan(p.rect) : [])));
+    const graves = (["capital", "castle"] as const).flatMap(a => props[a].flatMap(p => (p.kind === "graves" ? gravePlan(p) : [])));
     expect(dead.filter(d => d.grave.marker >= 0)).toHaveLength(graves.length);
     for (const d of dead) {
       expect(d.born, d.name).toBeLessThan(d.died);

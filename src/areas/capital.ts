@@ -8,7 +8,7 @@
 // among them. Street lamps stand along the main streets and round the square, lit at dusk by the lamplighter.
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout, Goods } from "../world/area.ts";
-import { houseDoor } from "../world/plans.ts";
+import { churchPlan, houseDoor } from "../world/plans.ts";
 import { AWNINGS, Town, at, corner, edgeExit, hash, px, type TileRect } from "../world/townkit.ts";
 import { CASTLE, castleCore } from "./castle.ts";
 
@@ -101,8 +101,10 @@ function build(): AreaLayout {
   // St Mary's on East Street, its churchyard between it and the street; St Giles' chapel and the
   // almshouse in the quarter's west.
   town.fill([68, 34, 17, 4], Tile.Grass);
-  town.add({ kind: "church", rect: px([68, 26, 18, 8]), tower: "spire" });
-  town.add({ kind: "graves", rect: px([69, 34, 15, 4]) });
+  const stMarys = town.add({ kind: "church", rect: px([68, 26, 18, 8]), tower: "spire" });
+  // The graves kept off the path from the street up to the south porch, the church's door.
+  const porch = stMarys.kind === "church" ? churchPlan(stMarys) : null;
+  town.add({ kind: "graves", rect: px([69, 34, 15, 4]), ...(porch && { path: { x: porch.x + porch.porch.x, w: 1.4 } }) });
   for (const x of [68, 85]) town.set(x, 36, Tile.Tree);
   // The low door at the foot of the tower, down to the Undercroft: locked since the Edict, and the key's in the river.
   town.add({ kind: "cryptDoor", x: UNDERCROFT_DOOR.x * T, y: UNDERCROFT_DOOR.y * T, facing: "south" });
