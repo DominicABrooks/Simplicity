@@ -22,10 +22,15 @@ export const KING_WATCHWORD_AGAIN = `And the watchword for my woodwardens, since
 /** Going before the King for the first time. */
 export const KING_AUDIENCE: readonly string[] = [
   "A stone child, out of the Witchwood, holding something out. Well? Give it here.",
-  "(He takes the Ranger's note, reads it, and goes very quiet, and then very red.)",
-  "You can't talk, can you? No. Of course not. Good. Then you can't repeat this either.",
+  "(He takes the Ranger's note and reads it half aloud, the way people do when they can't quite believe it.)",
+  "\"If anyone finds this, and you're not a mage: go north through the cave to Kingsholm. Find Meg Fell in the Wallside, the house with the grey cloak at the window.\"",
+  "\"Tell her the Vael were kind. Tell her I'm sorry. And tell someone, anyone, that the eggs have to go home.\" (It's signed: Wystan Fell, the King's Ranger.)",
+  "(He goes very quiet, and then very red.)",
+  "Wystan. My own Ranger. I sent him south to see what was down there, and he came back saying things a king can't have said at the cross.",
+  "He's safe. He's somewhere he can't tell anyone. ...You can't talk, can you? No. Of course not. Good. Then you can't repeat this either.",
   "Officially, there are no witches in the Witchwood. I've said so. I've had it read at the cross every market day.",
   "Unofficially... there is one. A Storm mage. He calls himself Calder. He leads the rest of them, and every week he comes a little closer to my city.",
+  "As for eggs: there are no eggs. There's a book in St Mary's library that says otherwise, and nobody is reading it. Least of all me. Again.",
   "The road south is shut. The bridge isn't paid for. My people hang horseshoes on their doors and whisper about the weather.",
   "My kingdom is frightened, and it's getting desperate.",
   "My soldiers won't go deep into that wood. But you came out of it. You walked out of it, in bark, without a scratch.",

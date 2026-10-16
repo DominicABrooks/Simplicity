@@ -123,6 +123,8 @@ export const YSSA_TALK = {
   ask: [
     "(A tall woman in frost-white robes stands in the track. The cold comes off her the way light comes off a lamp.)",
     "You aren't one of them. Good. Down this track the wood turns to winter, and the Greyed walk on the ice.",
+    "We're Vael, they and I: the old orders of the south, Ember, Frost and Storm. They were my wardens once, sent north to hold the cracks under this wood shut. They held them too long. Every spell opens the window in your face a little wider, and something looked in through theirs, and stayed.",
+    "When you beat one, the grey goes out of them, and what's left of them goes home. It's the kindest thing anyone can do for them now. It can't see you, little one. Use that.",
     "I let nobody by who doesn't know me. Not what the woodcutters call me. My name.",
     "(She holds out a curl of birch bark and a stub of charcoal.)",
   ],
