@@ -1,8 +1,9 @@
 // The music: a tune for every area, made up as it plays (no audio files), like the sound effects. Each area has a
 // theme (a key, a mode, a run of chords, a pace and the voices that play it), and the sky colours it: by night it's
 // slower, sparser, lower and in a darker mode; rain brings a low drone and drops of high notes; fog thins the tune
-// out and lets it echo. Indoors and under the ground the sky can't reach it. Tune it here; the synth that plays it
-// is src/audio/music.ts.
+// out and lets it echo. Indoors and under the ground the sky can't reach it. In a fairy ring's spell, whatever was
+// playing gives way to the fair folk's own music, Under the Hill's. Tune it here; the synth that plays it is
+// src/audio/music.ts.
 import type { Weather } from "./weather.ts";
 
 export interface Theme {
@@ -21,6 +22,12 @@ export interface Theme {
   density: number;
   /** Plays the chord as a ripple of half-beats under the tune. */
   arp?: boolean;
+  /** A low drone held under it all: the root and the note a tritone above it, wavering. */
+  drone?: boolean;
+  /** Each held chord note doubled, the twin this many cents out of tune, so they beat against each other. */
+  detune?: number;
+  /** The tune wavers, this many cents either way, like a voice or a theremin; and slides from each note to the next. */
+  wobble?: number;
   /** How bright it sounds: the low-pass filter's cutoff, Hz. */
   bright: number;
   /** Loudness, about 1. */
@@ -30,7 +37,7 @@ export interface Theme {
 }
 
 const IONIAN = [0, 2, 4, 5, 7, 9, 11], DORIAN = [0, 2, 3, 5, 7, 9, 10], AEOLIAN = [0, 2, 3, 5, 7, 8, 10];
-const LYDIAN = [0, 2, 4, 6, 7, 9, 11], MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10], PHRYGIAN = [0, 1, 3, 5, 7, 8, 10];
+const WHOLE_TONE = [0, 2, 4, 6, 8, 10], LYDIAN = [0, 2, 4, 6, 7, 9, 11], MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10], PHRYGIAN = [0, 1, 3, 5, 7, 8, 10];
 
 export const THEMES = {
   /** The title: slow and open, waiting. */
@@ -52,8 +59,13 @@ export const THEMES = {
   /** St Mary's below: hardly a tune, a drone and a few notes in the dark. */
   undercroft: { root: 48, mode: DORIAN, chords: [0, 0, 6, 0], bpm: 52, pad: "triangle", lead: "sine", density: 0.15, bright: 1100, sky: false },
   sealchamber: { root: 46, mode: PHRYGIAN, chords: [0, 1, 0, 0], bpm: 48, pad: "sawtooth", lead: "sine", density: 0.12, bright: 900, sky: false },
-  /** The fair folk's hall: bright, strange and quick. */
-  underhill: { root: 62, mode: LYDIAN, chords: [0, 1, 0, 6], bpm: 108, pad: "triangle", lead: "sine", density: 0.5, arp: true, bright: 3600, sky: false },
+  /**
+   * The fair folk's music, Under the Hill and in a fairy ring's spell: slow, and in the whole-tone scale, so nothing in
+   * it ever comes home; out-of-tune twins shimmering in the chords, a wavering drone a tritone wide under them, and a
+   * thin voice sliding and wavering over the top.
+   */
+  underhill: { root: 50, mode: WHOLE_TONE, chords: [0, 1, 0, 4, 3, 1], bpm: 52, pad: "triangle", lead: "sine", density: 0.22, arp: true, bright: 2400, sky: false,
+    drone: true, detune: 16, wobble: 30, gain: 1.1 },
   /** Inside someone's house: by the fire. */
   hearth: { root: 53, mode: IONIAN, chords: [0, 3, 0, 4], bpm: 72, pad: "triangle", lead: "triangle", density: 0.35, bright: 1600, sky: false },
 } satisfies Record<string, Theme>;
@@ -65,10 +77,11 @@ export const MUSIC_VOLUME = 0.16;
 /** Seconds one area's music takes to fade out and the next in. */
 export const MUSIC_FADE = 2.5;
 
-/** Which theme plays: the area's own, a house's hearth, or none (an area with no theme yet is quiet). */
-export function themeFor(state: string, area: { id: string; indoors?: boolean }): ThemeId | null {
+/** Which theme plays: the area's own, a house's hearth, the fair folk's in their ring's spell, or none (an area with no theme yet is quiet). */
+export function themeFor(state: string, area: { id: string; indoors?: boolean }, fey = false): ThemeId | null {
   if (state === "title") return "title";
   if (state !== "play" && state !== "travel") return null;           // dead, and the credits, which have their own tune
+  if (fey) return "underhill";
   if (area.id in THEMES && area.id !== "title" && area.id !== "hearth") return area.id as ThemeId;
   if (area.id.startsWith("inside:")) return "hearth";
   return null;

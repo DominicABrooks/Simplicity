@@ -2,8 +2,8 @@
 // made up as it goes: a held chord a bar, a low note under it, now and then a ripple, and a tune that wanders the
 // scale and leans on the chord's notes. Changing area fades one theme out and the next in; the hour and the weather
 // change it gently as it plays. Like the sound effects, it waits for the first click or key press. N turns it off and
-// on again, and that's remembered for the next visit. In a fairy ring's spell it all but fades away, under the fair folk's
-// own bells (src/game/fairyring.ts).
+// on again, and that's remembered for the next visit. In a fairy ring's spell (src/game/fairyring.ts) the fair folk's
+// own music takes over, a little quieter, under their bells.
 import { MUSIC_FADE, MUSIC_VOLUME, THEMES, hz, moodOf, noteOf, playing, scaleOf, themeFor, type Playing, type Theme, type ThemeId } from "../data/music.ts";
 import { tranceOf } from "../game/fairyring.ts";
 import { toast, type Game } from "../game/game.ts";
@@ -60,13 +60,29 @@ export function createMusicPlayer(): MusicPlayer {
   });
 
   let id: ThemeId | null = null, out: GainNode | null = null;
-  let step = 0, bar = 0, nextAt = 0, tune = 7;
+  let step = 0, bar = 0, nextAt = 0, tune = 7, lastLead: number | null = null;
 
-  /** One note: a quick (or slow) swell, then a fade to nothing by `start + dur`. */
-  function note(midi: number, wave: OscillatorType, start: number, dur: number, peak: number, attack: number): void {
+  /**
+   * One note: a quick (or slow) swell, then a fade to nothing by `start + dur`. It can be `detune`d (cents), `wobble`
+   * (cents either way, a few times a second), and slide in from the note before (`from`, MIDI).
+   */
+  function note(midi: number, wave: OscillatorType, start: number, dur: number, peak: number, attack: number,
+    opts: { detune?: number; wobble?: number; from?: number | null } = {}): void {
     const c = ctx!, o = c.createOscillator(), env = c.createGain();
     o.type = wave;
-    o.frequency.value = hz(midi);
+    o.detune.value = opts.detune ?? 0;
+    if (opts.from != null) {
+      o.frequency.setValueAtTime(hz(opts.from), start);
+      o.frequency.exponentialRampToValueAtTime(hz(midi), start + Math.min(0.25, dur / 3));
+    } else o.frequency.value = hz(midi);
+    if (opts.wobble) {
+      const lfo = c.createOscillator(), depth = c.createGain();
+      lfo.frequency.value = 3 + Math.random() * 2.5;
+      depth.gain.value = opts.wobble;
+      lfo.connect(depth).connect(o.detune);
+      lfo.start(start);
+      lfo.stop(start + dur + 0.05);
+    }
     env.gain.setValueAtTime(0, start);
     env.gain.linearRampToValueAtTime(peak, start + attack);
     env.gain.exponentialRampToValueAtTime(0.0001, start + dur);
@@ -78,22 +94,31 @@ export function createMusicPlayer(): MusicPlayer {
   /** Lay down one half-beat of the theme, at `t`. */
   function playStep(theme: Theme, p: Playing, t: number, half: number): void {
     const scale = scaleOf(theme, p.dark), at = (d: number, up = 0) => noteOf(theme.root + up, scale, d);
-    const chord = theme.chords[bar % theme.chords.length]!, g = p.gain;
+    const chord = theme.chords[bar % theme.chords.length]!, g = p.gain, up = scale.length;   // `up` degrees: an octave
     // Saw and square are loud for their size: take them down to sit with the soft waves.
     const soft = (w: OscillatorType) => (w === "sawtooth" || w === "square" ? 0.4 : 1);
     if (step === 0) {
-      for (const d of [chord, chord + 2, chord + 4]) note(at(d), theme.pad, t, half * STEPS * 1.1, 0.07 * g * soft(theme.pad), half * 3);
+      for (const d of [chord, chord + 2, chord + 4]) {
+        const twin = theme.detune ?? 0, each = twin ? 0.6 : 1;
+        note(at(d), theme.pad, t, half * STEPS * 1.1, 0.07 * g * soft(theme.pad) * each, half * 3, { detune: -twin / 2 });
+        if (twin) note(at(d), theme.pad, t, half * STEPS * 1.1, 0.07 * g * soft(theme.pad) * each, half * 3, { detune: twin / 2 });
+      }
+      if (theme.drone) for (const [n, peak] of [[theme.root - 12, 0.1], [theme.root - 6, 0.04]] as const) {
+        note(n, "sine", t, half * STEPS * 1.4, peak * g, half * 4, { wobble: 8 });
+      }
       if (p.rain > 0.05) note(theme.root - 24, "sine", t, half * STEPS * 1.2, 0.12 * p.rain * g, half * 4);
     }
     if (step === 0 || step === 4) note(at(chord, -12), "triangle", t, half * 3.5, 0.16 * g, 0.02);
-    if (theme.arp) note(at([chord, chord + 2, chord + 4, chord + 7][step % 4]!, 12 - p.lower), "sine", t, half * 1.6, 0.05 * g, 0.01);
+    if (theme.arp) note(at([chord, chord + 2, chord + 4, chord + up][step % 4]!, 12 - p.lower), "sine", t, half * 1.6, 0.05 * g, 0.01);
     // The tune: a step or two along the scale, or a leap back toward the chord if it strays; on the beat, a chord note.
     if (Math.random() < p.density * (step % 2 === 0 ? 1.2 : 0.6)) {
       tune += [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)]!;
-      if (Math.abs(tune - (chord + 7)) > 5) tune = chord + 7 + (Math.random() < 0.5 ? 0 : 2);
-      if (step % 2 === 0 && Math.random() < 0.6) tune = chord + 7 + [0, 2, 4][Math.floor(Math.random() * 3)]!;
-      const len = Math.random() < 0.3 ? 3 : Math.random() < 0.5 ? 2 : 1;
-      note(at(tune, -p.lower), theme.lead, t, half * len * 1.4, 0.11 * g * soft(theme.lead), 0.015);
+      if (Math.abs(tune - (chord + up)) > 5) tune = chord + up + (Math.random() < 0.5 ? 0 : 2);
+      if (step % 2 === 0 && Math.random() < 0.6) tune = chord + up + [0, 2, 4][Math.floor(Math.random() * 3)]!;
+      const len = (Math.random() < 0.3 ? 3 : Math.random() < 0.5 ? 2 : 1) * (theme.wobble ? 2 : 1), m = at(tune, -p.lower);
+      note(m, theme.lead, t, half * len * 1.4, 0.11 * g * soft(theme.lead), theme.wobble ? half * 0.8 : 0.015,
+        theme.wobble ? { wobble: theme.wobble, from: lastLead } : {});
+      lastLead = m;
     }
     // Rain: a drop or two of high notes.
     if (Math.random() < 0.12 * p.rain) note(at(chord + 14 + Math.floor(Math.random() * 5)), "sine", t + Math.random() * half, 0.5, 0.04 * g, 0.005);
@@ -104,8 +129,8 @@ export function createMusicPlayer(): MusicPlayer {
       game = g;
       nowPlaying.muted = muted;
       if (!ctx || !master || !filter || !echo || ctx.state !== "running") return;
-      const now = ctx.currentTime, want = themeFor(g.state, g.area.def);
-      master.gain.setTargetAtTime(muted ? 0 : MUSIC_VOLUME * (1 - 0.8 * tranceOf(g)), now, 0.4);
+      const trance = tranceOf(g), now = ctx.currentTime, want = themeFor(g.state, g.area.def, trance > 0);
+      master.gain.setTargetAtTime(muted ? 0 : MUSIC_VOLUME * (1 - 0.35 * trance), now, 0.4);
       if (want !== id) {
         if (out) {
           out.gain.setValueAtTime(out.gain.value, now);
@@ -120,7 +145,7 @@ export function createMusicPlayer(): MusicPlayer {
           out.gain.setValueAtTime(0, now);
           out.gain.linearRampToValueAtTime(1, now + MUSIC_FADE);
           out.connect(filter);
-          step = 0; bar = 0; tune = 7; nextAt = now + 0.1;
+          step = 0; bar = 0; tune = 7; lastLead = null; nextAt = now + 0.1;
         }
       }
       nowPlaying.theme = id;

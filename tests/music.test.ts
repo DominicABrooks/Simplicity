@@ -15,6 +15,12 @@ describe("music", () => {
     expect(themeFor("credits", { id: "witchwood" })).toBeNull();
   });
 
+  it("gives way to the fair folk's own music in a fairy ring's spell", () => {
+    expect(themeFor("play", { id: "witchwood" }, true)).toBe("underhill");
+    expect(themeFor("dead", { id: "witchwood" }, true)).toBeNull();
+    expect(THEMES.underhill.mode).toEqual([0, 2, 4, 6, 8, 10]);
+  });
+
   it("is light by day, dark by night, and eases through dawn and dusk", () => {
     expect(daylight(12)).toBe(1);
     expect(daylight(2)).toBe(0);
