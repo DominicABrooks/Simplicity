@@ -9,7 +9,8 @@ import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { CALDER_STAND } from "../src/areas/rift.ts";
 import { SCENES } from "../src/data/cutscenes.ts";
-import { AFTER_TALK, CROWD, HEAD_TALK, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF } from "../src/data/ending.ts";
+import { CROWD, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF } from "../src/data/ending.ts";
+import { AFTER, AFTER_GUARD, HEAD, HEAD_GUARD } from "../src/data/endtalk.ts";
 import { CALDER_FIGHT as F, CALDERS_HEAD } from "../src/data/rift.ts";
 import { HALF, T } from "../src/data/world.ts";
 import { beaten, bossSystem } from "../src/game/bosses.ts";
@@ -68,6 +69,14 @@ async function home(): Promise<Game> {
 }
 
 describe("the end of the story path", () => {
+  it("there's plenty for the city to say: hundreds of ways for each stance to put it, on the way up and after", () => {
+    for (const pieces of [HEAD, AFTER]) for (const stance of Object.keys(pieces.take) as (keyof typeof pieces.take)[]) {
+      const ways = Object.values(pieces.open).reduce((n, o) => n + o.length, 1) * pieces.take[stance].length * (pieces.close[stance].length + 1);
+      expect(pieces.take[stance].length).toBeGreaterThanOrEqual(14);
+      expect(ways).toBeGreaterThan(1000);
+    }
+  });
+
   it("the rift stone glows once Calder's gone and the crack has shut, and not before", async () => {
     const g = await calderBeaten();
     expect(beaten(g, "calder")).toBe(true);
@@ -211,13 +220,22 @@ describe("the end of the story path", () => {
       return talking(g)!.lines;
     };
     const grownUp = g.world.query("walker").find(([, c]) => (residentById(c.walker.id)?.age ?? 0) >= 14)!;
-    const r = residentById(grownUp[1].walker.id)!;
-    expect(HEAD_TALK[r.stance]).toContain(hear(grownUp[0])[0]);
-    expect(hear(grownUp[0])).toHaveLength(1);
+    const r = residentById(grownUp[1].walker.id)!, takes = HEAD.take[r.stance];
+    // How they take it, every time, and never the same take twice till they've all been said; said many ways.
+    const said: string[] = [], heard = new Set<string>();
+    for (let i = 0; i < takes.length; i++) {
+      const lines = hear(grownUp[0]), last = lines[lines.length - 1]!;
+      heard.add(lines.join(" / "));
+      const take = takes.find(t => last.startsWith(t));
+      expect(take).toBeDefined();
+      said.push(take!);
+    }
+    expect(new Set(said).size).toBe(takes.length);
+    expect(heard.size).toBe(takes.length);
     // The guards at the castle gate.
     enterArea(g, await loadArea("castle"), "town");
     const guard = g.world.query("sentry", "renderable").find(([, c]) => c.renderable.kind === "guard")![0];
-    expect(HEAD_TALK.guard).toContain(hear(guard)[0]);
+    expect(HEAD_GUARD).toContain(hear(guard)[0]);
     // The head laid at the King's feet: a word on that, the first time, and then their usual.
     const at = kingOf(g)![1].transform;
     endTalk(g);
@@ -225,7 +243,7 @@ describe("the end of the story path", () => {
     frame(g);
     skipCutscene(g);
     endCredits(g);
-    expect(AFTER_TALK.guard).toContain(hear(guard)[0]);
-    expect(AFTER_TALK.guard).not.toContain(hear(guard)[0]);
+    expect(AFTER_GUARD).toContain(hear(guard)[0]);
+    expect(AFTER_GUARD).not.toContain(hear(guard)[0]);
   });
 });

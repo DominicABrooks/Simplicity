@@ -5,7 +5,8 @@
 // the noise is, and as the hero comes near, the homecoming scene plays (src/data/cutscenes.ts): he sets the head at
 // the King's feet, the King has his say, and the credits roll (src/ui/credits.ts). After, the game goes on.
 import type { Entity } from "../core/ecs.ts";
-import { AFTER_TALK, HEAD_TALK, HOMECOMING } from "../data/ending.ts";
+import { HOMECOMING } from "../data/ending.ts";
+import { AFTER, AFTER_CHILD, AFTER_GUARD, CHATTINESS, HEAD, HEAD_CHILD, HEAD_FOLLOWING, HEAD_GUARD, type TalkPieces } from "../data/endtalk.ts";
 import { CALDER_FIGHT } from "../data/rift.ts";
 import { HALF } from "../data/world.ts";
 import type { CurrentArea } from "./game.ts";
@@ -13,6 +14,7 @@ import { beaten } from "./bosses.ts";
 import { calderGone } from "./calderfight.ts";
 import { onCue, onlyIf } from "./cutscene.ts";
 import type { Resident } from "../world/residents.ts";
+import { voiceOf } from "./conversation.ts";
 import { disperseCrowd, gatherCrowd, processionOn } from "./crowd.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { carryingHead, giveUpHead } from "./head.ts";
@@ -27,12 +29,14 @@ interface Ending {
   over: boolean;
   /** Who's had their say about it since (by their conversation key). */
   told: Set<string>;
+  /** What's left to say from each pool of lines, shuffled: nothing twice till all of it's been said. */
+  decks: Map<readonly string[], string[]>;
 }
 const endings = new WeakMap<Game, Ending>();
 function endingOf(g: Game): Ending {
   let s = endings.get(g);
   if (!s) {
-    const fresh: Ending = { glow: null, laid: false, over: false, told: new Set() };
+    const fresh: Ending = { glow: null, laid: false, over: false, told: new Set(), decks: new Map() };
     endings.set(g, s = fresh);
     g.events.on("reset", () => Object.assign(fresh, { glow: null, laid: false, over: false, told: new Set() }));
   }
@@ -47,17 +51,39 @@ export const headLaid = (g: Game): boolean => endingOf(g).laid;
 
 /**
  * What someone says to him at the end, instead of their usual (null if it's not the time): on his way up with the head,
- * how they take the sight of it, as they stand on the Edict (or as a child, one of the crowd behind him, or a guard);
- * and once the King's told the city, the first time each speaks to him after, how they take that. `key` is their
- * conversation key; `r` who they are, if they're one of the townsfolk (else a guard).
+ * how they take the sight of it (src/data/endtalk.ts: a grown-up in their own voice, as they stand on the Edict; a
+ * child; one of the crowd behind him; a guard); and once the King's told the city, the first time each speaks to him
+ * after, how they take that. `key` is their conversation key; `r` who they are, if they're one of the townsfolk.
  */
 export function endingTalk(g: Game, key: string, r: Resident | undefined, following: boolean): string[] | null {
-  const kid = !!r && r.age < 12, pick = (lines: readonly string[]) => [lines[Math.floor(g.rng.next() * lines.length)]!];
-  if (processionOn(g)) return pick(!r ? HEAD_TALK.guard : kid ? HEAD_TALK.child : following ? HEAD_TALK.following : HEAD_TALK[r.stance]);
+  const kid = !!r && r.age < 12, draw = (pool: readonly string[]) => [nextOf(g, pool)];
+  if (processionOn(g)) return !r ? draw(HEAD_GUARD) : kid ? draw(HEAD_CHILD) : following ? draw(HEAD_FOLLOWING) : compose(g, HEAD, r);
   const s = endingOf(g);
   if (!s.laid || s.told.has(key)) return null;
   s.told.add(key);
-  return pick(!r ? AFTER_TALK.guard : kid ? AFTER_TALK.child : AFTER_TALK[r.stance]);
+  return !r ? draw(AFTER_GUARD) : kid ? draw(AFTER_CHILD) : compose(g, AFTER, r);
+}
+
+/** A grown-up's say: maybe an opener in their voice, how they take it, maybe a last word; the chatty say more, the gruff less. */
+function compose(g: Game, pieces: TalkPieces, r: Resident): string[] {
+  const voice = voiceOf(r), how = CHATTINESS[voice], lines: string[] = [];
+  if (g.rng.next() < how.open) lines.push(nextOf(g, pieces.open[voice]));
+  const take = nextOf(g, pieces.take[r.stance]);
+  if (g.rng.next() < how.close) lines.push(`${take} ${nextOf(g, pieces.close[r.stance])}`);
+  else lines.push(take);
+  return lines;
+}
+
+/** The next line from a pool, dealt from a shuffled deck of it: none twice till every one's been said. */
+function nextOf(g: Game, pool: readonly string[]): string {
+  const decks = endingOf(g).decks;
+  let deck = decks.get(pool);
+  if (!deck?.length) {
+    deck = [...pool];
+    for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(g.rng.next() * (i + 1)); [deck[i], deck[j]] = [deck[j]!, deck[i]!]; }
+    decks.set(pool, deck);
+  }
+  return deck.pop()!;
 }
 
 /** The rift stone, if this is the Rift. */
