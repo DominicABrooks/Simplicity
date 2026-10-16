@@ -6,6 +6,7 @@ import { CINDER_AT } from "../src/areas/ashwild.ts";
 import { CINDER } from "../src/data/ashwild.ts";
 import { VICTORY as V } from "../src/data/victory.ts";
 import { bossSystem } from "../src/game/bosses.ts";
+import { inBossFight } from "../src/game/bossbar.ts";
 import { cinderFightSystem } from "../src/game/cinderfight.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { landGreatKoi } from "../src/game/greatkoi.ts";
@@ -51,6 +52,13 @@ describe("a boss beaten", () => {
     expect(g.world.get(g.player, "conversation")).toBeUndefined();   // still celebrating
     for (let t = 0; t < 0.4; t += 0.05) victorySystem(g, 0.05);
     expect(g.world.get(g.player, "conversation")).toMatchObject({ name: CINDER.name, line: 0 });
+  });
+
+  it("is a boss fight, for the messages across the top to keep quiet through, till it's over", async () => {
+    const g = await cinderFalls();
+    expect(inBossFight(g)).toBe(true);
+    for (let t = 0; t < V.last + 0.1; t += 0.05) { victorySystem(g, 0.05); cinderFightSystem(g, 0.05); }   // the fire out, the cheering done
+    expect(inBossFight(g)).toBe(false);
   });
 
   it("is the same for the Great Koi on the end of the line", () => {
