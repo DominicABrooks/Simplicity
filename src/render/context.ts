@@ -115,6 +115,15 @@ export function createContext(scene: THREE.Scene): RenderContext {
  */
 export const GROUND = { paving: 1, path: 2, plaza: 3, plazaRings: 4, rug: 5, stain: 6, shadow: 7, marker: 9 } as const;
 export const onGround = (layer: number) => ({ polygonOffset: true, polygonOffsetFactor: -layer, polygonOffsetUnits: -4 * layer });
+/**
+ * Something laid on another face, a hair proud of it (a panel on a throne's back, the dragon on a tapestry,
+ * glass in its frame), `layer` deep: 1 on the face, 2 on that... The PS1 vertex snap moves each vertex up to
+ * most of a pixel across the screen but not in depth, which tilts a face's depth by more than that hair, and
+ * which of the two wins then changes as the camera moves: whole panels flicker in and out as you walk. So
+ * each layer is pulled toward the camera in the depth test by more than the snap can tilt it (two pixels of
+ * the face's own depth slope).
+ */
+export const onFace = (layer = 1) => ({ polygonOffset: true, polygonOffsetFactor: -2 * layer, polygonOffsetUnits: -4 * layer });
 /** How high blob shadows and markers sit. */
 export const SHADOW_Y = 0.02, MARKER_Y = 0.03;
 

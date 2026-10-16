@@ -31,7 +31,7 @@ function askedForIt(g: Game) {
   Object.assign(g.world.need(g.player, "transform"), { x: transform.x, y: transform.y - 12 });
   startTalk(g, warden);
   const heard = [...talking(g)!.lines];
-  while (talking(g)) advanceTalk(g), advanceTalk(g);
+  while (talking(g)) { advanceTalk(g); advanceTalk(g); }
   return { warden, heard };
 }
 /** Stand the hero with his feet in the trail's exit south. */

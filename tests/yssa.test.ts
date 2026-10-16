@@ -39,7 +39,7 @@ function write(g: Game, written: string | null) {
   Object.assign(g.world.need(g.player, "transform"), { x: t.x + 12, y: t.y });
   startTalk(g, e);
   const heard = [...talking(g)!.lines];
-  while (talking(g)) advanceTalk(g), advanceTalk(g);
+  while (talking(g)) { advanceTalk(g); advanceTalk(g); }
   expect(writingFor(g)).toBe(e);
   expect(paperAsks(g)).toBe("name");
   handBack(g, written);
