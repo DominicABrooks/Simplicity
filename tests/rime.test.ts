@@ -216,7 +216,7 @@ describe("Rime's icicles and her ice block", () => {
     for (let i = 0; i < 6; i++) hitEnemy(g, e, 2, false);     // shot, from range
     rimeFightSystem(g, DT);
     expect(f.block).toBeNull();
-    for (let i = 0; i < 5; i++) hitEnemy(g, e, 2);            // up close
+    for (let i = 0; i < Math.ceil(RIME_FIGHT.block.melee / 2) + 1; i++) hitEnemy(g, e, 2);   // up close, a little past it
     rimeFightSystem(g, DT);
     expect(f.block).not.toBeNull();
     expect(enemy.warded).toBe(true);

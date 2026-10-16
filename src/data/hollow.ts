@@ -15,9 +15,9 @@ export const RIME = {
   radius: 7,
   height: 1.7,
   /** How much faster than an ordinary Frost mage she gets her casts, her novas and her blinks back. */
-  hurry: 1.8,
+  hurry: 1.5,
   /** How much wider her novas are, and how much faster her bolts fly, than an ordinary Frost mage's. */
-  nova: 1.6, bolt: 1.5,
+  nova: 1.3, bolt: 1.15,
   /** Experience for beating her (a mage is worth 50). */
   xp: 300,
 } as const;
@@ -32,20 +32,21 @@ export const RIME_FIGHT = {
   angry: 0.5,
   patch: {
     /** Seconds between rounds of frost patches: calm, angry. How many each round: calm, angry (one always under the hero). */
-    every: [3.2, 2], count: [2, 4],
+    every: [3.6, 2.6], count: [1, 2],
     /** How long each creeps over the ice before it freezes hard, and stays frozen after; how wide (px); how long it freezes him. */
-    warn: 1.2, hold: 2.4, radius: 9, freeze: 1.2,
+    warn: 1.4, hold: 2, radius: 8, freeze: 0.9,
   },
   /**
    * Icicle volleys: every so often she stands still, draws the cold in round her (`wind` seconds to see it coming), and
    * throws icicles out across the ice in one of two patterns: rings (`waves` of them, each `count` icicles, each ring
    * turned half a gap from the last so the safe lanes move), or a spiral (`arms` streams turning as they fire, `shots`
    * each). Calm, angry. Icicles fly straight at `speed` (px/s), shatter on the wall, and a dash or a jump goes through them.
+   * No new frost creeps while she's throwing one: one thing at a time, as with Cinder's walls of fire.
    */
   volley: {
-    first: 4, every: [6.5, 4.5], wind: 0.8, speed: 44,
-    rings: { waves: [3, 5], count: [12, 16], gap: 0.45 },
-    spiral: { arms: [3, 4], shots: [10, 14], gap: 0.14, turn: 0.32 },
+    first: 5, every: [8, 6], wind: 1.1, speed: 30,
+    rings: { waves: [2, 2], count: [8, 9], gap: 0.75 },
+    spiral: { arms: [2, 2], shots: [7, 9], gap: 0.24, turn: 0.32 },
   },
   /**
    * The ice block: carve `melee` damage off her up close within about `window` seconds and she seals herself in ice
@@ -54,23 +55,22 @@ export const RIME_FIGHT = {
    * freezes anyone still up against her. Not again for `cooldown` seconds after.
    */
   block: {
-    melee: 9, window: 4, hold: 7, cooldown: 14,
-    patches: { every: 1.1, count: 3 },
-    falls: { every: 0.45, count: 3, warn: 1, radius: 7, damage: 1, shatter: 0.5 },
-    burst: { radius: 34, freeze: 1.5 },
+    melee: 12, window: 4, hold: 5, cooldown: 18,
+    patches: { every: 2.4, count: 1 },
+    falls: { every: 1, count: 1, warn: 1.3, radius: 7, damage: 1, shatter: 0.5 },
+    burst: { radius: 26, freeze: 1 },
   },
   /**
    * Her last stand: the first blow that would finish her doesn't. She keeps her health, blinks to the middle of the
-   * ring and seals herself in ice for `hold` seconds, and the arena fills with icicles: a spiral of `arms` streams
-   * turning as they fire (and turning back the other way every `flip` seconds), a ring of `rings.count` every
-   * `rings.every` seconds through it, and icicles falling on the ice now and then. Then she bursts out, and the next
-   * blow that would finish her does.
+   * ring and seals herself in ice for `hold` seconds, and icicles stream out of it: a spiral of `arms` streams
+   * turning as they fire (and turning back the other way every `flip` seconds), with an icicle falling on the ice now
+   * and then (`rings.count` 0: no rings through it). Then she bursts out, and the next blow that would finish her does.
    */
   lastStand: {
-    hold: 15, speed: 40,
-    spiral: { arms: 4, gap: 0.18, turn: 0.2, flip: 4 },
-    rings: { every: 1.8, count: 14 },
-    falls: { every: 1.4, count: 2 },
+    hold: 8, speed: 28,
+    spiral: { arms: 2, gap: 0.3, turn: 0.22, flip: 4 },
+    rings: { every: 3, count: 0 },
+    falls: { every: 2.6, count: 1 },
   },
   /** When she falls, the lake thaws in a ring round where she stood: from this far out to this far (tiles). */
   thaw: { inner: 2, outer: 3.6 },

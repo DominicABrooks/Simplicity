@@ -150,7 +150,7 @@ function fallsAndPatches(g: Game, f: RimeFight, dt: number, safe: boolean, creep
 
   // Frost creeps out over the ice: one patch right under the hero, the rest round about him (faster, and all over, in the block).
   const P = F.patch;
-  if (creeping && (f.nextPatches -= dt) <= 0) {
+  if (creeping && !f.volley && (f.nextPatches -= dt) <= 0) {   // not while she's throwing icicles: one thing at a time
     f.nextPatches = f.block ? B.patches.every : P.every[f.angry ? 1 : 0];
     const n = f.block ? B.patches.count : P.count[f.angry ? 1 : 0];
     for (let i = 0; i < n; i++) {
@@ -248,7 +248,7 @@ function standPhase(g: Game, f: RimeFight, rime: Entity, dt: number, safe: boole
     sound(g, "cast", at);
   }
   // Rings through it.
-  if ((s.nextRing -= dt) <= 0) {
+  if (S.rings.count > 0 && (s.nextRing -= dt) <= 0) {
     s.nextRing = S.rings.every;
     const base = g.rng.next() * Math.PI * 2;
     for (let i = 0; i < S.rings.count; i++) fire(base + (i / S.rings.count) * Math.PI * 2);
