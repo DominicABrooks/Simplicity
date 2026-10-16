@@ -391,7 +391,9 @@ right where the biggest crack ran, something in the dark had opened one eye, loo
 
 The little door under St Mary's crypt that the Kellets keep sealing, the one carved with three flames, a
 snowflake and a lightning bolt, isn't the Vael's door. It's the Vael's lock on somebody else's door, and
-lately it keeps coming unlocked.
+lately it keeps coming unlocked. Behind it are the deep places, where the Old Mother laid the eggs right on
+top of the crack to hold it shut. With the eggs gone, all that's left holding it is the Vael's stitches
+across it, and they're coming loose too.
 
 ## How it all ends
 

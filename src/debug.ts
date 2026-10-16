@@ -2,13 +2,27 @@
 // and in the end-to-end build (`vite build --mode e2e`) for the Playwright specs in e2e/ to read the game
 // and set a scene up. Never in the published game: main.ts only calls this behind those two flags.
 import { AREA_IDS, loadArea } from "./areas/index.ts";
-import { STARTER_KIT } from "./data/items.ts";
+import { CURIOS, CURIO_IDS, STARTER_KIT, type CurioId } from "./data/items.ts";
+import { GIL } from "./data/quay.ts";
+import { churchyardOf } from "./game/ghost.ts";
+import { makeCurio } from "./items/items.ts";
+import { PENDANT, UNDERCROFT } from "./data/undercroft.ts";
+import { spendCurio, spentCurios } from "./game/curios.ts";
+import { chargePendant, pendantCharge, wearingPendant } from "./game/pendant.ts";
+import { sealOpen } from "./game/undercroft.ts";
+import { stitchesMended } from "./game/sealchamber.ts";
+
+/** The five old stones the Ringstone Pendant drinks from: area, entry, name. */
+const SEAL_STONES = [
+  ["witchwood", "start", "The Ranger's stone"], ["capital", "stone", "The fountain stone"], ["ashwild", "stone", "The ash stone"],
+  ["hollow", "stone", "The hollow stone"], ["rift", "stone", "The rift stone"],
+] as const;
 import { LAIRS, type Lair, type LairName } from "./game/lairs.ts";
 import { isFrozen, isGod, setFrozen, setGod } from "./game/cheats.ts";
 import { setState, type Game } from "./game/game.ts";
 import { HOMECOMING } from "./data/ending.ts";
 import { CALDER_FIGHT, CALDERS_HEAD } from "./data/rift.ts";
-import { T } from "./data/world.ts";
+import { HALF, T } from "./data/world.ts";
 import { bossSystem } from "./game/bosses.ts";
 import { calderFightSystem } from "./game/calderfight.ts";
 import { crowdOf } from "./game/crowd.ts";
@@ -37,6 +51,15 @@ import { ZONES } from "./game/zones.ts";
 import { layoutOf } from "./world/layouts.ts";
 import type { KitPiece } from "./data/items.ts";
 import type { Renderer } from "./render/renderer.ts";
+
+/** The query parameters the handle reads (see the end of exposeDebug): ?area=hollow, ?boss=cinder, ?curio=key, ?try=deep, ?ending=home... */
+export const DEBUG_PARAMS = ["area", "entry", "boss", "hour", "ending", "curio", "try", "god", "freeze"] as const;
+
+/** Does this page's address ask for any of them? Then the handle's on even in the site's own build, so they work there too. */
+export const wantsDebug = (search: string): boolean => {
+  const q = new URLSearchParams(search);
+  return DEBUG_PARAMS.some(k => q.has(k));
+};
 
 export function exposeDebug(g: Game, view: Renderer): void {
   /** Level him and dress him: `kit` worn, `bag` and the rest of the starter kit in the bag, at full health. */
@@ -155,6 +178,71 @@ export function exposeDebug(g: Game, view: Renderer): void {
     if (zone?.ready) kitOut(zone.ready);
     return `${def.name} (${at}): level ${g.world.need(g.player, "hero").level}, ${g.world.need(g.player, "health").maxHp} hearts`;
   }
+  /**
+   * Trying the curiosities (docs/CURIOSITIES.md): a fresh run with one in the bag, a few steps from where it belongs, at
+   * the hour it wants; what to do next is said back. Where each goes, and where to stand him (an entity's top-left, px).
+   */
+  const CURIO_TRIES: Record<CurioId, { area: string; hour?: number; at?: (g: Game) => { x: number; y: number } | null; next: string }> = {
+    bell: {
+      area: "capital", hour: 22, next: "It's night: walk north into St Mary's churchyard, and she'll rise for it.",
+      at: g => { const yard = churchyardOf(g); return yard ? { x: yard.x + yard.w / 2 - HALF, y: yard.y + yard.h + 3 * T } : null; },
+    },
+    // On the step outside the door (where he'd come up from below), clear of the graves.
+    key: { area: "capital", next: "Walk up into the low door at the foot of St Mary's tower.", at: g => { const out = g.area.layout.entries.undercroft; return out ? { ...out } : null; } },
+    stone: { area: "undercroft", next: "Walk up to the gap in the ring of stones at the north end." },
+    eye: { area: "kingsroad", next: "Talk to Old Gil, just north of you by his boat.", at: () => ({ x: GIL.x * T - HALF, y: (GIL.y + 2.8) * T - HALF }) },   // on the bank below him, clear of the bridge's lions
+    bottle: { area: "witchwood", next: "Open the bag (I) and right-click the bottle." },
+  };
+  async function curio(id: string = "bell"): Promise<string> {
+    if (!(CURIO_IDS as readonly string[]).includes(id)) return `No curiosity "${id}". Try: ${CURIO_IDS.join(", ")}`;
+    const t = CURIO_TRIES[id as CurioId], there = await area(t.area);
+    if (t.hour !== undefined) setHour(t.hour);
+    g.inventory.add(makeCurio(id as CurioId));
+    const at = t.at?.(g);
+    if (at) Object.assign(g.world.need(g.player, "transform"), at);
+    return `${there}. ${CURIOS[id as CurioId].name} in the bag. ${t.next}`;
+  }
+  /**
+   * The little door behind the Undercroft's ring (docs/CURIOSITIES.md): a fresh run in the Undercroft with the ring
+   * woken, the Ringstone Pendant on, drunk from all five old stones (or `stones` of them), stood just before the door.
+   */
+  async function seal(stones: number = PENDANT.stones): Promise<string> {
+    const there = await area("undercroft");
+    wearPendant(stones);
+    const at = g.area.layout.entries.seal;
+    if (at) Object.assign(g.world.need(g.player, "transform"), at);
+    return `${there}. The pendant's on, ${pendantCharge(g)} of ${PENDANT.stones}. Walk up into the little door.`;
+  }
+  /** The ring woken (its stone spent) and the Ringstone Pendant on, drunk from the first `stones` old stones, quietly. */
+  function wearPendant(stones: number): void {
+    spendCurio(g, "stone");
+    const r = UNDERCROFT.reward;
+    g.inventory.equip.amulet = { ...makeItem(r.type, r.rarity, { ...r.mods }, r.name), note: PENDANT.note(0) };
+    for (const [area, entry, name] of SEAL_STONES.slice(0, stones)) chargePendant(g, { area, entry, name }, true);
+  }
+  /**
+   * Trying St Mary's later pieces (docs/CURIOSITIES.md), each a fresh run set up for it (or load the page with
+   * ?try=seal, &stones=3 for a part-charged pendant):
+   *   seal     before the little door behind the ring, the pendant on and burning: walk up into it;
+   *   deep     in the deep places behind it, the pendant on: the eye's scene plays, then walk onto the crack;
+   *   pendant  the ring woken, the pendant on but cool, on the Ranger's stone: it drinks (1 of 5), then the other four;
+   *   porch    in the street below St Mary's churchyard: walk up the path to the porch door.
+   */
+  const TRIES: Record<string, (stones: number) => Promise<string>> = {
+    seal,
+    deep: async stones => { const there = await area("sealchamber"); wearPendant(stones); return `${there}. Watch the eye; then walk up onto the crack.`; },
+    pendant: async () => { const there = await area("witchwood", "start"); wearPendant(0); return `${there}. The pendant's on, cool: stand on the old stones.`; },
+    porch: async () => {
+      const there = await area("capital");
+      const yard = g.area.layout.props.find(p => p.kind === "graves" && p.path);
+      if (yard?.kind === "graves" && yard.path) Object.assign(g.world.need(g.player, "transform"), { x: yard.path.x * T - HALF, y: yard.rect.y + yard.rect.h + 1.2 * T });
+      return `${there}. Walk north up the churchyard path to St Mary's porch.`;
+    },
+  };
+  async function tryOut(id = "seal", stones: number = PENDANT.stones): Promise<string> {
+    const set = TRIES[id];
+    return set ? set(stones) : `Nothing to try called "${id}". Try: ${Object.keys(TRIES).join(", ")}`;
+  }
   Object.assign(window, {
     simplicity: {
       game: g, view, world: g.world,
@@ -173,6 +261,16 @@ export function exposeDebug(g: Game, view: Renderer): void {
       area,
       /** The ending: ending("home") and so on (see above), or load the page with ?ending=home (&crowd=12, &full). */
       ending,
+      /** The curiosities: curio("key") starts a fresh run with it in the bag, by where it goes (or load the page with
+       *  ?curio=key); bell, key, stone, eye or bottle. */
+      curio,
+      /** The little door behind the Undercroft's ring: seal() stands him before it with the pendant on and burning
+       *  (seal(3): only three stones drunk), or load the page with ?try=seal. */
+      seal,
+      /** St Mary's later pieces: tryOut("deep"), "pendant", "porch" or "seal" (see TRIES), or load the page with ?try=deep. */
+      tryOut,
+      /** How the Undercroft's pieces stand this run: the ring, the pendant's charge, the little door, the crack's stitches. */
+      undercroft: () => ({ ringWoken: spentCurios(g).has("stone"), wearing: wearingPendant(g), charge: pendantCharge(g), sealOpen: sealOpen(g), mended: stitchesMended(g) }),
       /** The time of day: hour(23) makes it 11 at night (or load the page with ?hour=23); with nothing, the hour it is now. */
       hour: (h?: number) => (h === undefined ? g.hour : setHour(h)),
       god: (on = !isGod(g)) => `god ${setGod(g, on) ? "on" : "off"}`,
@@ -184,7 +282,8 @@ export function exposeDebug(g: Game, view: Renderer): void {
   });
   // ?boss=cinder (with &god, &freeze): straight into the fight, after main.ts has put the title up. ?area=hollow (with
   // &entry=stone): straight there. ?hour=23 (0 to 24, fractions too): that time of day, there or wherever you start.
-  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour"), end = q.get("ending");
+  // ?curio=bell (key, stone, eye, bottle): a fresh run with it in the bag, a few steps from where it belongs.
+  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour"), end = q.get("ending"), cur = q.get("curio");
   if (q.has("god")) setGod(g, true);
   if (q.has("freeze")) setFrozen(g, true);
   if (at !== null && Number.isFinite(Number(at))) setHour(Number(at));
@@ -192,4 +291,6 @@ export function exposeDebug(g: Game, view: Renderer): void {
   if (end !== null) void ending(end || "stone", Number(q.get("crowd") ?? 8), q.has("full"), q.get("shot") ?? undefined).then(said => console.info(said));
   else if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
+  else if (cur !== null) void curio(cur || "bell").then(said => console.info(said));
+  else if (q.has("try")) void tryOut(q.get("try") || "seal", Number(q.get("stones") ?? PENDANT.stones)).then(said => console.info(said));
 }

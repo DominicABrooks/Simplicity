@@ -22,6 +22,8 @@ export interface ExitDef {
   to: Destination;
   needs?: "watchword";
   locked?: CurioId;
+  /** The little door behind the Undercroft's ring: shut till the Ringstone Pendant, burning, opens it (src/game/undercroft.ts). */
+  sealed?: true;
 }
 
 /** Static scenery the renderer builds for an area (and the map view marks). */
@@ -83,7 +85,8 @@ export type Prop =
   /** An eight-sided chapter house. */
   | { kind: "chapterHouse"; x: number; y: number; radius: number }
   /** Rows of headstones and crosses in a churchyard. */
-  | { kind: "graves"; rect: Rect }
+  /** A churchyard's graves in rows across `rect`, kept off a path (world units, its middle `x` and width `w`) running through it, if it has one. */
+  | { kind: "graves"; rect: Rect; path?: { x: number; w: number } }
   /** A market cross on its stepped base. */
   | { kind: "cross"; x: number; y: number }
   /** A round dovecote, doves wheeling about it. */
@@ -146,6 +149,14 @@ export type Prop =
   // Under St Mary's (src/render/undercroft.ts).
   /** A low iron-banded door in a wall, steps going down behind it, opening toward `facing`. */
   | { kind: "cryptDoor"; x: number; y: number; facing: Facing }
+  /** The Undercroft's stonework inside its `room` (same rect, door and doorAt): a blind arcade round the walls, bones
+   * shelved in some bays; round `pillars`, iron candle-stands at `prickets` (both solid), slabs let into the floor at
+   * `ledgers` (tile units); and in the wall on `seal.side`, `seal.at` tiles along, the little door the Kellets keep sealing. */
+  /** The seal-keepers' chamber behind the Undercroft's little door (src/render/undercroft.ts): the stone nest where the
+   * eggs lay, at (x, y) px, the Song of the Seal on slabs against the wall `back` tiles in from the room's north edge,
+   * two Vael lamps either side, and the crack under it, stitched shut. The nest and lamps are solid. */
+  | { kind: "vaelNest"; x: number; y: number; back: number }
+  | { kind: "crypt"; rect: Rect; door: Facing; doorAt: number; pillars: { x: number; y: number }[]; prickets: { x: number; y: number }[]; ledgers: { x: number; y: number }[]; seal: { side: Facing; at: number } }
   /** A stone chest tomb, long along `facing`'s axis, the one in it carved lying on the lid if `effigy`. */
   | { kind: "tomb"; x: number; y: number; facing: Facing; effigy: boolean }
   /** A ring of `stones` old grey standing stones, `radius` tiles out, the `gap`th (from the north, clockwise) missing. */
@@ -167,6 +178,10 @@ export type Prop =
   /** Rime's arena (the Frozen Hollow; see src/world/arena.ts): frost runes scratched into the ice, ringed by `pillars` pillars of
    * ice `radius` tiles out, the `gap`th (from the north, clockwise) left out for the way in. The pillars are solid. */
   | { kind: "rimeStage"; x: number; y: number; radius: number; pillars: number; gap: number }
+  /** The walls of an ice cave (src/render/grotto.ts): rock sheathed in ice over each of `cells`, its Wall tiles, `open` saying which
+   * of its sides face the cave floor (1 north, 2 east, 4 south, 8 west; 0 deep in the rock); and `hole`, the hole cut in the ice
+   * (its top-left tile and size), to dress round. The tiles block; the prop doesn't. */
+  | { kind: "iceWalls"; cells: { x: number; y: number; open: number }[]; hole?: { x: number; y: number; w: number; h: number } }
   /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
   | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" | "calder" }
   /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */

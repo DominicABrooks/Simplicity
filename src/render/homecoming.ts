@@ -1,7 +1,8 @@
 // The end of the story path (src/game/ending.ts), drawn: the rift stone once Calder's gone, glowing brighter than any
 // stone has before, a column of warm light standing up out of it and motes drifting up through it; and Calder's head
-// set down at the King's feet, a round grey stone with the dark gone out of its face; and, last of all in the credits,
-// the lantern of his own on the sill of his room at the Fells'.
+// set down at the King's feet, a round grey stone with the dark gone out of its face; the lantern of his own on the sill
+// of his room at the Fells', last of all in the credits; and, before any of it, the Ranger's grey cloak hung from the
+// Fells' window so he'll know the house when he comes home.
 import * as THREE from "three";
 import { put } from "./castle.ts";
 import { GROUND, SHADOW_Y, addShadow, onGround, toWorld, type RenderContext } from "./context.ts";
@@ -68,6 +69,36 @@ export const head: EntityView<HeadView> = {
   update() {},
   remove(ctx, v) {
     ctx.scene.remove(v.group, v.shadow);
+    disposeTree(v.group);
+  },
+};
+
+/**
+ * The Ranger's grey cloak hung out of the window over the sill: the hood bunched over the sill, the cloth falling in
+ * three panels (the middle one paler, catching the light), the hem lifting a little off the wall and stirring in the
+ * wind. Side by side, never one laid over another, so nothing flickers through anything.
+ */
+interface CloakView { group: THREE.Group; cloth: THREE.Group; k: number }
+export const cloak: EntityView<CloakView> = {
+  create(ctx, e, g) {
+    const c = g.world.need(e, "cloak"), t = g.world.need(e, "transform"), [x, z] = toWorld(t.x, t.y);
+    // A pale grey, to stand out against the dark timbers and shutters from the street.
+    const group = new THREE.Group(), cloth = new THREE.Group(), grey = ctx.lambert("#b4b9c1"), dark = ctx.lambert("#8f949d");
+    group.position.set(x, c.y - 0.2, z);
+    group.rotation.y = c.yaw;
+    group.add(cloth);
+    put(cloth, new THREE.BoxGeometry(0.5, 0.09, 0.09), dark, 0, 0, 0);                      // the hood, over the sill
+    for (const [sx, wide, long, mat] of [[-0.17, 0.16, 0.66, dark], [0, 0.18, 0.72, grey], [0.17, 0.16, 0.64, dark]] as const) {
+      put(cloth, new THREE.BoxGeometry(wide, long, 0.025).translate(0, -long / 2, 0), mat, sx, -0.04, 0);
+    }
+    ctx.scene.add(group);
+    return { group, cloth, k: (e * 0.61) % 10 };
+  },
+  update(_ctx, v, _e, _g, f) {
+    v.cloth.rotation.x = -0.08 + Math.sin(f.t * 1.3 + v.k) * 0.03;   // the hem lifting off the wall, stirring
+  },
+  remove(ctx, v) {
+    ctx.scene.remove(v.group);
     disposeTree(v.group);
   },
 };

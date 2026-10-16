@@ -9,7 +9,7 @@ export const CLUES: Record<CurioId, readonly string[]> = {
   stone: [
     "That stone you've got... it's warm, isn't it? There are old stones like it out in the Witchwood. The Ranger used to sit by one.",
     "My gran said the old stones talk to each other, underneath. That one looks like it's listening.",
-    "Where did you get that stone? Don't show it round the market. Show it to someone who knows the wood.",
+    "Stones like that stood on the hill before there was a city. St Mary's is built right on top of them. Ask the sexton what's under the tower.",
   ],
   key: [
     "That key's older than the city wall. There's a door under St Mary's nobody's opened since the Edict.",

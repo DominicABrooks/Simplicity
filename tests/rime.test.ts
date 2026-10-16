@@ -154,7 +154,7 @@ describe("Rime", () => {
     // Gone, and thawed, the next time he comes; back, and frozen, in a new run.
     enterArea(g, await loadArea("hollow"), "stone");
     expect(standOff(g, 3)).toBeUndefined();
-    expect(g.map.tiles.flat().filter(t => t === Tile.Water).length).toBeGreaterThan(thawed);
+    expect(g.map.tiles.flat().filter(t => t === Tile.Water).length).toBe(thawed);   // the thawed ring is the lake's only open water
     resetGame(g);
     setState(g, "play");
     enterArea(g, await loadArea("hollow"), "stone");

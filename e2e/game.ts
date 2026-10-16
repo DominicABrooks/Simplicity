@@ -16,6 +16,8 @@ export interface Handle {
   hero(): Point;
   haunting(): Haunting;
   doors(): { id: number; name: string; x: number; y: number; home: number }[];
+  /** How the Undercroft's pieces stand this run (src/debug.ts). */
+  undercroft(): { ringWoken: boolean; wearing: boolean; charge: number; sealOpen: boolean; mended: boolean };
 }
 
 declare global {
@@ -39,6 +41,21 @@ export async function startGame(page: Page): Promise<void> {
   await page.keyboard.press("Enter");
   await expect(page.locator("#overlay")).toBeHidden();
   await waitFor(page, () => window.simplicity.game.state === "play");
+}
+
+/**
+ * Load the game straight into a scene from its address, as anyone can on the site (`query` without its `?`:
+ * "try=deep", "curio=stone", "area=hollow"...; see src/debug.ts), and wait for it to be playing there.
+ */
+export async function startAt(page: Page, query: string): Promise<void> {
+  await page.goto(`./?${query}`);
+  await page.waitForFunction(() => !!window.simplicity);
+  await page.evaluate(() => {
+    window.toasts = [];
+    window.simplicity.game.events.on("toast", t => window.toasts.push(t.text));
+  });
+  await waitFor(page, () => window.simplicity.game.state === "play");
+  await expect(page.locator("#overlay")).toBeHidden();
 }
 
 /** Let the game play on for this many seconds of its own time (it only counts while playing). */

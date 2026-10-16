@@ -20,6 +20,7 @@ import { disperseCrowd, gatherCrowd, processionOn } from "./crowd.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { carryingHead, giveUpHead } from "./head.ts";
 import { makePeace } from "./peace.ts";
+import { watchFells } from "./fells.ts";
 import { spawnKing } from "./spawn.ts";
 import { TOUCH_AT } from "./stones.ts";
 
@@ -115,6 +116,7 @@ function goHome(g: Game): boolean {
 /** Set up the ending: the King out on the keep steps when he comes home with the head, and the scene's cues. Call once, at start-up. */
 export function watchEnding(g: Game): void {
   endingOf(g);
+  watchFells(g);                                            // the grey cloak at the Fells' window, till Wystan's home
   onlyIf("homecoming", g => beaten(g, "calder") && carryingHead(g) && !headLaid(g));
   onCue("layHead", layHead);
   onCue("credits", g => {

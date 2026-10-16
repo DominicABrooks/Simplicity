@@ -5,12 +5,14 @@
 // faintly warm, one of them missing.
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout, Facing, FurnitureItem } from "../world/area.ts";
+import { ringPlan } from "../world/stonering.ts";
 import { Town, px } from "../world/townkit.ts";
 
 const W = 18, H = 18;
 /** The door, mid-south wall; the room's middle line; the ring's centre. */
 const DOOR_AT = W / 2 - 1, MID = W / 2;
 export const RING = { x: MID, y: 5.6, radius: 2.7, stones: 7, gap: 3 } as const;
+const SOCKET = ringPlan({ kind: "stoneRing", ...RING, x: RING.x * T, y: RING.y * T }).socket;
 
 function build(): AreaLayout {
   const town = new Town(W, H, Tile.Cobble);
@@ -25,17 +27,36 @@ function build(): AreaLayout {
     town.add({ kind: "tomb", x: 2.2 * T, y: y * T, facing: "east", effigy: i !== 1 });
     town.add({ kind: "tomb", x: (W - 2.2) * T, y: y * T, facing: "west", effigy: i !== 2 });
   }
-  // The Waxleys' candles between them, and the sexton's stores by the door.
-  for (const y of [10.85, 13.55]) for (const x of [3.6, W - 3.6]) add("candelabra", x, y, "south");
+  // The undercroft's own stonework: the arcade round the walls, two pairs of squat pillars holding up the church, the
+  // Waxleys' candles on their iron stands between the tombs, and slabs let into the floor of the aisle.
+  town.add({
+    kind: "crypt", rect: px([0, 0, W, H]), door: "south", doorAt: DOOR_AT,
+    pillars: [{ x: 4.8, y: 10.9 }, { x: 4.8, y: 13.6 }, { x: W - 4.8, y: 10.9 }, { x: W - 4.8, y: 13.6 }],
+    prickets: [{ x: 3.4, y: 10.85 }, { x: W - 3.4, y: 13.55 }, { x: 3.4, y: 13.55 }, { x: W - 3.4, y: 10.85 }],
+    ledgers: [{ x: MID - 0.9, y: 11.2 }, { x: MID + 0.9, y: 12.9 }, { x: MID - 0.9, y: 14.6 }],
+    // Behind the ring, in the north wall: the little door carved with the three fires, under the Kellets' seals.
+    seal: { side: "north", at: MID },
+  });
+  // The sexton's stores by the door.
   add("barrel", 2.2, H - 1.6, "north");
   add("shelf", W - 2.4, H - 1.2, "north");
   add("chest", W - 4, H - 1.5, "north");
 
   return town.layout(
-    // Down the steps, just inside the door.
-    { steps: { x: MID * T - HALF, y: (H - 2.6) * T - HALF } },
-    // Back up the steps, into St Mary's churchyard.
-    [{ rect: { x: DOOR_AT * T, y: (H - 1) * T + 3, w: 1.3 * T, h: T - 3 }, to: { area: "capital", entry: "undercroft" } }],
+    // Down the steps, just inside the door; and, once the ring's woken (src/game/undercroft.ts), in the ring, by the
+    // stone that went home, where Ael wakes him after a fall; and back out of the little door behind the ring.
+    {
+      steps: { x: MID * T - HALF, y: (H - 2.6) * T - HALF },
+      ring: { x: (SOCKET.x + (RING.x - SOCKET.x) * 0.4) * T - HALF, y: (SOCKET.z + (RING.y - SOCKET.z) * 0.4) * T - HALF },
+      seal: { x: MID * T - HALF, y: 1.7 * T - HALF },
+    },
+    [
+      // Back up the steps, into St Mary's churchyard.
+      { rect: { x: DOOR_AT * T, y: (H - 1) * T + 3, w: 1.3 * T, h: T - 3 }, to: { area: "capital", entry: "undercroft" } },
+      // Through the little door behind the ring, once the burning pendant's opened it, into the deep places.
+      // (Reaching just into the first row of open tiles, so the map knows it's walkable to.)
+      { rect: { x: (MID - 0.4) * T, y: 0.4 * T, w: 0.8 * T, h: 0.6 * T + 1 }, to: { area: "sealchamber", entry: "door" }, sealed: true },
+    ],
   );
 }
 

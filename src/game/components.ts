@@ -421,7 +421,7 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head" | "lantern" | "dragon" | "egg";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "sealdoor" | "stitches" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head" | "lantern" | "dragon" | "egg" | "cloak";
 
 /** A beaten lieutenant's spirit, in the middle of their arena (src/game/spirits.ts): whose. */
 export interface Spirit { who: "cinder" | "rime" }
@@ -451,6 +451,9 @@ export interface Dragon {
  * pushed up from inside, tipped back, and off into the grass.
  */
 export interface Egg { school: "ember" | "frost" | "storm"; gilt: number; glow: number; crack: number; open: boolean; hatch: number }
+
+/** The Ranger's grey cloak, hung from a window (src/game/fells.ts): which way the wall faces, and how high the sill is (world units). */
+export interface Cloak { yaw: number; y: number }
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -490,4 +493,5 @@ export interface Components {
   watcher: Watcher;
   dragon: Dragon;
   egg: Egg;
+  cloak: Cloak;
 }

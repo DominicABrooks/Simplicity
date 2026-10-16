@@ -3,6 +3,9 @@
 import { KING_HOMECOMING } from "./ending.ts";
 import { KING_AUDIENCE, KINGS_TASK } from "./king.ts";
 
+/** The eye under the crack, in its scene: how long (s) it takes to open, and to search and narrow (src/render/undercroft.ts plays it). */
+export const EYE_BEATS = { open: 1.1, search: 2.2 } as const;
+
 /** What the camera looks at: the hero, the speaker, or between the two. */
 export type Look = "hero" | "speaker" | "both";
 
@@ -29,8 +32,8 @@ export interface Scene {
   area: string;
   /** ...or, if this is set, once he comes this near (px) to whoever speaks; and only when the game says it can (see onlyIf). */
   near?: number;
-  /** ...where this is who speaks: the render kind of the one to find there. */
-  speaker: "king";
+  /** ...where this is who speaks (or, with no lines, who the scene's about): the render kind of the one to find there. */
+  speaker: "king" | "stitches";
   /** Their conversation key (as talk.ts keeps them): the scene counts as the first talk with them. */
   key: string;
   beats: readonly Beat[];
@@ -72,5 +75,17 @@ export const SCENES: readonly Scene[] = [
       { look: "both", zoom: 0.75, hold: 1 },
     ],
     then: "credits",
+  },
+  {
+    // The deep places (src/game/sealchamber.ts), the first time in: no words. The camera eases down over the crack; the
+    // eye under it opens, and searches along it, past the hero, back; it can't see him (the Erl-King: when it looks
+    // for him it finds only warmth, and it's afraid), and it stops, and narrows. Then back to him.
+    id: "eye", area: "sealchamber", near: 200, speaker: "stitches", key: "crack", pace: 26,
+    beats: [
+      { look: "both", zoom: 0.95, hold: 0.6 },
+      { look: "speaker", zoom: 0.42, hold: EYE_BEATS.open },
+      { look: "speaker", zoom: 0.42, hold: EYE_BEATS.search },
+      { look: "hero", zoom: 1, hold: 0.7 },
+    ],
   },
 ];

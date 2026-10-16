@@ -21,6 +21,8 @@ export const LAMP_POST = 0.14;
 
 /** A box `w` by `d` world units centred on (x, z). */
 const box = (x: number, z: number, w: number, d: number): Shape => ({ kind: "box", x: (x - w / 2) * T, y: (z - d / 2) * T, w: w * T, h: d * T });
+/** The seal-keepers' nest's radius, and how far either side of it its lamps stand (tiles; src/render/undercroft.ts). */
+export const NEST_R = 1.05, LAMP_OFF = 2.8;
 const circle = (x: number, z: number, r: number): Shape => ({ kind: "circle", x: x * T, y: z * T, r: r * T });
 const capsule = (a: XZ, b: XZ, r: number): Shape => ({ kind: "capsule", ax: a.x * T, ay: a.z * T, bx: b.x * T, by: b.z * T, r: r * T });
 const rectCentre = (r: Rect): XZ => ({ x: (r.x + r.w / 2) / T, z: (r.y + r.h / 2) / T });
@@ -55,6 +57,7 @@ export function propSolids(p: Prop): Shape[] {
         ...(c.towerS ? [box(c.x + c.west + c.towerS / 2, c.z, c.towerS, c.towerS)] : []),
         box(c.x + (c.naveX0 + c.chancelX0) / 2, c.z, c.chancelX0 - c.naveX0, c.naveD),
         box(c.x + (c.chancelX0 + c.W / 2) / 2, c.z, c.W / 2 - c.chancelX0, c.chancelD),
+        box(c.x + c.porch.x, c.z + c.naveD / 2 + c.porch.d / 2, c.porch.w, c.porch.d),   // the south porch
       ];
     }
     case "cathedral": {
@@ -68,7 +71,7 @@ export function propSolids(p: Prop): Shape[] {
     }
     case "cloister": return cloisterWalls(p);
     case "chapterHouse": return [circle(p.x / T, p.y / T, p.radius * 1.05)];
-    case "graves": return gravePlan(p.rect).map(g => { const [dz, w, d] = GRAVE_FOOT[g.kind]; return box(g.x, g.z + dz, w, d); });
+    case "graves": return gravePlan(p).map(g => { const [dz, w, d] = GRAVE_FOOT[g.kind]; return box(g.x, g.z + dz, w, d); });
     case "cross": return [circle(p.x / T, p.y / T, 1.1)];
     case "lion": { const d = LION_PLINTH + 0.1; return [p.facing === "north" || p.facing === "south" ? box(p.x / T, p.y / T, 1.3, d) : box(p.x / T, p.y / T, d, 1.3)]; }
     case "dovecote": return [circle(p.x / T, p.y / T, 1.15)];
@@ -111,6 +114,11 @@ export function propSolids(p: Prop): Shape[] {
       return w ? [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, w, d)] : [];
     }
     case "lamp": return [circle(p.x / T, p.y / T, LAMP_POST)];
+    case "crypt": return [...p.pillars.map(q => circle(q.x, q.y, 0.24)), ...p.prickets.map(q => circle(q.x, q.y, 0.18))];
+    case "vaelNest": {
+      const x = p.x / T, z = p.y / T;
+      return [circle(x, z, NEST_R), circle(x - LAMP_OFF, z, 0.22), circle(x + LAMP_OFF, z, 0.22), ...[-1.8, 0, 1.8].map(dx => circle(x + dx, p.back + 0.3, 0.3))];
+    }
     case "cryptDoor": return [];                           // set into the wall, which is solid already
     case "tomb": return [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, 0.9, 1.9)];
     case "stoneRing": return ringPlan(p).stones.map(s => circle(s.x, s.z, RING_STONE_R));
@@ -120,7 +128,7 @@ export function propSolids(p: Prop): Shape[] {
       return [[x0, gx0], [gx1, x0 + w]].filter(([a, b]) => b! - a! > 0.1).map(([a, b]) => box((a! + b!) / 2, z, b! - a!, 0.5));
     }
     case "greatCrack": return greatCrackPlan(p).map(s => capsule(s.a, s.b, s.r));
-    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": case "oldStone": case "fairyRing": return [];
+    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": case "oldStone": case "iceWalls": case "fairyRing": return [];
   }
 }
 
@@ -155,13 +163,13 @@ export type GraveKind = 0 | 1 | 2 | 3 | 4 | 5;
 const GRAVE_FOOT: Record<GraveKind, [number, number, number]> = { 0: [0, 0.5, 0.25], 1: [0, 0.4, 0.3], 2: [0, 0.4, 0.2], 3: [0.35, 0.66, 1.06], 4: [0, 0.4, 0.3], 5: [0, 0.3, 0.15] };
 const GRAVE_KINDS: readonly GraveKind[] = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 5, 5];
 
-/** Graves in a churchyard: rows across the rect (world units), with the odd gap. */
-export function gravePlan(rect: Rect): { x: number; z: number; kind: GraveKind }[] {
+/** Graves in a churchyard: rows across the rect (world units), with the odd gap, and none on its path (graves past a church door). */
+export function gravePlan({ rect, path }: { rect: Rect; path?: { x: number; w: number } }): { x: number; z: number; kind: GraveKind }[] {
   const out: { x: number; z: number; kind: GraveKind }[] = [];
   const x0 = rect.x / T + 0.8, z0 = rect.y / T + 0.8, x1 = (rect.x + rect.w) / T - 0.8, z1 = (rect.y + rect.h) / T - 0.8;
   for (let z = z0, row = 0; z <= z1; z += 1.6, row++) for (let x = x0 + (row % 2) * 0.6; x <= x1; x += 1.3) {
     const h = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453, k = h - Math.floor(h);
-    if (k < 0.18) continue;
+    if (k < 0.18 || (path && Math.abs(x - path.x) < path.w / 2 + 0.35)) continue;
     out.push({ x, z, kind: GRAVE_KINDS[Math.floor(k * 1000) % GRAVE_KINDS.length]! });
   }
   return out;

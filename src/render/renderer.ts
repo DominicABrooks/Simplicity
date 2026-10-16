@@ -40,8 +40,10 @@ export interface Renderer extends Projector {
 
 /** The light inside a house: no sky, a dim warm fill and a low sun for shading (the hearth brings its own fire). */
 const INDOORS = { sky: "#120d10", fill: 0xffd8b0, fillI: 0.85, sun: 0xffc890, sunI: 0.55 } as const;
+/** ...and in a cave under the snow (the Koi Grotto): cold and blue, the light coming off the ice. */
+const ICE_CAVE = { sky: "#0a1016", fill: 0xc8e4ff, fillI: 0.9, sun: 0xb0d8ff, sunI: 0.5 } as const;
 /** ...and under the hill (src/areas/underhill.ts): a violet dusk that isn't a sky, a soft green light off the grass. */
-const UNDER_HILL = { sky: "#1a0f2e", fill: 0xc0a8ff, fillI: 1.1, sun: 0xb8ffd8, sunI: 0.6 } as const;
+const UNDER_HILL = { sky: "#120a24", fill: 0xb59cff, fillI: 0.8, sun: 0xb8ffd8, sunI: 0.45 } as const;   // dim enough that what glows under the hill, glows
 const CAM_OFFSET = new THREE.Vector3(0, 11.5, 8.5);
 /** The camera's offset turned round for a credits shot, and the axis it turns about. */
 const reelOffset = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
@@ -155,17 +157,18 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       koi.update(dt, t, px, pz, bobber, !greatKoiBeaten(g) && greatKoiOut(g) === null);   // the big one's under the ice till it's hooked
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
-      erlKing.update(g, t);
+      erlKing.update(g, t, dt);
       occlusion.update(reel ? camTarget.x : px, reel ? camTarget.z : pz, toCamera, dt);
       targetRing.update(g, t);
 
       // World animation, light and camera.
-      if (g.area.def.indoors) {                              // indoors: dark beyond the walls, lit warm by the fire
-        sky.set(INDOORS.sky);
-        fill.color.set(INDOORS.fill);
-        fill.intensity = INDOORS.fillI;
-        sun.color.set(INDOORS.sun);
-        sun.intensity = INDOORS.sunI;
+      if (g.area.def.indoors) {                              // indoors: dark beyond the walls, lit warm by the fire (or cold, off the ice)
+        const inside = g.map.look === "snow" ? ICE_CAVE : INDOORS;
+        sky.set(inside.sky);
+        fill.color.set(inside.fill);
+        fill.intensity = inside.fillI;
+        sun.color.set(inside.sun);
+        sun.intensity = inside.sunI;
       } else daylight.update(g.hour);
       if (g.area.def.id === "underhill") {                     // under the hill, its own light
         sky.set(UNDER_HILL.sky);
@@ -176,7 +179,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       }
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
       // No rain indoors; where it's always winter, it's always snowing, and the rain comes down as more snow.
-      const winter = g.map.look === "snow";
+      const winter = g.map.look === "snow" && !g.area.def.indoors;
       weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : winter ? { ...g.weather, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z, winter ? 0.45 + g.weather.rain * 0.55 : 0);
       // How much light there is now, from the sky light and the sun as the hour and weather leave them (1 by day,
       // about a third at night): flat colours are shaded by it, and enemies glow a little more the darker it gets.

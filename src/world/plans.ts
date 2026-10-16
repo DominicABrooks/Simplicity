@@ -96,7 +96,9 @@ export function cathedralPlan(rect: Rect) {
 export function churchPlan(p: PropOf<"church">) {
   const rect = p.rect, W = rect.w / T, D = rect.h / T, towerS = p.tower === "bellcote" ? 0 : Math.min(D - 0.6, 4.2), chancelL = Math.max(3, W * 0.28);
   const west = -W / 2, naveX0 = west + Math.max(0, towerS - 0.4), chancelX0 = W / 2 - chancelL;
-  return { ...centre(rect), W, D, towerS, west, naveX0, chancelX0, naveD: D - 0.6, chancelD: (D - 0.6) * 0.72, naveH: 5.5, chancelH: 4.4 };
+  // The south porch, a third of the way along the nave, standing out from it: its middle (x) and size.
+  const porch = { x: naveX0 + (chancelX0 - naveX0) * 0.35, w: 1.8, d: 1.4 };
+  return { ...centre(rect), W, D, towerS, west, naveX0, chancelX0, naveD: D - 0.6, chancelD: (D - 0.6) * 0.72, naveH: 5.5, chancelH: 4.4, porch };
 }
 
 // ---------- The keep ----------
