@@ -94,6 +94,13 @@ export const THEMES = {
    */
   watchers: { root: 38, mode: [0, 1, 6, 7], chords: [0, 1, 0, 2, 0, 3, 1, 0], bpm: 40, pad: "sawtooth", lead: "triangle", density: 0.16, bright: 1300, sky: false,
     drone: true, detune: 20, wobble: 40, wobbleRate: 0.7, warp: 16, sag: 0.3, swell: true, distort: 0.45, gain: 0.8 },
+  /**
+   * The Throne Room, its own, whatever the hour: a stately processional before the King. Slow and grand, an organ of
+   * a chord (each note doubled a little apart, so it swells and beats like pipes) under a brass tune that steps out
+   * and lands on the beat, rising through the old cadence home: I, V, vi, IV, and back.
+   */
+  throneroom: { root: 55, mode: IONIAN, chords: [0, 4, 5, 3, 0, 3, 4, 0], bpm: 62, pad: "sawtooth", lead: "square", density: 0.38, bright: 2300, sky: false,
+    detune: 9, gain: 1.05 },
   /** Inside someone's house: by the fire. */
   hearth: { root: 53, mode: IONIAN, chords: [0, 3, 0, 4], bpm: 72, pad: "triangle", lead: "triangle", density: 0.35, bright: 1600, sky: false },
 } satisfies Record<string, Theme>;
@@ -106,10 +113,10 @@ export const MUSIC_VOLUME = 0.16;
 export const MUSIC_FADE = 2.5;
 
 /**
- * Areas that share a theme rather than have their own: all of Capital City, from the King's Bridge to the Throne Room,
- * plays the castle's, so it carries on unbroken from one district to the next.
+ * Areas that share a theme rather than have their own: Capital City, from the King's Bridge to the castle ward, plays
+ * the castle's, so it carries on unbroken from one district to the next. (Not the Throne Room: that has its own.)
  */
-const SHARED: Record<string, ThemeId> = { capital: "castle", kingsroad: "castle", castle: "castle", throneroom: "castle" };
+const SHARED: Record<string, ThemeId> = { capital: "castle", kingsroad: "castle", castle: "castle" };
 
 /** How dark it has to be (daylight under this) for a theme to give way to its `night` one. */
 const NIGHT_FALLS = 0.35;

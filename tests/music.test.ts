@@ -26,11 +26,12 @@ describe("music", () => {
     expect(themeFor("play", { id: "underhill" }, { watched: true })).toBe("watchers");
   });
 
-  it("plays the castle's all over Capital City, so it doesn't break off between districts", () => {
-    for (const id of ["capital", "kingsroad", "castle", "throneroom"]) {
+  it("plays the castle's all over Capital City, so it doesn't break off between districts; but the Throne Room has its own, day and night", () => {
+    for (const id of ["capital", "kingsroad", "castle"]) {
       expect(themeFor("play", { id }, { hour: 12 }), id).toBe("castle");
       expect(themeFor("play", { id }, { hour: 23 }), id).toBe("castleNight");
     }
+    for (const hour of [12, 23, 4]) expect(themeFor("play", { id: "throneroom", indoors: true }, { hour })).toBe("throneroom");
   });
 
   it("has the castle bright by day and something else after dark, changing over at dusk and dawn", () => {
