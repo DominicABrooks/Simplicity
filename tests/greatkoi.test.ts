@@ -139,6 +139,7 @@ describe("the Great Koi", () => {
     expect(pickup.item.note).toBeTruthy();
     expect(g.world.has(rodE, "despawn")).toBe(false);
     expect(g.world.query("pickup").filter(([, c]) => c.pickup.kind === "potion").length - potions).toBe(GREAT_KOI.potions);
+    g.hitstop = 0;                                           // the world moving again, after the victory's dead stop
     expect(strike(g)?.name).toBe(FISH.rare.name);
     expect(greatKoiOut(g)).toBeNull();
     resetGame(g);

@@ -2,7 +2,10 @@
 // as long as he's in the ring, and the longer he stands still the deeper it goes, till after a few seconds there's
 // nothing left but the fair folk's lights and the ring itself; stand on, and the hearts and bars go too, and the fair folk
 // start talking to him (src/data/feysayings.ts). One step and it eases back; out of the ring (or come the dawn) it's
-// gone, and if they said anything to him while he was in it, they leave him something to remember it by.
+// gone, and if they said anything to him while he was in it, they leave him something to remember it by. All the while
+// it sounds (src/data/sfx.ts): a slow run of notes in and out, soft bells and a low wavering hum as it deepens, and far-off
+// voices when they speak. Once he's come back up from the hill the third time, with the watchers there and the Erl-King
+// gone (src/game/underhill.ts), the ring is broken: nothing happens in it any more, and it looks it (src/render/fey.ts).
 import { FAIRY_RING as F, FEY_GIFT } from "../data/fey.ts";
 import { FEY_SAYINGS } from "../data/feysayings.ts";
 import { isDay } from "../data/daylight.ts";
@@ -10,6 +13,8 @@ import { HALF } from "../data/world.ts";
 import { makeItem } from "../items/items.ts";
 import type { Prop } from "../world/area.ts";
 import { toast, type Game } from "./game.ts";
+import { visitsUnderhill } from "./underhill.ts";
+import { sound } from "./sfx.ts";
 import { dropLoot } from "./spawn.ts";
 
 type FairyRing = Extract<Prop, { kind: "fairyRing" }>;
@@ -25,19 +30,29 @@ interface Trance {
   saying: Saying | null; next: number; unsaid: number[]; said: number;
   /** The last thing they said to him this time in the ring, if they've said anything. */
   last: string | null;
+  /** Seconds till the next bell, and the next hum. */
+  chime: number; hum: number;
 }
 const trances = new WeakMap<Game, Trance>();
 const trance = (g: Game): Trance => {
   let s = trances.get(g);
-  if (!s) trances.set(g, s = { x: NaN, y: NaN, inside: false, still: 0, saying: null, next: 0, unsaid: [], said: 0, last: null });
+  if (!s) trances.set(g, s = { x: NaN, y: NaN, inside: false, still: 0, saying: null, next: 0, unsaid: [], said: 0, last: null, chime: 0, hum: 0 });
   return s;
 };
 /** How long a line is up, from fading in to gone. */
 const lifeOf = (s: Saying) => F.line.in + s.hold + F.line.out;
 
-/** The fairy ring in the area he's in, if there is one. */
+/** The fairy ring in the area he's in, if there is one (and it isn't broken). */
 export const ringHere = (g: Game): FairyRing | undefined =>
-  g.area.layout.props.find((p): p is FairyRing => p.kind === "fairyRing" && !p.quiet);
+  g.area.layout.props.find((p): p is FairyRing => p.kind === "fairyRing" && !p.quiet && !p.broken);
+
+/** Whether the fair folk's rings are broken: once he's been under the hill a third time and found only the watchers there. */
+export const ringsBroken = (g: Game): boolean => visitsUnderhill(g) >= 3;
+
+/** Arriving in an area, before it's built: its fairy ring is broken now, or still whole. */
+export function breakRings(g: Game): void {
+  for (const p of g.area.layout.props) if (p.kind === "fairyRing" && !p.quiet) p.broken = ringsBroken(g);
+}
 
 /** Every frame: is he in the ring after dark, and has he moved? */
 export function fairyRingSystem(g: Game, dt: number): void {
@@ -48,8 +63,23 @@ export function fairyRingSystem(g: Game, dt: number): void {
   const was = s.inside;
   s.inside = !!ring && !isDay(g.hour) && Math.hypot(p.x + HALF - ring.x, p.y + HALF - ring.y) < ring.radius * 2 * HALF;
   s.still = s.inside && !moved ? s.still + dt : 0;
+  const spoke = s.said;
   speak(g, s, dt);
-  if (was && !s.inside && ring) leave(g, s, p.x, p.y);
+  if (s.said > spoke) sound(g, "feyVoice");
+  if (!was && s.inside) { sound(g, "feyEnter"); s.chime = 0.6; s.hum = 0; }
+  if (s.inside) hear(g, s, dt);
+  if (was && !s.inside && ring) { sound(g, "feyLeave"); leave(g, s, p.x, p.y); }
+}
+
+/** In the ring: bells now and then, closer together the deeper he's in, and a low hum once he's well in. */
+function hear(g: Game, s: Trance, dt: number): void {
+  const depth = tranceOf(g), [lo, hi] = F.sound.chime;
+  if ((s.chime -= dt) <= 0) {
+    sound(g, "feyChime");
+    s.chime = (lo + Math.random() * (hi - lo)) * (2 - depth);      // sounds' own dice: not the game's, so play's rolls don't shift
+  }
+  if (depth < F.sound.humFrom) { s.hum = 0; return; }
+  if ((s.hum -= dt) <= 0) { sound(g, "feyHum"); s.hum = F.sound.hum; }
 }
 
 /** Out of the ring, or the night's over: if they said anything to him, the fair folk leave him an acorn holding the last of it. */

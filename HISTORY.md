@@ -395,6 +395,52 @@ lately it keeps coming unlocked. Behind it are the deep places, where the Old Mo
 top of the crack to hold it shut. With the eggs gone, all that's left holding it is the Vael's stitches
 across it, and they're coming loose too.
 
+### The fair folk, and the ones who learned the way
+
+Older than the Vael, older than the first Pebbling, are the **fair folk**: the ones who dance. They danced
+on Ael's back while it was still warm from the bite, and they've been dancing under the hills ever since,
+in glades that are mostly glamour, lit by fey light and held together by their king, the **Erl-King**, on
+his throne of moss. They came to Aldric's party too, uninvited, and kept the ring he dropped dancing the
+Long Reel. Nobody noticed. Nobody ever notices the fair folk, which is how they like it.
+
+Their rings still stand in the Witchwood. Stand in one after dark and they talk to you, and if they've
+said anything they leave you an acorn. Follow the acorn and it takes you down under the hill, along a
+path the fair folk wore through Ael's stone long ago. That path is a crack, a small one, mended with
+dancing. Every crack is a way in for the Gloom, and every trip down wears this one a little wider.
+
+The Erl-King knows it. The first time the Foreigner comes down, he gets a secret and a gift. The second
+time, he gets a warning: the fair folk aren't the only ones who dance under the hill, *the others* have
+been watching him come and go and learning the way, and he mustn't come down a third time.
+
+The others are the fair folk who danced too hard. Dancing is magic like any other, and every spell opens
+a window onto the Hush a little wider. Dance long enough, close enough to the dark, and you **go grey**
+like any Vael mage who overdoes it: first your colours, then your name, then your face, until Umbrall's
+eye looks out through yours. These are the **watchers**. They don't dance any more. They stand at the
+edge of the light, and they wait, and they learn.
+
+The third time the Foreigner follows an acorn down, the throne is empty. The path is worn wide enough at
+last, the Erl-King's light has failed, and nobody says where he went. (The watchers make jokes about it.)
+All round the glade they come out of the dark, more each time he visits and a little nearer, and they
+**stare**. They aren't looking at him. They can't: his face doesn't open onto the Hush, so the Gloom
+can't see him, and to the eye behind theirs he's a hole in the world. They're staring at the hole.
+
+What comes next is the Gloom getting into somewhere it isn't welcome:
+
+- **The glamour slips.** With no king to hold it, the glade comes loose in swells: it swims like
+  something under water, motes of Ael's fire rise up out of the grass, and everything floods with a
+  violet and green that isn't Ael's colour at all. It's the same light greying mages get in their eyes.
+- **The music is eaten.** Umbrall eats colour, names and everything that makes one thing different from
+  another, and what it nibbles wanders off humming one note. The fair folk's tune forgets its own key: it
+  slides out of tune, sags like a tape running down and is bitten off mid-breath, over that one hummed
+  note, held low and forever.
+- **They murmur.** The oldest Vael rule is never to say the name of what you're scared of, because the
+  Gloom can hear it. The watchers have no names left and nothing left to be scared of, so they talk in
+  pieces: *This was a mistake. What have you done. Next time there will be more.* Some of it is the
+  Erl-King's voice, borrowed (*Little stone. You stand so well.*). It isn't really them talking. It's the
+  Gloom, sounding out the one thing it can't see, through mouths that remember how speaking goes.
+
+The way back up is still open. So far, nothing has come up it behind him. So far.
+
 ## How it all ends
 
 Every thread here is tied up by the end of the Foreigner's story in [HERO.md](HERO.md#the-end): Calder

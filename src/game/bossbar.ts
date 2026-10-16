@@ -7,6 +7,10 @@ import { LIEUTENANTS, bossHere, bossWho } from "./bosses.ts";
 import type { Game } from "./game.ts";
 import { ghostOut } from "./ghost.ts";
 import { greatKoiOut } from "./greatkoi.ts";
+import { calderFight } from "./calderfight.ts";
+import { cinderFight } from "./cinderfight.ts";
+import { rimeFight } from "./rimefight.ts";
+import { victoryOf } from "./victory.ts";
 import { GREAT_KOI } from "../data/hollow.ts";
 
 export interface BossBar {
@@ -30,6 +34,16 @@ export function bossBar(g: Game): BossBar | null {
   const koi = greatKoiOut(g);
   if (koi !== null && engaged(g, koi)) { const hp = hpOf(g, koi); return { name: GREAT_KOI.name, title: GREAT_KOI.title, ...hp, angry: hp.hp <= hp.maxHp / 2 }; }
   return null;
+}
+
+/**
+ * Whether a boss fight's on: from the moment its arena shuts (or the Grey Ringer rises, or the Great Koi takes the
+ * line) till the victory's been celebrated. The messages across the top keep quiet for it (src/ui/screens.ts).
+ */
+export function inBossFight(g: Game): boolean {
+  if (cinderFight(g) || rimeFight(g) || calderFight(g) || victoryOf(g) || bossBar(g) || greatKoiOut(g) !== null) return true;
+  const ghost = ghostOut(g);
+  return ghost !== null && !g.world.get(ghost, "ghost")?.calm;
 }
 
 const hpOf = (g: Game, e: Entity) => { const h = g.world.need(e, "health"); return { hp: Math.max(0, h.hp), maxHp: h.maxHp }; };

@@ -216,13 +216,14 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 #credits .bar.bottom { bottom: 0; height: auto; min-height: 12vh; padding: 8px 0; box-sizing: border-box; }   /* a long line gets the room it needs */
 #credits.ended .bar { display: none; }
 #credits .caption { margin: 0 24px; max-width: min(820px, 90vw); text-align: center; font-size: 18px; line-height: 26px; opacity: 0; }
-#credits .end, #credits .sum, #credits .more { position: absolute; margin: 0; opacity: 0; pointer-events: none; }
+#credits .end, #credits .sum, #credits .time, #credits .more { position: absolute; margin: 0; opacity: 0; pointer-events: none; }
 #credits .end { top: calc(50% - 50px); font-size: 48px; line-height: 60px; color: var(--glow); text-shadow: 3px 3px 0 #2a1840; }
 #credits .sum { top: calc(50% + 18px); font-size: 16px; color: var(--bone); }
-#credits .more { top: calc(50% + 56px); font-size: 14px; color: var(--stone); }
+#credits .time { top: calc(50% + 46px); font-size: 16px; color: var(--glow); font-variant-numeric: tabular-nums; }
+#credits .more { top: calc(50% + 84px); font-size: 14px; color: var(--stone); }
 #credits .card[hidden] { display: none; }
 #credits:has(.card:not([hidden])) { overflow-y: auto; justify-content: safe center; padding: 24px 0; box-sizing: border-box; }
-#credits:has(.card:not([hidden])) .end, #credits:has(.card:not([hidden])) .sum, #credits:has(.card:not([hidden])) .more { display: none; }
+#credits:has(.card:not([hidden])) .end, #credits:has(.card:not([hidden])) .sum, #credits:has(.card:not([hidden])) .time, #credits:has(.card:not([hidden])) .more { display: none; }
 #credits .card { position: relative; }
 body.in-credits #menuBar, body.in-credits #hudCanvas, body.in-credits #labels, body.in-credits #toast { display: none; }
 #credits .card { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(560px, 90vw); text-align: center; }
@@ -320,6 +321,45 @@ body.in-cutscene #hudCanvas { opacity: 0; transition: opacity 0.4s; }
   width: min(calc(var(--u) * 190), 80vw); text-align: center; font-size: 18px; line-height: 26px;
   color: #ffeec0; text-shadow: 2px 2px 0 #2a1840, 0 0 10px rgb(255 210 110 / 0.9), 0 0 24px rgb(200 160 255 / 0.6);
 }
+#erlSkip {
+  position: fixed; z-index: 46; pointer-events: none; left: 50%; bottom: calc(var(--u) * 14); transform: translateX(-50%);
+  white-space: pre; font-size: 12px; color: #d8c8f0; text-shadow: 1px 1px 0 #2a1840; opacity: 0; transition: opacity 0.6s ease;
+}
+#erlSkip.on { opacity: 0.6; }
+/* The watchers murmuring, and their magic swimming over the screen (src/ui/watched.ts). */
+#murmur {
+  position: fixed; z-index: 46; pointer-events: none; opacity: 0; white-space: nowrap; font-size: 16px; letter-spacing: 1px;
+  color: #b9b4c0; text-shadow: 2px 0 0 rgb(200 30 40 / 0.55), -2px 0 0 rgb(40 200 220 / 0.4), 0 0 12px #000;
+}
+#glitch {
+  position: fixed; inset: 0; z-index: 12; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(ellipse at center, transparent 30%, rgb(150 80 255 / 0.5) 72%, rgb(70 230 210 / 0.45) 100%);
+}
+#glitch i { position: absolute; width: 4px; height: 4px; border-radius: 50%; opacity: 0; box-shadow: 0 0 8px 3px currentColor; color: #b79cff; }
+/* A boss beaten (src/ui/victory.ts): VICTORY slamming in over turning golden rays, confetti falling. */
+#victory { position: fixed; inset: 0; z-index: 47; pointer-events: none; overflow: hidden; }
+#victory[hidden] { display: none; }
+#victory .rays {
+  position: absolute; left: 50%; top: 34%; width: 160vmax; height: 160vmax; margin: -80vmax 0 0 -80vmax; border-radius: 50%;
+  background: repeating-conic-gradient(rgb(255 215 94 / 0.22) 0 8deg, transparent 8deg 20deg);
+  mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 32%);
+  animation: victory-rays 5.5s linear both;
+}
+#victory .word {
+  position: absolute; left: 0; right: 0; top: 26%; text-align: center; font-size: 64px; line-height: 72px; letter-spacing: 4px;
+  color: var(--glow); text-shadow: 5px 5px 0 #5a2a10, 0 0 18px rgb(255 200 80 / 0.9), 0 0 48px rgb(255 140 40 / 0.6);
+  animation: victory-slam 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both, victory-shine 1.6s ease-in-out 0.7s infinite alternate;
+}
+#victory .confetti i {
+  position: absolute; top: -20px; border-radius: 1px;
+  animation-name: victory-fall; animation-timing-function: cubic-bezier(0.3, 0.1, 0.6, 1); animation-fill-mode: both;
+}
+@keyframes victory-rays { from { transform: rotate(0) scale(0.4); opacity: 0; } 12% { opacity: 1; } to { transform: rotate(40deg) scale(1); opacity: 1; } }
+@keyframes victory-slam { from { transform: scale(3.2); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
+@keyframes victory-shine { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+@keyframes victory-fall { from { transform: translate(0, 0) rotate(0); } to { transform: translate(var(--drift), 110vh) rotate(var(--spin)); } }
+@media (max-width: 600px) { #victory .word { font-size: 40px; line-height: 48px; } }
+@media (prefers-reduced-motion: reduce) { #victory .rays, #victory .confetti { display: none; } #victory .word { animation: none; } }
 #sleepShade { position: fixed; inset: 0; z-index: 13; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
 #sleepShade.on { opacity: 1; }
 body.asleep #hudCanvas { z-index: 14; }   /* the clock running on, and the Zs, show over it */

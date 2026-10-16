@@ -3,11 +3,14 @@
 // while it clears, before the Erl-King. The first time, the Erl-King tells him the secret under all the others and
 // gives him the Ring of the Long Reel; the second, one thing more and a warning; from the third time on the throne is
 // empty, and watchers stand all round the glade, staring at him, until he takes the path back out. How many times he's
-// been is the world's, not the run's: it's kept across runs, like the hour.
-import { FIRST_VISIT, GLADE_MID, REEL_RING, SECOND_VISIT, UNDERHILL as U } from "../data/underhill.ts";
+// been is the world's, not the run's: it's kept across runs, like the hour. The Erl-King can be hurried: on to his next
+// line, or past all of it (his gift still given). The watchers murmur, and while they're there the screen goes wrong
+// (src/ui/watched.ts).
+import { FIRST_VISIT, GLADE_MID, REEL_RING, SECOND_VISIT, UNDERHILL as U, WATCHER_MURMURS } from "../data/underhill.ts";
 import { HALF, T } from "../data/world.ts";
 import { makeItem, type Item } from "../items/items.ts";
 import { setState, toast, type Game } from "./game.ts";
+import { sound } from "./sfx.ts";
 import { dropLoot } from "./spawn.ts";
 
 /** Where it's all happening (the area's id), and where the glade's middle is (game px), for the watchers to stand round. */
@@ -19,11 +22,18 @@ export interface Speech { lines: readonly string[]; i: number; age: number; hold
 /** Going under the hill (the magic coming up), or there and it clearing; how long it's been at it. */
 type Journey = { phase: "going" | "clearing"; t: number } | null;
 
-interface State { visits: number; journey: Journey; speech: Speech | null; watchers: number[] }
+/** One of the watchers murmuring: what, which of them, how long it's been up, and how many they've murmured before it. */
+export interface Murmur { text: string; who: number; age: number; n: number }
+
+interface State {
+  visits: number; journey: Journey; speech: Speech | null; watchers: number[];
+  /** What one of them is murmuring, if anything; seconds till the next; how many so far this visit; and what's still to say. */
+  murmur: Murmur | null; nextMurmur: number; murmured: number; unmurmured: string[];
+}
 const states = new WeakMap<Game, State>();
 const state = (g: Game): State => {
   let s = states.get(g);
-  if (!s) states.set(g, s = { visits: 0, journey: null, speech: null, watchers: [] });
+  if (!s) states.set(g, s = { visits: 0, journey: null, speech: null, watchers: [], murmur: null, nextMurmur: 0, murmured: 0, unmurmured: [] });
   return s;
 };
 
@@ -31,6 +41,10 @@ const state = (g: Game): State => {
 export const visitsUnderhill = (g: Game): number => state(g).visits;
 /** Whether the Erl-King is on his throne for this visit (the first two). */
 export const erlKingHere = (g: Game): boolean => g.area.def.id === UNDERHILL_ID && state(g).visits <= 2;
+/** Whether the watchers are there round him (the third visit and after, till he leaves). */
+export const watched = (g: Game): boolean => g.area.def.id === UNDERHILL_ID && state(g).watchers.length > 0;
+/** What one of the watchers is murmuring now, if anything. */
+export const murmurOf = (g: Game): Murmur | null => state(g).murmur;
 /** What the Erl-King is saying now, if anything. */
 export const erlKingSays = (g: Game): Speech | null => state(g).speech;
 /** How far the magic is over him, going or arriving (0 to 1). */
@@ -73,9 +87,10 @@ export function underhillSystem(g: Game, dt: number): void {
     if (j.t === 0) arrive(g, s);
     if ((j.t += dt) >= U.clearing) s.journey = null;
   }
-  if (!here) { s.watchers = []; return; }
+  if (!here) { s.watchers = []; s.murmur = null; return; }
   speak(g, s, dt);
   stare(g, s, dt);
+  murmur(g, s, dt);
 }
 
 /** He's there: count the visit, and set it up. */
@@ -101,6 +116,22 @@ function speak(g: Game, s: State, dt: number): void {
   if (sp.then === "gift") give(g);
 }
 
+/**
+ * Hurry the Erl-King on: on to his next line (this one fades now; in the hush before his first word, it comes now), or
+ * with `all`, past everything he has to say, his gift still given. False if he isn't saying anything.
+ */
+export function hurryErlKing(g: Game, all: boolean): boolean {
+  const s = state(g), sp = s.speech, L = U.line;
+  if (!sp) return false;
+  if (all) {
+    s.speech = null;
+    if (sp.then === "gift") give(g);
+  } else if (sp.age < 0) sp.age = 0;
+  else if (sp.age < L.in + sp.hold) sp.age = L.in + sp.hold;
+  else sp.age = L.in + sp.hold + L.out + L.gap;
+  return true;
+}
+
 /** The Ring of the Long Reel, into his hand. */
 function give(g: Game): void {
   const p = g.world.need(g.player, "transform");
@@ -115,6 +146,7 @@ function give(g: Game): void {
 function summonWatchers(g: Game, s: State): void {
   const W = U.watchers, k = s.visits - 3, n = Math.min(W.most, W.first + W.more * k), r = Math.max(W.nearest, W.far - W.nearer * k) * T;
   s.watchers = [];
+  s.murmur = null; s.nextMurmur = U.murmurs.from; s.murmured = 0;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + Math.PI / 2 + (g.rng.next() - 0.5) * 0.3, rr = r * (0.9 + g.rng.next() * 0.2);
     s.watchers.push(g.world.create({
@@ -131,4 +163,19 @@ function stare(g: Game, s: State, dt: number): void {
     const w = g.world.get(e, "watcher");
     if (w) w.shown = Math.min(1, w.shown + dt / U.watchers.fade);
   }
+}
+
+/** Every so often one of them murmurs something, low; nothing said again till everything has been. */
+function murmur(g: Game, s: State, dt: number): void {
+  const M = U.murmurs;
+  if (!s.watchers.length) return;
+  if (s.murmur && (s.murmur.age += dt) >= M.life) s.murmur = null;
+  if ((s.nextMurmur -= dt) > 0) return;
+  const [lo, hi] = M.every, who = s.watchers[Math.floor(g.rng.next() * s.watchers.length)]!;
+  if (!s.unmurmured.length) s.unmurmured = WATCHER_MURMURS.filter(l => l !== s.murmur?.text);   // a fresh round: not straight back to the last
+  const [text] = s.unmurmured.splice(Math.floor(g.rng.next() * s.unmurmured.length), 1);
+  s.murmur = { text: text!, who, age: 0, n: s.murmured++ };
+  s.nextMurmur = lo + g.rng.next() * (hi - lo);
+  const at = g.world.get(who, "transform");
+  sound(g, "murmur", at && { x: at.x + HALF, y: at.y + HALF });
 }

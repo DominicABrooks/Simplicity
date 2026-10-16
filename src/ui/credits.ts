@@ -1,13 +1,13 @@
 // The credits (STORY.md, "0:55"): after the King's had his say on the keep steps, the run plays back a shot at a time in
 // the game's own world (src/game/credits.ts), the screen letterboxed, a line under each shot and a fade between them;
-// then "The End", and how this run went in a line under it. Escape skips to The End; once it's up, a click or a key
+// then "The End", how this run went in a line under it, and how long it took (the speedrun timer). Escape skips to The End; once it's up, a click or a key
 // brings up who made the game, a word from him, a way to donate and a box to send him feedback (END_CARD), and from
 // there a button restarts: a new run, from the stone by the Ranger's fire.
-import { CREDITS_TIME as TIME, END_CARD } from "../data/ending.ts";
+import { CREDITS_TIME as TIME, END_CARD, RUN_TIME } from "../data/ending.ts";
 import { creditsShot, runSum, skipShots, updateCredits } from "../game/credits.ts";
 import { endCredits } from "../game/ending.ts";
 import { resetGame } from "../game/reset.ts";
-import type { Game } from "../game/game.ts";
+import { formatRunTime, type Game } from "../game/game.ts";
 
 /** Straight to the card after The End, if the credits are up (getting about quickly in development: src/debug.ts). */
 let skipToCard: (() => void) | null = null;
@@ -21,12 +21,12 @@ export function createCredits(g: Game): { draw(dt: number): void } {
     return e;
   };
   const root = make("div", ""), veil = make("div", "veil"), top = make("div", "bar top"), bottom = make("div", "bar bottom");
-  const caption = make("p", "caption"), end = make("h1", "end", "The End"), sum = make("p", "sum"), more = make("small", "more", "click to go on");
+  const caption = make("p", "caption"), end = make("h1", "end", "The End"), sum = make("p", "sum"), time = make("p", "time"), more = make("small", "more", "click to go on");
   root.id = "credits";
   root.hidden = true;
   bottom.append(caption);
   const card = makeCard(() => finish());
-  root.append(veil, top, bottom, end, sum, more, card.el);
+  root.append(veil, top, bottom, end, sum, time, more, card.el);
   document.body.append(root);
 
   // Where the credits are: the shots playing, The End (and seconds it's been up), or the card after it.
@@ -42,6 +42,7 @@ export function createCredits(g: Game): { draw(dt: number): void } {
     skipShots(g);
     root.classList.add("ended");
     sum.textContent = runSum(g);
+    time.textContent = RUN_TIME.replace("{t}", formatRunTime(g.runTime));
   };
   const toCard = () => { phase = "card"; card.el.hidden = false; };
   const endUp = () => phase === "end" && t >= TIME.fade + TIME.end;
@@ -76,7 +77,7 @@ export function createCredits(g: Game): { draw(dt: number): void } {
         return;
       }
       const k = Math.min(1, t / TIME.fade);
-      end.style.opacity = sum.style.opacity = `${phase === "end" ? k : 0}`;
+      end.style.opacity = sum.style.opacity = time.style.opacity = `${phase === "end" ? k : 0}`;
       more.style.opacity = endUp() ? "0.7" : "0";
     },
   };

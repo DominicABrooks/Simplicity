@@ -11,6 +11,8 @@ import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { SPIRITS, spiritHere, spiritSystem, type Spirited as Who } from "../src/game/spirits.ts";
 import { endTalk, startTalk, talking } from "../src/game/talk.ts";
+import { victorySystem } from "../src/game/victory.ts";
+import { VICTORY } from "../src/data/victory.ts";
 import { enterArea } from "../src/game/travel.ts";
 import type { Prop } from "../src/world/area.ts";
 
@@ -24,7 +26,7 @@ async function into(g: Game, who: Who): Promise<void> {
 }
 const lairOf = (g: Game) => g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss")!;
 
-/** A fresh run, in their lair, and they fall: their last words are said, and heard out. */
+/** A fresh run, in their lair, and they fall: the victory's celebrated, and their last words are said, and heard out. */
 async function beat(who: Who): Promise<Game> {
   const g = createGame();
   resetGame(g);
@@ -34,6 +36,9 @@ async function beat(who: Who): Promise<Game> {
   expect(spiritHere(g)).toBeNull();                          // nobody's spirit before they're beaten
   g.world.need(summonBoss(g)!, "health").hp = 0;
   bossSystem(g, 1 / 60);
+  spiritSystem(g);
+  expect(spiritHere(g)).toBeNull();                          // not over the celebration
+  victorySystem(g, VICTORY.last);
   spiritSystem(g);
   expect(spiritHere(g)).toBeNull();                          // not over their last words
   endTalk(g);

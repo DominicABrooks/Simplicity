@@ -16,6 +16,7 @@ import { toast, type Game } from "./game.ts";
 import { heroParts } from "./hero.ts";
 import { sound } from "./sfx.ts";
 import { dropLoot, spawnBolt, spawnPotion } from "./spawn.ts";
+import { celebrate } from "./victory.ts";
 
 const beatenIn = new WeakMap<Game, { beaten: boolean }>();
 function stateOf(g: Game): { beaten: boolean } {
@@ -121,4 +122,5 @@ export function landGreatKoi(g: Game, x: number, y: number): void {
   g.shake = Math.max(g.shake, 2);
   sound(g, "catch", { x, y });
   toast(g, K.say.landed, true);
+  celebrate(g, K.name, K.title, x, y);
 }

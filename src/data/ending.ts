@@ -110,6 +110,9 @@ export const CROWD_OF = 5;
 /** Under The End: how this run went. */
 export const RUN_SUMS = { level: "Level {n}", kills: "{n} foes beaten", curios: "{n} curiosities found", curio: "1 curiosity found" } as const;
 
+/** Under that: the speedrun timer, how long the run took start to finish. */
+export const RUN_TIME = "Finished in {t}";
+
 /**
  * After "The End": who made it, a word from him, a way to chip in, and a box for feedback, sent to his Discord through
  * a webhook (src/ui/credits.ts). The webhook's URL is in the published page for anyone to read, so what's sent can't
