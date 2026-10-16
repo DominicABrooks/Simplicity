@@ -74,26 +74,28 @@ export const head: EntityView<HeadView> = {
 };
 
 /**
- * The Ranger's grey cloak hung out of the window over the sill, flat against the house front: the hood bunched over the
- * sill, the cloth falling in two folds, the hem stirring a little in the wind.
+ * The Ranger's grey cloak hung out of the window over the sill: the hood bunched over the sill, the cloth falling in
+ * three panels (the middle one paler, catching the light), the hem lifting a little off the wall and stirring in the
+ * wind. Side by side, never one laid over another, so nothing flickers through anything.
  */
 interface CloakView { group: THREE.Group; cloth: THREE.Group; k: number }
 export const cloak: EntityView<CloakView> = {
   create(ctx, e, g) {
     const c = g.world.need(e, "cloak"), t = g.world.need(e, "transform"), [x, z] = toWorld(t.x, t.y);
     // A pale grey, to stand out against the dark timbers and shutters from the street.
-    const group = new THREE.Group(), cloth = new THREE.Group(), grey = ctx.lambert("#aeb3bb"), dark = ctx.lambert("#8a8f98");
+    const group = new THREE.Group(), cloth = new THREE.Group(), grey = ctx.lambert("#b4b9c1"), dark = ctx.lambert("#8f949d");
     group.position.set(x, c.y - 0.2, z);
     group.rotation.y = c.yaw;
     group.add(cloth);
-    put(cloth, new THREE.BoxGeometry(0.56, 0.1, 0.12), dark, 0, 0, 0.03);                  // the hood, over the sill
-    put(cloth, new THREE.BoxGeometry(0.52, 0.95, 0.03).translate(0, -0.47, 0), grey, 0, -0.04, 0.0);
-    for (const sx of [-0.13, 0.12]) put(cloth, new THREE.BoxGeometry(0.07, 0.92, 0.035).translate(0, -0.46, 0), dark, sx, -0.05, 0.01);   // the folds
+    put(cloth, new THREE.BoxGeometry(0.5, 0.09, 0.09), dark, 0, 0, 0);                      // the hood, over the sill
+    for (const [sx, wide, long, mat] of [[-0.17, 0.16, 0.66, dark], [0, 0.18, 0.72, grey], [0.17, 0.16, 0.64, dark]] as const) {
+      put(cloth, new THREE.BoxGeometry(wide, long, 0.025).translate(0, -long / 2, 0), mat, sx, -0.04, 0);
+    }
     ctx.scene.add(group);
     return { group, cloth, k: (e * 0.61) % 10 };
   },
   update(_ctx, v, _e, _g, f) {
-    v.cloth.rotation.x = 0.04 + Math.sin(f.t * 1.3 + v.k) * 0.03;   // stirring
+    v.cloth.rotation.x = -0.08 + Math.sin(f.t * 1.3 + v.k) * 0.03;   // the hem lifting off the wall, stirring
   },
   remove(ctx, v) {
     ctx.scene.remove(v.group);
