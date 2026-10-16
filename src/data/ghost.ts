@@ -21,16 +21,17 @@ export const GHOST_NAME = "The Grey Ringer";
 
 /**
  * What a hero has when he first walks the city by night, round about meeting the King (STORY.md, GEAR.md):
- * about level 2, in the Ranger's Spares. Worn when you go straight to her to playtest (src/debug.ts). Her
- * health grows with his level, so she's a fair fight at any; this is the first one a player will have.
+ * about level 2, the Ranger's Spares with a few better finds from the road in their place (a keener blade,
+ * a sturdier robe, quicker boots). Worn when you go straight to her to playtest (src/debug.ts). Her health
+ * grows with his level, so she's a fair fight at any; this is about the one a player will have.
  */
 export const RINGER_READY = {
   level: 2,
   kit: [
-    ["blade", "normal", {}, "Rusty Blade"],
+    ["blade", "magic", { damage: 1 }, "Keen Blade"],
     ["hood", "normal", {}, "Worn Hood"],
-    ["robe", "normal", {}, "Worn Robe"],
-    ["boots", "normal", {}, "Worn Boots"],
+    ["robe", "magic", { life: 1 }, "Sturdy Robe"],
+    ["boots", "magic", { dash: 15 }, "Boots of the Wind"],
   ] satisfies readonly KitPiece[],
 } as const;
 
