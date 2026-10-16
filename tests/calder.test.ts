@@ -31,6 +31,7 @@ const STAND = { x: CALDER_STAND.x * T, y: CALDER_STAND.y * T };
 async function inRift(): Promise<Game> {
   const g = createGame();
   resetGame(g);
+  g.rng.reseed(1);                                          // (a new run seeds it from the clock: here, the same fight every time)
   setState(g, "play");
   enterArea(g, await loadArea("rift"), "stone");
   for (const [e] of g.world.query("enemy")) g.world.destroy(e);
@@ -197,9 +198,13 @@ describe("Calder's fight", () => {
     f.nextShape = 99;
     f.nextBlink = 0;
     const him = g.world.need(e, "transform"), from = { x: him.x, y: him.y };
+    // (the next rod round the far one from him: the triangle's turned any which way, and a rod at his feet is no blink)
+    const away = (i: number) => Math.hypot(f.rods[i]!.x - him.x, f.rods[i]!.y - him.y);
+    const to = [0, 1, 2].reduce((a, i) => (away(i) > away(a) ? i : a));
+    f.rod = (to + 2) % 3;
     calderFightSystem(g, DT);
-    expect({ x: him.x, y: him.y }).toEqual(f.rods[1]);
-    expect(f.arcs.at(-1)).toMatchObject({ a: from, b: f.rods[1], warn: F.rods.trail.warn });
+    expect({ x: him.x, y: him.y }).toEqual(f.rods[to]);
+    expect(f.arcs.at(-1)).toMatchObject({ a: from, b: f.rods[to], warn: F.rods.trail.warn });
     calderFightSystem(g, DT);
     expect(f.earth).toBeGreaterThan(0);
     expect(g.world.need(e, "mage").held).toBe(true);
