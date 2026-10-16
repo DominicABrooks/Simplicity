@@ -5,7 +5,7 @@
 import * as THREE from "three";
 import { T } from "../data/world.ts";
 import { DAIS_HIGH, FACING_YAW, FURNITURE, ROOM_WALL, roomWalls } from "../world/plans.ts";
-import { GROUND, box, onGround, type RenderContext } from "./context.ts";
+import { GROUND, box, onFace, onGround, type RenderContext } from "./context.ts";
 import { put } from "./castle.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
@@ -48,7 +48,7 @@ export function buildRoom(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ro
     const floor = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), uv = floor.attributes.uv!;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * w) / 2, (uv.getY(i) * d) / 2);
     put(g, floor, lambert("#ffffff", { map: marbleTexture(), ...onGround(GROUND.plaza) }), x0 + w / 2, 0.01, z0 + d / 2);
-    const wall = lambert(p.wall, { map: tex.stone }), wainscot = lambert(CRIMSON), gold = lambert(BRIGHT_GOLD), H = ROOM_WALL.high;
+    const wall = lambert(p.wall, { map: tex.stone }), wainscot = lambert(CRIMSON, onFace(1)), gold = lambert(BRIGHT_GOLD, onFace(2)), H = ROOM_WALL.high;
     for (const s of roomWalls(p)) {                           // pale stone above a crimson wainscot, gold bands and a gold coping
       const back = s.w > s.d && s.z < z0 + ROOM_WALL.thick, high = back ? BACK_WALL : H;   // the north wall, behind the throne, rises high enough to hang the windows and tapestries on
       put(g, tiledBox(s.w, high, s.d, 0.8), wall, s.x, high / 2, s.z);
@@ -257,13 +257,13 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
     // ---------- The throne room ----------
     case "dais": {                                            // a two-step platform, the top in crimson cloth with a gold border, gold along every edge
       // A white marble step, then the dais itself all in crimson velvet, gold along every edge and a gold sun inlaid before the throne.
-      const DW = 7, DD = 3.6, step = DAIS_HIGH / 2, gold = lambert(BRIGHT_GOLD);
+      const DW = 7, DD = 3.6, step = DAIS_HIGH / 2, gold = lambert(BRIGHT_GOLD), inlay = lambert(BRIGHT_GOLD, onFace(1));
       put(g, box(DW + 0.5, step, DD + 0.5), lambert(MARBLE), 0, step / 2, 0.1);
       put(g, box(DW, step, DD), lambert(CRIMSON), 0, step * 1.5, 0);
       for (const [bw, bd, bx, bz] of [[DW + 0.06, 0.07, 0, DD / 2], [DW + 0.06, 0.07, 0, -DD / 2], [0.07, DD, DW / 2, 0], [0.07, DD, -DW / 2, 0]] as const) put(g, box(bw, 0.05, bd), gold, bx, DAIS_HIGH, bz);
-      for (const [bw, bd, bx, bz] of [[DW - 0.6, 0.04, 0, DD / 2 - 0.3], [DW - 0.6, 0.04, 0, -DD / 2 + 0.3], [0.04, DD - 0.6, DW / 2 - 0.3, 0], [0.04, DD - 0.6, -DW / 2 + 0.3, 0]] as const) put(g, box(bw, 0.012, bd), gold, bx, DAIS_HIGH + 0.006, bz);
-      put(g, new THREE.CircleGeometry(0.45, 12).rotateX(-Math.PI / 2), gold, 0, DAIS_HIGH + 0.008, 0.55);
-      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; put(g, new THREE.ConeGeometry(0.08, 0.3, 3).rotateX(-Math.PI / 2).rotateY(-a + Math.PI / 2), gold, Math.cos(a) * 0.62, DAIS_HIGH + 0.008, 0.55 + Math.sin(a) * 0.62); }
+      for (const [bw, bd, bx, bz] of [[DW - 0.6, 0.04, 0, DD / 2 - 0.3], [DW - 0.6, 0.04, 0, -DD / 2 + 0.3], [0.04, DD - 0.6, DW / 2 - 0.3, 0], [0.04, DD - 0.6, -DW / 2 + 0.3, 0]] as const) put(g, box(bw, 0.012, bd), inlay, bx, DAIS_HIGH + 0.006, bz);
+      put(g, new THREE.CircleGeometry(0.45, 12).rotateX(-Math.PI / 2), inlay, 0, DAIS_HIGH + 0.008, 0.55);
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; put(g, new THREE.ConeGeometry(0.08, 0.3, 3).rotateX(-Math.PI / 2).rotateY(-a + Math.PI / 2), inlay, Math.cos(a) * 0.62, DAIS_HIGH + 0.008, 0.55 + Math.sin(a) * 0.62); }
       put(g, box(DW + 0.55, 0.035, 0.05), gold, 0, step, DD / 2 + 0.35);
       break;
     }
@@ -273,15 +273,15 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
       put(g, box(w - 0.15, 0.1, d * 0.7), red, 0, y0 + 0.6, 0.08);                                        // the cushion
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(g, box(0.12, 0.5, 0.12), gold, sx * (w / 2 - 0.08), y0 + 0.25, sz * (d * 0.35));
       put(g, box(w, 1.9, 0.14), gold, 0, y0 + 1.45, -d * 0.38);                                           // the back
-      put(g, box(w - 0.3, 1.45, 0.02), red, 0, y0 + 1.35, -d * 0.3);
-      put(g, new THREE.CircleGeometry(0.28, 12), gold, 0, y0 + 1.75, -d * 0.3 + 0.02);                          // a gold sun on the panel
+      put(g, box(w - 0.3, 1.45, 0.02), lambert(CRIMSON, onFace(1)), 0, y0 + 1.35, -d * 0.3);
+      put(g, new THREE.CircleGeometry(0.28, 12), lambert(BRIGHT_GOLD, { emissive: new THREE.Color("#3a2606"), ...onFace(2) }), 0, y0 + 1.75, -d * 0.3 + 0.02);   // a gold sun on the panel
       for (const sx of [-1, 1]) {
         put(g, box(0.14, 0.12, d * 0.75), gold, sx * (w / 2 - 0.07), y0 + 0.85, 0.05);                 // the arms
         put(g, new THREE.SphereGeometry(0.11, 7, 5), gold, sx * (w / 2 - 0.07), y0 + 0.92, d * 0.42);   // lions' heads at their ends
         put(g, new THREE.ConeGeometry(0.09, 0.35, 5), gold, sx * (w / 2 - 0.05), y0 + 2.55, -d * 0.38);  // finials
       }
       for (let i = 0; i < 5; i++) put(g, new THREE.ConeGeometry(0.07, 0.3, 4), gold, (i - 2) * 0.16, y0 + 2.55 + (i === 2 ? 0.1 : 0), -d * 0.38);   // the crown atop it
-      for (let i = 0; i < 3; i++) put(g, new THREE.OctahedronGeometry(0.06, 0), basic(RUBY), (i - 1) * 0.3, y0 + 2.42, -d * 0.3);
+      for (let i = 0; i < 3; i++) put(g, new THREE.OctahedronGeometry(0.06, 0), basic(RUBY, onFace(1)), (i - 1) * 0.3, y0 + 2.42, -d * 0.3);
       break;
     }
     case "carpet": {                                          // a length of the crimson carpet up the hall, gold borders, gold diamonds down its middle
@@ -309,26 +309,26 @@ export function buildFurniture(ctx: RenderContext, parent: THREE.Group, p: PropO
     }
     case "tapestry": {                                        // hung on the wall: a deep blue field in a gold border, a crimson dragon on it, a rod above
       const TW = 1.5, TH = 1.0, y = 1.6;                    // above the wainscot, on the tall north wall
-      put(g, box(TW + 0.1, TH + 0.1, 0.02), lambert(BRIGHT_GOLD), 0, y, 0);
-      put(g, box(TW, TH, 0.03), lambert(seed < 0.5 ? "#1f3a6a" : "#2a5a3a"), 0, y, 0.01);
-      const red = lambert(CRIMSON);
+      put(g, box(TW + 0.1, TH + 0.1, 0.02), lambert(BRIGHT_GOLD, onFace(1)), 0, y, 0);
+      put(g, box(TW, TH, 0.03), lambert(seed < 0.5 ? "#1f3a6a" : "#2a5a3a", onFace(2)), 0, y, 0.01);
+      const red = lambert(CRIMSON, onFace(3));
       put(g, box(0.5, 0.18, 0.02), red, 0, y, 0.03);                                                    // the dragon: body, neck and head, wings, tail
       put(g, box(0.1, 0.25, 0.02), red, 0.28, y + 0.12, 0.03);
       put(g, box(0.18, 0.1, 0.02), red, 0.35, y + 0.26, 0.03);
       for (const s of [-1, 1]) put(g, new THREE.ConeGeometry(0.2, 0.36, 3), red, -0.05 + s * 0.06, y + 0.22, 0.03, 0, 0, s * 0.5);
       put(g, box(0.3, 0.06, 0.02), red, -0.35, y - 0.06, 0.03, 0, 0, 0.4);
-      put(g, new THREE.CylinderGeometry(0.03, 0.03, TW + 0.3, 6).rotateZ(Math.PI / 2), lambert(BRIGHT_GOLD), 0, y + TH / 2 + 0.1, 0.02);
-      for (let i = 0; i < 7; i++) put(g, box(0.04, 0.08, 0.02), lambert(BRIGHT_GOLD), -TW / 2 + 0.1 + (i * (TW - 0.2)) / 6, y - TH / 2 - 0.06, 0.02);   // tassels
+      put(g, new THREE.CylinderGeometry(0.03, 0.03, TW + 0.3, 6).rotateZ(Math.PI / 2), lambert(BRIGHT_GOLD, onFace(2)), 0, y + TH / 2 + 0.1, 0.02);
+      for (let i = 0; i < 7; i++) put(g, box(0.04, 0.08, 0.02), lambert(BRIGHT_GOLD, onFace(2)), -TW / 2 + 0.1 + (i * (TW - 0.2)) / 6, y - TH / 2 - 0.06, 0.02);   // tassels
       break;
     }
     case "window": {                                          // a tall stained-glass window in the wall, glowing, in a stone frame with a pointed head
-      const frame = lambert(MARBLE, { map: tex.stone }), GW = 0.7, GH = 1.5, y0 = 0.7;   // standing just proud of the wall, above its wainscot
+      const frame = lambert(MARBLE, { map: tex.stone, ...onFace(1) }), GW = 0.7, GH = 1.5, y0 = 0.7;   // standing just proud of the wall, above its wainscot
       put(g, box(GW + 0.16, GH + 0.16, 0.12), frame, 0, y0 + GH / 2, 0);
       put(g, new THREE.ConeGeometry((GW + 0.16) / 1.414, 0.45, 4).rotateY(Math.PI / 4), frame, 0, y0 + GH + 0.22, 0);
       for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
-        put(g, box(GW / 2 - 0.04, GH / 4 - 0.04, 0.02), basic(STAINED[Math.floor(seed * 50 + r * 2 + c) % STAINED.length]!), (c - 0.5) * (GW / 2), y0 + (r + 0.5) * (GH / 4), 0.07);
+        put(g, box(GW / 2 - 0.04, GH / 4 - 0.04, 0.02), basic(STAINED[Math.floor(seed * 50 + r * 2 + c) % STAINED.length]!, onFace(2)), (c - 0.5) * (GW / 2), y0 + (r + 0.5) * (GH / 4), 0.07);
       }
-      put(g, new THREE.CircleGeometry(0.16, 8), ctx.glow("#f5d562"), 0, y0 + GH + 0.08, 0.07);                // a rose at the head
+      put(g, new THREE.CircleGeometry(0.16, 8), ctx.glow("#f5d562", onFace(2)), 0, y0 + GH + 0.08, 0.07);                // a rose at the head
       break;
     }
     case "candelabra": {                                      // a tall gold candelabra on three feet: five arms, five candles, five flames
