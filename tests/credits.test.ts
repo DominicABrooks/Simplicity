@@ -29,11 +29,13 @@ import { atPeace, spared } from "../src/game/peace.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { endTalk, updateTalk } from "../src/game/talk.ts";
-import { residentById, setCensus } from "../src/game/townsfolk.ts";
+import { loadCensus, residentById, setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
 import { deathSystem, slimeSystem } from "../src/systems/enemies.ts";
 import { FAMILIES } from "../src/world/people.ts";
+import { layoutOf } from "../src/world/layouts.ts";
+import { isMeg, megLines } from "../src/game/fells.ts";
 import { residentsOf } from "../src/world/residents.ts";
 
 const people = setCensus(residentsOf({ capital: capital.build().props, castle: castle.build().props, kingsroad: kingsroad.build().props }));
@@ -153,6 +155,25 @@ describe("the credits", () => {
     toTheKing(g);
     const said = (await playThrough(g)).map(s => s.says);
     expect(said).toContain(SHOT_SAYS.chronicle);
+  });
+});
+
+describe("the Fells", () => {
+  it("Meg tells you who the Ranger is, and the grey cloak hangs at her window till he's home", async () => {
+    const meg = people.find(isMeg)!;
+    expect(meg.name).toBe("Meg Fell");
+    const g = createGame();
+    watchEnding(g);
+    resetGame(g);
+    const first = megLines(g, 0).join(" ");
+    expect(first).toContain("Wystan Fell");
+    expect(first).toContain("cloak");
+    expect(megLines(g, 1)).toHaveLength(1);
+    // In the part of the city they live in, the cloak's at their window.
+    enterArea(g, await loadArea(meg.home.area), Object.keys(layoutOf(await loadArea(meg.home.area)).entries)[0]!);
+    await loadCensus();
+    await new Promise(r => setTimeout(r, 0));
+    expect(g.world.query("cloak").length).toBe(1);
   });
 });
 
