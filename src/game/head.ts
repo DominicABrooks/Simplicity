@@ -1,11 +1,12 @@
 // Calder's head (src/data/rift.ts, CALDERS_HEAD): all that's left whole of him when he falls, a round grey stone with the
 // dark gone out of its face, for carrying home to the King (src/game/ending.ts). It's an ordinary item in the bag,
 // known by its name. There's only the one and Calder can't be fought again, so it never fades on the ground, and if
-// he leaves it lying somewhere it's still there when he comes back.
-import { CALDERS_HEAD } from "../data/rift.ts";
+// he leaves it lying somewhere (where Calder dropped it, say) it's still there when he comes back. Once he's picked it
+// up he won't let go of it: dropped, it goes straight back in the bag, till it's at the King's feet.
+import { CALDERS_HEAD, HEAD_KEPT } from "../data/rift.ts";
 import type { Entity } from "../core/ecs.ts";
 import type { Item } from "../items/items.ts";
-import type { Game } from "./game.ts";
+import { toast, type Game } from "./game.ts";
 import { dropLoot } from "./spawn.ts";
 
 export const HEAD_NAME = CALDERS_HEAD[3];
@@ -40,6 +41,23 @@ export function giveUpHead(g: Game): boolean {
   state(g).at = null;                                        // it's the King's now, wherever it was
   if (had) inv.changed();
   return had;
+}
+
+/**
+ * Something he's let go of (out of the bag, or off the cursor): if it's the head, back in the bag it goes instead, and
+ * true. If the bag's full, whatever else is in it goes on the ground at his feet to make room.
+ */
+export function holdOntoHead(g: Game, item: Item, drop: (item: Item) => void): boolean {
+  if (item.name !== HEAD_NAME) return false;
+  const inv = g.inventory;
+  while (!inv.add(item)) {
+    const other = inv.grid.find(e => e.item.name !== HEAD_NAME);
+    if (!other) return true;                                 // a bag that can't hold even the head: never so
+    inv.grid = inv.grid.filter(e => e !== other);
+    drop(other.item);
+  }
+  toast(g, HEAD_KEPT);
+  return true;
 }
 
 /** Something on the ground: if it's the head, it doesn't fade. */

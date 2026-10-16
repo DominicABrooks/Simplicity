@@ -140,6 +140,9 @@ export const CALDER_FALLS = ["All through the Witchwood, the Greyed stand still 
  */
 export const CALDERS_HEAD: KitPiece = ["runestone", "legendary", {}, "Calder's Head"];
 
+/** Said when he tries to put the head down: once it's in the bag, it stays there till it's at the King's feet. */
+export const HEAD_KEPT = "You won't let go of Calder's head. It's for the King";
+
 /**
  * What a hero on the straight path has on reaching Calder (STORY.md: about level 9, everything above plus the climb's
  * drops): the Hollow's kit with Rime's circlet on and Cinder's Brand in the bag, the bow in hand. Worn when you go

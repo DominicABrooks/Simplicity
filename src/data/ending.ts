@@ -7,6 +7,8 @@
 export const HOMECOMING = {
   dawn: 6,
   glows: "The rift stone glows brighter than any stone has before",
+  /** Touching it without Calder's head: it won't take him home till he has it. */
+  noHead: "The stone is warm under your hand, but it waits. You've left something behind: Calder's head",
 } as const;
 
 /**
