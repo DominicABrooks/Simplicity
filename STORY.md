@@ -213,9 +213,16 @@ into view, throws fire and turns him into a sheep. It wears off in five seconds 
 mages in ones and then in pairs, slimes between them. At the edge of the trees, a tall frost-white figure
 watches him and nods: **Yssa**. She doesn't fight. She's the only robed one who doesn't.
 
+**The way on is a name.** Off the cracked glade a narrow track runs west, down to the Frozen Hollow, and Yssa
+stands in it. Like the woodwardens with the watchword, she lets nobody by who doesn't know her: she hands him
+birch bark and charcoal, and he has to write her name. The woodcutters only ever called her the white lady.
+Two places tell it: Cinder, with his last words, and a warning cut into the woodcutters' hut door. Nobody has to
+fight Cinder to go on, and a player who knows the name can walk straight past the camp.
+
 **0:28 Cinder (3 min).** The Greyed's first camp. **Cinder**, the Ember lieutenant: faster fire, more
 blinks, and the sheep orb in volleys of three. *Tests:* dashing through gaps, punishing after a blink.
-When he falls, he crumbles to grey stone, and his spark flies south. (Back in the city, the Applebys' sheep
+When he falls, the grey goes out of him and he knows the Foreigner: *"Tell the white lady... tell Yssa...
+I'm sorry."* Then he crumbles to grey stone, and his spark flies south. (Back in the city, the Applebys' sheep
 sneezes and becomes Tam again.) **Power spike:** Cinder always drops a magic-or-better weapon.
 
 **0:31 Into the Frozen Hollow (8 min).** Down into the always-winter valley, past the hollow stone. Frost

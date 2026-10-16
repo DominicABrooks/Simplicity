@@ -5,16 +5,17 @@ import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { area as ashwild, CINDER_AT } from "../src/areas/ashwild.ts";
 import { area as witchwood } from "../src/areas/witchwood.ts";
-import { CINDER, CINDER_FALLS, WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
+import { CINDER, CINDER_FALLS, CINDER_LAST_WORDS, WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
 import { WATCHWORD } from "../src/data/king.ts";
 import { beaten, bossSystem } from "../src/game/bosses.ts";
+import { cinderFightSystem } from "../src/game/cinderfight.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { advanceTalk, endTalk, startTalk, talking } from "../src/game/talk.ts";
 import { enterArea, travelSystem } from "../src/game/travel.ts";
 import { handBack, passedBarricade, writingFor } from "../src/game/watchword.ts";
-import { deathSystem } from "../src/systems/enemies.ts";
+import { deathSystem, spawnerSystem } from "../src/systems/enemies.ts";
 import { FEET } from "../src/world/collision.ts";
 
 async function inWitchwood(): Promise<Game> {
@@ -126,11 +127,17 @@ describe("the Ashwild", () => {
     return g;
   }
   const cinder = (g: Game) => g.world.query("targetable", "health").find(([, c]) => c.targetable.name === CINDER.name);
+  /** Walk in among the arena's stones (where the fire shuts and he comes out). */
+  function stepIn(g: Game) {
+    Object.assign(g.world.need(g.player, "transform"), { x: CINDER_AT.x, y: CINDER_AT.y + 20 });
+    cinderFightSystem(g, 1 / 60);
+    return cinder(g);
+  }
 
-  it("is ash woods, back up the trail to the Witchwood", () => {
+  it("is ash woods, back up the trail to the Witchwood, and down Yssa's track to the Frozen Hollow", () => {
     const layout = ashwild.build();
     expect(layout.map.look).toBe("ash");
-    expect(layout.exits.map(x => x.to)).toEqual([{ area: "witchwood", entry: "ashwild" }]);
+    expect(layout.exits.map(x => x.to)).toEqual([{ area: "witchwood", entry: "ashwild" }, { area: "hollow", entry: "ashwild" }]);
     expect(layout.props.filter(p => p.kind === "crack").length).toBeGreaterThan(10);
   });
 
@@ -141,9 +148,18 @@ describe("the Ashwild", () => {
     expect([...schools]).toEqual(["ember"]);
   });
 
-  it("has Cinder waiting at the Greyed's camp: tougher than any mage, and quicker", async () => {
+  it("has Cinder waiting at the Greyed's camp, out of sight until you step in among the stones", async () => {
     const g = await inAshwild();
-    const [e, { health }] = cinder(g)!;
+    expect(cinder(g)).toBeUndefined();
+    Object.assign(g.world.need(g.player, "transform"), { x: CINDER_AT.x, y: CINDER_AT.y + 80 });   // just outside them
+    cinderFightSystem(g, 1 / 60);
+    expect(cinder(g)).toBeUndefined();
+    expect(stepIn(g)).toBeDefined();
+  });
+
+  it("brings Cinder out into the middle: tougher than any mage, and quicker", async () => {
+    const g = await inAshwild();
+    const [e, { health }] = stepIn(g)!;
     expect(health.maxHp).toBe(CINDER.hp);
     expect(g.world.need(e, "transform")).toMatchObject(CINDER_AT);
     const m = g.world.need(e, "mage");
@@ -152,26 +168,49 @@ describe("the Ashwild", () => {
     expect(m.specialCD).toBeCloseTo(5 - (CINDER.hurry - 1), 5);
   });
 
+  it("has Cinder to himself: the slimes and mages scatter as he comes out, and none turn up again until you leave and come back", async () => {
+    const g = await inAshwild();
+    for (let i = 0; i < 10; i++) spawnEnemy(g, 40);
+    expect(g.world.count("enemy")).toBeGreaterThan(10);
+    const [e, { health }] = stepIn(g)!;
+    expect(g.world.query("enemy").map(([id]) => id)).toEqual([e]);
+    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    expect(g.world.count("enemy")).toBe(1);
+    health.hp = 0;
+    bossSystem(g, 1 / 60);
+    deathSystem(g);
+    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    expect(g.world.count("enemy")).toBe(0);                  // quiet, now he's gone
+    enterArea(g, await loadArea("ashwild"), "witchwood");    // out and back in: the slimes are back
+    expect(g.world.count("enemy")).toBeGreaterThan(0);
+    for (const [id] of g.world.query("enemy")) g.world.destroy(id);
+    g.spawnTimer = 0;
+    spawnerSystem(g, 1);
+    expect(g.world.count("enemy")).toBe(1);                  // and they keep coming
+  });
+
   it("once beaten, stays beaten for the run, leaving a fine weapon and the news; a new run brings him back", async () => {
     const g = await inAshwild(), toasts: string[] = [];
     g.events.on("toast", ({ text }) => toasts.push(text));
-    const [e, { health }] = cinder(g)!;
+    const [e, { health }] = stepIn(g)!;
     health.hp = 0;
     bossSystem(g, 1 / 60);
     deathSystem(g);
     expect(beaten(g, "cinder")).toBe(true);
     expect(toasts).toEqual(expect.arrayContaining([...CINDER_FALLS]));
+    expect(talking(g)?.lines).toEqual(CINDER_LAST_WORDS);   // his last words, in the dialogue box
     expect(g.world.query("pickup").some(([, { pickup }]) => pickup.kind === "loot" && pickup.item.slot === "weapon" && pickup.item.rarity === "rare")).toBe(true);
     expect(g.world.has(e, "transform")).toBe(false);
     enterArea(g, await loadArea("ashwild"), "witchwood");
-    expect(cinder(g)).toBeUndefined();
+    expect(stepIn(g)).toBeUndefined();
     resetGame(g);
     enterArea(g, await loadArea("ashwild"), "witchwood");
-    expect(cinder(g)).toBeDefined();
+    expect(stepIn(g)).toBeDefined();
   });
 
   it("isn't counted beaten just because you left", async () => {
     const g = await inAshwild();
+    stepIn(g);
     enterArea(g, await loadArea("witchwood"), "ashwild");
     bossSystem(g, 1 / 60);
     expect(beaten(g, "cinder")).toBe(false);

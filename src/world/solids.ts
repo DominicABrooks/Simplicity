@@ -9,6 +9,7 @@ import {
   FACING_YAW, FURNITURE, TOWER_FLARE, roomWalls, barbicanPlan, cathedralPlan, churchPlan, cloisterPlan, hallBody, houseBody, keepPlan, local, stallBody, wallPlan, type XZ,
 } from "./plans.ts";
 import type { Shape } from "./shapes.ts";
+import { ARENA_PILLAR_R, arenaPlan } from "./arena.ts";
 import { RING_STONE_R, ringPlan } from "./stonering.ts";
 import { anvilOf } from "./workplaces.ts";
 
@@ -112,11 +113,12 @@ export function propSolids(p: Prop): Shape[] {
     case "cryptDoor": return [];                           // set into the wall, which is solid already
     case "tomb": return [localBox({ x: p.x / T, z: p.y / T }, p.facing, 0, 0, 0.9, 1.9)];
     case "stoneRing": return ringPlan(p).stones.map(s => circle(s.x, s.z, RING_STONE_R));
+    case "arena": case "rimeStage": return arenaPlan(p).map(s => circle(s.x, s.z, ARENA_PILLAR_R));
     case "barricade": {                                      // the stakes, either side of the gate
       const x0 = p.rect.x / T, z = p.rect.y / T + p.rect.h / T / 2, w = p.rect.w / T, gx0 = x0 + p.gate, gx1 = gx0 + p.gateW;
       return [[x0, gx0], [gx1, x0 + w]].filter(([a, b]) => b! - a! > 0.1).map(([a, b]) => box((a! + b!) / 2, z, b! - a!, 0.5));
     }
-    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": return [];
+    case "camp": case "cave": case "bridge": case "drawbridge": case "plaza": case "torch": case "field": case "boat": case "crack": case "boss": case "oldStone": return [];
   }
 }
 

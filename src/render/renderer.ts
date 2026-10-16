@@ -14,6 +14,7 @@ import { createFishingView } from "./fishing.ts";
 import { createFxView } from "./fx.ts";
 import { createHeroView } from "./hero.ts";
 import { createKoiPond } from "./koi.ts";
+import { greatKoiBeaten, greatKoiOut } from "../game/greatkoi.ts";
 import type { Projector } from "./projector.ts";
 import { createOcclusion } from "./occlusion.ts";
 import { buildProp } from "./props.ts";
@@ -137,7 +138,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       ctx.particles.update(dt);
       hero.updateTrail(g, dt);
       const bobber = fishing.update(hero.body, pos, g.world.need(g.player, "actions"), t);
-      koi.update(dt, t, px, pz, bobber);
+      koi.update(dt, t, px, pz, bobber, !greatKoiBeaten(g) && greatKoiOut(g) === null);   // the big one's under the ice till it's hooked
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
       occlusion.update(px, pz, CAM_OFFSET, dt);
@@ -152,7 +153,9 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
         sun.intensity = INDOORS.sunI;
       } else daylight.update(g.hour);
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
-      weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z);   // no rain indoors
+      // No rain indoors; where it's always winter, it's always snowing, and the rain comes down as more snow.
+      const winter = g.map.look === "snow";
+      weather.update(g.area.def.indoors ? { ...g.weather, fog: 0, rain: 0 } : winter ? { ...g.weather, rain: 0 } : g.weather, dt, camTarget.x, camTarget.z, winter ? 0.45 + g.weather.rain * 0.55 : 0);
       // How much light there is now, from the sky light and the sun as the hour and weather leave them (1 by day,
       // about a third at night): flat colours are shaded by it, and enemies glow a little more the darker it gets.
       ctx.light.value = THREE.MathUtils.clamp((fill.intensity * 0.6 + sun.intensity * 0.25) / 1.5, 0.22, 1);

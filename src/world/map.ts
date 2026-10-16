@@ -8,15 +8,15 @@ export interface TileMap {
   tiles: Tile[][];
   /** Things that block movement off the tile grid (buildings, posts, a tent, a fire pit), in game pixels. */
   solids: readonly Shape[];
-  /** How its woods look: green, or (deep in the Witchwood, where the dark gets in) ash-grey. */
-  look?: "green" | "ash";
+  /** How its woods look: green, or (deep in the Witchwood, where the dark gets in) ash-grey, or (the Frozen Hollow) under snow. */
+  look?: "green" | "ash" | "snow";
 }
 
 export const tileOf = (map: TileMap, tx: number, ty: number): Tile =>
   tx < 0 || ty < 0 || tx >= map.width || ty >= map.height ? Tile.Tree : map.tiles[ty]![tx]!;
 
-/** Ground you can walk on and things can spawn on (not trees or water). */
-export const isOpenGround = (t: Tile): boolean => t === Tile.Grass || t === Tile.Flower || t === Tile.Path || t === Tile.Cobble;
+/** Ground you can walk on and things can spawn on (not trees or water, but ice). */
+export const isOpenGround = (t: Tile): boolean => t === Tile.Grass || t === Tile.Flower || t === Tile.Path || t === Tile.Cobble || t === Tile.Ice;
 
 /** Every non-solid tile reachable from (tx, ty) by stepping up, down, left or right. Keys are y * width + x. */
 export function reachableFrom(map: TileMap, tx: number, ty: number): Set<number> {

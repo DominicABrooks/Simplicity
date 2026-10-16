@@ -9,8 +9,8 @@ export const SLIME = { hp: 3, hopTime: 0.3, hopSpeed: 46, sight: 72, drag: 0.002
 export const SPAWNING = { startSlimes: 12, startPotions: 8, every: 3, baseCap: 12, maxCap: 20, killsPerCap: 5 } as const;
 
 export type School = "ember" | "frost" | "storm";
-/** Bolts: the mages' four, and the Grey Ringer's wisps. */
-export type BoltKind = "fire" | "frost" | "spark" | "poly" | "wisp";
+/** Bolts: the mages' four, the Grey Ringer's wisps, and Rime's icicles. */
+export type BoltKind = "fire" | "frost" | "spark" | "poly" | "wisp" | "icicle";
 export type SpellName = BoltKind | "nova" | "strike";
 
 /** Three schools share one body and one brain; each has its own bolt and a signature spell. */
@@ -33,6 +33,8 @@ export interface Spell {
   count?: number;
   /** Bolts curve toward the hero at up to this many radians per second (low enough to sidestep). */
   homing?: number;
+  /** How close (px) a bolt has to come to hit him, if it's bigger than most (src/systems/hazards.ts). */
+  hit?: number;
 }
 
 export const SPELLS: Record<SpellName, Spell> = {
@@ -43,6 +45,7 @@ export const SPELLS: Record<SpellName, Spell> = {
   nova:   { charge: 0.6, cooldown: 9, radius: 30, freeze: 1.6 },        // cast when you get close
   strike: { charge: 0.6, cooldown: 7, chance: 0.5, delay: 0.9, radius: 7, count: 3 },
   wisp:   { charge: 0.75, speed: 46, homing: 0.9 },                     // the ghost's: slow, in a fan
+  icicle: { charge: 0.8, speed: 44, hit: 3.5 },                        // Rime's: thrown in rings and spirals, flying straight; big, but only the core hurts
 };
 
 export const CHILL_SLOW = 0.55;

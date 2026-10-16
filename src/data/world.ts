@@ -17,8 +17,9 @@ export const CAMPFIRE_TARGET = { name: "Campfire", radius: 5, height: 0.6 } as c
 /**
  * Ground tiles. Path is trodden earth and Cobble is a paved street: open ground like grass. Wall is
  * anything built (a house, a city wall, a fountain): it blocks movement like a tree, and a prop draws it.
+ * Ice is water frozen hard enough to walk on (the Frozen Hollow's lake): open ground, but nothing grows on it.
  */
-export const Tile = { Grass: 0, Flower: 1, Water: 2, Tree: 3, Path: 4, Cobble: 5, Wall: 6 } as const;
+export const Tile = { Grass: 0, Flower: 1, Water: 2, Tree: 3, Path: 4, Cobble: 5, Wall: 6, Ice: 7 } as const;
 export type Tile = (typeof Tile)[keyof typeof Tile];
 
 /** Trees and buildings: nothing walks, spawns or flies through them. */

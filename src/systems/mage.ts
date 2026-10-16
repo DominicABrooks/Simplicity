@@ -16,6 +16,7 @@ export function mageSystem(g: Game, dt: number): void {
   const h = heroParts(g);
   for (const [e, { transform, mage, enemy }] of g.world.query("mage", "transform", "enemy")) {
     enemy.face = h.pos.x - transform.x >= 0 ? 1 : -1;
+    if (mage.held) { mage.moving = false; continue; }
     updateMage(g, h, e, transform, mage, dt);
   }
 }
@@ -26,7 +27,7 @@ function updateMage(g: Game, h: HeroParts, e: Entity, s: Transform, b: MageBrain
   b.blinkCD = Math.max(0, b.blinkCD - dt);
   b.specialCD = Math.max(0, b.specialCD - dt);
   if (b.casting && b.spell) {
-    const charge = SPELLS[b.spell].charge;
+    const charge = SPELLS[b.spell].charge * (b.spell === "nova" ? b.boost?.novaCharge ?? 1 : 1);
     b.castT += dt;
     b.castK = Math.min(1, b.castT / charge);
     b.moving = false;
@@ -34,7 +35,7 @@ function updateMage(g: Game, h: HeroParts, e: Entity, s: Transform, b: MageBrain
     return;
   }
   // Frost Mage: getting close sets off Frost Nova first (then it usually blinks away).
-  if (school.special === "nova" && d < SPELLS.nova.radius! && b.specialCD <= 0 && !b.melee) { startCast(b, "nova"); return; }
+  if (school.special === "nova" && d < novaRadius(b) && b.specialCD <= 0 && !b.melee) { startCast(b, "nova"); return; }
   const kb = g.world.need(e, "knockback");
   // Up close: blink away if it can, otherwise draw the sword and fight until blink is ready again.
   if (!b.melee && d < MAGE.near) {
@@ -70,6 +71,9 @@ function updateMage(g: Game, h: HeroParts, e: Entity, s: Transform, b: MageBrain
   }
 }
 
+/** How far a mage's Frost Nova reaches (px): wider for a lieutenant. */
+export const novaRadius = (b: MageBrain): number => SPELLS.nova.radius! * (b.boost?.nova ?? 1);
+
 function startCast(b: MageBrain, spell: SpellName): void {
   b.casting = true; b.castT = 0; b.castK = 0; b.spell = spell;
 }
@@ -78,9 +82,10 @@ function startCast(b: MageBrain, spell: SpellName): void {
 function releaseSpell(g: Game, h: HeroParts, s: Transform, b: MageBrain, dx: number, dy: number): void {
   const p = h.pos, spell = b.spell!, S = SPELLS[spell], a = Math.atan2(dy, dx);
   if (spell === "nova") {
-    g.fx.push({ type: "nova", x: s.x, y: s.y, radius: S.radius! });
+    const r = novaRadius(b);
+    g.fx.push({ type: "nova", x: s.x, y: s.y, radius: r });
     sound(g, "nova", s);
-    if (Math.hypot(dx, dy) < S.radius! && h.motion.dash <= 0 && h.motion.jump <= 0) {
+    if (Math.hypot(dx, dy) < r && h.motion.dash <= 0 && h.motion.jump <= 0) {
       h.status.frozen = S.freeze!;
       cancelActions(h.actions);
       toast(g, "Frozen!");
@@ -91,11 +96,11 @@ function releaseSpell(g: Game, h: HeroParts, s: Transform, b: MageBrain, dx: num
       spawnStrike(g, p.x + Math.cos(oa) * off, p.y + Math.sin(oa) * off, S.delay!);
     }
   } else {
-    const o = MAGE.boltOffset;
+    const o = MAGE.boltOffset, v = S.speed! * (b.boost?.bolt ?? 1);
     sound(g, "spell", s);
-    spawnBolt(g, spell, s.x + Math.cos(a) * o, s.y + Math.sin(a) * o, Math.cos(a) * S.speed!, Math.sin(a) * S.speed!);
+    spawnBolt(g, spell, s.x + Math.cos(a) * o, s.y + Math.sin(a) * o, Math.cos(a) * v, Math.sin(a) * v);
   }
-  if (S.cooldown) b.specialCD = S.cooldown;
+  if (S.cooldown) b.specialCD = S.cooldown * (spell === "nova" ? b.boost?.novaCooldown ?? 1 : 1);
   b.casting = false;
   b.timer = MAGE.every[0] + g.rng.next() * (MAGE.every[1] - MAGE.every[0]);
 }

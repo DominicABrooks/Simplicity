@@ -23,6 +23,7 @@ import { handPaper, passedBarricade } from "./watchword.ts";
 import { heardRumour } from "./ghost.ts";
 import { curioClue } from "./clues.ts";
 import { gilLines, isGil } from "./quay.ts";
+import { isYssa, passedYssa, yssaLines } from "./yssa.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -53,9 +54,10 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   // The King gives you your task the first time, and reminds you of it after.
   if (isKing && visits === 0) toast(g, KINGS_TASK, true);
   // The woodwardens at the barricade ask for the King's watchword, and hand him paper to write it on; once he's through, he's through.
-  const warden = name === WOODWARDEN.name, asking = warden && !passedBarricade(g);
+  const warden = name === WOODWARDEN.name, yssa = isYssa(g, e), asking = (warden && !passedBarricade(g)) || (yssa && !passedYssa(g));
   const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!])
     : warden ? [...(asking ? WARDEN_TALK.ask : WARDEN_TALK.through)]
+    : yssa ? yssaLines(g)
     : isGil(g, e) ? gilLines(g)
     : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
@@ -131,7 +133,7 @@ export function advanceTalk(g: Game): void {
   if (shown < c.lines[c.line]!.length) { c.t = c.lines[c.line]!.length / TALK.charsPerSecond; return; }
   if (++c.line < c.lines.length) { c.t = 0; said(g); return; }
   endTalk(g);
-  if (c.then === "paper") handPaper(g, c.with);           // heard out: now he writes
+  if (c.then === "paper") handPaper(g, c.with, isYssa(g, c.with) ? "name" : "watchword");   // heard out: now he writes
 }
 
 export function endTalk(g: Game): void {

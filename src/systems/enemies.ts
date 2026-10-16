@@ -6,6 +6,8 @@ import { XP } from "../data/progression.ts";
 import { damagePlayer, grantXP } from "../game/combat.ts";
 import { BESTIARY, type BestiaryId } from "../data/bestiary.ts";
 import { FEATURES } from "../data/features.ts";
+import { bossHere, quietAfterBoss } from "../game/bosses.ts";
+import { greatKoiOut, landGreatKoi } from "../game/greatkoi.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { laidToRest } from "../game/ghost.ts";
@@ -54,6 +56,7 @@ export function deathSystem(g: Game): void {
     if (health.hp > 0) continue;
     g.kills++;
     if (enemy.kind === "ghost") { layGhost(g, s.x, s.y); w.destroy(e); continue; }
+    if (enemy.kind === "koi") { landGreatKoi(g, s.x, s.y); w.destroy(e); continue; }
     recordKill(g, enemy.kind === "mage" ? w.need(e, "mage").school : "slime");
     grantXP(g, enemy.kind === "mage" ? XP.mage : XP.slime, s.x, s.y);
     if (enemy.kind === "mage") {
@@ -88,6 +91,9 @@ function layGhost(g: Game, x: number, y: number): void {
 /** Every few seconds, top the enemies up. The cap grows with kills. */
 export function spawnerSystem(g: Game, dt: number): void {
   if (!g.area.def.life?.enemies) return;                    // only where enemies live
+  if (bossHere(g) !== null) return;                          // nothing else turns up while a boss fight's on,
+  if (quietAfterBoss(g)) return;                             // nor after it, until he's left and come back,
+  if (greatKoiOut(g) !== null) return;                       // nor while the Great Koi's out of the water
   const cap = Math.min(SPAWNING.maxCap, SPAWNING.baseCap + Math.floor(g.kills / SPAWNING.killsPerCap));
   if ((g.spawnTimer -= dt) > 0) return;
   g.spawnTimer = SPAWNING.every;

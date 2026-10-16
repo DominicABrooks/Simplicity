@@ -9,6 +9,7 @@ import { BELL_HOME, GHOST, GHOST_SAYS } from "../data/ghost.ts";
 import { XP } from "../data/progression.ts";
 import type { Entity } from "../core/ecs.ts";
 import type { GhostAct, GhostBrain, Transform } from "../game/components.ts";
+import { isFrozen } from "../game/cheats.ts";
 import { damagePlayer, grantXP } from "../game/combat.ts";
 import { spendCurio } from "../game/curios.ts";
 import { toast, type Game } from "../game/game.ts";
@@ -30,6 +31,7 @@ export function ghostSystem(g: Game, dt: number): void {
     const enemy = g.world.get(e, "enemy");
     if (enemy) enemy.face = h.pos.x - transform.x >= 0 ? 1 : -1;
     if (ghost.calm) { updateCalm(g, h, e, transform, ghost, dt); continue; }
+    if (isFrozen(g) && ghost.act !== "rise") continue;       // playtesting: up out of the grass, then held still, doing nothing
     if (!ghost.angry && health.hp > 0 && health.hp <= health.maxHp * GHOST.angry) {
       ghost.angry = true;
       g.shake = Math.max(g.shake, 3);

@@ -13,16 +13,20 @@ import type { Shape } from "../world/shapes.ts";
 import { combatText } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
 import { speak } from "./talk.ts";
+import { readName } from "./yssa.ts";
 
 /** At most this many letters fit on the scrap. */
 export const PAPER_LENGTH = 24;
 
-interface Barricade { passed: boolean; writing: Entity | null }
+/** What the paper's for: the King's watchword for a warden, or Yssa's name for her (src/game/yssa.ts). */
+export type Asks = "watchword" | "name";
+
+interface Barricade { passed: boolean; writing: Entity | null; asks: Asks }
 const barricades = new WeakMap<Game, Barricade>();
 function barricade(g: Game): Barricade {
   let b = barricades.get(g);
   if (!b) {
-    const fresh: Barricade = { passed: false, writing: null };
+    const fresh: Barricade = { passed: false, writing: null, asks: "watchword" };
     barricades.set(g, b = fresh);
     g.events.on("reset", () => { fresh.passed = false; fresh.writing = null; });
   }
@@ -41,21 +45,27 @@ export function writingFor(g: Game): Entity | null {
   return b.writing;
 }
 
-/** A warden hands him the paper and crayon: the player writes on it now. */
-export function handPaper(g: Game, warden: Entity): void {
-  barricade(g).writing = warden;
+/** What the paper he's writing on is for (whatever it was last, if he isn't). */
+export const paperAsks = (g: Game): Asks => barricade(g).asks;
+
+/** A warden (or Yssa) hands him the paper and crayon: the player writes on it now. */
+export function handPaper(g: Game, warden: Entity, asks: Asks = "watchword"): void {
+  const b = barricade(g);
+  b.writing = warden;
+  b.asks = asks;
   g.input.keys.clear();                                   // he stands still while he writes
 }
 
 /** Letters and spaces only, any case, however spaced: what a warden reads off crayon on a scrap of paper. */
-const read = (text: string) => text.toLowerCase().replace(/[^a-z]+/g, " ").trim();
+export const read = (text: string) => text.toLowerCase().replace(/[^a-z]+/g, " ").trim();
 
-/** He hands the paper back with `text` on it (null: he kept it, and wrote nothing): the warden reads it and says so. */
+/** He hands the paper back with `text` on it (null: he kept it, and wrote nothing): the warden (or Yssa) reads it and says so. */
 export function handBack(g: Game, text: string | null): void {
   const b = barricade(g), warden = writingFor(g);
   b.writing = null;
   if (warden === null) return;
   const written = (text ?? "").trim().slice(0, PAPER_LENGTH);
+  if (b.asks === "name") { readName(g, warden, text === null ? null : written); return; }
   const right = read(written) === read(WATCHWORD);
   if (right) b.passed = true;
   const lines = text === null ? WARDEN_TALK.kept

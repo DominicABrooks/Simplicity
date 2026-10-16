@@ -17,6 +17,8 @@ export interface Item {
   heal?: number;
   /** A curiosity fished up (see CURIOS): which one. */
   curio?: CurioId;
+  /** A line of its own for the tooltip, in place of its base type's. */
+  note?: string;
 }
 
 let nextId = 1;

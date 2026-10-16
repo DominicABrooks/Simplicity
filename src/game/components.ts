@@ -121,13 +121,28 @@ export interface Actions {
   catchAnim: CatchAnim | null;
 }
 
-export type EnemyKind = "slime" | "mage" | "dummy" | "ghost";
+export type EnemyKind = "slime" | "mage" | "dummy" | "ghost" | "koi";
 
 export interface Enemy {
   kind: EnemyKind;
   /** White flash after a hit. */
   flash: number;
   face: number;
+  /** Melee damage taken lately, wearing off (Rime watches it: src/game/rimefight.ts). */
+  melee?: number;
+  /** Nothing hurts it (Rime in her ice block). */
+  warded?: boolean;
+  /** One last stand in it (Rime): the first blow that would finish it doesn't ("ready" -> "taken"), and its fight
+   *  answers (src/game/rimefight.ts) until it's "spent"; then the next one does. */
+  lastStand?: "ready" | "taken" | "spent";
+}
+
+/** The Great Koi (src/game/greatkoi.ts): flopping after the hero in leaps, slamming down, spitting freezing water. */
+export interface KoiBrain {
+  /** Seconds to its next leap; seconds left in this one (and how long it lasts); which way it's going. */
+  timer: number; hop: number; hopTime: number; dx: number; dy: number;
+  /** Seconds to its next spit, and the wind-up before it (> 0 while it's drawing breath). */
+  spit: number; wind: number;
 }
 
 export interface SlimeBrain {
@@ -163,6 +178,13 @@ export interface MageBrain {
   swingSide: number;
   swingK: number;
   swingRel: number;
+  /**
+   * A lieutenant's (src/game/bosses.ts): how much wider its novas are, and faster its bolts, than its school's; and how
+   * much longer its novas take to charge, and to come round again.
+   */
+  boost?: { nova: number; bolt: number; novaCharge?: number; novaCooldown?: number };
+  /** Held still by its fight (Rime winding up a volley, or sealed in ice): it doesn't move, cast or blink. */
+  held?: boolean;
 }
 
 /** What the Grey Ringer is doing (see src/systems/ghost.ts). */
@@ -393,7 +415,7 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -410,6 +432,7 @@ export interface Components {
   actions: Actions;
   enemy: Enemy;
   slime: SlimeBrain;
+  koi: KoiBrain;
   mage: MageBrain;
   ghost: GhostBrain;
   pickup: Pickup;

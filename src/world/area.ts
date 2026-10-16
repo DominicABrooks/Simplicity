@@ -3,7 +3,7 @@
 // just ids until you travel there (and every area but the home one is downloaded on first visit).
 import type { School } from "../data/enemies.ts";
 import type { CurioId } from "../data/items.ts";
-import type { Rect } from "../data/world.ts";
+import type { Rect, Tile } from "../data/world.ts";
 import type { Point } from "./collision.ts";
 import type { TileMap } from "./map.ts";
 
@@ -154,8 +154,16 @@ export type Prop =
   | { kind: "barricade"; rect: Rect; gate: number; gateW: number }
   /** A cold crack in the ground, `len` tiles long, turned `angle` (a game angle): where the dark gets in. Not solid. */
   | { kind: "crack"; x: number; y: number; len: number; angle: number }
+  /** A boss's arena (see src/world/arena.ts): a scorched ritual circle `radius` tiles across, ringed by `pillars` burnt standing stones, the `gap`th (from the north, clockwise) left out for the way in. */
+  | { kind: "arena"; x: number; y: number; radius: number; pillars: number; gap: number }
+  /** One of Ael's old stones (see src/game/stones.ts): grey, flat and faintly warm, set in the ground. Touch it and, if he
+   * falls, he wakes beside it at the area's `entry`. Not solid. */
+  | { kind: "oldStone"; x: number; y: number; name: string; entry: string }
+  /** Rime's arena (the Frozen Hollow; see src/world/arena.ts): frost runes scratched into the ice, ringed by `pillars` pillars of
+   * ice `radius` tiles out, the `gap`th (from the north, clockwise) left out for the way in. The pillars are solid. */
+  | { kind: "rimeStage"; x: number; y: number; radius: number; pillars: number; gap: number }
   /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
-  | { kind: "boss"; x: number; y: number; who: "cinder" }
+  | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" }
   /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */
   | { kind: "guard"; x: number; y: number; facing: Facing; name?: string }
   /** A fire bowl on a tripod. */
@@ -212,8 +220,8 @@ export interface AreaLayout {
 export interface AreaLife {
   /** Slimes and mages, topped up over time. */
   enemies: boolean;
-  /** Which mages come, from the start rather than after a few kills, and how many more than usual. */
-  mages?: { schools: readonly School[]; extra?: number };
+  /** Which mages come, from the start rather than after a few kills, how many more than usual, and the ground they keep to (anywhere, if left out). */
+  mages?: { schools: readonly School[]; extra?: number; on?: Tile };
   /** Potions scattered on arrival. */
   potions: boolean;
   /** Critters and grass, reeds and mushrooms. */

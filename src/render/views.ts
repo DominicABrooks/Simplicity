@@ -20,6 +20,13 @@ import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body
 import { hourOf, residentById } from "../game/townsfolk.ts";
 import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
+import { animateCinder, makeCinder, type CinderParts } from "./models/cinder.ts";
+import { RIME_SCALE, animateRime, makeRime, type RimeParts } from "./models/rime.ts";
+import { rimefrost } from "./rime.ts";
+import { makeKoiMesh, type KoiMesh } from "./koi.ts";
+import { rimeFight } from "../game/rimefight.ts";
+import { RIME_FIGHT } from "../data/hollow.ts";
+import { blaze } from "./blaze.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
 import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
@@ -30,6 +37,7 @@ import { poseLoad, poseWork, type Worker } from "./work.ts";
 import { loadOf } from "../world/workplaces.ts";
 import { ringstone } from "./undercroft.ts";
 import { boatman } from "./quay.ts";
+import { yssa } from "./yssa.ts";
 
 export interface Frame {
   /** Game clock, for animation. */
@@ -93,7 +101,7 @@ const slime: EntityView<SlimeView> = {
 // The same body as the hero, dressed in its school's tier, with glowing eyes.
 const SCHOOL_SPARKS: Record<School, SparkPair> = { ember: "fire", frost: "frost", storm: "spark" };
 /** Which orb a mage holds while charging each spell. */
-const CAST_ORB: Record<SpellName, BoltKind> = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark", wisp: "wisp" };
+const CAST_ORB: Record<SpellName, BoltKind> = { fire: "fire", poly: "poly", frost: "frost", spark: "spark", nova: "frost", strike: "spark", wisp: "wisp", icicle: "icicle" };
 
 interface MageView extends Body {
   orbs: Record<BoltKind, THREE.Group>;
@@ -101,7 +109,14 @@ interface MageView extends Body {
   novaFill: THREE.Mesh;
   yaw: number | null;
   wasMelee: boolean;
+  /** Whether it wears its school's robes, hood and boots (Cinder has his own: see models/cinder.ts). */
+  robed: boolean;
 }
+/** What a mage wears: its school's robes, hood and boots (if it's robed), and its sword when it's drawn. */
+const mageOutfit = (b: { school: School; melee: boolean }, robed: boolean) => {
+  const tier = robed ? b.school : null;
+  return { helm: tier, armor: tier, boots: tier, weapon: b.melee ? b.school : null, ring: null, amulet: null, weaponType: b.melee ? "blade" as const : null };
+};
 const mage: EntityView<MageView> = {
   create(ctx, e, g) {
     const m = makeMageBody(ctx, g.world.need(e, "mage").school);
@@ -117,14 +132,14 @@ const mage: EntityView<MageView> = {
     const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.glow(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false, ...onGround(GROUND.marker) }));
     novaEdge.position.y = novaFill.position.y = 0.03;
     m.group.add(novaEdge, novaFill);
-    return { ...m, orbs, novaEdge, novaFill, yaw: null, wasMelee: false };
+    return { ...m, orbs, novaEdge, novaFill, yaw: null, wasMelee: false, robed: true };
   },
   update(ctx, v, e, g, f) {
     const o = g.world.need(e, "transform"), b = g.world.need(e, "mage"), enemy = g.world.need(e, "enemy");
     const { t, dt } = f;
     const [x, z] = toWorld(o.x, o.y);
     v.group.position.set(x, 0, z);
-    dressBody(ctx, v, { helm: b.school, armor: b.school, boots: b.school, weapon: b.melee ? b.school : null, ring: null, amulet: null, weaponType: b.melee ? "blade" : null });
+    dressBody(ctx, v, mageOutfit(b, v.robed));
     if (b.melee !== v.wasMelee) {                            // a puff of sparks as the sword is drawn or put away
       ctx.particles.burst(SPARK_PAIRS[SCHOOL_SPARKS[b.school]], 8, x, 0.5, z, 1.6, () => 1.2 + Math.random(), 0.35);
       v.wasMelee = b.melee;
@@ -164,6 +179,108 @@ const mage: EntityView<MageView> = {
   remove: removeBody,
 };
 
+// ---------- Cinder ----------
+// The Ember lieutenant: a mage's brain and moves, in his own burnt, crowned body (see models/cinder.ts).
+interface CinderView extends MageView { cinder: CinderParts }
+const cinder: EntityView<CinderView> = {
+  create(ctx, e, g) {
+    const v = mage.create(ctx, e, g);
+    v.robed = false;
+    dressBody(ctx, v, mageOutfit(g.world.need(e, "mage"), false));
+    return { ...v, cinder: makeCinder(ctx, v) };
+  },
+  update(ctx, v, e, g, f) {
+    mage.update(ctx, v, e, g, f);
+    const b = g.world.need(e, "mage"), o = g.world.need(e, "transform");
+    animateCinder(v.cinder, f.t, b.casting ? b.castK : 0);
+    if (Math.random() < f.dt * 10) {                         // embers always rising off him
+      const [x, z] = toWorld(o.x, o.y);
+      ctx.particles.spawn(Math.random() < 0.5 ? "fire" : "ember", x + (Math.random() - 0.5) * 0.6, 0.4 + Math.random() * 0.9, z + (Math.random() - 0.5) * 0.6,
+        (Math.random() - 0.5) * 0.3, 0.9 + Math.random() * 0.8, (Math.random() - 0.5) * 0.3, 0.8);
+    }
+  },
+  remove: removeBody,
+};
+
+// ---------- Rime ----------
+// The Frost lieutenant: a mage's brain and moves, in her own icy, crowned body (see models/rime.ts), her nova's
+// telegraph as wide as her nova.
+interface RimeView extends MageView { rime: RimeParts; novaK: number }
+const rime: EntityView<RimeView> = {
+  create(ctx, e, g) {
+    const v = mage.create(ctx, e, g), b = g.world.need(e, "mage");
+    v.robed = false;
+    dressBody(ctx, v, mageOutfit(b, false));
+    const parts = makeRime(ctx, v), novaK = (b.boost?.nova ?? 1) / RIME_SCALE;    // the group's scaled already
+    v.novaEdge.scale.setScalar(novaK);
+    return { ...v, rime: parts, novaK };
+  },
+  update(ctx, v, e, g, f) {
+    mage.update(ctx, v, e, g, f);
+    const b = g.world.need(e, "mage"), o = g.world.need(e, "transform");
+    v.novaFill.scale.multiplyScalar(v.novaK);
+    // Drawing the cold in for a volley; or sealed in her block of ice.
+    const fight = rimeFight(g), vol = fight?.volley, wind = vol ? (vol.wind > 0 ? 1 - vol.wind / RIME_FIGHT.volley.wind : 1) : 0;
+    const sealedFor = (t: number, hold: number) => Math.max(0, Math.min(1, t / 0.25, (hold - t) / 0.15));
+    const sealed = fight?.stand ? sealedFor(fight.stand.t, RIME_FIGHT.lastStand.hold) : fight?.block ? sealedFor(fight.block.t, RIME_FIGHT.block.hold) : 0;
+    animateRime(v.rime, f.t, b.casting ? b.castK : wind, sealed);
+    if (Math.random() < f.dt * 6) {                          // frost always drifting off her
+      const [x, z] = toWorld(o.x, o.y);
+      ctx.particles.spawn(Math.random() < 0.5 ? "snow" : "ice", x + (Math.random() - 0.5) * 0.7, 0.3 + Math.random() * 1.1, z + (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 0.2, 0.3 + Math.random() * 0.4, (Math.random() - 0.5) * 0.2, 1.1);
+    }
+  },
+  remove: removeBody,
+};
+
+// ---------- The Great Koi ----------
+// A koi, but huge and gold, flopped on its side on the ice: thrashing where it lies, leaping at you in an arc, its
+// whiskers trailing, and a glow of freezing water gathering at its mouth before it spits.
+const KOI_SIZE = 6.5;
+interface GreatKoiView extends Simple { body: THREE.Group; fish: KoiMesh; orb: THREE.Mesh; yaw: number | null }
+const greatkoi: EntityView<GreatKoiView> = {
+  create(ctx) {
+    const group = new THREE.Group(), body = new THREE.Group(), fish = makeKoiMesh(ctx, PAL.Y, PAL.O, 0.35);
+    fish.scale.setScalar(KOI_SIZE);
+    body.add(fish);
+    const whisker = ctx.lambert(PAL.O);
+    for (const s of [-1, 1]) {                                // two long barbels trailing back from its lip
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.012, 0.75, 4).rotateZ(Math.PI / 2).translate(-0.37, 0, 0), whisker);
+      w.position.set(1.15, -0.1, s * 0.2);
+      w.rotation.set(s * 0.35, s * 0.5, -0.25);
+      body.add(w);
+    }
+    const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), ctx.glow(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }));
+    orb.position.set(1.4, 0, 0);
+    orb.visible = false;
+    body.add(orb);
+    group.add(body);
+    const shadow = addShadow(ctx, 2.6);
+    ctx.scene.add(group);
+    return { group, shadow, body, fish, orb, yaw: null };
+  },
+  update(ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), koi = g.world.need(e, "koi"), enemy = g.world.need(e, "enemy"), { t, dt } = f;
+    const [x, z] = toWorld(o.x, o.y);
+    const air = koi.hop > 0 ? 1 - koi.hop / koi.hopTime : -1;
+    const look = air >= 0 ? -Math.atan2(koi.dy, koi.dx) : facing(o, f.hero);
+    v.yaw = v.yaw === null ? look : turn(v.yaw, look, dt, air >= 0 ? 14 : 4);
+    v.group.position.set(x, air >= 0 ? Math.sin(air * Math.PI) * 1.1 : 0, z);
+    v.group.rotation.y = v.yaw;
+    v.group.visible = !(enemy.flash > 0 && Math.floor(t * 30) % 2);
+    // On its side and thrashing on the ice; upright and arched in a leap.
+    if (air >= 0) { v.body.rotation.set(0.3, 0, Math.cos(air * Math.PI) * 0.45); v.body.position.y = 0.55; }
+    else { v.body.rotation.set(1.25 + Math.sin(t * 9) * 0.22, 0, Math.sin(t * 4.5) * 0.12); v.body.position.y = 0.42; }
+    v.fish.userData.tail.rotation.y = Math.sin(t * (air >= 0 ? 10 : 16)) * 0.7;
+    v.orb.visible = koi.wind > 0;
+    if (koi.wind > 0) v.orb.scale.setScalar(0.4 + (1 - koi.wind / 0.6) * 1.2 + Math.sin(t * 30) * 0.08);
+    v.shadow.position.set(x, SHADOW_Y, z);
+    v.shadow.scale.setScalar(2.6 * (air >= 0 ? 1 - Math.sin(air * Math.PI) * 0.35 : 1));
+    if (Math.random() < dt * 6) ctx.particles.spawn("water", x + (Math.random() - 0.5) * 1.2, 0.3, z + (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.6, 1 + Math.random(), (Math.random() - 0.5) * 0.6, 0.5);
+  },
+  remove: removeSimple,
+};
+
 // ---------- Potion ----------
 const potion: EntityView<Simple> = {
   create(ctx) {
@@ -198,7 +315,7 @@ const loot: EntityView<LootView> = {
     gem.position.y = 0.3;
     group.add(gem);
     if (rarity !== "normal") {                               // light beam: short for magic, tall for rare
-      const hgt = rarity === "rare" ? 3 : 1.2;
+      const hgt = rarity === "legendary" ? 4.5 : rarity === "rare" ? 3 : 1.2;
       group.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.12, hgt, 5, 1, true).translate(0, hgt / 2, 0),
         ctx.glow(c, { transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending })));
     }
@@ -253,7 +370,7 @@ const arrow: EntityView<ArrowView> = {
 };
 
 // ---------- Spell bolt ----------
-const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost" };
+const BOLT_SPARKS: Record<BoltKind, SparkPair> = { fire: "fire", poly: "arcane", frost: "frost", spark: "spark", wisp: "frost", icicle: "frost" };
 const bolt: EntityView<Simple> = {
   create(ctx, e, g) {
     const group = makeOrbMesh(ctx, g.world.need(e, "bolt").kind);
@@ -262,11 +379,12 @@ const bolt: EntityView<Simple> = {
     return { group, shadow };
   },
   update(ctx, v, e, g, f) {
-    const o = g.world.need(e, "transform"), kind = g.world.need(e, "bolt").kind, [x, z] = toWorld(o.x, o.y);
+    const o = g.world.need(e, "transform"), bolt = g.world.need(e, "bolt"), kind = bolt.kind, [x, z] = toWorld(o.x, o.y);
     v.group.position.set(x, 0.55 + Math.sin(f.t * 12 + o.x + HALF) * 0.03, z);
-    v.group.rotation.set(f.t * 6, f.t * 7, 0);
+    if (kind === "icicle") v.group.rotation.set(f.t * 3, -Math.atan2(bolt.vy, bolt.vx), 0, "YXZ");   // point first, turning slowly about its length
+    else v.group.rotation.set(f.t * 6, f.t * 7, 0);
     v.shadow.position.set(x, SHADOW_Y, z);
-    if (Math.random() < f.dt * 30) {                         // ember trail
+    if (Math.random() < f.dt * (kind === "icicle" ? 8 : 30)) { // ember trail
       const pair = SPARK_PAIRS[BOLT_SPARKS[kind]];
       ctx.particles.spawn(pair[Math.random() < 0.5 ? 0 : 1], x, 0.55, z, (Math.random() - 0.5) * 0.6, 0.8 + Math.random() * 0.6, (Math.random() - 0.5) * 0.6, 0.25);
     }
@@ -681,4 +799,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, rime, rimefrost, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa } satisfies { [K in ViewKind]: EntityView<object> };

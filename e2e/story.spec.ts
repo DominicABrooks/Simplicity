@@ -3,7 +3,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
 import { KING, KING_AGAIN, KING_AUDIENCE, KINGS_TASK, WATCHWORD } from "../src/data/king.ts";
-import { areaId, clickOn, expectToast, find, hold, journey, placeHero, play, readConversation, startGame, toasts, travel, waitFor } from "./game.ts";
+import { areaId, clearEnemies, clickOn, expectToast, find, hold, journey, placeHero, play, readConversation, startGame, toasts, travel, waitFor } from "./game.ts";
 
 const ROAD_TO_THE_KING = ["kingsroad", "capital", "castle", "throneroom"];
 const inCutscene = (page: Page) => page.locator("body.in-cutscene");
@@ -135,7 +135,9 @@ test.describe("the woodwardens' barricade", () => {
   });
 
   test("hands you paper and a crayon: the wrong word turns you back, the King's watchword lets you through", async ({ page }) => {
+    test.slow();                                             // three conversations, typed out at the game's pace
     await startGame(page);
+    await clearEnemies(page);                                // the barricade is in slime country: none to cut the talk short
     await tryTheGate(page);
     await play(page, 1);
     expect(await areaId(page)).toBe("witchwood");

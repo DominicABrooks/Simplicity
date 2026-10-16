@@ -70,7 +70,7 @@ function buildTent(ctx: RenderContext): THREE.Group {
 }
 
 /** A white disc that fades smoothly to transparent at its edge, for soft ground decals. */
-function softDisc(): THREE.CanvasTexture {
+export function softDisc(): THREE.CanvasTexture {
   const N = 64, c = document.createElement("canvas");
   c.width = c.height = N;
   const g = c.getContext("2d")!;

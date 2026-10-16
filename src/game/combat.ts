@@ -5,6 +5,7 @@ import { CRIT, HURT } from "../data/player.ts";
 import { XP, xpToNext } from "../data/progression.ts";
 import { COMBAT_COLORS } from "../data/ui.ts";
 import { SPELLS } from "../data/enemies.ts";
+import { isGod } from "./cheats.ts";
 import type { Actions } from "./components.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { sound } from "./sfx.ts";
@@ -14,12 +15,25 @@ export function combatText(g: Game, x: number, y: number, text: string, color: s
   g.floaters.push({ x, y, text, color, crit, life, t: 1, jx: Math.round((Math.random() - 0.5) * 10) });
 }
 
-/** Hit an enemy: 10% crits for double damage, with a flash, a number, and extra weight on crits. */
-export function hitEnemy(g: Game, e: Entity, damage: number): number {
+/** Hit an enemy (with a blade or a fist: `melee`; or a shot): 10% crits for double damage, with a flash, a number, and extra weight on crits. */
+export function hitEnemy(g: Game, e: Entity, damage: number, melee = true): number {
   const health = g.world.need(e, "health"), enemy = g.world.need(e, "enemy"), at = g.world.need(e, "transform");
+  if (enemy.warded) {                                        // sealed in ice: it glances off
+    sound(g, "dud", at);
+    combatText(g, at.x, at.y, "Ice!", COMBAT_COLORS.hit);
+    return 0;
+  }
   const crit = g.rng.next() < CRIT.chance;
   const dealt = crit ? damage * CRIT.multiplier : damage;
+  if (enemy.lastStand === "ready" && health.hp - dealt <= 0) {   // it won't fall yet: the blow's turned, its health kept
+    enemy.lastStand = "taken";
+    enemy.warded = true;
+    sound(g, "dud", at);
+    combatText(g, at.x, at.y, "Not yet!", COMBAT_COLORS.crit, true);
+    return 0;
+  }
   health.hp -= dealt;
+  if (melee) enemy.melee = (enemy.melee ?? 0) + dealt;
   enemy.flash = crit ? 0.22 : 0.15;
   sound(g, crit ? "crit" : "hit", at);
   combatText(g, at.x, at.y, crit ? `${dealt}!` : `${dealt}`, crit ? COMBAT_COLORS.crit : COMBAT_COLORS.hit, crit);
@@ -55,7 +69,7 @@ export function damagePlayer(g: Game, sx: number, sy: number, amount = 1): void 
   const w = g.world, e = g.player;
   const p = w.need(e, "transform"), kb = w.need(e, "knockback"), health = w.need(e, "health"), status = w.need(e, "status");
   status.sheep = 0;                                          // any damage breaks a polymorph
-  health.hp -= amount;
+  if (!isGod(g)) health.hp -= amount;                       // (a playtesting switch: see cheats.ts)
   status.hurt = HURT.invulnerable;
   cancelActions(w.need(e, "actions"));
   combatText(g, p.x, p.y, `-${amount}`, COMBAT_COLORS.taken);

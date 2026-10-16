@@ -1,6 +1,7 @@
 // Item definitions: base types, equipment slots, affixes and naming. Pure data.
 
-export type Rarity = "normal" | "magic" | "rare";
+/** Legendary: one of a kind, never rolled as loot (the Great Koi's rod). */
+export type Rarity = "normal" | "magic" | "rare" | "legendary";
 export type Slot = "helm" | "amulet" | "weapon" | "armor" | "ring" | "boots";
 export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone"
   | "runestone" | "key" | "eye" | "bottle" | "bell";
@@ -47,6 +48,7 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
   normal: { name: "Pond Koi", heal: 1 },
   magic: { name: "Silver Koi", heal: 2 },
   rare: { name: "Golden Koi", heal: 4 },
+  legendary: { name: "Great Koi", heal: 8 },
 };
 
 /**
@@ -116,6 +118,9 @@ export const RARE_B = ["Shroud", "Fang", "Ward", "Whisper", "Veil", "Bite", "Son
 /** Loot rarity odds: 12% rare, 33% magic, the rest normal. */
 export const RARITY_ODDS = { rare: 0.12, magic: 0.45 } as const;
 
+/** A piece of gear to hand the hero ready-made (see the bosses' READY kits): its type, rarity, affixes and name. */
+export type KitPiece = readonly [type: ItemType, rarity: Rarity, mods: Stats, name: string];
+
 /** What you start with, in the bag. */
 export const STARTER_KIT: [ItemType, string][] = [
   ["blade", "Rusty Blade"], ["hood", "Worn Hood"], ["robe", "Worn Robe"],
@@ -124,6 +129,8 @@ export const STARTER_KIT: [ItemType, string][] = [
 
 /** Fishing catch odds: 8% golden, 25% silver, the rest pond koi. */
 export const CATCH_ODDS = { rare: 0.08, magic: 0.33 } as const;
+/** ...and with a legendary pole (the Great Koi's): 30% golden, 40% silver, and they bite in half the time. */
+export const LEGENDARY_CATCH_ODDS = { rare: 0.3, magic: 0.7, bite: 0.5 } as const;
 
 /** Slime drops: at most one, 30% potion, 40% item. Mages: always an item (magic+), 50% potion. */
 export const DROPS = { slimePotion: 0.3, slimeItem: 0.7, magePotion: 0.5, potionHeal: 2 } as const;

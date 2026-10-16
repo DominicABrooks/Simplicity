@@ -41,9 +41,9 @@ export function spawnEnemy(g: Game, minDist: number): void {
   const cap = mageCap(level) + (mages?.extra ?? 0), chance = mages ? Math.max(0.45, mageChance(level)) : mageChance(level);
   if ((mages || g.kills >= MAGE_MIN_KILLS) && g.world.count("mage") < cap && g.rng.next() < chance) {
     const school = schools[Math.floor(g.rng.next() * schools.length)]!;
-    const hp = mageHp(level);
+    const hp = mageHp(level), at = (mages?.on !== undefined && randomGroundSpot(g.map, g.rng, hero, minDist, mages.on)) || p;
     g.world.create({
-      transform: p,
+      transform: at,
       knockback: { vx: 0, vy: 0 },
       health: { hp, maxHp: hp },
       enemy: { kind: "mage", flash: 0, face: 1 },
