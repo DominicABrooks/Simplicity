@@ -16,6 +16,11 @@ export const FAIRY_RING = {
    */
   speakFrom: 8,
   line: { in: 1, hold: 3.4, perChar: 0.055, out: 1.2, gap: 0.8 },
+  /**
+   * What he hears in it: bells now and then, closer together the deeper he's in (seconds between them, [min, max], at
+   * the deepest; twice that the moment he steps in), and a low wavering hum every `hum` seconds once he's `humFrom` deep.
+   */
+  sound: { chime: [0.6, 1.6], hum: 2.2, humFrom: 0.5 },
 } as const;
 
 /** What the fair folk leave him when he comes out of their ring, if they said anything to him while he was in it. */

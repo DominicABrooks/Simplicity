@@ -2,8 +2,10 @@
 // made up as it goes: a held chord a bar, a low note under it, now and then a ripple, and a tune that wanders the
 // scale and leans on the chord's notes. Changing area fades one theme out and the next in; the hour and the weather
 // change it gently as it plays. Like the sound effects, it waits for the first click or key press. N turns it off and
-// on again, and that's remembered for the next visit.
+// on again, and that's remembered for the next visit. In a fairy ring's spell it all but fades away, under the fair folk's
+// own bells (src/game/fairyring.ts).
 import { MUSIC_FADE, MUSIC_VOLUME, THEMES, hz, moodOf, noteOf, playing, scaleOf, themeFor, type Playing, type Theme, type ThemeId } from "../data/music.ts";
+import { tranceOf } from "../game/fairyring.ts";
 import { toast, type Game } from "../game/game.ts";
 
 export interface MusicPlayer {
@@ -101,8 +103,9 @@ export function createMusicPlayer(): MusicPlayer {
     update(g) {
       game = g;
       nowPlaying.muted = muted;
-      if (!ctx || !filter || !echo || ctx.state !== "running") return;
+      if (!ctx || !master || !filter || !echo || ctx.state !== "running") return;
       const now = ctx.currentTime, want = themeFor(g.state, g.area.def);
+      master.gain.setTargetAtTime(muted ? 0 : MUSIC_VOLUME * (1 - 0.8 * tranceOf(g)), now, 0.4);
       if (want !== id) {
         if (out) {
           out.gain.setValueAtTime(out.gain.value, now);

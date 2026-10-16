@@ -30,7 +30,7 @@ export function createAudioPlayer(): AudioPlayer {
     const c = ctx!, start = at + (t.delay ?? 0), end = start + t.dur;
     const env = c.createGain();
     env.gain.setValueAtTime(0.0001, start);
-    env.gain.exponentialRampToValueAtTime(t.gain, start + Math.min(0.01, t.dur / 4));
+    env.gain.exponentialRampToValueAtTime(t.gain, start + (t.attack ?? Math.min(0.01, t.dur / 4)));
     env.gain.exponentialRampToValueAtTime(0.0001, end);
     env.connect(out);
     let src: AudioScheduledSourceNode, freq: AudioParam;
