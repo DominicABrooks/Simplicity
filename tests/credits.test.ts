@@ -29,6 +29,7 @@ import { atPeace, spared } from "../src/game/peace.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { endTalk, updateTalk } from "../src/game/talk.ts";
+import { enterPets } from "../src/game/pets.ts";
 import { enterTownsfolk, loadCensus, residentById, setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
@@ -128,7 +129,7 @@ describe("the credits", () => {
 
   it("stand the King clear of the market stalls at the cross, reading the chronicle, everyone looking at him", async () => {
     const g = await atTheCastle();
-    g.events.on("area", () => enterTownsfolk(g));
+    g.events.on("area", () => { enterTownsfolk(g); enterPets(g); });
     toTheKing(g);
     await rollCredits(g);
     let checked = false;
@@ -141,6 +142,10 @@ describe("the credits", () => {
       for (const [, { walker: w, transform: t }] of g.world.query("walker", "transform")) {   // and everyone gathered round looking at him
         const at = Math.atan2(king.y - t.y, king.x - t.x);
         expect(Math.abs(Math.atan2(Math.sin(w.facing - at), Math.cos(w.facing - at)))).toBeLessThan(0.02);
+      }
+      for (const [, { pet, transform: t }] of g.world.query("pet", "transform")) {   // the dogs and cats too
+        const at = Math.atan2(king.y - t.y, king.x - t.x);
+        expect(Math.abs(Math.atan2(Math.sin(pet.facing - at), Math.cos(pet.facing - at)))).toBeLessThan(0.02);
       }
       checked = true;
     }

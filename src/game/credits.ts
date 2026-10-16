@@ -329,7 +329,10 @@ function slime(g: Game, x: number, y: number): Entity {
   });
 }
 
-/** The townsfolk out in the street, gathered round (x, y) (px) in a crescent on the near side, facing it and staying put. */
+/**
+ * The townsfolk out in the street, gathered round (x, y) (px) in a crescent on the near side, facing it and staying
+ * put; and the dogs and cats about, wherever they are, stood still and looking at it too.
+ */
 function gatherRound(g: Game, x: number, y: number, r: number): void {
   g.world.query("walker", "transform").forEach(([, c], i, all) => {
     const a = Math.PI * (0.15 + 0.7 * (i / Math.max(1, all.length - 1))), d = r + (i % 3) * 6;
@@ -337,6 +340,9 @@ function gatherRound(g: Game, x: number, y: number, r: number): void {
     Object.assign(c.transform, { x: px - HALF, y: py - HALF });
     Object.assign(c.walker, { path: [], moving: false, wait: 999, follow: null, goIn: false, task: null, facing: Math.atan2(y - py, x - px) });   // each looking right at it
   });
+  for (const [, { pet, transform: t }] of g.world.query("pet", "transform")) {
+    Object.assign(pet, { path: [], moving: false, running: false, greeting: false, wait: 999, facing: Math.atan2(y - t.y - HALF, x - t.x - HALF) });
+  }
 }
 
 /**
@@ -444,7 +450,7 @@ const SHOTS: readonly Shot[] = [
       gatherRound(g, x, ky, 3.2 * T);
       heroAt(g, x + 4 * T, ky + 3 * T, x, ky);
       return {
-        from: cam(x, ky, 0.55, 0.3), to: cam(x, ky + T, 0.75, -0.3), says: [SHOT_SAYS.chronicle, followedLine(run.followed)].filter(Boolean).join(" "),
+        from: cam(x, ky, 0.55, 0.3), to: cam(x, ky + 0.5 * T, 0.62, -0.3), says: [SHOT_SAYS.chronicle, followedLine(run.followed)].filter(Boolean).join(" "),
         play: () => gatherRound(g, x, ky, 3.2 * T),
       };
     },
