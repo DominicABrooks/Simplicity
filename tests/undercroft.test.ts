@@ -11,7 +11,7 @@ import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
-import { socketOf } from "../src/game/undercroft.ts";
+import { sealOf, socketOf } from "../src/game/undercroft.ts";
 import { makeCurio } from "../src/items/items.ts";
 import { step } from "../src/systems/index.ts";
 import { blocked } from "../src/world/collision.ts";
@@ -110,5 +110,20 @@ describe("the ring of old stones", () => {
     enterArea(g, await loadArea("undercroft"), "steps");
     step(g, DT); step(g, DT);
     expect(g.world.query("renderable").filter(([, c]) => c.renderable.kind === "ringstone")).toHaveLength(1);
+  });
+});
+
+describe("the little sealed door behind the ring", () => {
+  it("can be walked up to round the ring, and says what it is once a run", async () => {
+    const { g, toasts } = await at("undercroft", "steps");
+    const seal = sealOf(g)!;
+    expect(seal).not.toBeNull();
+    expect(blocked(g.map, seal.x, seal.y, true)).toBe(false);
+    expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toEqual([]);
+    Object.assign(hero(g), seal);
+    step(g, DT);
+    expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toEqual([...UNDERCROFT_SAYS.seal]);
+    step(g, DT);
+    expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toHaveLength(UNDERCROFT_SAYS.seal.length);
   });
 });

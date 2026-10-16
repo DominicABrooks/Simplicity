@@ -32,6 +32,8 @@ function build(): AreaLayout {
     pillars: [{ x: 4.8, y: 10.9 }, { x: 4.8, y: 13.6 }, { x: W - 4.8, y: 10.9 }, { x: W - 4.8, y: 13.6 }],
     prickets: [{ x: 3.4, y: 10.85 }, { x: W - 3.4, y: 13.55 }, { x: 3.4, y: 13.55 }, { x: W - 3.4, y: 10.85 }],
     ledgers: [{ x: MID - 0.9, y: 11.2 }, { x: MID + 0.9, y: 12.9 }, { x: MID - 0.9, y: 14.6 }],
+    // Behind the ring, in the north wall: the little door carved with the three fires, under the Kellets' seals.
+    seal: { side: "north", at: MID },
   });
   // The sexton's stores by the door.
   add("barrel", 2.2, H - 1.6, "north");

@@ -7,6 +7,7 @@ import { HALF, T, type Rect } from "../data/world.ts";
 import { makeItem } from "../items/items.ts";
 import type { ExitDef } from "../world/area.ts";
 import { FEET, blocked } from "../world/collision.ts";
+import { ROOM_WALL } from "../world/plans.ts";
 import { ringPlan } from "../world/stonering.ts";
 import { carryingCurio, spendCurio, spentCurios } from "./curios.ts";
 import { toast, type Game } from "./game.ts";
@@ -49,23 +50,35 @@ export function socketOf(g: Game): { x: number; y: number } | null {
   return null;
 }
 
+/** The spot just in front of the little sealed door behind the ring, if this area has it (game px, an entity's top-left). */
+export function sealOf(g: Game): { x: number; y: number } | null {
+  for (const p of g.area.layout.props) if (p.kind === "crypt") {
+    const x0 = p.rect.x / T, z0 = p.rect.y / T, x1 = (p.rect.x + p.rect.w) / T, z1 = (p.rect.y + p.rect.h) / T, off = ROOM_WALL.thick + 0.7, a = p.seal.at;
+    const [x, z] = { north: [x0 + a, z0 + off], south: [x0 + a, z1 - off], west: [x0 + off, z0 + a], east: [x1 - off, z0 + a] }[p.seal.side];
+    return { x: x! * T - HALF, y: z! * T - HALF };
+  }
+  return null;
+}
+
 /** The stone, back in the ring, if it's here. */
 const ringstoneHere = (g: Game) => g.world.query("renderable").some(([, c]) => c.renderable.kind === "ringstone");
 
-/** This run, per game: has he been down here yet (he's told where he is the first time), and been told the ring's warm? */
-const runs = new WeakMap<Game, { visited: boolean; hinted: boolean }>();
-function runOf(g: Game): { visited: boolean; hinted: boolean } {
+/** This run, per game: has he been down here yet (he's told where he is the first time), been told the ring's warm, seen the sealed door? */
+interface Run { visited: boolean; hinted: boolean; sealSeen: boolean }
+const runs = new WeakMap<Game, Run>();
+function runOf(g: Game): Run {
   let r = runs.get(g);
   if (!r) {
-    const fresh = { visited: false, hinted: false };
+    const fresh = { visited: false, hinted: false, sealSeen: false };
     runs.set(g, r = fresh);
-    g.events.on("reset", () => { fresh.visited = fresh.hinted = false; });
+    g.events.on("reset", () => { fresh.visited = fresh.hinted = fresh.sealSeen = false; });
   }
   return r;
 }
 
 /**
- * Every frame, in the Undercroft: the first time down, a word on where he is. If the stone's been set back, it's
+ * Every frame, in the Undercroft: the first time down, a word on where he is; the first time up by the sealed door
+ * behind the ring, a word on that. If the stone's been set back, it's
  * standing in its socket. If he's carrying it and walks up to the socket, it goes home and the ring wakes.
  */
 export function undercroftSystem(g: Game): void {
@@ -73,6 +86,11 @@ export function undercroftSystem(g: Game): void {
   if (!socket) return;
   const run = runOf(g);
   if (!run.visited) { run.visited = true; toast(g, UNDERCROFT_SAYS.arrive, true); }
+  const seal = sealOf(g), me = g.world.need(g.player, "transform");
+  if (seal && !run.sealSeen && Math.hypot(me.x - seal.x, me.y - seal.y) < UNDERCROFT.seal) {
+    run.sealSeen = true;
+    for (const line of UNDERCROFT_SAYS.seal) toast(g, line);
+  }
   const set = spentCurios(g).has("stone");
   if (set && !ringstoneHere(g)) setStone(g, socket);
   if (set || !carryingCurio(g, "stone")) return;

@@ -5,6 +5,7 @@
 // on a face (with every vertex snapped to the screen's coarse grid, a face laid on a face flickers through it).
 import * as THREE from "three";
 import { T } from "../data/world.ts";
+import type { Facing } from "../world/area.ts";
 import { FACING_YAW, ROOM_WALL } from "../world/plans.ts";
 import { ringPlan } from "../world/stonering.ts";
 import { put } from "./castle.ts";
@@ -233,7 +234,8 @@ export const ringstone: EntityView<RingstoneView> = {
  * out of them, pointed arches springing between, under the wall top so the camera still sees in over it), in some bays a
  * stone shelf of the old bones moved down when the church was built; squat round pillars with cushion capitals; iron
  * candle-stands, thick candles guttering on their spikes, wax down the pan, each throwing a little warm light; and
- * slabs let into the floor of the aisle, a cross cut proud on each.
+ * slabs let into the floor of the aisle, a cross cut proud on each. And in the wall behind the ring, older than any of
+ * it, the little door the Kellets keep sealing (HISTORY.md): see sealedDoor.
  */
 export function buildCrypt(ctx: RenderContext, parent: THREE.Group, p: PropOf<"crypt">): PropView {
   const { lambert } = ctx, g = new THREE.Group(), stone = lambert(PALE_STONE, { map: ctx.tex.stone }), dark = lambert("#6e6960", { map: ctx.tex.stone });
@@ -251,7 +253,8 @@ export function buildCrypt(ctx: RenderContext, parent: THREE.Group, p: PropOf<"c
     const n = Math.max(1, Math.round(s.len / 1.5)), w = s.len / n, yaw = Math.atan2(s.out[0], s.out[1]);
     const at = (u: number, o: number): [number, number] => [s.from[0] + s.along[0] * u + s.out[0] * o, s.from[1] + s.along[1] * u + s.out[1] * o];
     const doorFrom = p.doorAt - t;
-    const overDoor = (u: number) => s.side === p.door && u > doorFrom - 0.3 && u < doorFrom + ROOM_WALL.gap + 0.3;
+    const sealFrom = p.seal.at - t;
+    const overDoor = (u: number) => (s.side === p.door && u > doorFrom - 0.3 && u < doorFrom + ROOM_WALL.gap + 0.3) || (s.side === p.seal.side && Math.abs(u - sealFrom) < 0.8);
     for (let i = 0; i <= n; i++) {                           // the half-columns, standing out of the wall
       const u = i * w;
       if (overDoor(u) || i === 0 || i === n) continue;          // (the corners have the walls)
@@ -316,14 +319,83 @@ export function buildCrypt(ctx: RenderContext, parent: THREE.Group, p: PropOf<"c
     put(g, box(0.08, 0.03, 0.8), dark, q.x, 0.12, q.y - 0.1);
     put(g, box(0.4, 0.03, 0.08), dark, q.x, 0.12, q.y - 0.3);
   }
+  const seal = sealedDoor(ctx);
+  seal.group.position.set(...sealAt(p));
+  seal.group.rotation.y = FACING_YAW[OPPOSITE[p.seal.side]];
+  g.add(seal.group);
   parent.add(g);
   return {
     update: (time: number) => {
+      seal.update(time);
       for (const l of lights) {
         const f = 0.85 + Math.sin(time * 9 + l.k * 7) * 0.08 + Math.sin(time * 23 + l.k) * 0.05;
         l.light.intensity = 0.9 * f;
         l.flames.forEach((m, i) => { m.scale.y = 0.8 + Math.sin(time * (11 + i * 3) + l.k * 5) * 0.25; });
       }
     },
+  };
+}
+
+const OPPOSITE = { north: "south", south: "north", east: "west", west: "east" } as const satisfies Record<Facing, Facing>;
+
+/** Where the sealed door stands (world units, on the floor): at the inner face of its wall, `at` along it. */
+function sealAt(p: PropOf<"crypt">): [number, number, number] {
+  const x0 = p.rect.x / T, z0 = p.rect.y / T, x1 = (p.rect.x + p.rect.w) / T, z1 = (p.rect.y + p.rect.h) / T, t = ROOM_WALL.thick, a = p.seal.at;
+  switch (p.seal.side) {
+    case "north": return [x0 + a, 0, z0 + t];
+    case "south": return [x0 + a, 0, z1 - t];
+    case "west": return [x0 + t, 0, z0 + a];
+    case "east": return [x1 - t, 0, z0 + a];
+  }
+}
+
+/**
+ * The little door behind the ring: not the church's and not the temple's either. A squat frame of rough grey stone
+ * like the ring's, two jambs and a lintel, round one dark slab; cut proud on the slab, three flames over a snowflake
+ * and a lightning bolt, the Vael's three fires, faintly warm the way the ring is: the Vael's lock on somebody else's
+ * door. Over it the Kellets' own seals, generation on generation: iron bands staked into the jambs, lead seals hanging
+ * off them on cords, mortar pressed into the joints; and the top band snapped, one end hanging, the slab stood a
+ * finger's width off true, a black seam down its side, grit ground out across the threshold. It keeps coming
+ * unlocked. Faces +z from the wall's face.
+ */
+function sealedDoor(ctx: RenderContext): { group: THREE.Group; update: (time: number) => void } {
+  const { lambert } = ctx, g = new THREE.Group(), rough = lambert(STONE, { map: ctx.tex.stone }), slab = lambert("#6a665e", { map: ctx.tex.stone });
+  const iron = lambert(IRON), lead = lambert("#7b8084"), mortar = lambert("#c9c1ae"), cord = lambert("#4a3a2a"), black = ctx.basic("#050404");
+  // The frame: two leaning jambs, a lintel laid across them, a threshold stone.
+  for (const s of [-1, 1]) put(g, box(0.24, 1.0, 0.24), rough, s * 0.46, 0.5, 0.1, 0, s * 0.08, -s * 0.03);
+  put(g, box(1.26, 0.24, 0.28), rough, 0, 1.1, 0.1, 0, 0, 0.02);
+  put(g, box(1.1, 0.07, 0.36), rough, 0, 0.035, 0.18);
+  // The slab, off true: the seam black down its right side.
+  put(g, box(0.06, 0.92, 0.04), black, 0.3, 0.5, 0.03);
+  put(g, box(0.64, 0.92, 0.1), slab, -0.03, 0.5, 0.06, 0, 0.04, 0);
+  // The three fires, cut proud: three flames in a row, a snowflake, a bolt. Their own faint warmth, breathing.
+  const marks = [
+    lambert("#8a5a3e", { emissive: new THREE.Color("#7a2a10") }),
+    lambert("#8a9aa4", { emissive: new THREE.Color("#1a5a6a") }),
+    lambert("#9a8a52", { emissive: new THREE.Color("#5a4a10") }),
+  ];
+  for (const i of [-1, 0, 1]) {
+    put(g, new THREE.ConeGeometry(0.055, 0.17, 4), marks[0]!, -0.03 + i * 0.16, 0.79, 0.13);
+    put(g, new THREE.ConeGeometry(0.03, 0.08, 4), marks[0]!, -0.01 + i * 0.16, 0.88, 0.13, 0, 0, -0.3);
+  }
+  for (let k = 0; k < 3; k++) put(g, box(0.2, 0.025, 0.03), marks[1]!, -0.17, 0.45, 0.13, 0, 0, (k * Math.PI) / 3);   // the snowflake
+  for (const [x, y, r] of [[0.17, 0.53, -0.45], [0.13, 0.46, 1.2], [0.09, 0.39, -0.45]] as const) put(g, box(0.035, 0.12, 0.03), marks[2]!, x, y, 0.13, 0, 0, r);   // the bolt
+  put(g, new THREE.ConeGeometry(0.028, 0.07, 4), marks[2]!, 0.065, 0.32, 0.13, 0, 0, Math.PI - 0.45);
+  // The Kellets' bands: the lower one whole, staked into both jambs; the upper one snapped, its end hanging.
+  put(g, box(0.98, 0.06, 0.03), iron, 0, 0.24, 0.16);
+  put(g, box(0.5, 0.06, 0.03), iron, -0.24, 0.65, 0.16);
+  put(g, box(0.3, 0.06, 0.03), iron, 0.3, 0.55, 0.17, 0, 0, 0.9);
+  for (const [x, y] of [[-0.46, 0.24], [0.46, 0.24], [-0.46, 0.65]] as const) put(g, new THREE.CylinderGeometry(0.03, 0.03, 0.05, 5).rotateX(Math.PI / 2), iron, x, y, 0.2);
+  // The lead seals, each on a cord off a band; mortar pressed into the joints round the slab.
+  for (const [x, y] of [[-0.3, 0.24], [0.05, 0.24], [0.32, 0.24], [-0.38, 0.65]] as const) {
+    put(g, box(0.012, 0.09, 0.012), cord, x, y - 0.07, 0.18);
+    put(g, new THREE.CylinderGeometry(0.045, 0.045, 0.02, 7).rotateX(Math.PI / 2), lead, x, y - 0.14, 0.19);
+  }
+  for (const [x, y, h] of [[-0.35, 0.15, 0.2], [-0.35, 0.8, 0.14], [0.27, 0.95, 0.06], [-0.1, 0.97, 0.05]] as const) put(g, box(0.07, h, 0.05), mortar, x, y, 0.1);
+  // Grit ground out over the threshold, where the slab's been moving.
+  for (let i = 0; i < 6; i++) put(g, new THREE.DodecahedronGeometry(0.025 + (i % 3) * 0.008, 0), rough, -0.2 + i * 0.09, 0.09, 0.3 + (i % 2) * 0.06);
+  return {
+    group: g,
+    update: (time: number) => { const k = 0.55 + Math.sin(time * 0.9) * 0.35; for (const m of marks) m.emissiveIntensity = k; },
   };
 }

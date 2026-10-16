@@ -148,8 +148,8 @@ export type Prop =
   | { kind: "cryptDoor"; x: number; y: number; facing: Facing }
   /** The Undercroft's stonework inside its `room` (same rect, door and doorAt): a blind arcade round the walls, bones
    * shelved in some bays; round `pillars`, iron candle-stands at `prickets` (both solid), slabs let into the floor at
-   * `ledgers` (tile units). */
-  | { kind: "crypt"; rect: Rect; door: Facing; doorAt: number; pillars: { x: number; y: number }[]; prickets: { x: number; y: number }[]; ledgers: { x: number; y: number }[] }
+   * `ledgers` (tile units); and in the wall on `seal.side`, `seal.at` tiles along, the little door the Kellets keep sealing. */
+  | { kind: "crypt"; rect: Rect; door: Facing; doorAt: number; pillars: { x: number; y: number }[]; prickets: { x: number; y: number }[]; ledgers: { x: number; y: number }[]; seal: { side: Facing; at: number } }
   /** A stone chest tomb, long along `facing`'s axis, the one in it carved lying on the lid if `effigy`. */
   | { kind: "tomb"; x: number; y: number; facing: Facing; effigy: boolean }
   /** A ring of `stones` old grey standing stones, `radius` tiles out, the `gap`th (from the north, clockwise) missing. */
