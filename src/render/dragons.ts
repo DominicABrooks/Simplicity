@@ -20,16 +20,20 @@ import type { EntityView } from "./views.ts";
 import type { Dragon, Egg } from "../game/components.ts";
 
 /**
- * Each dragon's colours, after the great wyverns of the old songs: hide, belly, wing membrane and the black it runs to
- * at the tips, the dark of the markings, spikes and claws, eyes; and the breath it breathes. The Old Mother is crimson
- * barred with black, a tan belly; her hatchlings each in their own order's colour, marked darker.
+ * Each dragon's colours, after the great wyverns of the old songs: hide, belly, the wing membrane on top (deep red near
+ * the body and along the leading edge) and where it runs pale (cream toward the trailing edge, and all over underneath),
+ * the dark veins through it, the dark of the markings, spikes and claws, eyes; and the breath it breathes. The Old
+ * Mother is crimson barred with black, a tan belly; her hatchlings each in their own order's colour, marked darker.
  */
-const HIDES: Record<Dragon["hide"], { skin: string; belly: string; wing: string; tip: string; mark: string; horn: string; eye: string; breath: [SparkColor, SparkColor]; light: string }> = {
-  mother: { skin: "#b3231c", belly: "#d9b98c", wing: "#a01c17", tip: "#1c1414", mark: "#2a1816", horn: "#3a302c", eye: "#ffd23a", breath: ["fire", "ember"], light: "#ff9a40" },
-  ember: { skin: "#d0391f", belly: "#f0b878", wing: "#c42a1c", tip: "#3a1210", mark: "#5a160c", horn: "#f2e2c4", eye: "#fff1a8", breath: ["fire", "ember"], light: "#ff8a3a" },
-  frost: { skin: "#eef2f4", belly: "#cfe6f2", wing: "#c4dcea", tip: "#6a90aa", mark: "#8fb0c6", horn: "#9fc4dc", eye: "#5ab8f0", breath: ["ice", "snow"], light: "#cfeeff" },
-  storm: { skin: "#3a368a", belly: "#8f86d8", wing: "#4a42b0", tip: "#14123a", mark: "#1c1a48", horn: "#e8e2ff", eye: "#fff6a0", breath: ["arcane", "arcaneLight"], light: "#9a8cff" },
+const HIDES: Record<Dragon["hide"], {
+  skin: string; belly: string; wing: string; pale: string; vein: string; mark: string; horn: string; eye: string; breath: [SparkColor, SparkColor]; light: string;
+}> = {
+  mother: { skin: "#b3231c", belly: "#d9b98c", wing: "#9a1e16", pale: "#e6cb9c", vein: "#3e110c", mark: "#2a1816", horn: "#3a302c", eye: "#ffd23a", breath: ["fire", "ember"], light: "#ff9a40" },
+  ember: { skin: "#d0391f", belly: "#f0b878", wing: "#c42a1c", pale: "#f2c08c", vein: "#5a160c", mark: "#5a160c", horn: "#f2e2c4", eye: "#fff1a8", breath: ["fire", "ember"], light: "#ff8a3a" },
+  frost: { skin: "#eef2f4", belly: "#cfe6f2", wing: "#c4dcea", pale: "#f4f8fa", vein: "#7c9cb4", mark: "#8fb0c6", horn: "#9fc4dc", eye: "#5ab8f0", breath: ["ice", "snow"], light: "#cfeeff" },
+  storm: { skin: "#3a368a", belly: "#8f86d8", wing: "#4a42b0", pale: "#a49ce0", vein: "#14123a", mark: "#1c1a48", horn: "#e8e2ff", eye: "#fff6a0", breath: ["arcane", "arcaneLight"], light: "#9a8cff" },
 };
+type Hide = (typeof HIDES)[Dragon["hide"]];
 
 interface DragonView {
   group: THREE.Group; shadow: THREE.Mesh; chest: THREE.Mesh;
@@ -58,77 +62,98 @@ const fan = (pts: readonly P[]) => flatTris(pts.slice(1, -1).flatMap((p, i) => [
 /** The band between two runs of points, an inner and an outer, the same length. */
 const band = (inner: readonly P[], outer: readonly P[]) =>
   flatTris(inner.slice(0, -1).flatMap((a, i) => [a, outer[i]!, outer[i + 1]!, a, outer[i + 1]!, inner[i + 1]!]));
+/** Toward `o` from `p`, `k` of the way. */
+const toward = (p: P, o: P, k: number): P => [p[0] + (o[0] - p[0]) * k, p[1] + (o[1] - p[1]) * k];
+/** A bone (or a vein) on the plane y = 0 from a to b (x, z), tapering. */
+function rod(o: THREE.Object3D, a: P, b: P, r0: number, r1: number, mat: THREE.Material, sides = 5): void {
+  put(o, toZ(limb(Math.hypot(b[0] - a[0], b[1] - a[1]), r0, r1, sides)), mat, a[0], 0, a[1]).rotation.y = Math.atan2(b[0] - a[0], b[1] - a[1]);
+}
 
 /**
- * A wing, which is the arm too, built out along +z from the shoulder (the far one the same, mirrored): the arm out to
- * the wrist with its claw, four long fingers fanning back from it, and the membrane between them, scalloped between
- * the fingertips and running to black at them; and nearer the body, membrane from the flank out to the wrist and the
- * last finger. The fingers fold back along the arm at the wrist, and at rest the folded wing is what she stands on in
+ * A wing, which is the arm too, built out along +z from the shoulder (the far one the same, mirrored), shaped on
+ * Rathalos's: the arm reaching forward and out to a wrist held level with the head; from it the long first finger
+ * along the leading edge, bowed forward, out to the tip, and two more fingers sweeping back to the trailing edge; the
+ * membrane deep (as deep as the body is long, near the root), scalloped between the fingertips. On top it's red near
+ * the arm and pales to cream toward the trailing edge; underneath it's cream; dark veins run back through it from the
+ * leading edge. The fingers fold back along the arm at the wrist, and at rest the folded wing is what she stands on in
  * front, the wrist claw on the ground.
  */
-function wing(bone: THREE.Material, claw: THREE.Material, membrane: THREE.Material, tip: THREE.Material, s: 1 | -1, span: number): { shoulder: THREE.Group; wrist: THREE.Group } {
-  const shoulder = new THREE.Group(), m = new THREE.Group();
+function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, pale: THREE.Material, vein: THREE.Material, s: 1 | -1, span: number): { shoulder: THREE.Group; wrist: THREE.Group } {
+  const shoulder = new THREE.Group(), m = new THREE.Group(), W: P = [0.2, 0.61], up = 0.004;
   m.scale.set(span, span, s * span);
   shoulder.add(m);
+  /** Membrane both ways up: `upper` seen from above, cream from below. */
+  const skin2 = (o: THREE.Object3D, geo: () => THREE.BufferGeometry, upper: THREE.Material) => {
+    put(o, geo(), upper, 0, up, 0);
+    put(o, geo(), pale, 0, -up, 0);
+  };
   put(m, ball(0.08), bone, 0, 0, 0);
-  put(m, toZ(limb(0.62, 0.065, 0.04)), bone, 0, 0, 0);
+  rod(m, [0, 0], W, 0.07, 0.045, bone, 7);
   const wrist = new THREE.Group();
-  wrist.position.set(0.04, 0, 0.62);
+  wrist.position.set(W[0], 0, W[1]);
   m.add(wrist);
-  put(wrist, ball(0.05), bone, 0, 0, 0);
-  put(wrist, toX(cone(0.028, 0.12)), claw, 0.03, 0, 0);       // the wrist claw, forward
-  const tips = [[0.06, 0.74], [-0.38, 0.62], [-0.68, 0.36], [-0.72, 0.04]] as const;
-  for (const [x, z] of tips) put(wrist, toZ(limb(Math.hypot(x, z), 0.03, 0.01, 5)), bone, 0, 0, 0).rotation.y = Math.atan2(x, z);
-  const edge: P[] = [];
-  tips.forEach(([x, z], i) => {
-    edge.push([x, z]);
-    const next = tips[i + 1];
-    if (next) edge.push([(x + next[0]) * 0.5 * 0.74, (z + next[1]) * 0.5 * 0.74]);   // the scallop, pulled in toward the wrist
-  });
-  // Red out from the wrist; black the outer part, out to the fingertips and the scalloped edge.
-  const inner = edge.map(([x, z]) => [x * 0.58, z * 0.58] as const);
-  put(wrist, fan([[0, 0], ...inner]), membrane, 0, 0, 0);
-  put(wrist, band(inner, edge), tip, 0, 0, 0);
-  // Nearer the body: from the shoulder, out to the wrist and the last fingertip, and back in to the flank.
-  const last = tips[3];
-  put(m, fan([[0, 0], [0.04, 0.62], [0.04 + last[0], 0.62 + last[1]], [-0.5, 0.34], [-0.72, 0.04]]), membrane, 0, 0, 0);
+  put(wrist, ball(0.055), bone, 0, 0, 0);
+  put(wrist, toX(cone(0.03, 0.13)), claw, 0.04, 0, 0);       // the wrist claw, forward
+  // The hand, from the wrist: the leading edge bowed forward to the tip, two fingers back to the trailing edge,
+  // and the scallops between, pulled in.
+  const lead: P = [0.1, 0.64], tip: P = [-0.31, 1.13], f2: P = [-0.98, 0.69], f3: P = [-1.09, 0];
+  const s1: P = [-0.41, 0.86], s2: P = [-0.82, 0.39];
+  rod(wrist, [0, 0], lead, 0.04, 0.03, bone);
+  rod(wrist, lead, tip, 0.03, 0.012, bone);
+  rod(wrist, [0, 0], f2, 0.035, 0.012, bone);
+  rod(wrist, [0, 0], f3, 0.035, 0.014, bone);
+  const edge: P[] = [lead, tip, s1, f2, s2, f3];
+  // On top: red out from the arm, cream the outer part toward the trailing edge.
+  const inner = edge.map((p, i) => toward([0, 0], p, i === 0 || i === 1 ? 0.92 : 0.5));
+  put(wrist, fan([[0, 0], ...inner]), top, 0, up, 0);
+  put(wrist, band(inner, edge), pale, 0, up, 0);
+  put(wrist, fan([[0, 0], ...edge]), pale, 0, -up, 0);
+  for (const [a, b] of [
+    [toward(lead, tip, 0.75), toward(tip, s1, 0.7)], [toward(lead, tip, 0.35), toward([0, 0], s1, 0.95)], [toward([0, 0], lead, 0.75), toward([0, 0], f2, 0.7)],
+    [toward([0, 0], lead, 0.3), toward([0, 0], s2, 0.9)], [toward([0, 0], f2, 0.35), toward(f2, s2, 0.5)],
+  ] as [P, P][]) rod(wrist, a, b, 0.022, 0.006, vein, 3);       // dark veins, flaring back from the leading edge
+  // Nearer the body: from the shoulder out to the wrist and the last fingertip, scalloped back in to the flank.
+  const f3m: P = [W[0] + f3[0], W[1] + f3[1]], s3: P = [-0.66, 0.3], root: P = [-0.6, 0.02];
+  skin2(m, () => fan([[0, 0], W, f3m, s3, root]), top);
+  rod(m, toward([0, 0], W, 0.4), toward(f3m, s3, 0.6), 0.022, 0.006, vein, 3);
+  rod(m, toward([0, 0], W, 0.75), toward([0, 0], f3m, 0.8), 0.02, 0.006, vein, 3);
   return { shoulder, wrist };
 }
 
 /**
- * A dragon, a hatchling's length long, facing +x, built like a great wyvern: no forelegs, the wings its arms; a deep
- * chest held high and heavy hips on two thick, bird-footed legs; spikes all down the back; black bars across the back,
- * neck and tail; a long neck of tapering segments; a long beaked head with swept-back horns, a crest of spikes, teeth and
- * a jaw that drops; and a long, heavy tail with a spiked club at the end. A hatchling is the same but young: a big
- * head on a short neck, small wings, stubby horns.
+ * A dragon facing +x, built like a great wyvern and shaped on Rathalos (seen from above, nose to tail is a little over
+ * half its wingspan): no forelegs, the wings its arms, rooted just behind the head; a short neck and a small beaked head
+ * with swept-back horns, a crest, teeth and a jaw that drops; a compact body, the chest high and the hips heavy on two
+ * thick, bird-footed legs; spikes down the back; black bars across the back, neck and tail; and a tail no longer than
+ * the body and neck together, ending in a broad spiked club. A hatchling is the same but young: a bigger head for its
+ * size, small wings, stubby horns.
  */
 function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, "shadow" | "light" | "k"> {
-  const h = HIDES[hide], young = hide !== "mother", group = new THREE.Group(), flat = { flatShading: true };
+  const h: Hide = HIDES[hide], young = hide !== "mother", group = new THREE.Group(), flat = { flatShading: true }, both = { side: THREE.DoubleSide, ...flat };
   const skin = ctx.lambert(h.skin, flat), belly = ctx.lambert(h.belly, flat), horn = ctx.lambert(h.horn, flat), mark = ctx.lambert(h.mark, flat), eye = ctx.glow(h.eye);
-  const membrane = ctx.lambert(h.wing, { side: THREE.DoubleSide, ...flat }), tip = ctx.lambert(h.tip, { side: THREE.DoubleSide, ...flat });
-  const tooth = ctx.lambert("#f6f0e2", flat);
+  const top = ctx.lambert(h.wing, both), pale = ctx.lambert(h.pale, both), vein = ctx.lambert(h.vein, flat), tooth = ctx.lambert("#f6f0e2", flat);
   /** A black bar over the top of a length (the segment's own taper), showing above it and hidden under it. */
   const bar = (o: THREE.Object3D, geo: THREE.BufferGeometry, r: number) => { put(o, geo, mark, 0, r * 0.28, 0).scale.set(1, 1, 0.92); };
-  // The body: the chest held high, the hips behind, the belly under both; a black saddle down the back, and spikes.
-  const chest = put(group, ball(0.36), skin, 0.14, 0.82, 0);
-  chest.scale.set(1.25, 0.95, 0.85);
-  put(group, ball(0.33), skin, -0.3, 0.74, 0).scale.set(1.25, 0.9, 0.85);
-  put(group, ball(0.3), belly, 0.02, 0.66, 0).scale.set(1.6, 0.62, 0.72);
-  put(group, ball(0.3), mark, -0.08, 0.93, 0).scale.set(1.75, 0.38, 0.5);
-  for (let i = 0; i < 6; i++) put(group, cone(0.045, 0.19 - Math.abs(i - 1.5) * 0.02), horn, 0.34 - i * 0.15, 1.13 - i * 0.04 - (i > 2 ? 0.04 : 0), 0, 0, 0, -0.45);
+  // The body: compact, the chest high, the hips behind, the belly under both; a black saddle down the back, and spikes.
+  const chest = put(group, ball(0.3), skin, 0.12, 0.84, 0);
+  chest.scale.set(1.2, 1, 0.95);
+  put(group, ball(0.29), skin, -0.24, 0.76, 0).scale.set(1.15, 0.92, 0.95);
+  put(group, ball(0.26), belly, 0, 0.7, 0).scale.set(1.5, 0.66, 0.8);
+  put(group, ball(0.26), mark, -0.06, 0.95, 0).scale.set(1.6, 0.36, 0.55);
+  for (let i = 0; i < 5; i++) put(group, cone(0.04, 0.16 - Math.abs(i - 1.5) * 0.02), horn, 0.28 - i * 0.14, 1.12 - i * 0.04, 0, 0, 0, -0.45);
   // Two legs, thick in the thigh, a backward-bent shin, a long foot and three great claws.
-  const legs = ([0.22, -0.22] as const).map(lz => {
-    const hip = new THREE.Group(), y = 0.72, a = 0.6, b = -0.75, top = 0.34, shin = 0.3;
-    hip.position.set(-0.24, y, lz);
+  const legs = ([0.21, -0.21] as const).map(lz => {
+    const hip = new THREE.Group(), y = 0.74, a = 0.6, b = -0.75, upper = 0.34, shin = 0.3;
+    hip.position.set(-0.2, y, lz);
     group.add(hip);
-    put(hip, ball(0.2), skin, 0, 0, 0).scale.set(1.2, 1.3, 0.85);
-    put(hip, down(limb(top, 0.13, 0.08)), skin, 0, 0, 0).rotation.z = a;
+    put(hip, ball(0.19), skin, 0, 0, 0).scale.set(1.2, 1.3, 0.85);
+    put(hip, down(limb(upper, 0.13, 0.08)), skin, 0, 0, 0).rotation.z = a;
     const knee = new THREE.Group();
-    knee.position.set(Math.sin(a) * top, -Math.cos(a) * top, 0);
+    knee.position.set(Math.sin(a) * upper, -Math.cos(a) * upper, 0);
     hip.add(knee);
     put(knee, ball(0.075), skin, 0, 0, 0);
     put(knee, down(limb(shin, 0.07, 0.05)), skin, 0, 0, 0).rotation.z = b;
-    const ankle = new THREE.Group(), low = y - top * Math.cos(a) - shin * Math.cos(b) - 0.03;
+    const ankle = new THREE.Group(), low = y - upper * Math.cos(a) - shin * Math.cos(b) - 0.03;
     ankle.position.set(Math.sin(b) * shin, -Math.cos(b) * shin, 0);
     knee.add(ankle);
     put(ankle, down(limb(Math.max(0.05, low / Math.cos(0.45)), 0.05, 0.04)), skin, 0, 0, 0).rotation.z = 0.45;
@@ -140,25 +165,25 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
     put(foot, toBack(cone(0.02, 0.07)), horn, -0.04, -0.01, 0);   // the back toe
     return hip;
   });
-  // The neck: four segments, each hung off the one before, so bending each a little curls the whole of it; barred black.
-  const neck: THREE.Group[] = [], L = young ? 0.12 : 0.17;
+  // The neck: short, three thick segments, each hung off the one before, so bending each curls the whole; barred black.
+  const neck: THREE.Group[] = [], L = young ? 0.08 : 0.1;
   let parent: THREE.Object3D = group;
-  for (let i = 0; i < 4; i++) {
-    const seg = new THREE.Group(), r0 = 0.16 - i * 0.022, r1 = r0 - 0.022;
-    seg.position.set(i ? L : 0.44, i ? 0 : 0.98, 0);
+  for (let i = 0; i < 3; i++) {
+    const seg = new THREE.Group(), r0 = 0.13 - i * 0.017, r1 = r0 - 0.017;
+    seg.position.set(i ? L : 0.36, i ? 0 : 0.96, 0);
     put(seg, ball(r0 * 0.97), skin, 0, 0, 0);
     put(seg, toX(limb(L + 0.02, r0, r1)), skin, 0, 0, 0);
     put(seg, toX(limb(L + 0.02, r0 * 0.75, r1 * 0.75)), belly, 0, -r0 * 0.35, 0);   // paler underneath
-    if (i % 2) bar(seg, toX(limb(L * 0.55, r0 * 1.02, r1 * 1.02)), r0);
-    put(seg, cone(0.03, 0.12), horn, L * 0.5, r0 * 0.8, 0, 0, 0, -0.45);
+    if (i === 1) bar(seg, toX(limb(L * 0.6, r0 * 1.02, r1 * 1.02)), r0);
+    put(seg, cone(0.028, 0.1), horn, L * 0.5, r0 * 0.8, 0, 0, 0, -0.45);
     parent.add(seg);
     neck.push(seg);
     parent = seg;
   }
-  // The head: long and beaked, the upper jaw hooked at the tip, a crest of spikes, horns swept right back.
+  // The head: small, long and beaked, the upper jaw hooked at the tip, a crest of spikes, horns swept right back.
   const head = new THREE.Group(), skull = new THREE.Group();
   head.position.set(L, 0, 0);
-  skull.scale.setScalar(young ? 1.5 : 1);
+  skull.scale.setScalar(young ? 1.15 : 0.68);
   head.add(skull);
   parent.add(head);
   put(skull, ball(0.14), skin, 0.05, 0.03, 0).scale.set(1.3, 0.88, 1.05);
@@ -189,34 +214,38 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
   const mouth = new THREE.Object3D();
   mouth.position.set(0.44, -0.03, 0);
   skull.add(mouth);
-  // The tail: long and heavy, nine segments thinning, barred black, spiked along the top, and a spiked club at the end.
+  // The tail: no longer than the body, four segments thinning fast, barred black, spiked along the top, and a broad
+  // club at the end, spiked all round and widest side to side.
   const tail: THREE.Group[] = [];
   parent = group;
-  for (let i = 0; i < 9; i++) {
-    const seg = new THREE.Group(), r0 = 0.17 - i * 0.015, r1 = r0 - 0.015, T = 0.2;
-    seg.position.set(i ? -T : -0.62, i ? 0 : 0.76, 0);
+  for (let i = 0; i < 4; i++) {
+    const seg = new THREE.Group(), r0 = 0.15 - i * 0.022, r1 = r0 - 0.022, T = 0.11;
+    seg.position.set(i ? -T : -0.52, i ? 0 : 0.78, 0);
     put(seg, ball(r0 * 0.97), skin, 0, 0, 0);
     put(seg, toBack(limb(T + 0.02, r0, r1)), skin, 0, 0, 0);
     put(seg, toBack(limb(T + 0.02, r0 * 0.7, r1 * 0.7)), belly, 0, -r0 * 0.35, 0);
-    if (i % 2 === 0) bar(seg, toBack(limb(T * 0.5, r0 * 1.02, r1 * 1.02)), r0);
-    put(seg, cone(0.03 - i * 0.002, 0.11 - i * 0.006), horn, -T * 0.5, r0 * 0.8, 0, 0, 0, 0.5);
+    if (i % 2 === 0) bar(seg, toBack(limb(T * 0.55, r0 * 1.02, r1 * 1.02)), r0);
+    put(seg, cone(0.028 - i * 0.003, 0.1 - i * 0.01), horn, -T * 0.5, r0 * 0.8, 0, 0, 0, 0.5);
     parent.add(seg);
     tail.push(seg);
     parent = seg;
   }
-  const club = tail[8]!;
-  put(club, ball(0.09), mark, -0.26, 0, 0).scale.set(1.5, 1, 1);
-  for (const [a, b] of [[0, 1], [0, -1], [1, 0], [-1, 0], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]] as const) {   // spikes all round it
-    put(club, cone(0.03, 0.12), horn, -0.28, a * 0.07, b * 0.07, Math.atan2(b, a), 0, 0);
+  const club = tail[3]!;
+  put(club, ball(0.1), skin, -0.2, 0, 0).scale.set(1.6, 0.7, 1.3);
+  put(club, ball(0.08), mark, -0.2, 0.025, 0).scale.set(1.5, 0.5, 1.1);
+  for (const [a, b, len] of [[0, 1, 0.14], [0, -1, 0.14], [0.4, 1, 0.11], [0.4, -1, 0.11], [1, 0, 0.09], [-0.5, 1, 0.08], [-0.5, -1, 0.08]] as const) {
+    const dir = Math.atan2(b, a);
+    for (const dx of [-0.13, -0.24]) put(club, cone(0.03, len), horn, dx, a * 0.04, b * 0.1, dir, 0, 0);   // spikes all round it, longest to the sides
   }
-  put(club, toBack(cone(0.035, 0.14)), horn, -0.38, 0, 0);
-  const both = ([1, -1] as const).map(s => {
-    const w = wing(skin, horn, membrane, tip, s, young ? 0.8 : 1.3);
-    w.shoulder.position.set(0.24, 1.0, s * 0.17);
+  put(club, toBack(cone(0.04, 0.16)), horn, -0.33, 0, 0);
+  const wings = [] as unknown as [THREE.Group, THREE.Group], wrists = [] as unknown as [THREE.Group, THREE.Group];
+  for (const s of [1, -1] as const) {
+    const w = wing(skin, horn, top, pale, vein, s, young ? 0.62 : 1);
+    w.shoulder.position.set(0.28, 1.0, s * 0.17);
     group.add(w.shoulder);
-    return w;
-  });
-  const wings = both.map(w => w.shoulder) as [THREE.Group, THREE.Group], wrists = both.map(w => w.wrist) as [THREE.Group, THREE.Group];
+    wings.push(w.shoulder);
+    wrists.push(w.wrist);
+  }
   return { group, chest, legs, neck, head, jaw, mouth, tail, wings, wrists };
 }
 
@@ -239,15 +268,15 @@ export const dragon: EntityView<DragonView> = {
     v.group.position.set(x, d.height + (flying ? -beat * 0.06 * d.size : 0) + Math.sin(rear) * 0.36 * size, z);
     v.group.rotation.set(0, -d.facing, rear);
     v.group.scale.setScalar(size);
-    v.chest.scale.set(1.25, 0.95 + Math.sin(t * 1.8) * 0.025, 0.85);   // breathing
+    v.chest.scale.set(1.2, 1 + Math.sin(t * 1.8) * 0.025, 0.95);   // breathing
     for (const leg of v.legs) leg.rotation.z = flying ? -1.1 : 0;   // tucked back under her in flight
     // Wings: beating in flight (up and down about the shoulder, swept a little back on the upstroke); folded at rest.
     v.wings.forEach((w, i) => {
       const s = i ? -1 : 1;
       const wrist = v.wrists[i]!;
       if (flying) {                                          // the fingertips trail a little behind the beat
-        w.rotation.set(-s * beat * 0.85, -s * (0.15 + Math.max(0, beat) * 0.2), 0);
-        wrist.rotation.set(beat * 0.3, -0.1, 0);
+        w.rotation.set(-s * beat * 0.85, -s * Math.max(0, beat) * 0.2, 0);   // swept back only on the upstroke
+        wrist.rotation.set(beat * 0.3, 0.04, 0);
       } else {                                               // at rest, folded and leant on in front; or raised wide, rising and falling slowly
         const o = d.spread, up = 0.25 + Math.sin(t * 1.6) * 0.1;
         w.rotation.set(s * (1.2 * (1 - o) - up * o + Math.sin(t * 1.1) * 0.02 * (1 - o)), s * (0.5 * (1 - o) - 0.13 * o), 0);

@@ -427,15 +427,15 @@ const SHOTS: readonly Shot[] = [
     // its first small breath; and their song with hers seals the valley whole.
     id: "hatch", area: "greyspines", load: async () => greyspines(), hour: 17.5, had: () => true,
     stage(g) {
-      const mx = (g.map.width * T) / 2, my = 6 * T, ey = my + 5.6 * T;
+      const mx = (g.map.width * T) / 2, my = 6 * T, ey = my + 3.6 * T;
       const her = dragonAt(g, { x: mx - HALF, y: my - HALF, size: 4, hide: "mother", pose: "sit" });
       const eggs = ORDERS.map((school, i) => eggAt(g, school, mx + (i - 1) * 1.2 * T - HALF, ey + (i === 1 ? 0.35 * T : 0) - HALF, 0, 0.8));
       heroAt(g, mx + 4.5 * T, ey + 3 * T, mx, ey);
       const young: (Entity | null)[] = [null, null, null];
       let roared = false, sang = false;
       const shots = keys([
-        [0, cam(mx, ey, 0.42, 0.35)], [0.42, cam(mx, ey + 0.3 * T, 0.55, 0.12)], [0.56, cam(mx, my - T, 2.1, -0.7)],
-        [0.78, cam(mx, my - 2 * T, 2.4, -1.05)], [1, cam(mx, my - T, 2.2, -0.55)],   // round her side as she rears, then out
+        [0, cam(mx, ey, 0.42, 0.35)], [0.42, cam(mx, ey + 0.3 * T, 0.55, 0.12)], [0.56, cam(mx, my - T, 2.4, -0.7)],
+        [0.78, cam(mx, my - 2 * T, 2.8, -1.05)], [1, cam(mx, my - T, 2.5, -0.55)],   // round her side as she rears, then out
       ]);
       return {
         from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.hatch, hold: 19,
