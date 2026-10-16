@@ -216,13 +216,14 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 #credits .bar.bottom { bottom: 0; height: auto; min-height: 12vh; padding: 8px 0; box-sizing: border-box; }   /* a long line gets the room it needs */
 #credits.ended .bar { display: none; }
 #credits .caption { margin: 0 24px; max-width: min(820px, 90vw); text-align: center; font-size: 18px; line-height: 26px; opacity: 0; }
-#credits .end, #credits .sum, #credits .more { position: absolute; margin: 0; opacity: 0; pointer-events: none; }
+#credits .end, #credits .sum, #credits .time, #credits .more { position: absolute; margin: 0; opacity: 0; pointer-events: none; }
 #credits .end { top: calc(50% - 50px); font-size: 48px; line-height: 60px; color: var(--glow); text-shadow: 3px 3px 0 #2a1840; }
 #credits .sum { top: calc(50% + 18px); font-size: 16px; color: var(--bone); }
-#credits .more { top: calc(50% + 56px); font-size: 14px; color: var(--stone); }
+#credits .time { top: calc(50% + 46px); font-size: 16px; color: var(--glow); font-variant-numeric: tabular-nums; }
+#credits .more { top: calc(50% + 84px); font-size: 14px; color: var(--stone); }
 #credits .card[hidden] { display: none; }
 #credits:has(.card:not([hidden])) { overflow-y: auto; justify-content: safe center; padding: 24px 0; box-sizing: border-box; }
-#credits:has(.card:not([hidden])) .end, #credits:has(.card:not([hidden])) .sum, #credits:has(.card:not([hidden])) .more { display: none; }
+#credits:has(.card:not([hidden])) .end, #credits:has(.card:not([hidden])) .sum, #credits:has(.card:not([hidden])) .time, #credits:has(.card:not([hidden])) .more { display: none; }
 #credits .card { position: relative; }
 body.in-credits #menuBar, body.in-credits #hudCanvas, body.in-credits #labels, body.in-credits #toast { display: none; }
 #credits .card { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(560px, 90vw); text-align: center; }

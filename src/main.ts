@@ -1,7 +1,7 @@
 // Simplicity: a tiny top-down fantasy RPG. Gameplay is 2D (src/game, src/systems); the 3D view only
 // draws it. This file wires the pieces together and runs the loop.
 import "./styles.css";
-import { createGame, setState, toast } from "./game/game.ts";
+import { createGame, setState, tickRunTime, toast } from "./game/game.ts";
 import { dropItem, eatItem } from "./game/actions.ts";
 import { resetGame } from "./game/reset.ts";
 import { bindInput } from "./input/input.ts";
@@ -144,6 +144,7 @@ addEventListener("resize", resize);
 let last = performance.now();
 function frame(now: number): void {
   const dt = Math.min(0.05, (now - last) / 1000);
+  tickRunTime(g, (now - last) / 1000);                     // the speedrun timer goes by the wall clock, not the capped step
   last = now;
   const mouse = input.mouse();
   g.input.pointer = mouse && view.screenToGame(mouse.x, mouse.y);

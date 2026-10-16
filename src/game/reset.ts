@@ -13,7 +13,7 @@ export function resetGame(g: Game): void {
   // Start naked, with a plain starter set in the bag to put on.
   g.inventory.reset([]);
   for (const [type, name] of STARTER_KIT) g.inventory.add(makeItem(type, "normal", {}, name));
-  g.kills = 0; g.clock = 0; g.hitstop = 0; g.shake = 0;
+  g.kills = 0; g.clock = 0; g.runTime = 0; g.hitstop = 0; g.shake = 0;
   enterArea(g, HOME, "start");
   g.events.emit("reset", {});
 }
