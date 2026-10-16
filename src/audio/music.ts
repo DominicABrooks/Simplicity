@@ -139,7 +139,7 @@ export function createMusicPlayer(): MusicPlayer {
       nowPlaying.muted = muted;
       if (!ctx || !master || !filter || !echo || ctx.state !== "running") return;
       const trance = tranceOf(g), now = ctx.currentTime;
-      const want = themeFor(g.state, g.area.def, { fey: trance > 0, watched: g.area.def.id === UNDERHILL_ID && visitsUnderhill(g) >= 3 });
+      const want = themeFor(g.state, g.area.def, { fey: trance > 0, watched: g.area.def.id === UNDERHILL_ID && visitsUnderhill(g) >= 3, hour: g.hour });
       master.gain.setTargetAtTime(muted ? 0 : MUSIC_VOLUME * (1 - 0.35 * trance), now, 0.4);
       if (want !== id) {
         if (out) {

@@ -45,9 +45,11 @@ export interface Theme {
   gain?: number;
   /** Whether the hour and the weather reach it (false indoors and underground). Defaults to true. */
   sky?: boolean;
+  /** A theme of its own after dark (a THEMES id), that this one gives way to as night comes on and back at dawn. */
+  night?: string;
 }
 
-const IONIAN = [0, 2, 4, 5, 7, 9, 11], DORIAN = [0, 2, 3, 5, 7, 9, 10], AEOLIAN = [0, 2, 3, 5, 7, 8, 10];
+const HARMONIC_MINOR = [0, 2, 3, 5, 7, 8, 11], IONIAN = [0, 2, 4, 5, 7, 9, 11], DORIAN = [0, 2, 3, 5, 7, 9, 10], AEOLIAN = [0, 2, 3, 5, 7, 8, 10];
 const WHOLE_TONE = [0, 2, 4, 6, 8, 10], LYDIAN = [0, 2, 4, 6, 7, 9, 11], MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10], PHRYGIAN = [0, 1, 3, 5, 7, 8, 10];
 
 export const THEMES = {
@@ -57,7 +59,19 @@ export const THEMES = {
   witchwood: { root: 55, mode: MIXOLYDIAN, chords: [0, 3, 6, 0, 4, 3, 0, 6], bpm: 84, pad: "triangle", lead: "triangle", density: 0.45, bright: 2400 },
   /** The capital: stately, major, a little march. */
   capital: { root: 60, mode: IONIAN, chords: [0, 3, 4, 0, 5, 3, 4, 0], bpm: 96, pad: "sawtooth", lead: "square", density: 0.5, bright: 2000 },
-  castle: { root: 58, mode: IONIAN, chords: [0, 5, 3, 4], bpm: 80, pad: "sawtooth", lead: "triangle", density: 0.4, bright: 1700 },
+  /**
+   * The castle by day: bright and bustling, a court in good spirits. Major, quick, a fanfare of a tune over a
+   * ripple of the chords; and by night (castleNight) something else entirely.
+   */
+  castle: { root: 60, mode: IONIAN, chords: [0, 3, 4, 0, 5, 3, 1, 4], bpm: 112, pad: "triangle", lead: "square", density: 0.6, arp: true, bright: 3200,
+    gain: 1.05, night: "castleNight" },
+  /**
+   * The castle after dark: a music box left playing in an empty room. A thin, high ripple a hair out of tune, in the
+   * harmonic minor (its leading note never quite comes home), over a low drone a tritone wide; slow, sparse, the
+   * chords swelling up and cut off, a lone voice wavering over it now and then.
+   */
+  castleNight: { root: 50, mode: HARMONIC_MINOR, chords: [0, 5, 0, 6, 3, 1, 4, 0], bpm: 54, pad: "triangle", lead: "sine", density: 0.12, arp: true,
+    bright: 2600, sky: false, drone: true, detune: 12, wobble: 25, wobbleRate: 1.2, warp: 10, swell: true },
   kingsroad: { root: 62, mode: MIXOLYDIAN, chords: [0, 6, 3, 0], bpm: 100, pad: "sawtooth", lead: "square", density: 0.45, bright: 2100 },
   throneroom: { root: 58, mode: IONIAN, chords: [0, 3, 4, 0, 5, 1, 4, 0], bpm: 66, pad: "sawtooth", lead: "triangle", density: 0.3, bright: 1500, sky: false },
   /** The cold places: glassy ripples. */
@@ -95,16 +109,23 @@ export const MUSIC_VOLUME = 0.16;
 /** Seconds one area's music takes to fade out and the next in. */
 export const MUSIC_FADE = 2.5;
 
+/** How dark it has to be (daylight under this) for a theme to give way to its `night` one. */
+const NIGHT_FALLS = 0.35;
+
 /**
- * Which theme plays: the area's own, a house's hearth, the fair folk's in their ring's spell (`fey`), the watchers' when
- * it's only them under the hill (`watched`), or none (an area with no theme yet is quiet).
+ * Which theme plays: the area's own (or its night one, after dark: `hour`), a house's hearth, the fair folk's in their
+ * ring's spell (`fey`), the watchers' when it's only them under the hill (`watched`), or none (an area with no theme
+ * yet is quiet).
  */
-export function themeFor(state: string, area: { id: string; indoors?: boolean }, now: { fey?: boolean; watched?: boolean } = {}): ThemeId | null {
+export function themeFor(state: string, area: { id: string; indoors?: boolean }, now: { fey?: boolean; watched?: boolean; hour?: number } = {}): ThemeId | null {
   if (state === "title") return "title";
   if (state !== "play" && state !== "travel") return null;           // dead, and the credits, which have their own tune
   if (now.watched) return "watchers";
   if (now.fey) return "underhill";
-  if (area.id in THEMES && !["title", "hearth", "watchers"].includes(area.id)) return area.id as ThemeId;
+  if (area.id in THEMES && !["title", "hearth", "watchers", "castleNight"].includes(area.id)) {
+    const night = (THEMES[area.id as ThemeId] as Theme).night;
+    return night && now.hour !== undefined && daylight(now.hour) < NIGHT_FALLS ? night as ThemeId : area.id as ThemeId;
+  }
   if (area.id.startsWith("inside:")) return "hearth";
   return null;
 }

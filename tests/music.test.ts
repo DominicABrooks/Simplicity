@@ -26,6 +26,16 @@ describe("music", () => {
     expect(themeFor("play", { id: "underhill" }, { watched: true })).toBe("watchers");
   });
 
+  it("has the castle bright by day and something else after dark, changing over at dusk and dawn", () => {
+    const castle = (hour: number) => themeFor("play", { id: "castle" }, { hour });
+    expect([castle(12), castle(17)]).toEqual(["castle", "castle"]);
+    expect([castle(23), castle(3)]).toEqual(["castleNight", "castleNight"]);
+    expect(castle(21)).toBe("castleNight");
+    expect(castle(8)).toBe("castle");
+    expect(themeFor("play", { id: "witchwood" }, { hour: 23 })).toBe("witchwood");   // the rest only colour their own by night
+    expect(THEMES.castle.bpm).toBeGreaterThan(THEMES.castleNight.bpm * 1.5);
+  });
+
   it("is light by day, dark by night, and eases through dawn and dusk", () => {
     expect(daylight(12)).toBe(1);
     expect(daylight(2)).toBe(0);
