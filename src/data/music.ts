@@ -53,6 +53,12 @@ export interface Theme {
   timpani?: boolean;
   /** The tune walks: only on the beat, and in long, held, dotted notes, as in a procession. */
   stately?: boolean;
+  /** A driving bass: a short note on every half-beat, root and octave by turns, instead of the slow low note. */
+  pulse?: boolean;
+  /** Drums: a kick on the beat that starts each half bar, a snare between, and a hi-hat ticking the off-beats. */
+  beat?: boolean;
+  /** A great bell tolls the chord's note every other bar. */
+  toll?: boolean;
 }
 
 const HARMONIC_MINOR = [0, 2, 3, 5, 7, 8, 11], IONIAN = [0, 2, 4, 5, 7, 9, 11], DORIAN = [0, 2, 3, 5, 7, 9, 10], AEOLIAN = [0, 2, 3, 5, 7, 8, 10];
@@ -108,6 +114,24 @@ export const THEMES = {
    */
   throneroom: { root: 58, mode: IONIAN, chords: [0, 3, 4, 0, 5, 3, 4, 0], bpm: 76, pad: "sawtooth", lead: "sawtooth", density: 0.55, bright: 2800, sky: false,
     detune: 9, fanfare: true, timpani: true, stately: true, gain: 1.1 },
+  // The fights: from the moment the boss bar shows to the moment it goes (src/game/bossbar.ts). Each gets fiercer as its
+  // fight does (src/audio/music.ts `fighting`): quicker, busier and brighter in Cinder's and Rime's rage, Calder's
+  // moods, and the Grey Ringer's and the Great Koi's second wind.
+  /** Cinder, the Ember lieutenant, in his ring of fire: fast and hot, in the Phrygian, a driving bass, drums, and the lot a little scorched. */
+  cinder: { root: 50, mode: PHRYGIAN, chords: [0, 1, 0, 6, 0, 1, 5, 6], bpm: 150, pad: "sawtooth", lead: "square", density: 0.6, bright: 2600, sky: false,
+    pulse: true, beat: true, distort: 0.2, gain: 0.95 },
+  /** Rime, the Frost lieutenant, on the lake: cold and glittering, a ripple of ice over a driving bass, the chords shimmering. */
+  rime: { root: 57, mode: HARMONIC_MINOR, chords: [0, 5, 3, 4, 0, 5, 1, 4], bpm: 132, pad: "triangle", lead: "triangle", density: 0.5, arp: true, bright: 3800,
+    sky: false, pulse: true, beat: true, detune: 10 },
+  /** Calder, their captain, at the great crack: the big one. Fast, low and dark, brass fanfares opening each phrase, kettle drums rolling under the drums. */
+  calder: { root: 45, mode: HARMONIC_MINOR, chords: [0, 5, 1, 4, 0, 5, 6, 4], bpm: 156, pad: "sawtooth", lead: "sawtooth", density: 0.6, bright: 3000, sky: false,
+    pulse: true, beat: true, timpani: true, fanfare: true, detune: 12 },
+  /** The Grey Ringer, in St Mary's churchyard: a great bell tolling, a wavering voice over a ripple, chords swelling up out of the ground. */
+  ringer: { root: 52, mode: HARMONIC_MINOR, chords: [0, 5, 0, 6, 3, 5, 4, 0], bpm: 120, pad: "triangle", lead: "sine", density: 0.35, arp: true, bright: 2800,
+    sky: false, toll: true, beat: true, wobble: 18, swell: true },
+  /** The Great Koi, on the end of the line: quick and tense, but with a glint to it, a ripple over a running bass. */
+  greatkoi: { root: 55, mode: DORIAN, chords: [0, 3, 0, 4, 5, 3, 6, 4], bpm: 140, pad: "triangle", lead: "triangle", density: 0.55, arp: true, bright: 3400,
+    sky: false, pulse: true, beat: true },
   /** Inside someone's house: by the fire. */
   hearth: { root: 53, mode: IONIAN, chords: [0, 3, 0, 4], bpm: 72, pad: "triangle", lead: "triangle", density: 0.35, bright: 1600, sky: false },
 } satisfies Record<string, Theme>;
@@ -129,13 +153,14 @@ const SHARED: Record<string, ThemeId> = { capital: "castle", kingsroad: "castle"
 const NIGHT_FALLS = 0.35;
 
 /**
- * Which theme plays: the area's own (or its night one, after dark: `hour`), a house's hearth, the fair folk's in their
+ * Which theme plays: a boss's, in a fight with one (`boss`); the area's own (or its night one, after dark: `hour`), a house's hearth, the fair folk's in their
  * ring's spell (`fey`), the watchers' when it's only them under the hill (`watched`), or none (an area with no theme
  * yet is quiet).
  */
-export function themeFor(state: string, area: { id: string; indoors?: boolean }, now: { fey?: boolean; watched?: boolean; hour?: number } = {}): ThemeId | null {
+export function themeFor(state: string, area: { id: string; indoors?: boolean }, now: { fey?: boolean; watched?: boolean; hour?: number; boss?: string } = {}): ThemeId | null {
   if (state === "title") return "title";
   if (state !== "play" && state !== "travel") return null;           // dead, and the credits, which have their own tune
+  if (now.boss && now.boss in THEMES) return now.boss as ThemeId;    // a fight: its own music, over everything
   if (now.watched) return "watchers";
   if (now.fey) return "underhill";
   const own = SHARED[area.id] ?? (area.id in THEMES && !["title", "hearth", "watchers", "castleNight"].includes(area.id) ? area.id as ThemeId : null);

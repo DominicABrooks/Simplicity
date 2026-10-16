@@ -7,7 +7,13 @@
 // time and after: src/game/underhill.ts), theirs, warped and distorted.
 import { MUSIC_FADE, MUSIC_VOLUME, THEMES, hz, moodOf, noteOf, playing, scaleOf, themeFor, type Playing, type Theme, type ThemeId } from "../data/music.ts";
 import { tranceOf } from "../game/fairyring.ts";
+import { bossBar } from "../game/bossbar.ts";
+import { bossWho } from "../game/bosses.ts";
+import { calderFight } from "../game/calderfight.ts";
+import { cinderFight } from "../game/cinderfight.ts";
 import { toast, type Game } from "../game/game.ts";
+import { ghostOut } from "../game/ghost.ts";
+import { rimeFight } from "../game/rimefight.ts";
 import { UNDERHILL_ID, visitsUnderhill } from "../game/underhill.ts";
 
 export interface MusicPlayer {
@@ -25,7 +31,19 @@ const MUTE_KEY = "n", STORAGE_KEY = "simplicity.musicOff";
 /** What's playing, for looking at from the console. */
 export const nowPlaying: { theme: ThemeId | null; playing: Playing | null; muted: boolean } = { theme: null, playing: null, muted: false };
 
+/** Who he's fighting (a boss theme's id), while the boss bar's up; and how fierce the fight has got, 0-1. */
+export function fighting(g: Game): { who: string; fury: number } | null {
+  const bar = bossBar(g);
+  if (!bar) return null;
+  const who = bossWho(g);
+  if (who === "cinder") return { who, fury: cinderFight(g)?.angry ? 1 : 0 };
+  if (who === "rime") return { who, fury: rimeFight(g)?.angry ? 1 : 0 };
+  if (who === "calder") return { who, fury: (calderFight(g)?.mood ?? 0) / 2 };
+  return { who: ghostOut(g) !== null ? "ringer" : "greatkoi", fury: bar.angry ? 1 : 0 };
+}
+
 export function createMusicPlayer(): MusicPlayer {
+  let noise: AudioBuffer | null = null;
   let ctx: AudioContext | null = null, master: GainNode | null = null, filter: BiquadFilterNode | null = null, echo: GainNode | null = null;
   const unlock = (): void => {
     if (!ctx) {
@@ -44,6 +62,9 @@ export function createMusicPlayer(): MusicPlayer {
       feedback.gain.value = 0.38;
       filter.connect(echo).connect(delay).connect(feedback).connect(delay);
       delay.connect(master);
+      noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const hiss = noise.getChannelData(0);
+      for (let i = 0; i < hiss.length; i++) hiss[i] = Math.random() * 2 - 1;
     }
     if (ctx.state === "suspended") void ctx.resume();
   };
@@ -95,10 +116,10 @@ export function createMusicPlayer(): MusicPlayer {
     o.stop(start + dur + 0.05);
   }
 
-  /** A kettle drum struck: a thump that drops onto its note (`midi`) and rings away. */
-  function drum(midi: number, start: number, peak: number): void {
+  /** A kettle drum struck: a thump that drops onto its note (`midi`) and rings away (over `long` s). */
+  function drum(midi: number, start: number, peak: number, long = 1.1): void {
     const c = ctx!;
-    for (const [wave, mul, ring, gain] of [["sine", 1, 1.1, 1], ["triangle", 1.5, 0.25, 0.35]] as const) {
+    for (const [wave, mul, ring, gain] of [["sine", 1, long, 1], ["triangle", 1.5, long * 0.23, 0.35]] as const) {
       const o = c.createOscillator(), env = c.createGain();
       o.type = wave;
       o.frequency.setValueAtTime(hz(midi) * mul * 1.5, start);
@@ -109,6 +130,34 @@ export function createMusicPlayer(): MusicPlayer {
       o.connect(env).connect(out!);
       o.start(start);
       o.stop(start + ring + 0.05);
+    }
+  }
+
+  /** A burst of hiss through a filter: a snare's rattle (band-pass) or a hi-hat's tick (high-pass). */
+  function hiss(start: number, dur: number, peak: number, type: BiquadFilterType, freq: number): void {
+    const c = ctx!, src = c.createBufferSource(), band = c.createBiquadFilter(), env = c.createGain();
+    src.buffer = noise;
+    band.type = type;
+    band.frequency.value = freq;
+    band.Q.value = 0.8;
+    env.gain.setValueAtTime(peak, start);
+    env.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    src.connect(band).connect(env).connect(out!);
+    src.start(start, Math.random() * 0.5);
+    src.stop(start + dur + 0.02);
+  }
+
+  /** A great bell: a few partials, not quite in tune with each other, ringing a long while. */
+  function bell(midi: number, start: number, peak: number): void {
+    for (const [mul, gain] of [[1, 1], [2, 0.5], [2.4, 0.35], [3, 0.22], [4.2, 0.12]] as const) {
+      const c = ctx!, o = c.createOscillator(), env = c.createGain();
+      o.frequency.value = hz(midi) * mul;
+      env.gain.setValueAtTime(0, start);
+      env.gain.linearRampToValueAtTime(peak * gain, start + 0.005);
+      env.gain.exponentialRampToValueAtTime(0.0001, start + 3 / mul ** 0.5);
+      o.connect(env).connect(out!);
+      o.start(start);
+      o.stop(start + 3.1);
     }
   }
 
@@ -134,7 +183,14 @@ export function createMusicPlayer(): MusicPlayer {
       }
       if (p.rain > 0.05) note(theme.root - 24, "sine", t, half * STEPS * 1.2, 0.12 * p.rain * g, half * 4);
     }
-    if (step === 0 || step === 4) note(at(chord, -12), "triangle", t, half * 3.5, 0.16 * g, 0.02);
+    if (theme.pulse) note(at(chord, step % 2 ? 0 : -12), "triangle", t, half * 0.9, 0.15 * g, 0.008);   // the driving bass
+    else if (step === 0 || step === 4) note(at(chord, -12), "triangle", t, half * 3.5, 0.16 * g, 0.02);
+    if (theme.beat) {
+      if (step === 0 || step === 4) drum(31, t, 0.32 * g, 0.28);                      // kick
+      if (step === 2 || step === 6) { hiss(t, 0.14, 0.13 * g, "bandpass", 1800); drum(55, t, 0.06 * g, 0.1); }   // snare
+      if (step % 2) hiss(t, 0.035, 0.035 * g, "highpass", 7000);                    // hi-hat
+    }
+    if (theme.toll && step === 0 && bar % 2 === 0) bell(at(chord), t, 0.09 * g);
     // A royal theme: the fanfare opening each phrase, and the kettle drums.
     const phrase = bar % 4, fanfaring = theme.fanfare && phrase === 0;
     if (fanfaring && step === 0) {
@@ -175,7 +231,8 @@ export function createMusicPlayer(): MusicPlayer {
       nowPlaying.muted = muted;
       if (!ctx || !master || !filter || !echo || ctx.state !== "running") return;
       const trance = tranceOf(g), now = ctx.currentTime;
-      const want = themeFor(g.state, g.area.def, { fey: trance > 0, watched: g.area.def.id === UNDERHILL_ID && visitsUnderhill(g) >= 3, hour: g.hour });
+      const fight = fighting(g);
+      const want = themeFor(g.state, g.area.def, { fey: trance > 0, watched: g.area.def.id === UNDERHILL_ID && visitsUnderhill(g) >= 3, hour: g.hour, boss: fight?.who });
       master.gain.setTargetAtTime(muted ? 0 : MUSIC_VOLUME * (1 - 0.35 * trance), now, 0.4);
       if (want !== id) {
         if (out) {
@@ -202,6 +259,11 @@ export function createMusicPlayer(): MusicPlayer {
       nowPlaying.theme = id;
       if (!id) { nowPlaying.playing = null; return; }
       const theme: Theme = THEMES[id], p = playing(theme, moodOf(theme, g.hour, g.weather));
+      if (fight) {                                                   // fiercer as the fight gets fiercer
+        p.bpm *= 1 + 0.12 * fight.fury;
+        p.density = Math.min(1, p.density * (1 + 0.4 * fight.fury));
+        p.bright *= 1 + 0.25 * fight.fury;
+      }
       nowPlaying.playing = p;
       if (muted) { nextAt = now + 0.05; return; }                    // nothing's laid down while it's off
       filter.frequency.setTargetAtTime(p.bright, now, 1.5);
