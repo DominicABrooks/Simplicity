@@ -72,7 +72,7 @@ flap when he dashes.
 
 ## 3. The King's Errand
 
-*Kingsholm: the castle, after the King gives him the writ.*
+*Kingsholm: the castle, after the King gives him the watchword.*
 
 The kingdom equipping its quiet champion. The King can't be seen arming a stranger, so these come
 sideways: the Prince's word at the Hammonds' forge, a surcoat "lost" from the castle storehouse, a ring
@@ -82,7 +82,7 @@ from the Leafwrights on credit, and the King's own signet round his neck.
 |---|---|---|---|
 | Weapon | Hammond Steel | The Hammonds' forge, on the Prince's word | 2 damage |
 | Armour | Crimson Surcoat | The castle storehouse | +2 life |
-| Amulet | Signet of Aurenmark | The King, with the writ | +1 life |
+| Amulet | Signet of Aurenmark | The King, with the watchword | +1 life |
 | Ring | Leafwright's Band | The Leafwrights, on credit (a detour) | +6% speed |
 
 **Set bonuses.**

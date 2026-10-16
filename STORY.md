@@ -14,7 +14,7 @@ people come on top, as much as anyone likes.
 You wake in the Witchwood. The way deeper into the woods is barred by the King's woodwardens, so you go
 north to Kingsholm instead and stand before the King. He reads the Ranger's note you carry, works out
 what you are, and asks you, quietly, for the one thing his frightened kingdom needs: go deep into the
-Witchwood and kill **Calder**, the leader of the mages. With the King's writ the barricade opens. You fight
+Witchwood and kill **Calder**, the leader of the mages. With the King's watchword the barricade opens. You fight
 your way through three ever-deeper parts of the wood, growing stronger, beat Calder at the great crack at
 its heart, and carry his head back to the King. Credits roll.
 
@@ -49,22 +49,28 @@ A few rules this plan follows, so you can change it later and keep it working:
 
 ### The barricade
 
-On the Clearing's far side from the cave (across the river, where an old trail runs on into the trees), the
+South of the camp clearing, where an old trail runs on into the trees (`src/areas/witchwood.ts`), the
 King's **woodwardens** have built a barricade of sharpened stakes across the trail, with two wardens on
 guard. They're friendly, like the city's guards, and talking to them is how the player learns where they
 can't go yet.
 
-Before the King's writ:
+They ask for the King's watchword:
 
-> *"No further, little one. King's orders: nobody goes deeper into the Witchwood. Not woodcutters, not
-> hunters, not you."*
+> *"Halt, little one. King's orders: nobody goes deeper into the Witchwood without the King's watchword.
+> Not woodcutters, not hunters, not you."*
 >
 > *"There's things in there now. Robed things. If you've business with the King, the cave's north, up the
 > path. He's in Kingsholm, over the river."*
+>
+> *"Can't talk? Half the woodcutters can't either. Here: paper, and a crayon. Write it down."*
 
-After it:
+A scrap of paper comes up and the **player types the watchword** on it, then hands it back
+(`src/ui/paper.ts`, `src/game/watchword.ts`). Nothing in the game writes it for them: the player has to
+remember it from the King's audience. Capital letters, spacing and punctuation don't matter. Get it wrong
+and the warden reads out what was written, says *"That's not it,"* and the gate stays shut. Get it right:
 
-> *"That's the King's own seal. Well. Mind yourself in there."* (The stakes are pulled aside.)
+> *(The warden squints at your crayon letters.) "Gilded Oak." That's the one. Well.* *"Through you go,
+> then. Mind yourself in there."* (The stakes are pulled aside, and stay that way for the rest of the run.)
 
 ### The new areas
 
@@ -187,16 +193,17 @@ the only thing he can: he holds out the Ranger's note. The scene, in the King's 
 > *"So. If you can go deep into the woods and kill him... I need it. The kingdom needs it. Bring me proof,
 > and you'll have anything Aurenmark can give."*
 >
-> *(He presses his seal into a strip of parchment and hands it over.)* *"Show that to my woodwardens.
-> They'll let you through."*
+> *"My woodwardens will ask you for the watchword. It's 'Gilded Oak'. Remember it. You can't say it, I
+> know, but they keep paper for the woodcutters who can't spell."*
 
-The player now has **the King's writ**. The Prince, as the player leaves, adds quietly: *"The Hammonds'
+The player now has **the King's watchword**, *Gilded Oak*. It never changes, and it's a word the player
+has to remember, not an item in the bag. The Prince, as the player leaves, adds quietly: *"The Hammonds'
 forge is by the gate. Tell Walter I sent you."* (A better sword, if the player stops.)
 
 **0:17 Back to the wood (3 min).** Back down through the city, over the bridge, through the cave, to the
-barricade. The wardens see the seal and pull the stakes aside. *(Tip for building it: this walk is the one
+barricade. The wardens hand him paper and a crayon, the player writes the watchword, and they pull the stakes aside. *(Tip for building it: this walk is the one
 stretch with nothing new in it, so keep it short. The fountain stone can carry him back to the Ranger's
-stone once he holds the writ, which saves most of it.)*
+stone once he has the watchword, which saves most of it.)*
 
 ### Part two: deep into the Witchwood (0:20 to 0:55)
 
@@ -300,8 +307,8 @@ dash, jump and swimming; the day and night cycle; and (in progress) talking to p
 **To build, roughly in order of the hour:**
 
 1. **The barricade** in the Clearing, with its two woodwardens, and an exit beyond it.
-2. **The King** as someone you can talk to in the castle ward, with his scene, and **the writ** that opens
-   the barricade.
+2. **The King** as someone you can talk to in the castle ward, with his scene, and **the watchword** that
+   opens the barricade.
 3. **Old stones** as checkpoints, keeping gear and level on a fall, and the fountain-stone shortcut.
 4. **The Ashwild, the Frozen Hollow and the Thunder Rift**, each leading into the next.
 5. **Bosses:** Cinder, Rime and Calder, as bigger versions of the three mages with a twist each (the sheep

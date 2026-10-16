@@ -96,7 +96,7 @@ export function makePetModel(ctx: RenderContext, species: Species, coat: number,
     ...life, w: life.w * r.girth, h: life.h * Math.sqrt(r.girth), leg: life.leg * r.leg, head: life.head * r.head, snout: life.snout * Math.sqrt(r.head),
     tail: { ...life.tail, thick: life.tail.thick * r.tail },
   };
-  const fur = lambert(c.fur), mark = lambert(c.mark), eyeMat = basic(c.eye), noseMat = basic(c.nose ?? "#141010");
+  const fur = lambert(c.fur), mark = lambert(c.mark), eyeMat = basic(c.eye), pupilMat = basic("#141010"), noseMat = basic(c.nose ?? "#141010");
   const { L, h, w, leg, head: hs } = b, rChest = h / 2, rHips = (h / 2) * b.hips;
   /** Which parts take the markings' colour, by pattern. */
   const marked = (where: "ears" | "muzzle" | "chest" | "socks" | "tip") => {
@@ -170,6 +170,11 @@ export function makePetModel(ctx: RenderContext, species: Species, coat: number,
   const eyes = [1, -1].map(s => {
     const e = new THREE.Mesh(box(0.024, 0.026, cat ? 0.03 : 0.028).scale(r.face, r.face, r.face), eyeMat);
     e.position.set(cat ? hs * 0.5 : front - 0.004, hs * (cat ? 0.14 : 0.2), s * hs * (cat ? 0.2 : 0.24));
+    if (cat) {                                               // a slit pupil, on the eye so it shuts with it
+      const slit = new THREE.Mesh(box(0.008, 0.022, 0.007).scale(r.face, r.face, r.face), pupilMat);
+      slit.position.x = 0.012 * r.face;
+      e.add(slit);
+    }
     head.add(e);
     return e;
   });

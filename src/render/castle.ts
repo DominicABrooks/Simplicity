@@ -385,7 +385,7 @@ export function buildDrawbridge(ctx: RenderContext, parent: THREE.Group, p: Prop
   put(g, box(w, 0.22, len), lambert(WOOD, onGround(GROUND.stain)), 0, -0.08, 0);
   for (let z = -len / 2 + 0.3; z < len / 2; z += 0.55) put(g, box(w + 0.02, 0.02, 0.05), lambert(DARK_WOOD, onGround(GROUND.shadow)), 0, 0.035, z);
   for (const s of [-1, 1]) {
-    put(g, box(0.12, 0.12, len), iron, s * (w / 2 - 0.06), 0.08, 0);
+    put(g, box(0.12, 0.12, len), iron, s * (w / 2 - 0.06), 0.09, 0);   // on the deck, not down its sides
     const rise = 3.6, run = len * 0.55, chain = put(g, new THREE.CylinderGeometry(0.04, 0.04, Math.hypot(rise, run), 4), iron, s * (w / 2 - 0.06), rise / 2 + 0.1, -len / 2 + run / 2 - len * 0.1);
     chain.rotation.x = -Math.atan2(run, rise);
   }

@@ -61,6 +61,7 @@ export function createFxView(ctx: RenderContext): FxView {
           }
           case "bolt":
             add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.14, 5, 5).translate(0, 2.5, 0), additive("#fff6c8", { opacity: 1 })), x, 0, z, 0.18);
+            add(new THREE.Mesh(new THREE.CircleGeometry(0.45, 10).rotateX(-Math.PI / 2), additive("#fff6c8", onGround(GROUND.marker))), x, 0.05, z, 0.25, { grow: true });   // where it strikes, the ground flashes
             particles.burst(SPARK_PAIRS.spark, 10, x, 0.4, z, 2.5, rise, 0.25);
             break;
           case "levelUp":

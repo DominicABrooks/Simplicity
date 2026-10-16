@@ -8,6 +8,8 @@ export interface TileMap {
   tiles: Tile[][];
   /** Things that block movement off the tile grid (buildings, posts, a tent, a fire pit), in game pixels. */
   solids: readonly Shape[];
+  /** How its woods look: green, or (deep in the Witchwood, where the dark gets in) ash-grey. */
+  look?: "green" | "ash";
 }
 
 export const tileOf = (map: TileMap, tx: number, ty: number): Tile =>

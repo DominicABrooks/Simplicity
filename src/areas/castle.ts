@@ -7,7 +7,7 @@
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
 import { keepPlan } from "../world/plans.ts";
-import { Town, at, corner, edgeExit, px, type TileRect } from "../world/townkit.ts";
+import { Town, at, corner, edgeExit, hash, px, type TileRect } from "../world/townkit.ts";
 import { area as capital, CASTLE_STREET } from "./capital.ts";
 
 const W = 56, H = 48;
@@ -75,6 +75,9 @@ function lay(): Town {
     shop: (x, _y, k) => (x >= STREET.x0 && x <= STREET.x1 && k < 0.6 ? (["bread", "meat", "cloth"] as const)[Math.floor(k * 5) % 3]! : null),
     frontage: [3, 4], depth: [3, 5], storeys: [3, 4], alley: 0.2, seed: 401, stone: 0.6,
   });
+  // Along the south edge, behind the houses, a line of trees between their back gardens and the Market
+  // Quarter's (it plants the same along its north edge): the way south is Castle Street.
+  town.paint((x, y) => town.at(x, y) === Tile.Grass && (y === H - 1 || (y === H - 2 && hash(x, y, 7) < 0.4)), Tile.Tree);
 
   return town;
 }

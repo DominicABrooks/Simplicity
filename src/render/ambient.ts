@@ -7,7 +7,7 @@ import { SUNRISE, SUNSET } from "../data/daylight.ts";
 import { PAL } from "../data/palette.ts";
 import { Tile } from "../data/world.ts";
 import type { TileMap } from "../world/map.ts";
-import { GROUND, onGround, WATER_Y, col, type RenderContext } from "./context.ts";
+import { GROUND, SHADOW_Y, onGround, WATER_Y, col, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { hash } from "./terrain.ts";
 
@@ -203,6 +203,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
   function splash(x: number, z: number): void {
     const mesh = new THREE.Mesh(splashGeo, basic(PAL.W, { transparent: true, opacity: 0.8, depthWrite: false }));
     mesh.position.set(x, WATER_Y + 0.02, z);
+    mesh.renderOrder = 1;                                    // after the see-through water, wherever it sorts
     group.add(mesh);
     splashes.push({ mesh, life: 0.5 });
   }
@@ -426,7 +427,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
         b.g.position.set(b.x, y, b.z);
         b.g.rotation.y = b.yaw;
         b.body.rotation.z = b.hop ? -0.2 : Math.sin(t * 6 + b.x) * 0.04;   // nibbling when still
-        b.shadow.position.set(b.x, 0.01, b.z);
+        b.shadow.position.set(b.x, SHADOW_Y, b.z);
       }
 
       for (const b of birds) {
@@ -463,7 +464,7 @@ export function createAmbient(ctx: RenderContext): Ambient {
         const peck = !b.flying && Math.sin(t * 9 + b.x * 7) > 0.7;
         b.g.position.set(b.x, b.y, b.z);
         b.g.rotation.set(0, b.yaw, peck ? -0.5 : 0);
-        b.shadow.position.set(b.x, 0.01, b.z);
+        b.shadow.position.set(b.x, SHADOW_Y, b.z);
         b.shadow.material.opacity = 0.3;
       }
 

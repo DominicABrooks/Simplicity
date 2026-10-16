@@ -36,8 +36,11 @@ export function spawnEnemy(g: Game, minDist: number): void {
   const p = hero && randomGroundSpot(g.map, g.rng, hero, minDist);
   if (!p) return;
   const level = g.world.get(g.player, "hero")?.level ?? 1;
-  if (g.kills >= MAGE_MIN_KILLS && g.world.count("mage") < mageCap(level) && g.rng.next() < mageChance(level)) {
-    const school = SCHOOL_ORDER[Math.floor(g.rng.next() * SCHOOL_ORDER.length)]!;
+  // Where the area says which mages live there (the deep woods), they come from the start, and more of them.
+  const mages = g.area.def.life?.mages, schools = mages?.schools ?? SCHOOL_ORDER;
+  const cap = mageCap(level) + (mages?.extra ?? 0), chance = mages ? Math.max(0.45, mageChance(level)) : mageChance(level);
+  if ((mages || g.kills >= MAGE_MIN_KILLS) && g.world.count("mage") < cap && g.rng.next() < chance) {
+    const school = schools[Math.floor(g.rng.next() * schools.length)]!;
     const hp = mageHp(level);
     g.world.create({
       transform: p,
@@ -71,10 +74,10 @@ export function spawnCampfire(g: Game, x: number, y: number): Entity {
 }
 
 /** A guard at their post, facing `post` (a game angle): a friendly target that keeps watch. */
-export function spawnGuard(g: Game, x: number, y: number, post: number): Entity {
+export function spawnGuard(g: Game, x: number, y: number, post: number, name: string = GUARD.name): Entity {
   return g.world.create({
     transform: { x, y },
-    targetable: { hostile: false, name: GUARD.name, radius: GUARD.radius, height: GUARD.height },
+    targetable: { hostile: false, name, radius: GUARD.radius, height: GUARD.height },
     sentry: { post, look: post, want: post, next: GUARD.glance[0] * (0.5 + g.rng.next()) },
     renderable: { kind: "guard" },
   });

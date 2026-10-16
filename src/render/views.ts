@@ -17,7 +17,8 @@ import { DAIS_HIGH } from "../world/plans.ts";
 import { GROUND, SHADOW_Y, onGround, PX_PER_TILE, addShadow, box, col, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { dressBody, dressCommoner, dressSoldier, makeBody, removeBody, type Body } from "./models/body.ts";
-import { residentById } from "../game/townsfolk.ts";
+import { hourOf, residentById } from "../game/townsfolk.ts";
+import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
@@ -25,6 +26,8 @@ import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
 import { BUTT_TILT, makeButt, makeDummy } from "./castle.ts";
 import { makeArrowMesh, makeOrbMesh, ORB_COLORS } from "./models/projectiles.ts";
 import { SPARK_PAIRS, type SparkPair } from "./particles.ts";
+import { poseLoad, poseWork, type Worker } from "./work.ts";
+import { loadOf } from "../world/workplaces.ts";
 import { ringstone } from "./undercroft.ts";
 import { boatman } from "./quay.ts";
 
@@ -427,9 +430,9 @@ const dummy: EntityView<DummyView> = {
  * clothes, kept on them in the census (Resident.dress: see src/world/wardrobe.ts), children smaller and the
  * old a little stooped. They walk like the hero, stand breathing when they stop, and face whoever they're
  * talking to. At work out in the open they show it: the smith hammers at the anvil, sparks flying off it at
- * every stroke; the minstrel strums his lute.
+ * every stroke; the minstrel strums his lute; and the sweepers, laundresses and water-carriers (work.ts).
  */
-interface FolkView extends Body {
+interface FolkView extends Body, Worker {
   k: number; size: number; stoop: number;
   /** Made the first time they're needed: a hammer in the right hand, a lute held across the body. */
   hammer: THREE.Group | null; lute: THREE.Group | null;
@@ -473,7 +476,7 @@ const townsfolk: EntityView<FolkView> = {
     b.sword.visible = false;
     b.group.scale.setScalar(size);
     b.shadow.scale.setScalar(size);
-    return Object.assign(b, { k: (w.id * 0.37) % 10, size, stoop, hammer: null, lute: null, stroke: 0 });
+    return Object.assign(b, { k: (w.id * 0.37) % 10, size, stoop, hammer: null, lute: null, stroke: 0, tools: {}, beat: 0, reach: 0, load: r && r.age >= 14 ? loadOf(r.job) : null, carried: null });
   },
   update(ctx, v, e, g, f) {
     const o = g.world.need(e, "transform"), w = g.world.need(e, "walker"), [x, z] = toWorld(o.x, o.y), t = f.t + v.k;
@@ -519,6 +522,9 @@ const townsfolk: EntityView<FolkView> = {
     }
     if (v.hammer) v.hammer.visible = task === "anvil";
     if (v.lute) v.lute.visible = task === "lute";
+    poseWork(ctx, v, task, t, f.dt);   // the broom, the washtub, the well's crank...
+    const h = hourOf(g), day = h >= (v.load === "bread" ? 5 : TOWNSFOLK.hours.workFrom) && h < TOWNSFOLK.hours.workTo;   // (the baker's round's before dawn)
+    poseLoad(ctx, v, day && !task && !w.follow && w.plan !== "answer");   // their load, about through the working day
     v.eyes.forEach(eye => { eye.scale.y = t % 4.1 < 0.15 ? 0.15 : 1; });
   },
   remove: removeBody,

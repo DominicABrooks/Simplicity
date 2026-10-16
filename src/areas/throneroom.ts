@@ -26,8 +26,8 @@ function build(): AreaLayout {
   town.add({ kind: "king", x: MID * T, y: 3.9 * T, facing: "south" });
   // Behind and beside the throne, on the north wall that faces the hall: the standards, stained glass and tapestries.
   for (const dx of [-3.2, 3.2]) town.add({ kind: "standard", x: (MID + dx) * T, y: 1.4 * T });
-  for (const dx of [-5.6, -4.2, 4.2, 5.6]) add("window", MID + dx, 0.2, "south");
-  for (const dx of [-7.9, 7.9]) add("tapestry", MID + dx, 0.25, "south");
+  for (const dx of [-5.6, -4.2, 4.2, 5.6]) add("window", MID + dx, 0.41, "south");   // its frame (0.12 deep) against the wall's face, not sunk in it
+  for (const dx of [-7.9, 7.9]) add("tapestry", MID + dx, 0.39, "south");   // on the wall's face (0.35 thick, its gold band 0.375), not in it
   // At its foot: the gilded lions and the braziers.
   for (const dx of [-3.8, 3.8]) {
     town.add({ kind: "lion", x: (MID + dx) * T, y: (DAIS_FRONT + 1.1) * T, facing: "south" });

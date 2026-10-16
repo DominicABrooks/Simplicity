@@ -7,7 +7,7 @@ import { PAL } from "../data/palette.ts";
 import { BOW, FISHING, JUMP_TIME, THRUST } from "../data/player.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
-import { GROUND, MARKER_Y, onGround, WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
+import { GROUND, MARKER_Y, SHADOW_Y, onGround, WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
 import { dressBody, makeBody, type Body } from "./models/body.ts";
 
 const SWOOSH_COLOR: Record<string, string> = { normal: PAL.W, magic: PAL.C, rare: PAL.Y };
@@ -293,7 +293,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
       updateSwoosh(h);
 
       hero.shadow.visible = !m.swimming;
-      hero.shadow.position.set(px, 0.01, pz);
+      hero.shadow.position.set(px, SHADOW_Y, pz);
       hero.shadow.scale.setScalar(1 - hz * 0.4);
       hero.ripple.visible = m.swimming;
       hero.ripple.position.set(px, WATER_Y + 0.01, pz);

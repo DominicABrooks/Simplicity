@@ -2,7 +2,7 @@
 
 export type Rarity = "normal" | "magic" | "rare";
 export type Slot = "helm" | "amulet" | "weapon" | "armor" | "ring" | "boots";
-export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone" | "writ"
+export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone"
   | "runestone" | "key" | "eye" | "bottle" | "bell";
 export type StatKey = "damage" | "life" | "speed" | "dash";
 export type Stats = Partial<Record<StatKey, number>>;
@@ -34,7 +34,6 @@ export const BASES: Record<ItemType, ItemBase> = {
   // Gifts: only ever given, by the people you talk to (see GIFTS).
   bread:  { name: "Loaf", slot: null, w: 2, h: 1, base: {}, noLoot: true },
   stone:  { name: "Shiny Stone", slot: null, w: 1, h: 1, base: {}, noLoot: true, note: "A gift. It's yours now" },
-  writ:   { name: "Writ", slot: null, w: 1, h: 2, base: {}, noLoot: true, note: "Under the King's seal. Show it to his woodwardens" },
   // Curiosities: only ever fished up (see CURIOS), each with its own line.
   runestone: { name: "Stone", slot: null, w: 1, h: 1, base: {}, noLoot: true },
   key:       { name: "Key", slot: null, w: 1, h: 1, base: {}, noLoot: true },
@@ -52,7 +51,8 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
 
 /**
  * Now and then it isn't a koi on the hook at all but something stranger, lost in the water who knows how: one catch
- * in twenty (CURIO_CHANCE) is one of these, never one you're already carrying. Each says something of itself.
+ * in every twenty (CURIO_WINDOW), somewhere in the twenty, is one of these, never one you're already carrying. Each
+ * says something of itself.
  */
 export type CurioId = "stone" | "key" | "eye" | "bottle" | "bell";
 export const CURIOS: Record<CurioId, { type: ItemType; name: string; note: string }> = {
@@ -63,15 +63,14 @@ export const CURIOS: Record<CurioId, { type: ItemType; name: string; note: strin
   bell:   { type: "bell", name: "Little Handbell", note: "It rings at nine every night, though nobody rings it." },
 };
 export const CURIO_IDS = Object.keys(CURIOS) as CurioId[];
-export const CURIO_CHANCE = 1 / 20;
+export const CURIO_WINDOW = 20;
 
 /** What people give the hero when they talk to him: the gift lines in src/data/voices.ts say which. */
-export type GiftKind = "loaf" | "koi" | "stone" | "writ";
+export type GiftKind = "loaf" | "koi" | "stone";
 export const GIFTS: Record<GiftKind, { type: ItemType; name: string; heal?: number }> = {
   loaf: { type: "bread", name: "Three-Cut Loaf", heal: 1 },
   koi: { type: "fish", name: FISH.normal.name, heal: FISH.normal.heal },
   stone: { type: "stone", name: "Shiny Stone" },
-  writ: { type: "writ", name: "The King's Writ" },
 };
 
 /** Equipment paperdoll: slot positions in cells inside a 10x7 area. */
