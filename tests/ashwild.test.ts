@@ -15,7 +15,7 @@ import { spawnEnemy } from "../src/game/spawn.ts";
 import { advanceTalk, endTalk, startTalk, talking } from "../src/game/talk.ts";
 import { enterArea, travelSystem } from "../src/game/travel.ts";
 import { handBack, passedBarricade, writingFor } from "../src/game/watchword.ts";
-import { deathSystem } from "../src/systems/enemies.ts";
+import { deathSystem, spawnerSystem } from "../src/systems/enemies.ts";
 import { FEET } from "../src/world/collision.ts";
 
 async function inWitchwood(): Promise<Game> {
@@ -166,6 +166,22 @@ describe("the Ashwild", () => {
     m.blinkCD = m.specialCD = 5;
     bossSystem(g, 1);
     expect(m.specialCD).toBeCloseTo(5 - (CINDER.hurry - 1), 5);
+  });
+
+  it("has Cinder to himself: the slimes and mages scatter as he comes out, and none turn up until he's beaten", async () => {
+    const g = await inAshwild();
+    for (let i = 0; i < 10; i++) spawnEnemy(g, 40);
+    expect(g.world.count("enemy")).toBeGreaterThan(10);
+    const [e, { health }] = stepIn(g)!;
+    expect(g.world.query("enemy").map(([id]) => id)).toEqual([e]);
+    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    expect(g.world.count("enemy")).toBe(1);
+    health.hp = 0;
+    bossSystem(g, 1 / 60);
+    deathSystem(g);
+    g.spawnTimer = 0;
+    spawnerSystem(g, 1);
+    expect(g.world.count("enemy")).toBe(1);                  // back to the slimes, now he's gone
   });
 
   it("once beaten, stays beaten for the run, leaving a fine weapon and the news; a new run brings him back", async () => {

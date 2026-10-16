@@ -106,8 +106,18 @@ export function summonBoss(g: Game): Entity | null {
     renderable: { kind: L.look },                           // their own look: see src/render/models/
   });
   s.here = { e, who, x, y };
+  clearTheField(g, e);
   g.fx.push({ type: "burst", x, y, palette: L.palette });
   return e;
+}
+
+/** A boss fight's just them and the hero: the slimes and mages about scatter (and none come while it's on: see spawnerSystem). */
+function clearTheField(g: Game, boss: Entity): void {
+  for (const [e, { transform }] of g.world.query("enemy", "transform")) {
+    if (e === boss || g.world.has(e, "dummy")) continue;
+    g.fx.push({ type: "burst", x: transform.x, y: transform.y, palette: "arcane" });
+    g.world.destroy(e);
+  }
 }
 
 /** Every frame: hurry the boss along; when they fall, they stay beaten, drop a fine weapon, and the game says so. */

@@ -12,10 +12,11 @@ import { beaten, bossSystem, bossWaiting } from "../src/game/bosses.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { bowSpot, hunterHutSystem, tookBow } from "../src/game/hunterhut.ts";
 import { resetGame } from "../src/game/reset.ts";
+import { spawnEnemy } from "../src/game/spawn.ts";
 import { inThaw, rimeFight, rimeFightSystem } from "../src/game/rimefight.ts";
 import { talking } from "../src/game/talk.ts";
 import { enterArea } from "../src/game/travel.ts";
-import { deathSystem } from "../src/systems/enemies.ts";
+import { deathSystem, spawnerSystem } from "../src/systems/enemies.ts";
 import { mageSystem, novaRadius } from "../src/systems/mage.ts";
 import { pickupSystem } from "../src/systems/pickups.ts";
 
@@ -47,6 +48,15 @@ describe("Rime", () => {
     expect(c.health.maxHp).toBe(RIME.hp);
     expect(c.transform).toEqual({ x: RIME_AT.x, y: RIME_AT.y });
     expect(bossBar(g)).toMatchObject({ name: RIME.name, title: RIME.title });
+  });
+
+  it("has the lake to herself: the slimes and mages scatter as she rises, and none turn up while she stands", async () => {
+    const g = await inHollow();
+    for (let i = 0; i < 10; i++) spawnEnemy(g, 40);
+    const [e] = standOff(g, 3)!;
+    expect(g.world.query("enemy").map(([id]) => id)).toEqual([e]);
+    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    expect(g.world.count("enemy")).toBe(1);
   });
 
   it("novas wider than any Frost mage, and throws faster bolts", async () => {
