@@ -8,6 +8,7 @@ import { BOW, FISHING, JUMP_TIME, THRUST } from "../data/player.ts";
 import type { Game } from "../game/game.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
 import { processionOn } from "../game/crowd.ts";
+import { creditsAsleep } from "../game/credits.ts";
 import { GROUND, MARKER_Y, SHADOW_Y, onGround, WATER_Y, box, col, toWorld, type RenderContext } from "./context.ts";
 import { dressBody, makeBody, type Body } from "./models/body.ts";
 
@@ -227,7 +228,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
       // Face the aim (locked to the swing direction mid-attack), or the fire he's sat by. Game angle a maps to yaw -a.
       // Asleep, he lies the way the bed or the tent lies, straight away.
       const rest = g.world.get(g.player, "resting"), fire = rest && g.world.get(rest.fire, "transform");
-      const sleep = g.world.get(g.player, "sleeping"), bed = sleep ? g.world.get(sleep.bed, "bed") : undefined;
+      const sleep = g.world.get(g.player, "sleeping"), bed = sleep ? g.world.get(sleep.bed, "bed") : creditsAsleep(g) ?? undefined;   // or in the credits' last shot
       const face = fire ? Math.atan2(fire.y - pos.y, fire.x - pos.x) : a.attack > 0 ? a.swingAim : m.aim;
       yaw = bed ? -bed.face : turn(yaw, -face, dt, fire ? 6 : 18);
       hero.group.rotation.y = yaw;

@@ -8,6 +8,7 @@ import type { Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf } from "../game/hero.ts";
 import { spawnArrow } from "../game/spawn.ts";
+import { spared } from "../game/peace.ts";
 import { solidAt } from "../world/collision.ts";
 
 export function bowSystem(g: Game, dt: number): void {
@@ -55,7 +56,7 @@ export function arrowSystem(g: Game, dt: number): void {
     }
     let hit = false;
     for (const [s, { transform: t }] of w.query("enemy", "transform")) {
-      if (Math.hypot(t.x - p.x, t.y - p.y) >= BOW.hitRadius) continue;
+      if (Math.hypot(t.x - p.x, t.y - p.y) >= BOW.hitRadius || spared(g, s)) continue;
       const d = Math.hypot(a.vx, a.vy) || 1;
       hitEnemy(g, s, a.damage, false);
       stagger(g, s, a.vx / d, a.vy / d, BOW.knock);
@@ -68,9 +69,9 @@ export function arrowSystem(g: Game, dt: number): void {
 
 /** A dud that reaches an enemy bounces off it: no damage (a grey 0), a flicker and a spark, and it tumbles to the ground. */
 function glanceOffEnemy(g: Game, p: Transform, a: Arrow): void {
-  for (const [, { transform: t, enemy }] of g.world.query("enemy", "transform")) {
+  for (const [s, { transform: t, enemy }] of g.world.query("enemy", "transform")) {
     const dx = p.x - t.x, dy = p.y - t.y, d = Math.hypot(dx, dy);
-    if (d >= BOW.hitRadius) continue;
+    if (d >= BOW.hitRadius || spared(g, s)) continue;
     // Back off the way it came (away from the enemy), knocked a little to one side.
     const { speed, minSpeed, spread, flightTime } = BOW.glance;
     const away = d > 0.01 ? Math.atan2(dy, dx) : Math.atan2(-a.vy, -a.vx);

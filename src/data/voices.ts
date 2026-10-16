@@ -171,6 +171,35 @@ export const RUMOUR: readonly string[] = [
   "You didn't hear it from me, but...", "Don't repeat this, but they're saying...", "Heard this down at the Crown last night:", "My neighbour swears it's true:",
 ];
 
+// ---------- After the end ----------
+// Once Calder's head is at the King's feet (src/game/peace.ts) the Edict's torn up, the Ranger's home and the slimes sit
+// still, and the city's everyday talk goes on from there: nobody's afraid of the weather any more.
+
+/** About the Edict, now it's gone, by where they stood on it. */
+export const EDICT_AFTER: Record<string, readonly string[]> = {
+  denies: ["Dragons. Actual dragons. I'm not saying I was wrong. I'm saying it was a reasonable mistake.", "Fine. There's more in that wood than trees."],
+  loyal: ["The King tore it up himself. So that's all right, then.", "If the King says we can talk, we can talk. Long live the King."],
+  quiet: ["I keep forgetting I can just say things now. Dragons. Witches. There.", "Lovely weather. And I mean the weather."],
+  whispering: ["I don't have to whisper any more. I still do, a bit. Habit.", "Red weather down south! There. Out loud. Ha!"],
+  defiant: ["Told you. Said it all along. People should say what they've seen.", "Torn up at the market cross. I've got a bit of it, for luck."],
+  informer: ["Nothing to report these days. Everyone's saying everything. It's exhausting.", "I've given it up, you know. Listening at doors. Mostly."],
+};
+/** The city's talk after the end, in place of what's gone stale (BEFORE_ONLY). */
+export const CITY_AFTER: readonly string[] = [
+  "The Ranger's home! Meg Fell's taken the cloak in off the sill.", "The south road's open again. My cousin's walking up it on Saturday.",
+  "The slimes have gone all quiet. Gives me the shivers. Nice shivers.", "Did you hear Master Quill at the cross? He kept losing his place.",
+  "They say the Vael are coming to market. I'm going to wave.",
+];
+/** What isn't said once the end has come: the Edict's fear, and what it hid that's out now. */
+export const BEFORE_ONLY: ReadonlySet<string> = new Set([
+  "The south road's still closed. Nobody will say why.", "My cousin went south last spring and hasn't written since.",
+  "They say the Ranger's back. They also say he isn't.", "The slimes are thick this year. Ugh.",
+  "The castle storehouse is full to the roof. Nobody says why.", "We've had orders to double the watch. Nobody says why.",
+  "I'm frightened of what's in the wood. There, I've said it. Don't tell the Marshal.",
+]);
+/** A rumour, secret or family saying about the Ranger in the dungeon or the Edict: old news after the end. */
+export const STALE_AFTER = /\b(Ranger|dungeon|cell|edicts?|Edict)\b/;
+
 /** Named families talking about themselves: what the city says about them. */
 export const ABOUT_US = {
   /** About the family: the rumour as the city says it. */

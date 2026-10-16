@@ -19,12 +19,15 @@ import { crowdOf, placeInCrowd, processionOn } from "../src/game/crowd.ts";
 import { cutscene, holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
 import { endCredits, headLaid, homeStoneSystem, watchEnding, wayHomeOpen } from "../src/game/ending.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
-import { carryingHead, giveUpHead } from "../src/game/head.ts";
+import { carryingHead, giveUpHead, HEAD_NAME } from "../src/game/head.ts";
 import { creditsCamera, creditsShot, rollCredits, runSum, updateCredits } from "../src/game/credits.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "../src/game/talk.ts";
 import { populate, residentById, setCensus, updateTownsfolk } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
+import { dropItem } from "../src/game/actions.ts";
+import { despawnSystem, pickupSystem } from "../src/systems/pickups.ts";
+import { layoutOf } from "../src/world/layouts.ts";
 import { makeItem } from "../src/items/items.ts";
 import { deathSystem } from "../src/systems/enemies.ts";
 import { residentsOf } from "../src/world/residents.ts";
@@ -187,7 +190,7 @@ describe("the end of the story path", () => {
     expect(KING_AFTER).toContain(talking(g)!.lines[0]);
   });
 
-  it("the credits play this run back, shot by shot in the places it happened, and then put him back", async () => {
+  it("the credits show what came of this run, shot by shot in the places it changed, and then put him back", async () => {
     const g = await home();
     enterArea(g, await loadArea("castle"), "town");
     const at = kingOf(g)![1].transform, hero = g.world.need(g.player, "transform");
@@ -196,8 +199,8 @@ describe("the end of the story path", () => {
     skipCutscene(g);
     expect(g.state).toBe("credits");
     const was = { x: hero.x, y: hero.y };
-    // This run: woke, never saw the King, beat only Calder. Its shots, in order, each with its line; then what it meant
-    // (no Yssa at the fountain: he never met her).
+    // This run: never saw the King, beat only Calder. What it meant, in order, each with its line (no lake, no
+    // churchyard, no Yssa at the fountain: he never beat Rime, laid the Ringer to rest or met her).
     await new Promise(r => setTimeout(r, 0));
     await rollCredits(g);
     const seen: string[] = [], said: string[] = [];
@@ -205,7 +208,7 @@ describe("the end of the story path", () => {
       const shot = creditsShot(g), cam = creditsCamera(g);
       if (shot && seen[seen.length - 1] !== g.area.def.id + shot.says) { seen.push(g.area.def.id + shot.says); said.push(shot.says); expect(cam).not.toBeNull(); }
     }
-    expect(said).toEqual([SHOT_SAYS.woke, SHOT_SAYS.calder, SHOT_SAYS.home, SHOT_SAYS.steps, SHOT_SAYS.greyed, SHOT_SAYS.slimes, SHOT_SAYS.chronicle]);
+    expect(said).toEqual([SHOT_SAYS.greyed, SHOT_SAYS.slimes, SHOT_SAYS.chronicle, SHOT_SAYS.eggs, SHOT_SAYS.hatch, SHOT_SAYS.fells]);
     expect(runSum(g)).toContain("Level");
     endCredits(g);
     expect(g.area.def.id).toBe("castle");
@@ -280,4 +283,53 @@ describe("the end of the story path", () => {
     expect(AFTER_GUARD).toContain(hear(after)[0]);
     expect(AFTER_GUARD).not.toContain(hear(after)[0]);
   });
+
+  it("the head never fades on the ground: dropped from the bag, it's still there long after, to pick up again", async () => {
+    const g = createGame();
+    resetGame(g);
+    setState(g, "play");
+    const capitalDef = await loadArea("capital");
+    enterArea(g, capitalDef, entryOf(capitalDef));
+    const head = makeItem(...CALDERS_HEAD);
+    g.inventory.add(head);
+    g.inventory.grid = g.inventory.grid.filter(e => e.item !== head);   // taken out of the bag, as the UI does
+    dropItem(g, head);
+    expect(carryingHead(g)).toBe(false);
+    for (let t = 0; t < 120; t += DT) despawnSystem(g, DT);
+    expect(headsLying(g)).toHaveLength(1);
+    const p = g.world.need(g.player, "transform");
+    p.x += 3 * T; pickupSystem(g);                           // steps off it...
+    p.x -= 3 * T; pickupSystem(g);                           // ...and back on
+    expect(carryingHead(g)).toBe(true);
+    expect(headsLying(g)).toHaveLength(0);
+  });
+
+  it("left lying, the head waits where he left it while he's elsewhere, and a new run forgets it", async () => {
+    const g = await calderBeaten();                          // Calder's dropped it at the crack; he doesn't pick it up
+    const [[, left]] = headsLying(g);
+    const at = { x: left.transform.x, y: left.transform.y };
+    const capitalDef = await loadArea("capital"), riftDef = await loadArea("rift");
+    enterArea(g, capitalDef, entryOf(capitalDef));
+    expect(headsLying(g)).toHaveLength(0);
+    for (let t = 0; t < 60; t += DT) despawnSystem(g, DT);
+    enterArea(g, riftDef, "stone");
+    const back = headsLying(g);
+    expect(back).toHaveLength(1);
+    expect(back[0][1].transform).toMatchObject(at);
+    expect(g.world.has(back[0][0], "despawn")).toBe(false);
+    enterArea(g, capitalDef, entryOf(capitalDef));                    // and again, any number of times
+    enterArea(g, riftDef, "stone");
+    expect(headsLying(g)).toHaveLength(1);
+
+    enterArea(g, capitalDef, entryOf(capitalDef));
+    resetGame(g);
+    enterArea(g, riftDef, "stone");
+    expect(headsLying(g)).toHaveLength(0);
+  });
 });
+
+const entryOf = (def: Awaited<ReturnType<typeof loadArea>>) => Object.keys(layoutOf(def).entries)[0];
+
+function headsLying(g: Game) {
+  return g.world.query("pickup", "transform").filter(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === HEAD_NAME);
+}

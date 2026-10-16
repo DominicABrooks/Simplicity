@@ -1,79 +1,105 @@
-// The credits as this run played them (STORY.md, "0:55"; src/ui/credits.ts draws the caption and The End over them).
-// After the King's had his say, the game goes back through the run, a short shot at a time, in the places it happened
-// and drawn the way the game draws them: the stone by the Ranger's fire where he woke, the King on his throne, the
-// woodwardens stepping aside, Yssa at the foot of the climb, Cinder and Rime falling and their spirits rising, the Grey
-// Ringer's churchyard, Calder at the great crack as it grinds shut, the walk home through the castle gate with the city
-// behind him, and the head at the King's feet. Only what this run got to is shown, and some of what's said changes
-// with what else it did. Each shot loads its area, clears off anything that'd wander in, stands the people in it, and
-// moves the camera itself (in, out, round), the clock running on so everything breathes and flickers. After, he's put
-// back in the castle ward as he was.
+// The credits (STORY.md, "0:55"; src/ui/credits.ts draws the caption and The End over them). After the King's had his
+// say, they don't play back what he's just been through: they show what came of it, a short shot at a time, in the
+// game's own world, building to the dragons. The Greyed losing their grey, the slimes gone still, the King reading the
+// true chronicle at the cross; the Vael coming over the bridge for their eggs and the Old Mother flying in over it for
+// them, and the eggs hatching beside her under the Greyspines (her and her hatchlings drawn in src/render/dragons.ts);
+// and last his own ending, asleep in the Fells' house with a lantern of his own in the window, the Ranger home by the
+// fire with Meg. Some of what's said changes with what else he did. Each shot loads its area, clears off anything
+// that'd wander in, stands the people in it, and moves the camera itself (in, out, round), the clock running on so
+// everything breathes and flickers; a shot with a long line under it holds long enough to read. A little tune plays
+// under them all, coming round a little different each time. After, he's put back where he was.
 import { loadArea } from "../areas/index.ts";
 import type { Entity } from "../core/ecs.ts";
-import { CREDITS_TIME, RUN_SUMS, SHOT_SAYS, SHOT_SAYS_TOO, type ShotId } from "../data/ending.ts";
+import { CREDITS_TIME, CROWD_OF, RUN_SUMS, SHOT_SAYS, SHOT_SAYS_TOO, type ShotId } from "../data/ending.ts";
 import { CURIO_IDS } from "../data/items.ts";
-import { CALDERS_HEAD } from "../data/rift.ts";
+import { CREDITS_AIR } from "../data/sfx.ts";
 import { MAGE_TARGET, SCHOOLS, SLIME, SLIME_TARGET, type School } from "../data/enemies.ts";
 import { SPAWN } from "../areas/witchwood.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, Prop } from "../world/area.ts";
-import { makeItem } from "../items/items.ts";
 import { layoutOf } from "../world/layouts.ts";
-import { beaten, standIn, type Who } from "./bosses.ts";
-import { calderFightSystem, reopenCrack } from "./calderfight.ts";
-import { crowdOf, gatherCrowd } from "./crowd.ts";
+import { interiorOf, type Spot } from "../world/interiors.ts";
+import type { Resident } from "../world/residents.ts";
+import { registerArea } from "../areas/index.ts";
+import { Rng } from "../core/rng.ts";
+import { Town } from "../world/townkit.ts";
+import { beaten, type Who } from "./bosses.ts";
+import { crowdOf } from "./crowd.ts";
 import { curioFound } from "./curios.ts";
-import { scenePlayed } from "./cutscene.ts";
 import type { Game } from "./game.ts";
-import { churchyardOf, hauntingOf } from "./ghost.ts";
-import { greatKoiBeaten } from "./greatkoi.ts";
-import { giveUpHead } from "./head.ts";
-import { tookBow } from "./hunterhut.ts";
-import { rimeFightSystem } from "./rimefight.ts";
+import type { Bed, Dragon, Egg } from "./components.ts";
+import { sound } from "./sfx.ts";
 import { spawnKing } from "./spawn.ts";
-import { spiritSystem } from "./spirits.ts";
+import { loadCensus } from "./townsfolk.ts";
+import { standIn as standInside } from "./interiors.ts";
 import { endTalk } from "./talk.ts";
 import { enterArea } from "./travel.ts";
-import { passedBarricade } from "./watchword.ts";
-import { passedClimb, passedYssa, yssaSystem } from "./yssa.ts";
 
 /** Where the camera looks (px, centres), how far out (1 the usual), and how far round (radians, from the usual). */
 export interface Cam { x: number; y: number; zoom: number; yaw: number }
 
 /** How the run went, read at the start of the credits. */
-interface Run { audience: boolean; barricade: boolean; yssa: boolean; climb: boolean; ringer: boolean; koi: boolean; bow: boolean; level: number; kills: number; curios: number; beat: Set<Who> }
+interface Run {
+  level: number; kills: number; curios: number; beat: Set<Who>;
+  /** How many followed him up the hill with the head. */
+  followed: number;
+}
 
-/** A shot, staged: where the camera starts and ends (or follows the hero), what's said, and what moves as it plays (k: 0 to 1). */
-interface Staged { from: Cam; to: Cam; follow?: boolean; says: string; play?(k: number, dt: number): void }
+/**
+ * A shot, staged: where the camera starts and ends (or follows the hero), what's said, what moves as it plays (k: 0 to
+ * 1), and, if he's asleep in it, the bed he's lying in.
+ */
+interface Staged {
+  from: Cam; to: Cam; follow?: boolean; says: string; play?(k: number, dt: number): void; asleep?: Bed;
+  /** Or the camera's whole way through the shot, if it does more than go from one place to another. */
+  camAt?(k: number): Cam;
+  /** How long (s) it holds at the least, if there's more to see in it than its line takes to read. */
+  hold?: number;
+}
 
-/** Each shot: whether this run had it, where it's set, the hour there, and how to stage it once there. */
-interface Shot { id: ShotId; area: string; hour: number; had(run: Run): boolean; stage(g: Game, run: Run): Staged }
+/**
+ * Each shot: whether this run had it, where it's set (or how to make the place, if it isn't one of the areas: null if
+ * it can't be), the hour there, and how to stage it once there.
+ */
+interface Shot { id: ShotId; area: string; load?(): Promise<AreaDef | null>; hour: number; had(run: Run): boolean; stage(g: Game, run: Run): Staged }
 
 interface Reel {
   shots: Shot[];
   run: Run;
-  defs: Map<string, AreaDef>;
-  /** The shot playing (-1 while the areas load), how far into it (s), and it staged. */
+  /** Each shot's area, once loaded (or made); and whether they all are. */
+  defs: Map<ShotId, AreaDef>;
+  ready: boolean;
+  /** The shot playing (-1 while the areas load), how far into it (s), it staged, and how long it holds (s). */
   at: number;
   t: number;
   staged: Staged | null;
+  length: number;
   cam: Cam | null;
   /** Where he was before, to be put back after. */
   back: { area: AreaDef; x: number; y: number; hour: number };
-  /** Who followed him up, to follow him again on screen. */
-  crowd: number[];
+  /** The tune: which time round it's on, and how long (s) till it comes round again. */
+  turn: number;
+  music: number;
 }
 const reels = new WeakMap<Game, Reel>();
 
 /** The camera, while the credits are rolling a shot (the renderer looks here first). */
 export const creditsCamera = (g: Game): Cam | null => reels.get(g)?.cam ?? null;
 
+/** In the credits' last shot he's asleep: the bed he's lying in, for the hero to be drawn lying in it (src/render/hero.ts). */
+export const creditsAsleep = (g: Game): Bed | null => reels.get(g)?.staged?.asleep ?? null;
+
 /** What's said under the shot on screen now, and how faded in it is (0 to 1); null between shots or before they start. */
 export function creditsShot(g: Game): { says: string; shown: number } | null {
   const r = reels.get(g);
   if (!r?.staged) return null;
   const F = CREDITS_TIME;
-  return { says: r.staged.says, shown: Math.max(0, Math.min(1, r.t / F.fade, (F.shot - r.t) / F.fade)) };
+  return { says: r.staged.says, shown: Math.max(0, Math.min(1, r.t / F.fade, (r.length - r.t) / F.fade)) };
 }
+
+/** How long a shot holds, for its line to be read: its words at the reading pace, and the fades either side; never short. */
+export const shotLength = (says: string): number =>
+  Math.max(CREDITS_TIME.shot, says.split(/\s+/).filter(Boolean).length / CREDITS_TIME.read + 2 * CREDITS_TIME.fade);
 
 /** Under The End: this run, in a line. */
 export function runSum(g: Game): string {
@@ -86,9 +112,8 @@ export function runSum(g: Game): string {
 function readRun(g: Game): Run {
   const beat = new Set<Who>((["cinder", "rime", "calder"] as const).filter(w => beaten(g, w)));
   return {
-    audience: scenePlayed(g, "audience"), barricade: passedBarricade(g), yssa: passedYssa(g), climb: passedClimb(g), ringer: hauntingOf(g).night === "laid",
-    koi: greatKoiBeaten(g), bow: tookBow(g), level: g.world.need(g.player, "hero").level, kills: g.kills,
-    curios: CURIO_IDS.filter(id => curioFound(g, id)).length, beat,
+    level: g.world.need(g.player, "hero").level, kills: g.kills,
+    curios: CURIO_IDS.filter(id => curioFound(g, id)).length, beat, followed: crowdOf(g).following.length,
   };
 }
 
@@ -96,39 +121,52 @@ function readRun(g: Game): Run {
 const startAt = new WeakMap<Game, ShotId>();
 export function creditsFrom(g: Game, id: ShotId): void { startAt.set(g, id); }
 
-/** Start the reel: read the run, choose its shots, and load their areas (dark till then). */
+/** Start the reel: read the run, choose its shots, strike up the tune, and load their areas (dark till then). */
 export async function rollCredits(g: Game): Promise<void> {
   const run = readRun(g), had = SHOTS.filter(s => s.had(run)), p = g.world.need(g.player, "transform");
   const from = had.findIndex(s => s.id === startAt.get(g)), shots = from > 0 ? had.slice(from) : had;
   startAt.delete(g);
   const reel: Reel = {
-    shots, run, defs: new Map(), at: -1, t: 0, staged: null, cam: null,
-    back: { area: g.area.def, x: p.x, y: p.y, hour: g.hour }, crowd: [...crowdOf(g).following],
+    shots, run, defs: new Map(), ready: false, at: -1, t: 0, staged: null, length: CREDITS_TIME.shot, cam: null,
+    back: { area: g.area.def, x: p.x, y: p.y, hour: g.hour }, turn: 0, music: CREDITS_AIR.every,
   };
   reels.set(g, reel);
-  const defs = await Promise.all([...new Set(shots.map(s => s.area))].map(id => loadArea(id)));
-  for (const def of defs) reel.defs.set(def.id, def);
+  sound(g, CREDITS_AIR.turns[0]);
+  const defs = await Promise.all(shots.map(s => (s.load ? s.load() : loadArea(s.area))));
+  shots.forEach((s, i) => { const def = defs[i]; if (def) reel.defs.set(s.id, def); });
+  reel.shots = shots.filter(s => reel.defs.has(s.id));    // a place that couldn't be made: that shot's left out
+  reel.ready = true;
 }
 
 /** Every frame of the credits: the clock runs on, the shot plays, and on to the next. True once the last shot's done. */
 export function updateCredits(g: Game, dt: number): boolean {
   const r = reels.get(g);
   if (!r) return true;
+  const done = playOn(g, r, dt);
+  if ((r.music -= dt) <= 0) {                                // the tune comes round again, a little different each time
+    r.music += CREDITS_AIR.every;                            // (after the shot's moved on: a new place hushes what was to be heard)
+    sound(g, CREDITS_AIR.turns[++r.turn % CREDITS_AIR.turns.length]!);
+  }
+  return done;
+}
+
+function playOn(g: Game, r: Reel, dt: number): boolean {
   g.clock += dt;                                             // the world breathes and flickers, though nobody's playing
   if (r.at < 0) {
-    if (r.defs.size < new Set(r.shots.map(s => s.area)).size || (r.t += dt) < CREDITS_TIME.dark) return false;
+    if (!r.ready || (r.t += dt) < CREDITS_TIME.dark) return false;
     return nextShot(g, r);
   }
   r.t += dt;
-  const s = r.staged!, k = Math.min(1, r.t / CREDITS_TIME.shot);
+  const s = r.staged!, k = Math.min(1, r.t / r.length);
   s.play?.(k, dt);
   aim(g, r, k);
-  return r.t >= CREDITS_TIME.shot ? nextShot(g, r) : false;
+  return r.t >= r.length ? nextShot(g, r) : false;
 }
 
 /** Point the camera along the shot, k of the way through. */
 function aim(g: Game, r: Reel, k: number): void {
   const s = r.staged!, e = ease(k), hero = g.world.need(g.player, "transform");
+  if (s.camAt) { r.cam = s.camAt(k); return; }
   r.cam = {
     x: s.follow ? hero.x + HALF : lerp(s.from.x, s.to.x, e), y: s.follow ? hero.y + HALF : lerp(s.from.y, s.to.y, e),
     zoom: lerp(s.from.zoom, s.to.zoom, e), yaw: lerp(s.from.yaw, s.to.yaw, e),
@@ -146,7 +184,6 @@ export function endReel(g: Game): void {
   const r = reels.get(g);
   if (!r) return;
   reels.delete(g);
-  giveUpHead(g);                                             // the head on screen was only ever for the pictures
   g.hour = r.back.hour;
   enterArea(g, r.back.area, firstEntry(r.back.area));
   Object.assign(g.world.need(g.player, "transform"), { x: r.back.x, y: r.back.y });
@@ -158,11 +195,10 @@ function nextShot(g: Game, r: Reel): boolean {
   r.staged = null;
   const shot = r.shots[r.at];
   if (!shot) { r.cam = null; return true; }
-  giveUpHead(g);
-  crowdOf(g).following = shot.id === "home" || shot.id === "steps" ? [...r.crowd] : [];
+  crowdOf(g).following = [];                                 // nobody follows him through the pictures
   crowdOf(g).gathered = null;
   g.hour = shot.hour;
-  const def = r.defs.get(shot.area)!;
+  const def = r.defs.get(shot.id)!;
   enterArea(g, def, firstEntry(def));
   // Nothing wanders in, nobody's talking, and he's whole and standing.
   for (const [e] of g.world.query("enemy")) if (!g.world.has(e, "dummy")) g.world.destroy(e);
@@ -172,6 +208,7 @@ function nextShot(g: Game, r: Reel): boolean {
   g.target = null;
   Object.assign(g.world.need(g.player, "status"), { hurt: 0, sheep: 0, frozen: 0, chill: 0 });
   r.staged = shot.stage(g, r.run);
+  r.length = Math.max(shotLength(r.staged.says), r.staged.hold ?? 0);
   r.staged.play?.(0, 0);
   aim(g, r, 0);
   return false;
@@ -184,6 +221,16 @@ const firstEntry = (def: AreaDef) => Object.keys(layoutOf(def).entries)[0]!;
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const ease = (k: number) => k * k * (3 - 2 * k);
 const cam = (x: number, y: number, zoom: number, yaw = 0): Cam => ({ x, y, zoom, yaw });
+/** How far k is from a to b, 0 to 1. */
+const ramp = (k: number, a: number, b: number) => Math.max(0, Math.min(1, (k - a) / (b - a)));
+/** The camera through a shot by keyframes ([k, where]), easing from each to the next. */
+const keys = (frames: readonly [number, Cam][]) => (k: number): Cam => {
+  const last = frames[frames.length - 1]!, i = frames.findIndex(([at]) => at > k);
+  if (i < 0) return last[1];
+  if (i === 0) return frames[0]![1];
+  const [a, from] = frames[i - 1]!, [b, to] = frames[i]!, e = ease(ramp(k, a, b));
+  return { x: lerp(from.x, to.x, e), y: lerp(from.y, to.y, e), zoom: lerp(from.zoom, to.zoom, e), yaw: lerp(from.yaw, to.yaw, e) };
+};
 const propOf = <K extends Prop["kind"]>(g: Game, kind: K) => g.area.layout.props.find((p): p is Extract<Prop, { kind: K }> => p.kind === kind);
 
 /** Stand him at (x, y) (px, his centre), looking toward (tx, ty); walking, if he's moving. */
@@ -193,12 +240,7 @@ function heroAt(g: Game, x: number, y: number, tx: number, ty: number, walking =
   m.moving = walking;
   m.aim = Math.atan2(ty - y, tx - x);
 }
-/** Walking him from a to b (px, centres) over the part of the shot from k0 to k1. */
-function walkAlong(g: Game, a: { x: number; y: number }, b: { x: number; y: number }, k: number, k0 = 0, k1 = 1): void {
-  const u = Math.max(0, Math.min(1, (k - k0) / (k1 - k0)));
-  heroAt(g, lerp(a.x, b.x, u), lerp(a.y, b.y, u), b.x, b.y, u > 0 && u < 1);
-}
-/** A boss falls: a burst where they stood, and they're gone. */
+/** One of the Greyed loses the grey: a burst where they stood, and they're gone. */
 function crumble(g: Game, e: Entity, palette: "fire" | "frost" | "spark"): void {
   const t = g.world.get(e, "transform");
   if (!t) return;
@@ -206,17 +248,6 @@ function crumble(g: Game, e: Entity, palette: "fire" | "frost" | "spark"): void 
   g.fx.push({ type: "burst", x: t.x, y: t.y, palette: "arcane" });
   g.world.destroy(e);
 }
-/** A beaten lieutenant, back in their arena for the camera: standing facing him, falling at `at`, their spirit rising after. */
-function lieutenant(g: Game, who: Who, palette: "fire" | "frost" | "spark", at: number, after?: (dt: number) => void): NonNullable<Staged["play"]> {
-  const lair = propOf(g, "boss")!, x = lair.x, y = lair.y, me = standIn(g, who, x - HALF, y - HALF);
-  heroAt(g, x, y + 3 * T, x, y);
-  let fallen = false;
-  return (k, dt) => {
-    if (!fallen && k >= at) { fallen = true; crumble(g, me, palette); }
-    if (fallen) { after?.(dt); spiritSystem(g); }
-  };
-}
-
 /** One of the Greyed, standing (cell top-left): a mage of that school, nobody's fight. */
 function greyed(g: Game, school: School, x: number, y: number): Entity {
   return g.world.create({
@@ -255,141 +286,48 @@ function gatherRound(g: Game, x: number, y: number, r: number): void {
   });
 }
 
+/**
+ * A dragon (px, cell top-left; see Dragon): its transform kept at `seen` if given, somewhere the camera's always on, so
+ * the renderer doesn't put it away while it's high in the sky and the ground under it is out of the picture.
+ */
+function dragonAt(g: Game, d: Partial<Dragon> & Pick<Dragon, "x" | "y" | "size" | "hide" | "pose">, seen?: { x: number; y: number }): Entity {
+  return g.world.create({
+    transform: { x: seen?.x ?? d.x, y: seen?.y ?? d.y },
+    dragon: { height: 0, facing: Math.PI / 2, flap: 0, neck: 0, spread: 0, fire: 0, grow: 1, walk: 0, stride: 0, ...d },
+    renderable: { kind: "dragon" },
+  });
+}
+/** One of the three eggs, standing (cell top-left). */
+const eggAt = (g: Game, school: Egg["school"], x: number, y: number, gilt: number, glow = 0): Entity =>
+  g.world.create({ transform: { x, y }, egg: { school, gilt, glow, crack: 0, open: false, hatch: 0 }, renderable: { kind: "egg" } });
+/** The wingbeats of a dragon in flight, run on by dt: a great whump at the bottom of each, and the ground shaking a little. */
+function beat(g: Game, d: Dragon, dt: number, pace: number): void {
+  const before = Math.floor(d.flap / (2 * Math.PI));
+  d.flap += dt * pace;
+  if (Math.floor(d.flap / (2 * Math.PI)) > before) { sound(g, "wingbeat"); g.shake = Math.max(g.shake, 0.5); }
+}
+/**
+ * A dragon walking to (x, y) (px) this frame: turning to face the way it's going (or `want`, standing) no faster than it
+ * can turn, stepping as it goes, a step for each stride's length, and shuffling its feet round as it turns on the spot.
+ */
+function stepTo(d: Dragon, x: number, y: number, want: number | null, dt: number): void {
+  if (dt <= 0) { d.x = x; d.y = y; return; }
+  const far = Math.hypot(x - d.x, y - d.y) / T, goal = far > 0.002 ? Math.atan2(y - d.y, x - d.x) : want ?? d.facing;
+  const off = Math.atan2(Math.sin(goal - d.facing), Math.cos(goal - d.facing)), turn = Math.max(-WALK.turn * dt, Math.min(WALK.turn * dt, off));
+  d.facing += turn;
+  d.x = x; d.y = y;
+  const len = WALK.stride * d.size;
+  d.walk += (far / len) * Math.PI + Math.abs(turn) * WALK.shuffle;
+  const stepping = Math.min(1, far / dt / (len * WALK.pace) + (Math.abs(turn) / dt) * 0.4);
+  d.stride += (stepping - d.stride) * Math.min(1, dt * 10);
+}
+/** How a little dragon walks: its stride's length (world units for each 1 of size), its usual pace (strides a second), how fast it can turn (radians a second), and how much stepping a turn takes. */
+const WALK = { stride: 0.55, pace: 2.2, turn: 3.5, shuffle: 2.5 } as const;
+/** The ground stops shaking (nobody's playing to settle it, in the credits). */
+const settle = (g: Game, dt: number) => { g.shake = Math.max(0, g.shake - dt * 2.5); };
+const ORDERS = ["ember", "frost", "storm"] as const;
+
 const SHOTS: readonly Shot[] = [
-  {
-    // Where he woke: the stone by the Ranger's fire, early, the camera coming down out of the trees to him.
-    id: "woke", area: "witchwood", hour: 7.5, had: () => true,
-    stage(g) {
-      const stone = propOf(g, "oldStone")!, fire = propOf(g, "camp")!.fire;
-      heroAt(g, stone.x, stone.y, fire.x + HALF, fire.y + HALF);
-      return { from: cam(stone.x, stone.y, 1.9, 0.7), to: cam(stone.x, stone.y, 0.7, -0.15), says: SHOT_SAYS.woke };
-    },
-  },
-  {
-    // The King's audience: up the carpet to the foot of the dais, the camera closing in on the two of them.
-    id: "king", area: "throneroom", hour: 10, had: run => run.audience,
-    stage(g) {
-      const k = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")![1].transform;
-      const kx = k.x + HALF, ky = k.y + HALF, from = { x: kx, y: ky + 72 }, to = { x: kx, y: ky + 24 };
-      return {
-        from: cam(kx, ky + 40, 1.4), to: cam(kx, ky + 12, 0.6, 0.25), says: SHOT_SAYS.king,
-        play: k => walkAlong(g, from, to, k, 0, 0.6),
-      };
-    },
-  },
-  {
-    // The barricade: the wardens aside at their posts, and him through the gate and on down the trail.
-    id: "barricade", area: "witchwood", hour: 16, had: run => run.barricade,
-    stage(g) {
-      const b = propOf(g, "barricade")!, gx = b.rect.x + (b.gate + b.gateW / 2) * T, from = { x: gx, y: b.rect.y - 4 * T }, to = { x: gx, y: b.rect.y + 4 * T };
-      return {
-        from: cam(gx, b.rect.y, 0.85, 0.4), to: cam(gx, b.rect.y, 0.85, -0.4), follow: true, says: SHOT_SAYS.barricade,
-        play: k => walkAlong(g, from, to, k, 0.1, 0.9),
-      };
-    },
-  },
-  {
-    // Yssa at the foot of the climb, aside now, and him past her on up the frozen river.
-    id: "yssa", area: "hollow", hour: 12, had: run => run.climb,
-    stage(g) {
-      yssaSystem(g, 0);
-      const her = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "yssa")?.[1].transform;
-      const hx = (her?.x ?? 0) + HALF, hy = (her?.y ?? 0) + HALF, x = hx + T, from = { x, y: hy + 3 * T }, to = { x, y: hy - 2 * T };
-      return {
-        from: cam(hx + HALF, hy, 0.75, -0.35), to: cam(hx + HALF, hy - HALF, 0.6, 0.3), says: SHOT_SAYS.yssa,
-        play: k => walkAlong(g, from, to, k, 0.15, 0.95),
-      };
-    },
-  },
-  {
-    // Cinder in the ashes: he falls, and his spirit rises where he stood. The camera goes round them.
-    id: "cinder", area: "ashwild", hour: 15, had: run => run.beat.has("cinder"),
-    stage(g) {
-      const lair = propOf(g, "boss")!;
-      return { from: cam(lair.x, lair.y + T, 0.75, -0.6), to: cam(lair.x, lair.y + T, 0.6, 0.6), says: SHOT_SAYS.cinder, play: lieutenant(g, "cinder", "fire", 0.35) };
-    },
-  },
-  {
-    // Rime out on the frozen lake: she falls, the lake thaws round where she stood, and her spirit rises.
-    id: "rime", area: "hollow", hour: 10, had: run => run.beat.has("rime"),
-    stage(g, run) {
-      const lair = propOf(g, "boss")!;
-      return {
-        from: cam(lair.x, lair.y + T, 1.25, 0.5), to: cam(lair.x, lair.y + T, 0.9, -0.5),
-        says: `${run.bow ? SHOT_SAYS_TOO.bow : SHOT_SAYS.rime}${run.koi ? ` ${SHOT_SAYS_TOO.koi}` : ""}`,
-        play: lieutenant(g, "rime", "frost", 0.3, dt => rimeFightSystem(g, dt)),
-      };
-    },
-  },
-  {
-    // The churchyard of St Mary's at night, quiet now: him among the graves.
-    id: "ringer", area: "capital", hour: 23, had: run => run.ringer,
-    stage(g) {
-      const yard = churchyardOf(g)!, x = yard.x + yard.w / 2, y = yard.y + yard.h / 2;
-      heroAt(g, x, y + T, x, y - T);
-      return { from: cam(x, y, 1.3, -0.3), to: cam(x, y, 0.7, 0.2), says: SHOT_SAYS.ringer };
-    },
-  },
-  {
-    // Calder at the edge of the great crack: he falls, his spark goes home, and the crack grinds shut. Round and out.
-    id: "calder", area: "rift", hour: 19, had: run => run.beat.has("calder"),
-    stage(g) {
-      calderFightSystem(g, 0);                               // the crack as he left it, to open again for the camera
-      const lair = propOf(g, "boss")!;
-      let opened = false;
-      const fall = lieutenant(g, "calder", "spark", 0.3, dt => calderFightSystem(g, dt));
-      return {
-        from: cam(lair.x, lair.y, 1.05, -0.45), to: cam(lair.x, lair.y - T, 1.35, 0.45), says: SHOT_SAYS.calder,
-        play: (k, dt) => {
-          if (!opened) { opened = true; reopenCrack(g); }
-          if (k < 0.3) calderFightSystem(g, 0);              // held open till he falls
-          fall(k, dt);
-        },
-      };
-    },
-  },
-  {
-    // Home at dawn: up Castle Street with the head held out, over the drawbridge, the city falling in behind him.
-    id: "home", area: "castle", hour: 6.2, had: () => true,
-    stage(g) {
-      g.inventory.add(makeItem(...CALDERS_HEAD));            // for the pictures (taken away again after)
-      const p = g.world.need(g.player, "transform"), x = p.x + HALF, y = p.y + HALF, from = { x, y }, to = { x, y: y - 11 * T };
-      return {
-        from: cam(x, y, 1, 0.3), to: cam(x, y, 1.1, -0.2), follow: true, says: SHOT_SAYS.home,
-        play: k => walkAlong(g, from, to, k, 0, 1),
-      };
-    },
-  },
-  {
-    // On the keep steps: the King, the head set down at his feet, the crowd round, and the camera drawing back.
-    id: "steps", area: "castle", hour: 6.8, had: () => true,
-    stage(g) {
-      const at = g.area.layout.entries.keep!, kx = at.x + HALF, ky = at.y + HALF;
-      spawnKing(g, at.x, at.y, Math.PI / 2);
-      g.inventory.add(makeItem(...CALDERS_HEAD));
-      const from = { x: kx, y: ky + 7 * T }, to = { x: kx, y: ky + 20 };
-      heroAt(g, from.x, from.y, kx, ky);
-      // The crowd that came up with him, in rows at his back (they're let in at the gate, a long way down).
-      g.world.query("walker", "transform").filter(([, c]) => c.walker.crowd?.mode === "follow").forEach(([, c], i) => {
-        const row = Math.floor(i / 4), col = (i % 4) - 1.5;
-        Object.assign(c.transform, { x: from.x - HALF + col * 8 + (row % 2) * 4, y: from.y - HALF + 14 + row * 8 });
-        c.walker.path = [];
-        c.walker.catchingUp = false;
-      });
-      let laid = false;
-      return {
-        from: cam(kx, ky + 3 * T, 0.6, 0), to: cam(kx, ky + 2 * T, 1.3, 0.55), says: SHOT_SAYS.steps,
-        play: k => {
-          walkAlong(g, from, to, k, 0, 0.35);
-          if (laid || k < 0.42) return;
-          laid = true;
-          giveUpHead(g);
-          g.world.create({ transform: { x: kx - HALF, y: ky - HALF + 7 }, renderable: { kind: "head" } });
-          gatherCrowd(g, { x: kx, y: ky });
-        },
-      };
-    },
-  },
   // ---------- What it meant ----------
   {
     // The Greyed's camp in the Ashwild: the last of them standing about the old fire ring, and with nobody to follow,
@@ -427,31 +365,204 @@ const SHOTS: readonly Shot[] = [
   {
     // The market cross the next morning: the King on its steps reading the true chronicle, the city gathered round.
     id: "chronicle", area: "capital", hour: 9.5, had: () => true,
-    stage(g) {
+    stage(g, run) {
       const cross = propOf(g, "cross")!, x = cross.x, y = cross.y;
       const ky = y + 2.2 * T;                                // on the cross's steps, in front of it
       spawnKing(g, x - HALF, ky - HALF, Math.PI / 2);
       gatherRound(g, x, ky, 3.2 * T);
       heroAt(g, x + 4 * T, ky + 3 * T, x, ky);
       return {
-        from: cam(x, ky, 0.55, 0.3), to: cam(x, ky + T, 1.15, -0.3), says: SHOT_SAYS.chronicle,
+        from: cam(x, ky, 0.55, 0.3), to: cam(x, ky + T, 1.15, -0.3), says: [SHOT_SAYS.chronicle, followedLine(run.followed)].filter(Boolean).join(" "),
         play: () => gatherRound(g, x, ky, 3.2 * T),
       };
     },
   },
   {
-    // Yssa, the frost gone out of her, at the foot of the fountain in the square.
-    id: "milk", area: "capital", hour: 7, had: run => run.yssa,
+    // The Vael on the King's Bridge, come north for their eggs: one of each order in each row, walking up the deck in
+    // their own colours to the King waiting under Southgate, and on the stones before him the three eggs, still in the
+    // gold leaf they've worn six hundred years as "altar stones". It flakes off them in showers of sparks, one after
+    // another, and each glows its own colour; and then the Old Mother comes up the river behind the Vael, low enough to
+    // shake the bridge, her shadow going over the whole of it, and roars as she goes over her eggs and on over the city.
+    id: "eggs", area: "kingsroad", hour: 8, had: () => true,
     stage(g) {
-      const f = propOf(g, "fountain")!, x = f.x, y = f.y + (f.radius + 1) * T;
-      g.world.create({
-        transform: { x: x - HALF, y: y - HALF },
-        targetable: { hostile: false, name: "Yssa", radius: 5, height: 1.7 },
-        sentry: { post: -Math.PI / 2, look: -Math.PI / 2, want: -Math.PI / 2, next: 2 },
-        renderable: { kind: "yssa" },
-      });
-      heroAt(g, x + 2 * T, y + 2 * T, x, y);
-      return { from: cam(x, y, 0.6, -0.3), to: cam(x, y - HALF, 1.2, 0.35), says: SHOT_SAYS.milk };
+      const deck = propOf(g, "stoneBridge")!.rect, x = deck.x + deck.w / 2, top = deck.y + 2 * T, foot = deck.y + deck.h - 4 * T;
+      spawnKing(g, x - HALF, top - HALF, Math.PI / 2);
+      heroAt(g, x + 1.5 * T, top + HALF, x, foot);
+      const ey = top + 1.5 * T, eggs = ORDERS.map((school, i) => eggAt(g, school, x + (i - 1) * 1.1 * T - HALF, ey + (i === 1 ? 0.3 * T : 0) - HALF, 1));
+      const them = Array.from({ length: 6 }, (_, i) => ({
+        e: greyed(g, ORDERS[i % 3]!, 0, 0), dx: ((i % 3) - 1) * 1.4 * T, back: Math.floor(i / 3) * 2 * T,
+      }));
+      const near = top + 3.4 * T, from = foot + 24 * T, to = top - 30 * T;
+      const her = dragonAt(g, { x: x - HALF, y: from, height: 6.5, facing: -Math.PI / 2, size: 5, hide: "mother", pose: "fly" }, { x: x - HALF, y: ey - HALF });
+      const keyed = keys([
+        [0, cam(x, foot, 0.8, 0.4)], [0.34, cam(x, ey + T, 0.7, 0.1)], [0.42, cam(x, ey, 0.5, -0.05)],
+        [0.55, cam(x, ey, 2.1, -0.15)], [0.85, cam(x, ey, 2.3, -0.3)], [1, cam(x, ey + T, 1.6, -0.35)],
+      ]);
+      // While she's over, the camera keeps her and the eggs both in the picture.
+      const shots = (k: number): Cam => {
+        const c = keyed(k), y = g.world.get(her, "dragon")?.y ?? ey, w = ramp(k, 0.42, 0.52) * (1 - ramp(k, 0.8, 0.95));
+        return { ...c, y: lerp(c.y, (y + HALF + ey) / 2, w * 0.8) };
+      };
+      const gilded = [false, false, false];
+      let roared = false;
+      return {
+        from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.eggs, hold: 16,
+        play: (k, dt) => {
+          const u = ramp(k, 0, 0.34);
+          for (const m of them) {
+            Object.assign(g.world.need(m.e, "transform"), { x: x + m.dx - HALF, y: lerp(foot, near, u) + m.back - HALF });
+            g.world.need(m.e, "mage").moving = u < 1;
+          }
+          eggs.forEach((e, i) => {                           // the gold comes off, one after another
+            const egg = g.world.need(e, "egg"), a = 0.36 + i * 0.035;
+            egg.gilt = 1 - ramp(k, a, a + 0.05);
+            egg.glow = ramp(k, a + 0.02, a + 0.08);
+            if (!gilded[i] && k >= a) { gilded[i] = true; sound(g, "gilding"); }
+          });
+          const d = g.world.need(her, "dragon"), f = ramp(k, 0.42, 1);
+          d.y = lerp(from, to, f);
+          d.height = 6.5 - 2.5 * Math.sin(Math.PI * f);
+          if (f > 0 && f < 1) beat(g, d, dt, 2.2);
+          if (!roared && d.y <= ey + 3 * T) { roared = true; sound(g, "roar"); g.shake = Math.max(g.shake, 2.5); }
+          settle(g, dt);
+        },
+      };
+    },
+  },
+  {
+    // Under the Greyspines, the eggs home beside their mother: she stands at the head of a high meadow, the mountains
+    // close behind her, her face right down over the three of them, glowing. One after another they rock in fits and
+    // starts and the crack shows; then a snout pushes the top up from inside, a small head in its order's colour (red,
+    // white, indigo) pokes out and peers about, the top tips off into the grass, and the hatchling clambers out over the
+    // rim, damp and small, unfurls, stretches its wings, and toddles off to a spot of its own. She lifts her head to
+    // look at each. Then she rears up, wings wide, and roars fire at the sky; they look up at her and each breathes its
+    // first small breath; and their song with hers seals the valley whole.
+    id: "hatch", area: "greyspines", load: async () => greyspines(), hour: 17.5, had: () => true,
+    stage(g) {
+      const mx = (g.map.width * T) / 2, my = 6 * T, ey = my + 3.3 * T;   // right under her face, head down
+      const her = dragonAt(g, { x: mx - HALF, y: my - HALF, size: 4, hide: "mother", pose: "sit" });
+      const eggs = ORDERS.map((school, i) => eggAt(g, school, mx + (i - 1) * 0.6 * T - HALF, ey + (i === 1 ? 0.3 * T : 0) - HALF, 0, 0.8));   // between her wing-claws
+      heroAt(g, mx + 4.5 * T, ey + 3 * T, mx, ey);
+      const young: (Entity | null)[] = [null, null, null];
+      let roared = false, sang = false;
+      const shots = keys([
+        [0, cam(mx, ey, 0.42, 0.35)], [0.42, cam(mx, ey + 0.3 * T, 0.55, 0.12)], [0.56, cam(mx, my - T, 2.4, -0.7)],
+        [0.78, cam(mx, my - 2 * T, 2.8, -1.05)], [1, cam(mx, my - T, 2.5, -0.55)],   // round her side as she rears, then out
+      ]);
+      return {
+        from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.hatch, hold: 19,
+        play: (k, dt) => {
+          eggs.forEach((e, i) => {
+            const a = 0.05 + i * 0.12, h = a + 0.07, egg = g.world.need(e, "egg"), at = g.world.need(e, "transform");
+            egg.crack = ramp(k, a, h);
+            egg.hatch = ramp(k, h, h + 0.05);
+            egg.glow = 0.8 * (1 - ramp(k, h, h + 0.12));
+            if (!egg.open && k >= h) {                       // inside it, curled up, head up, about to push
+              egg.open = true;
+              sound(g, "hatch");
+              young[i] = dragonAt(g, { x: at.x, y: at.y - 0.1 * T, height: -0.12, size: 0.3, hide: egg.school, pose: "sit", neck: 1, facing: Math.PI / 2 + (i - 1) * 0.5 });
+            }
+          });
+          young.forEach((y, i) => {
+            if (y === null) return;
+            const d = g.world.need(y, "dragon"), h = 0.12 + i * 0.12, look = ramp(k, 0.55, 0.62), puff = 0.8 + i * 0.045;
+            const egg = g.world.need(eggs[i]!, "transform");
+            const poke = ramp(k, h, h + 0.03), climb = ease(ramp(k, h + 0.05, h + 0.1)), out = ease(ramp(k, h + 0.12, h + 0.24));
+            // From inside the shell, over the rim to just in front of it, then a wander off to a spot of its own: out and
+            // round in a little curve, walking all the way, turning as it goes.
+            const inside = { x: egg.x, y: egg.y - 0.1 * T }, rim = { x: egg.x + (i - 1) * 0.15 * T, y: egg.y + 0.6 * T };
+            const spot = { x: egg.x + (i - 1) * 1.1 * T, y: egg.y + 1.6 * T }, bend = Math.sin(Math.PI * out) * (i === 1 ? -0.5 : (i - 1) * 0.6) * T;
+            const goX = lerp(lerp(inside.x, rim.x, climb), spot.x, out) + bend, goY = lerp(lerp(inside.y, rim.y, climb), spot.y, out);
+            // Peering about from the top of the shell; then facing her, once it's somewhere to stand, to look up at her.
+            const peer = Math.PI / 2 + (i - 1) * 0.5 + Math.sin((k - h) * 60) * 0.3 * (1 - ramp(k, h + 0.03, h + 0.06));
+            if (poke < 1) { d.x = goX; d.y = goY; d.facing = peer; } else stepTo(d, goX, goY, look > 0 ? -Math.PI / 2 + (i - 1) * 0.5 : null, dt);
+            // Head up out of the top; up and over the rim.
+            d.height = -0.12 + 0.2 * poke - 0.08 * climb + Math.sin(Math.PI * climb) * 0.16;
+            d.size = 0.3 + 0.28 * ease(ramp(k, h + 0.06, h + 0.2));   // damp and small, unfurling as it goes
+            d.spread = ramp(k, h + 0.1, h + 0.115) * (1 - ramp(k, h + 0.13, h + 0.15));   // a stretch of its new wings, before it sets off
+            const settle = lerp(1, 0.35, ramp(k, h + 0.08, h + 0.12));
+            d.neck = lerp(settle, 0.9, look);
+            d.fire = k > puff && k < puff + 0.04 ? 1 : 0;
+          });
+          const d = g.world.need(her, "dragon");
+          // Face down over them; as each one opens she lifts her head a little to look, and settles again; then up she rears.
+          const looks = Math.max(0, ...eggs.map((_, i) => { const a = 0.12 + i * 0.12; return ramp(k, a, a + 0.025) * (1 - ramp(k, a + 0.07, a + 0.11)); }));
+          d.neck = Math.max(looks * 0.22, ramp(k, 0.5, 0.6)) - 0.55 * ramp(k, 0.84, 0.95);
+          d.spread = ramp(k, 0.52, 0.6) * (1 - ramp(k, 0.86, 0.96));
+          d.fire = ramp(k, 0.6, 0.63) * (1 - ramp(k, 0.75, 0.79));
+          if (!roared && k >= 0.58) { roared = true; sound(g, "roar"); g.shake = Math.max(g.shake, 3); }
+          if (!sang && k >= 0.84) { sang = true; sound(g, "song"); }
+          settle(g, dt);
+        },
+      };
+    },
+  },
+  // ---------- His own ending ----------
+  {
+    // The top room of the Fells' house, at night: him asleep in the bed Meg Fell gave him, a lantern of his own lit in
+    // the window, the camera coming slowly in.
+    id: "fells", area: "fells", load: fellsHouse, hour: 23, had: () => true,
+    stage(g) {
+      const [bedE, { bed }] = g.world.query("bed", "transform").sort(([, a], [, b]) => a.transform.y - b.transform.y)[0]!;
+      const at = g.world.need(bedE, "transform");
+      heroAt(g, bed.x + HALF, bed.y + HALF, bed.x + HALF, bed.y + HALF - T);
+      // The lantern on the sill by the bed, against the back wall where the window is.
+      const lx = at.x + T, ly = Math.max(0.6 * T, at.y - 0.6 * T);
+      g.world.create({ transform: { x: lx, y: ly }, renderable: { kind: "lantern" } });
+      // And the Ranger home: Wystan and Meg up late by the fire, turned to each other, and no cloak at the window now.
+      // (Him at the fire's near side, her a step off toward the beds, so the camera has them both.)
+      if (fells) {
+        const fire = fells.spots[0]!, by = { x: fire.x - 1.1, y: fire.y + 0.6 }, toHer = Math.atan2(by.y - fire.y, by.x - fire.x);
+        if (fells.wystan) standInside(g, fells.wystan, { ...fire, facing: toHer });
+        if (fells.meg) standInside(g, fells.meg, { ...by, facing: toHer + Math.PI });
+      }
+      // Looking between his bed and the middle of the room, so the room's round him, the fire and all.
+      const cx = (at.x + HALF + (g.map.width * T) / 2) / 2, cy = (at.y + HALF + (g.map.height * T) / 2) / 2;
+      return { from: cam(cx, cy, 1.0, -0.35), to: cam((cx + at.x + HALF) / 2, (cy + at.y + HALF) / 2, 0.6, 0.15), says: SHOT_SAYS.fells, asleep: bed };
     },
   },
 ];
+
+/** What's said after the chronicle, by how many followed him up the hill: nothing, a few, or a crowd. */
+function followedLine(n: number): string {
+  const F = SHOT_SAYS_TOO.followed;
+  return n <= 0 ? F.none : n < CROWD_OF ? F.few : F.crowd;
+}
+
+/** The Fells' house as made for the credits: where people stand in it, and the Ranger and his wife. */
+let fells: { spots: Spot[]; wystan?: Resident; meg?: Resident } | null = null;
+/**
+ * The inside of the Fells' house in Kingsholm (the Ranger's family: src/world/people.ts), made the way any house's is
+ * when someone's asked in (src/world/interiors.ts): found from where the census says they live. Null if it can't be.
+ */
+async function fellsHouse(): Promise<AreaDef | null> {
+  const people = await loadCensus(), all = people.filter(r => r.family === "fell"), fellsHome = all.filter(r => !r.prisoner), home = fellsHome[0]?.home;
+  if (!home) return null;
+  const city = await loadArea(home.area), px = (home.x + 0.5) * T, py = (home.y + 0.5) * T;
+  const house = layoutOf(city).props.find((p): p is Extract<Prop, { kind: "house" }> =>
+    p.kind === "house" && px >= p.rect.x && py >= p.rect.y && px <= p.rect.x + p.rect.w && py <= p.rect.y + p.rect.h);
+  if (!house) return null;
+  const { def, spots } = interiorOf(home.area, house, fellsHome, "The Fells' house");
+  // Wystan's the one who was in the dungeon; Meg the eldest of those at home.
+  fells = { spots, wystan: all.find(r => r.prisoner), meg: [...fellsHome].sort((a, b) => b.age - a.age)[0] };
+  registerArea(def);
+  return def;
+}
+
+/**
+ * Under the Greyspines, for the credits: a high meadow of grass and flowers with a few pines down its sides, small
+ * enough that the mountains the world always has round it (src/render/terrain.ts) stand up close all round.
+ */
+function greyspines(): AreaDef {
+  const def: AreaDef = {
+    id: "greyspines", name: "Under the Greyspines", life: { enemies: false, potions: false, ambient: true },
+    build: () => {
+      const W = 26, H = 20, town = new Town(W, H, Tile.Grass), rng = new Rng(61);
+      town.paint(() => rng.next() < 0.14, Tile.Flower);
+      town.paint((x, y) => (x < 3 || x >= W - 3) && y > 3 && rng.next() < 0.35, Tile.Tree);
+      return town.layout({ in: { x: (W / 2) * T - HALF, y: (H - 3) * T - HALF } }, []);
+    },
+  };
+  registerArea(def);
+  return def;
+}

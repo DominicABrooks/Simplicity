@@ -19,6 +19,7 @@ import { endReel, rollCredits } from "./credits.ts";
 import { disperseCrowd, gatherCrowd, processionOn } from "./crowd.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { carryingHead, giveUpHead } from "./head.ts";
+import { makePeace } from "./peace.ts";
 import { spawnKing } from "./spawn.ts";
 import { TOUCH_AT } from "./stones.ts";
 
@@ -144,6 +145,7 @@ function layHead(g: Game): void {
   const king = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")?.[1].transform;
   if (!king || !giveUpHead(g)) return;
   s.laid = true;
+  makePeace(g);                                              // the Greyed have no one left to follow (src/game/peace.ts)
   const hero = g.world.need(g.player, "transform"), d = Math.hypot(hero.x - king.x, hero.y - king.y) || 1, at = Math.min(7, d / 2);
   g.world.create({ transform: { x: king.x + ((hero.x - king.x) / d) * at, y: king.y + ((hero.y - king.y) / d) * at }, renderable: { kind: "head" } });
   gatherCrowd(g, { x: king.x + HALF, y: king.y + HALF });

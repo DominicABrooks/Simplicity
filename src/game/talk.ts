@@ -31,6 +31,7 @@ import { spiritLines } from "./spirits.ts";
 import { beaten } from "./bosses.ts";
 import { endingTalk, headLaid } from "./ending.ts";
 import { carryingHead } from "./head.ts";
+import { atPeace } from "./peace.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -70,7 +71,7 @@ export function startTalk(g: Game, e: Entity | null): boolean {
     : yssa ? yssaLines(g)
     : g.world.has(e, "spirit") ? spiritLines(g, e)
     : isGil(g, e) ? gilLines(g)
-    : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
+    : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives, atPeace(g)) : guardLines(g.rng, g.area.def.id, visits, gives, atPeace(g));
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
   const clue = resident && !ending ? curioClue(g) : null;
   if (clue) lines.splice(Math.min(1, lines.length), 0, clue);

@@ -5,6 +5,7 @@ import { hitEnemy, stagger } from "../game/combat.ts";
 import type { Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, weaponOf } from "../game/hero.ts";
+import { spared } from "../game/peace.ts";
 
 export function thrustSystem(g: Game, dt: number): void {
   const h = heroParts(g), { pos, hero, motion: m, actions: a } = h;
@@ -19,6 +20,7 @@ export function thrustSystem(g: Game, dt: number): void {
   a.hit = true;
   const ax = Math.cos(a.swingAim), ay = Math.sin(a.swingAim);
   for (const [e, { transform: t }] of g.world.query("enemy", "transform")) {
+    if (spared(g, e)) continue;
     const dx = t.x - pos.x, dy = t.y - pos.y;
     const along = dx * ax + dy * ay, across = Math.abs(dx * ay - dy * ax);
     if (along > 1 && along < THRUST.reach && across < THRUST.width) {

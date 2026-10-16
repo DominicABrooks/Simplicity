@@ -76,36 +76,36 @@ export const KING_NO_PROOF: readonly string[] = [
 ];
 
 /**
- * The credits: short shots of this run, in the places it happened (src/game/credits.ts), each with a line under it.
- * A shot only plays if the run got there; some lines change with what else it did.
+ * The credits: short shots of what came of this run (src/game/credits.ts), each with a line under it. Not what he did,
+ * which he's played, but what it changed, building to the dragons; some lines change with what else it did.
  */
-export type ShotId = "woke" | "king" | "barricade" | "yssa" | "cinder" | "rime" | "ringer" | "calder" | "home" | "steps"
-  | "greyed" | "slimes" | "chronicle" | "milk";
+export type ShotId = "greyed" | "slimes" | "chronicle" | "eggs" | "hatch" | "fells";
 export const SHOT_SAYS: Record<ShotId, string> = {
-  woke: "You woke on a stone by the Ranger's fire, with nothing but a note in your hand.",
-  king: "King Osric read the Ranger's note, went very red, and sent you deep into the Witchwood after Calder.",
-  barricade: "The woodwardens read the watchword off your scrap of paper, and stepped aside.",
-  yssa: "Yssa wouldn't let anyone by who didn't know her name. You wrote it down.",
-  cinder: "Cinder fell in the Ashwild. At the last the grey went out of him, and he said he was sorry.",
-  rime: "Out on the frozen lake, Rime sang a line about the river Aurel as she fell, and the ice let go.",
-  ringer: "One night in St Mary's churchyard, you laid the Grey Ringer to rest.",
-  calder: "At the edge of the great crack Calder looked at you and said, \"Oh. He sent you. Good.\" Then the crack ground shut.",
-  home: "You came home at dawn with his head, and half the city followed you up the hill.",
-  steps: "You set it at the King's feet. \"...You did it.\" And then he told them the rest.",
-  // And what it meant (HERO.md, "The end"): the aftermath, after his own story's told.
-  greyed: "With Calder gone, the Greyed had no one left to follow. One by one the grey went out of them and their sparks went home, and in time the cracks under the Witchwood closed.",
-  slimes: "The slimes stopped bouncing. With the valley whole, the Frost order could unscramble them at last, and within the year they were the people of the Deep Hall again.",
-  chronicle: "Next morning the King stood at the market cross and read the city the true chronicle, the Founder's letter and all. He went very red. The Edict was torn up.",
-  milk: "Yssa let the frost go at last. She walked over the King's Bridge, set a bowl of milk at the foot of the fountain, and stayed.",
+  greyed: "With no one left to follow, the grey went out of the Greyed, one by one.",
+  slimes: "The slimes sat still at last. Within the year they were the people of the Deep Hall again.",
+  chronicle: "Next morning the King read the true chronicle at the market cross, went very red, and tore up the Edict.",
+  eggs: "The Vael came north over the King's Bridge for their eggs, openly, for the first time in six hundred years. This time the King gave them back.",
+  hatch: "Under the Greyspines, beside their mother, three small dragons hatched. Their song with hers sealed the valley whole again.",
+  // And last, his own ending: what the King's "anything Aurenmark can give" came to.
+  fells: "You never asked the King for a thing. The Ranger came home, Meg took his cloak in, and one lantern in the window was yours.",
 };
-/** Said instead, or after, when the run went that way. */
+/** Said after, when the run went that way. */
 export const SHOT_SAYS_TOO = {
-  bow: "You kept your distance with the hunter's bow. Rime sang a line about the river Aurel as she fell, and the ice let go.",
-  koi: "And down under the ice, you landed the Great Koi.",
+  /** After the chronicle, by how many followed him up the hill with the head: nobody, a few, or a crowd. */
+  followed: {
+    none: "",
+    few: "The few who'd followed you had the best places.",
+    crowd: "Half the city had followed you up. The rest came to hear.",
+  },
 } as const;
 
-/** How the credits run (s): the dark before them, each shot's fade in and out, how long each is, and The End held before the card. */
-export const CREDITS_TIME = { dark: 1.4, fade: 0.9, shot: 7.5, end: 3 } as const;
+/**
+ * How the credits run (s): the dark before them, each shot's fade in and out, how long each shot is at the least, how
+ * many words a second its line can be read at (a long line holds its shot longer), and The End held before the card.
+ */
+export const CREDITS_TIME = { dark: 1.4, fade: 0.9, shot: 7.5, read: 3, end: 3 } as const;
+/** How many have to follow him up for it to be a crowd. */
+export const CROWD_OF = 5;
 
 /** Under The End: how this run went. */
 export const RUN_SUMS = { level: "Level {n}", kills: "{n} foes beaten", curios: "{n} curiosities found", curio: "1 curiosity found" } as const;

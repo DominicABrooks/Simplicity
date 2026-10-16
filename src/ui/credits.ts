@@ -2,10 +2,11 @@
 // the game's own world (src/game/credits.ts), the screen letterboxed, a line under each shot and a fade between them;
 // then "The End", and how this run went in a line under it. Escape skips to The End; once it's up, a click or a key
 // brings up who made the game, a word from him, a way to donate and a box to send him feedback (END_CARD), and from
-// there a button goes back to the game.
+// there a button restarts: a new run, from the stone by the Ranger's fire.
 import { CREDITS_TIME as TIME, END_CARD } from "../data/ending.ts";
 import { creditsShot, runSum, skipShots, updateCredits } from "../game/credits.ts";
 import { endCredits } from "../game/ending.ts";
+import { resetGame } from "../game/reset.ts";
 import type { Game } from "../game/game.ts";
 
 /** Straight to the card after The End, if the credits are up (getting about quickly in development: src/debug.ts). */
@@ -30,7 +31,11 @@ export function createCredits(g: Game): { draw(dt: number): void } {
 
   // Where the credits are: the shots playing, The End (and seconds it's been up), or the card after it.
   let phase: "reel" | "end" | "card" = "reel", t = 0;
-  const finish = () => { root.hidden = true; card.el.hidden = true; document.body.classList.remove("in-credits"); endCredits(g); };
+  const finish = () => {
+    root.hidden = true; card.el.hidden = true; document.body.classList.remove("in-credits");
+    endCredits(g);
+    resetGame(g);                                            // and start again from the beginning
+  };
   const toEnd = () => {
     phase = "end";
     t = 0;
@@ -78,7 +83,7 @@ export function createCredits(g: Game): { draw(dt: number): void } {
 }
 
 // ---------- After The End ----------
-/** Who made it, a word from him, the donation link, the feedback box, and the way back to the game. */
+/** Who made it, a word from him, the donation link, the feedback box, and a button to start again. */
 function makeCard(back: () => void): { el: HTMLElement } {
   const C = END_CARD, el = document.createElement("div"), make = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = "") => {
     const e = document.createElement(tag);
@@ -92,10 +97,10 @@ function makeCard(back: () => void): { el: HTMLElement } {
   Object.assign(donate, { href: C.donateUrl, target: "_blank", rel: "noopener" });
   const box = make("textarea", "feedback");
   Object.assign(box, { maxLength: C.longest, rows: 4, placeholder: "What did you think?" });
-  const send = make("button", "send", "Send"), said = make("span", "said"), home = make("button", "home", "Back to the game");
+  const send = make("button", "send", "Send"), said = make("span", "said"), home = make("button", "home", "Restart");
   send.type = home.type = "button";
   const row = make("div", "row");
-  row.append(send, said);
+  row.append(said, send);                                   // what came of it, then Send, at the right
   el.append(make("h2", "by", C.by), make("p", "help", C.help), ...C.note.map(n => make("p", "note", n)),
     make("p", "ask", C.donate), donate, make("p", "ask", C.ask), box, row, home);
   let sent = 0;
