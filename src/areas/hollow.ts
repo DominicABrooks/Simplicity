@@ -5,12 +5,16 @@
 // walk on, where the Frost mages keep. Off to one side of the lake someone has cut a hole in the ice (fish through it
 // and it's always the big one, a golden koi: src/systems/fishing.ts); out in the middle, her arena: frost runes in a
 // ring of ice pillars, where Rime waits under the ice (src/game/rimefight.ts). On the bowl's north rim, a hunter's hut, left empty but for his
-// longbow inside the door (src/game/hunterhut.ts).
+// longbow inside the door (src/game/hunterhut.ts). West of it, the way up and out: the frozen bed of the river Aurel,
+// climbing north between the trees toward the Thunder Rift, with Yssa at the foot of it, waiting for the river's name
+// (src/game/yssa.ts).
 import { Rng } from "../core/rng.ts";
+import { CLIMB } from "../data/hollow.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
 import { reachableFrom } from "../world/map.ts";
 import { Town, px } from "../world/townkit.ts";
+import { AREA_IDS } from "./index.ts";
 
 const W = 48, H = 40, SEED = 47;
 /** The row the track comes in along, from the east edge (from the Ashwild). */
@@ -52,6 +56,10 @@ function build(): AreaLayout {
   town.add({ kind: "hall", rect: px([hut.x - 1, hut.y - 1, 3, 3]), door: "south", roof: "#dfe6ea", storeys: 1, stone: false });
   town.add({ kind: "stock", x: (hut.x + 2.5) * T, y: (hut.y + 1.5) * T, what: "crates" });
 
+  // The climb: the frozen stream north from the bowl's rim to the map's edge, and the notch Yssa steps aside into.
+  for (let y = 0; y <= CLIMB.post; y++) town.set(CLIMB.x, y, Tile.Path);
+  town.set(CLIMB.x - 1, CLIMB.post, Tile.Grass);
+
   // The hollow stone, and Rime's stage in the middle of the ice.
   town.add({ kind: "oldStone", x: (HOLLOW_STONE.x + 0.5) * T, y: (HOLLOW_STONE.y + 0.5) * T, name: "The hollow stone", entry: "stone" });
   town.add({ kind: "rimeStage", x: LAKE.x * T, y: LAKE.y * T, ...STAGE });
@@ -69,8 +77,14 @@ function build(): AreaLayout {
       ashwild: { x: (W - 4) * T, y: TRACK * T },
       // Waking by the hollow stone (just west of it, so he isn't standing on it).
       stone: { x: (HOLLOW_STONE.x - 1) * T, y: TRACK * T },
+      // Down the climb from the Thunder Rift, a couple of steps below the top.
+      rift: { x: CLIMB.x * T, y: 2 * T },
     },
-    [{ rect: { x: W * T - 6, y: TRACK * T, w: 6, h: T }, to: { area: "ashwild", entry: "hollow" } }],
+    [
+      { rect: { x: W * T - 6, y: TRACK * T, w: 6, h: T }, to: { area: "ashwild", entry: "hollow" } },
+      // Up the climb to the Thunder Rift, once there is one (src/areas/rift.ts); until then it ends at the trees.
+      ...(AREA_IDS.includes("rift") ? [{ rect: { x: CLIMB.x * T, y: 0, w: T, h: 6 }, to: { area: "rift", entry: "hollow" } }] : []),
+    ],
   );
   return { ...layout, map: { ...layout.map, look: "snow" } };
 }

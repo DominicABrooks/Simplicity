@@ -93,9 +93,58 @@ export const RIME_FIGHT = {
 /** As she falls. */
 export const RIME_LAST_WORDS = [
   "(The grey goes out of Rime. The note she was humming breaks, and for a moment it's a song: an old one, about a river.)",
+  "\"...out of the crack the Aurel runs, cold and young, down past the hill and home...\" (She stops.)",
   "\"I'd forgotten the rest of it. Thank you. Tell Yssa I remember now.\"",
   "(She crumbles to grey stone. A breath of frost drifts up the valley.)",
 ] as const;
+
+/**
+ * The way up out of the Hollow, north to the Thunder Rift (STORY.md, "0:42 Up to the Thunder Rift"): the frozen bed of
+ * the river Aurel, which comes down out of the great crack (HISTORY.md), one tile wide between the trees from the
+ * bowl's north rim to the edge of the map. Yssa waits at the foot of it, and like the woodwardens and her own track
+ * she wants a word only the player can know: the river's name (src/game/yssa.ts). Rime sings it as she falls, the
+ * hunter scratched it on his hut door, and the guards on the King's Bridge say it to everyone who crosses.
+ */
+export const CLIMB = {
+  /** The column it runs up (tiles), and the row Yssa stands in, its first tile above the bowl; she steps aside into the notch west of it. */
+  x: 13, post: 7,
+  /** The word she waits for, any case. */
+  word: "Aurel",
+  /** What the bark asks for. */
+  hint: "Write the river's name",
+} as const;
+
+export const CLIMB_TALK = {
+  ask: [
+    "(Yssa is waiting at the foot of a frozen stream, as if she'd always been there.)",
+    "Up there is the Thunder Rift, and Calder. He was my best pupil once. I send nobody up to him who doesn't know what they're walking into.",
+    "This was a river, before Rime sang it to sleep. It comes down out of the great crack, and runs all the way under the King's bridge. Write me its name, and I'll wake it.",
+    "(She holds out a curl of birch bark and a stub of charcoal.)",
+  ],
+  right: [
+    `(She reads the bark, and says it to the ice, softly, the way you'd wake a child.) "Aurel."`,
+    "(Somewhere under the ice, water starts to run. The frozen stream cracks into steps.)",
+    "Go on up. Mind the lightning: it comes out of a clear sky.",
+  ],
+  wrong: [
+    `(She reads the bark.) "{written}." (The ice doesn't stir.)`,
+    "That isn't its name. It runs under the King's own bridge, little one. Come back when you know it.",
+  ],
+  blank: ["(She turns the bare bark over, and back.) Nothing.", "Come back when you know its name."],
+  kept: ["Keep it, then. Come back when you know its name."],
+  through: ["The river's awake. Go on up, and go carefully."],
+  /** Walking into her before she's read the river's name: one of these over her, and back you step. */
+  stop: ["Not yet.", "Its name first.", "(The cold off her stops you dead.)", "What's the river called, little one?"],
+} as const;
+
+/** Scratched into the hunter's hut door: read by walking up to it. */
+export const HUNTER_NOTE = {
+  name: "Scratched in the door",
+  lines: [
+    "(Someone has scratched letters into the door with an arrowhead.)",
+    "WHITE LADY KEEPS THE FROZE STREAM. WANTS THE RIVERS NAME. AUREL, SAME AS UNDER THE KINGS BRIDGE. WENT UP. LIGHTNING OUT OF A CLEAR SKY. NOT GOING BACK. BOW IS FOR WHOEVER. ROB",
+  ],
+} as const;
 
 /** ...and then, across the top. */
 export const RIME_FALLS = ["The Hollow goes quiet. The Frost mages stop humming."] as const;

@@ -232,8 +232,14 @@ draw, only a full draw hits hard). Rushing a Frost mage with a sword gets you fr
 
 **0:39 Rime (3 min).** The middle of the frozen lake, nowhere to hide. **Rime**, the Frost lieutenant:
 bigger novas, faster bolts, and patches of ice that freeze over around her. *Tests:* the bow and
-keeping distance. When she falls, the lake thaws in a ring around where she stood, and the path up out of
-the Hollow opens.
+keeping distance. When she falls, the lake thaws in a ring around where she stood, and the grey goes out of
+her: she sings a line of an old song about the river Aurel, and asks him to tell Yssa she remembers.
+
+**The way up is a river's name.** North of the bowl, the frozen bed of the Aurel climbs toward the Thunder Rift,
+and Yssa waits at the foot of it. Like the woodwardens and her own track, she hands him birch bark and wants a
+word: the river's name, before she'll wake it. Rime sings it as she falls, the hunter scratched it on his hut door,
+and the guards on the King's Bridge tell everyone the Aurel is deeper than it looks. Once he's been down to the
+Hollow, Yssa has gone on ahead of him, and her track in the Ashwild is empty.
 
 **0:42 Up to the Thunder Rift (8 min).** The climb through the oldest trees, under the storm that
 isn't there. Storm mages: sparks too fast to react to, and lightning that marks the ground before it
