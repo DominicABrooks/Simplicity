@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import type { Prop } from "../world/area.ts";
-import { PX_PER_TILE, type RenderContext } from "./context.ts";
+import { GROUND, onGround, PX_PER_TILE, type RenderContext } from "./context.ts";
 import { hash } from "./terrain.ts";
 
 const STONE = ["#8a8378", "#9d968a", "#77706a", "#6b655f"];
@@ -34,7 +34,11 @@ export function buildCave(ctx: RenderContext, parent: THREE.Group, prop: Extract
   mouth.position.set(0, 0.01, 0.12);
   const hollow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 0.6), basic("#08060c"));
   hollow.position.set(0, 0.5, -0.2);
-  cave.add(mouth, hollow);
+  // The dark spilling out onto the ground in front, so the opening doesn't end in a hard line.
+  const spill = new THREE.Mesh(new THREE.CircleGeometry(0.8, 10, Math.PI, Math.PI).rotateX(-Math.PI / 2).scale(1.1, 1, 0.7),
+    basic("#000000", { transparent: true, opacity: 0.35, depthWrite: false, ...onGround(GROUND.stain) }));
+  spill.position.set(0, 0.015, 0.12);
+  cave.add(mouth, hollow, spill);
   // Moss on top, rubble at the foot.
   for (let k = 0; k < 4; k++) {
     const moss = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16 + hash(k, 5, 305) * 0.08, 0), lambert(PAL.G));

@@ -1,7 +1,7 @@
 // What becomes of the curiosities fished up (src/data/items.ts CURIOS): each has somewhere it belongs, and
 // taking it there spends it. A spent curiosity is gone for the rest of the run: out of the bag, and never on
 // the line again. Where each one goes is told in its own place (the bell: src/game/ghost.ts).
-import type { CurioId } from "../data/items.ts";
+import { CURIO_WINDOW, type CurioId } from "../data/items.ts";
 import type { Game } from "./game.ts";
 
 /** The curiosities spent this run, per game: a new run (the hero waking again) has them all back in the water. */
@@ -14,6 +14,24 @@ export function spentCurios(g: Game): Set<CurioId> {
     g.events.on("reset", () => fresh.clear());
   }
   return s;
+}
+
+/**
+ * Is this catch a curiosity? Catches go in windows of CURIO_WINDOW, and one in each window (which one is picked as
+ * it opens) is: so a curiosity can't keep away for long, however the dice fall. A new run starts a fresh window.
+ */
+const windows = new WeakMap<Game, { n: number; at: number }>();
+export function curioDue(g: Game): boolean {
+  let w = windows.get(g);
+  if (!w) {
+    const fresh = { n: 0, at: 0 };
+    windows.set(g, w = fresh);
+    g.events.on("reset", () => { fresh.n = 0; });
+  }
+  if (w.n === 0) w.at = g.rng.int(0, CURIO_WINDOW - 1);
+  const due = w.n === w.at;
+  w.n = (w.n + 1) % CURIO_WINDOW;
+  return due;
 }
 
 /** Is the hero carrying this curiosity: in the bag, or in hand (on the cursor)? */

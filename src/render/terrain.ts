@@ -50,6 +50,27 @@ export function groundUnderBridges(map: TileMap, props: readonly Prop[]): TileMa
 }
 
 /** The scenery for a map whose top-left tile is at `origin` (tiles) in the world. */
+/** A texture with its colour drained to a warm grey (the same pattern): grass and leaves in the ash woods. One copy each. */
+const ashCopies = new Map<THREE.Texture, THREE.CanvasTexture>();
+function ashen(t: THREE.CanvasTexture): THREE.CanvasTexture {
+  const done = ashCopies.get(t);
+  if (done) return done;
+  const src = t.image as HTMLCanvasElement, c = document.createElement("canvas");
+  c.width = src.width; c.height = src.height;
+  const g = c.getContext("2d")!;
+  g.drawImage(src, 0, 0);
+  const px = g.getImageData(0, 0, c.width, c.height), d = px.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = d[i]! * 0.3 + d[i + 1]! * 0.55 + d[i + 2]! * 0.15;
+    d[i] = Math.min(255, v * 1.12 + 8); d[i + 1] = Math.min(255, v * 1.06 + 6); d[i + 2] = Math.min(255, v * 1.0 + 6);
+  }
+  g.putImageData(px, 0, 0);
+  const out = new THREE.CanvasTexture(c);
+  out.magFilter = t.magFilter; out.minFilter = t.minFilter; out.wrapS = t.wrapS; out.wrapT = t.wrapT; out.colorSpace = t.colorSpace;
+  ashCopies.set(t, out);
+  return out;
+}
+
 export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, y: 0 }, indoors = false): { group: THREE.Group; trees: TreeSet } {
   const { lambert, tex } = ctx, world = new THREE.Group();
   const { width: W, height: H, tiles } = map;
@@ -78,7 +99,9 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     }
   }
   const side = { side: THREE.DoubleSide };
-  world.add(new THREE.Mesh(quadGeometry(ground), lambert("#ffffff", { map: tex.grass, ...side })));
+  // Grass, or where the dark gets in (an ash look), grass gone grey.
+  const ash = map.look === "ash", grass = ash ? ashen(tex.grass) : tex.grass, leaves = ash ? ashen(tex.leaf) : tex.leaf;
+  world.add(new THREE.Mesh(quadGeometry(ground), lambert("#ffffff", { map: grass, ...side })));
   // Paving (under buildings too) and dirt paths, their edges blending into the grass.
   const paving = blendLayer(ctx, map, t => t === Tile.Cobble || t === Tile.Wall, { texture: tex.cobble, repeat: 2, lift: 0.004, layer: GROUND.paving, wobble: 0.45, seed: 1 });
   const dirt = blendLayer(ctx, map, t => t === Tile.Path, { texture: tex.path, repeat: 4, lift: 0.006, layer: GROUND.path, wobble: 0.6, seed: 2 });
@@ -165,15 +188,20 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     return inst;
   };
   // Leaves vary a little in hue and brightness; trees on the foothills are a little darker.
+  // In ash woods the leaves have gone the grey of old ash, a few still faintly green, a few rust-brown.
   const leafColor = (x: number, z: number) => {
     const deep = x < 0 || z < 0 || x > W || z > H ? 0.85 : 1;
     const b = (0.78 + hash(x, z, 10) * 0.35) * deep;
+    if (ash) {
+      const k = hash(x, z, 13), grey = b * 0.9;
+      return k < 0.15 ? new THREE.Color(grey * 0.85, grey, grey * 0.8) : k > 0.88 ? new THREE.Color(grey * 1.2, grey * 0.85, grey * 0.65) : new THREE.Color(grey * 1.05, grey, grey * 0.98);
+    }
     return new THREE.Color(b * (0.92 + hash(x, z, 11) * 0.12), b, b * (0.9 + hash(x, z, 12) * 0.1));
   };
   // Firs are darker and bluer than the broadleaves.
   const needleColor = (x: number, z: number) => { const c = leafColor(x, z); return c.setRGB(c.r * 0.45, c.g * 0.64, c.b * 0.62); };
   const broad = (fir: boolean) => !fir, fir = (f: boolean) => f;
-  const bark = lambert("#ffffff", { map: tex.bark }), leaf = lambert("#ffffff", { map: tex.leaf });
+  const bark = lambert("#ffffff", { map: tex.bark }), leaf = lambert("#ffffff", { map: leaves });
   const white = () => new THREE.Color(1, 1, 1);
   const trees: TreeSet = {
     meshes: [
@@ -201,7 +229,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
       else bushes.push([bx, bz, 0.7 + hash(x, y, 18) * 0.5]);
     }
   }
-  instanced(new THREE.IcosahedronGeometry(0.24, 0).translate(0, 0.14, 0).scale(1.2, 0.8, 1.2), lambert("#ffffff", { map: tex.leaf }), bushes, leafColor);
+  instanced(new THREE.IcosahedronGeometry(0.24, 0).translate(0, 0.14, 0).scale(1.2, 0.8, 1.2), lambert("#ffffff", { map: leaves }), bushes, leafColor);
   instanced(new THREE.DodecahedronGeometry(0.16, 0).translate(0, 0.08, 0).scale(1.3, 0.75, 1), lambert(PAL.w), rocks,
     (x, z) => { const b = 0.75 + hash(x, z, 19) * 0.3; return new THREE.Color(b, b, b); });
   world.position.set(origin.x, 0, origin.y);

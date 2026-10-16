@@ -124,7 +124,7 @@ export function buildChurch(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
     if (p.tower === "spire") put(steeple, new THREE.ConeGeometry(s * 0.66, 8, 8), lambert(LEAD, { map: tex.shingles }), tx, h + 4, 0, 0, Math.PI / 8, 0);
     else {
       for (const [mx, mz, ry] of [[0, s / 2 - 0.2, 0], [0, -s / 2 + 0.2, 0], [s / 2 - 0.2, 0, Math.PI / 2], [-s / 2 + 0.2, 0, Math.PI / 2]] as const) {
-        const m = merlons(s, h, 0.4, stone); m.position.set(tx + mx, 0, mz); m.rotation.y = ry; steeple.add(m);
+        const m = merlons(ry ? s - 0.8 : s, h, 0.4, stone); m.position.set(tx + mx, 0, mz); m.rotation.y = ry; steeple.add(m);   // the sides short of the corners: see the keep's
       }
       put(steeple, new THREE.ConeGeometry(s * 0.5, 1.6, 4), lambert(LEAD), tx, h + 0.8, 0, 0, Math.PI / 4, 0);
     }
@@ -171,15 +171,15 @@ export function buildHall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ha
   // An open arcade on the ground: pillars, and beams along the top.
   if (p.arcade) {
     for (const [x, z] of arcadePillars(w, d)) put(g, tiledCylinder(0.2, groundH, 8, 0.5), lambert("#ffffff", { map: tex.stone }), x, groundH / 2, z);
-    put(g, box(w, 0.25, d), trim, 0, groundH - 0.12, 0);
+    put(g, box(w, 0.25, d), trim, 0, groundH - 0.125, 0);   // up to the walls' foot, not into them
   }
-  const base = lift + groundH, wallH = storeyH * p.storeys;
+  const base = lift + groundH, wallH = storeyH * p.storeys, doorH = Math.min(p.stone ? 2.3 : 1.6, wallH - 0.45), doorTop = lift + doorH + 0.35;
   put(g, tiledBox(w, wallH, d, p.stone ? 0.8 : 1.15), wall, 0, base + wallH / 2, 0);
   // Windows along the long sides, a floor at a time.
   for (let f = 0; f < p.storeys; f++) for (const [side, len] of [[1, w], [-1, w]] as const) {
     for (let x = -len / 2 + 0.9, i = 0; x < len / 2 - 0.6; x += p.stone ? 1.5 : 1.0, i++) {
-      if (f === 0 && side > 0 && !p.arcade && Math.abs(x) < 0.9) continue;                  // the door
       const y = base + f * storeyH + (p.stone ? 0.45 : 0.55), z = side * (d / 2 + 0.02);
+      if (side > 0 && !p.arcade && y < doorTop && Math.abs(x) < (p.stone ? 1.2 : 0.9)) continue;   // the door, and clear of its surround
       if (p.stone) {
         // A tall square-headed window, as a house or hall has (pointed ones are for churches): a stone
         // frame, glass lit or dark, and a stone mullion and transom across it.
@@ -217,16 +217,16 @@ export function buildHall(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ha
   }
   // The door, up steps if it's raised; or, over an arcade, a stair up to the hall on the side.
   if (!p.arcade) {
-    const doorH = Math.min(p.stone ? 2.3 : 1.6, wallH - 0.45), door = portal(ctx, Math.min(p.stone ? 1.3 : 0.9, doorH * 0.56), doorH);   // under the eaves, however low
+    const door = portal(ctx, Math.min(p.stone ? 1.3 : 0.9, doorH * 0.56), doorH);   // under the eaves, however low
     door.position.set(0, lift, d / 2 + 0.03);
     g.add(door);
     if (p.raised) for (let i = 0; i < 3; i++) put(g, box(1.0, (i + 1) * 0.23, 0.25), lambert(TRIM), 0, ((i + 1) * 0.23) / 2, d / 2 + 0.7 - i * 0.25);
   }
   if (p.stone && !p.raised && w > 7 && (p.chimneys ?? 0) > 0) {                         // the grand halls fly banners
     const b1 = banner(ctx, 0.8, wallH * 0.6);
-    b1.position.set(-w / 4, base + wallH - 0.3, d / 2 + 0.06);
+    b1.position.set(-w / 4, base + wallH - 0.3, d / 2 + 0.14);   // clear of the windows behind it
     const b2 = banner(ctx, 0.8, wallH * 0.6);
-    b2.position.set(w / 4, base + wallH - 0.3, d / 2 + 0.06);
+    b2.position.set(w / 4, base + wallH - 0.3, d / 2 + 0.14);
     g.add(b1, b2);
   }
   const cx = b.x, cz = b.z;

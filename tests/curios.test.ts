@@ -1,6 +1,6 @@
-// Curiosities: one catch in twenty comes up something stranger than a koi, never one the hero's already carrying.
+// Curiosities: one catch in every twenty comes up something stranger than a koi, never one the hero's already carrying.
 import { describe, expect, it } from "vitest";
-import { CURIO_CHANCE, CURIO_IDS, CURIOS } from "../src/data/items.ts";
+import { CURIO_IDS, CURIO_WINDOW, CURIOS, type CurioId } from "../src/data/items.ts";
 import { T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -21,8 +21,8 @@ function fisher(): { g: Game; toasts: string[] } {
   return { g, toasts };
 }
 
-/** A fish biting at the line; strike with every roll of the dice coming up `roll`. What came up? */
-function strike(g: Game, roll: number) {
+/** A fish biting at the line; strike, with every roll of the dice coming up `roll` (or as they fall). What came up? */
+function strike(g: Game, roll?: number) {
   let shore: { stand: { x: number; y: number }; water: { x: number; y: number } } | null = null;
   for (let y = 1; y < g.map.height - 1 && !shore; y++) for (let x = 2; x < g.map.width - 1 && !shore; x++)
     if (g.map.tiles[y]![x] === Tile.Water && g.map.tiles[y]![x - 2] === Tile.Grass && !blocked(g.map, (x - 2) * T, y * T, true))
@@ -32,15 +32,21 @@ function strike(g: Game, roll: number) {
   a.fishing = { phase: "bite", x: shore!.water.x, y: shore!.water.y, t: 0, biteAt: 0 } as typeof a.fishing;
   a.cooldown = 0;
   const before = new Set(g.inventory.grid.map(e => e.item.id));
-  g.rng.next = () => roll;
+  if (roll !== undefined) g.rng.next = () => roll;
   g.input.attackPressed = true;
   step(g, DT);
   return { item: g.inventory.grid.map(e => e.item).find(i => !before.has(i.id))!, anim: a.catchAnim };
 }
 
 describe("curiosities", () => {
-  it("come up one catch in twenty", () => {
-    expect(CURIO_CHANCE).toBeCloseTo(1 / 20);
+  /** Fish out a window of twenty catches, the dice falling as they will: the curiosities that came up. */
+  const window = (g: Game): CurioId[] =>
+    Array.from({ length: CURIO_WINDOW }, () => strike(g).anim?.curio ?? null).filter((c): c is CurioId => !!c);
+
+  it("one comes up in every twenty catches, never more and never fewer, however the dice fall", () => {
+    expect(CURIO_WINDOW).toBe(20);
+    const { g } = fisher();
+    for (let i = 0; i < 4; i++) expect(window(g)).toHaveLength(1);
   });
 
   it("the mysterious stone says someone may be interested in it", () => {
@@ -67,11 +73,9 @@ describe("curiosities", () => {
 
   it("never one he's already carrying: each comes up once, and then it's koi", () => {
     const { g } = fisher(), found: string[] = [];
-    for (let i = 0; i < CURIO_IDS.length; i++) found.push(strike(g, 0).item.curio!);
+    for (let i = 0; i < CURIO_IDS.length; i++) found.push(...window(g));
     expect(found.sort()).toEqual([...CURIO_IDS].sort());
-    const after = strike(g, 0);
-    expect(after.item.type).toBe("fish");
-    expect(after.anim?.curio ?? null).toBeNull();
+    expect(window(g)).toEqual([]);
   });
 
   it("otherwise it's a koi, as ever", () => {

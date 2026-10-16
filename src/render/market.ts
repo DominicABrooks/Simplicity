@@ -8,7 +8,7 @@ import { GROUND, box, onGround, type RenderContext } from "./context.ts";
 import type { PropView } from "./props.ts";
 import { hash } from "./terrain.ts";
 import { WARES } from "./wares.ts";
-import { FACING_YAW, stallBody } from "../world/plans.ts";
+import { FACING_YAW, FOUNTAIN_POOL, stallBody } from "../world/plans.ts";
 import { DARK_WOOD, IRON, WOOD, banner, occluder, tiledCylinder, type PropOf } from "./town.ts";
 
 /** Turn a group built facing south (+z) to face a facing. */
@@ -90,14 +90,14 @@ export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf
   const stone = lambert("#ffffff", { map: tex.stone }), trim = lambert("#8a8378", { map: tex.stone });
   const flowing = (opacity: number) => lambert("#ffffff", { map: tex.flow, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide });
   const add = (mesh: THREE.Mesh, y: number) => { mesh.position.y = y; g.add(mesh); return mesh; };
-  const POOL = 0.5;                                          // the pool's surface
+  const POOL = FOUNTAIN_POOL.y, WATER_R = R - FOUNTAIN_POOL.inset;   // the pool's surface, and its edge
 
   // The basin: a low step, an open stone wall with an inner face, a coping on top, the floor and the water.
   add(new THREE.Mesh(new THREE.CylinderGeometry(R + 0.32, R + 0.38, 0.12, 8), trim), 0.06);
   add(new THREE.Mesh(tiledCylinder(R, 0.52, 8, 0.6, true), lambert("#ffffff", { map: tex.stone, side: THREE.DoubleSide })), 0.38);
-  add(new THREE.Mesh(tiledCylinder(R - 0.18, 0.5, 8, 0.6, true), lambert("#ffffff", { map: tex.stone, side: THREE.BackSide })), 0.37);
+  add(new THREE.Mesh(tiledCylinder(WATER_R, 0.5, 8, 0.6, true), lambert("#ffffff", { map: tex.stone, side: THREE.BackSide })), 0.37);
   add(new THREE.Mesh(new THREE.RingGeometry(R - 0.2, R + 0.1, 8).rotateX(-Math.PI / 2), trim), 0.645);
-  add(new THREE.Mesh(new THREE.CircleGeometry(R - 0.18, 8).rotateX(-Math.PI / 2), lambert("#2f6f8a")), 0.14);
+  add(new THREE.Mesh(new THREE.CircleGeometry(WATER_R, 8).rotateX(-Math.PI / 2), lambert("#2f6f8a")), 0.14);
   const gold = basic(PAL.Y);
   for (let i = 0; i < 12; i++) {                             // wishes
     const a = hash(i, 1, 620) * Math.PI * 2, d = 0.7 + hash(i, 2, 621) * (R - 1.0);
@@ -105,7 +105,7 @@ export function buildFountain(ctx: RenderContext, parent: THREE.Group, p: PropOf
     coin.position.x = Math.cos(a) * d;
     coin.position.z = Math.sin(a) * d;
   }
-  add(new THREE.Mesh(new THREE.CircleGeometry(R - 0.18, 16).rotateX(-Math.PI / 2), lambert("#ffffff", { map: tex.water, transparent: true, opacity: 0.7 })), POOL);
+  add(new THREE.Mesh(new THREE.CircleGeometry(WATER_R, 16).rotateX(-Math.PI / 2), lambert("#ffffff", { map: tex.water, transparent: true, opacity: 0.7 })), POOL);
 
   // The pedestal, and its lions: each a head on the pedestal's face with a jet arcing out of its mouth.
   add(new THREE.Mesh(tiledCylinder(0.42, 0.95, 8, 0.5), stone), 0.14 + 0.475);
@@ -341,7 +341,7 @@ export function buildPlaza(ctx: RenderContext, parent: THREE.Group, p: PropOf<"p
     g.add(ring);
   }
   const kerb = lambert("#8a8378", { map: tex.stone });
-  for (const [kx, kz, kw, kd] of [[cx, cz - d / 2, w, 0.16], [cx, cz + d / 2, w, 0.16], [cx - w / 2, cz, 0.16, d], [cx + w / 2, cz, 0.16, d]] as const) {
+  for (const [kx, kz, kw, kd] of [[cx, cz - d / 2, w, 0.16], [cx, cz + d / 2, w, 0.16], [cx - w / 2, cz, 0.16, d - 0.16], [cx + w / 2, cz, 0.16, d - 0.16]] as const) {   // the sides stop at the ends', not overlapping them
     const k = new THREE.Mesh(box(kw, 0.06, kd), kerb);
     k.position.set(kx, 0.03, kz);
     g.add(k);

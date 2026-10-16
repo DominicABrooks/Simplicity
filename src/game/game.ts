@@ -68,7 +68,7 @@ export interface Game {
   world: World<Components>;
   /** The area you're in. Only this area is built; every other area is just an id until you go there. */
   area: CurrentArea;
-  /** The current area's tiles (the same as area.layout.map). */
+  /** The current area's tiles (area.layout.map, but with the woodwardens standing in it, wherever they are). */
   map: TileMap;
   /** Set when you walk into an exit; the area is swapped once the next one is loaded. */
   travel: Destination | null;

@@ -22,6 +22,7 @@ import { createMapView } from "./ui/mapView.ts";
 import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
+import { createPaper } from "./ui/paper.ts";
 import { enterInterior, updateInterior } from "./game/interiors.ts";
 import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
 import { updateChatter } from "./game/chatter.ts";
@@ -46,6 +47,7 @@ const hud = createHud(g, view);
 const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
 const dialogue = createDialogue(g);
+const paper = createPaper(g);
 const letterbox = createLetterbox(g);
 const sleepShade = createSleepShade(g, view);
 watchCutscenes(g);
@@ -156,6 +158,7 @@ function frame(now: number): void {
   sleepShade.draw();
   resetBar.draw();
   dialogue.draw();
+  paper.draw();
   letterbox.draw();
   requestAnimationFrame(frame);
 }

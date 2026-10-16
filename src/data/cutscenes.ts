@@ -35,7 +35,7 @@ export interface Scene {
 export const SCENES: readonly Scene[] = [
   {
     // The King's audience: in through the doors, the hall laid out ahead; up the long carpet to the foot of the
-    // dais; the King, close; and his speech, the two of them in frame, ending with his writ in the hero's hand.
+    // dais; the King, close; and his speech, the two of them in frame, ending with the watchword for his woodwardens.
     id: "audience", area: "throneroom", speaker: "king", key: "king", pace: 26,
     beats: [
       { look: "both", zoom: 1.45, hold: 1.8 },

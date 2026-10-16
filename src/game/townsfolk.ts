@@ -23,12 +23,13 @@ import { moveBy } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { FAMILIES, type Where } from "../world/people.ts";
 import { residentsOf, type Resident } from "../world/residents.ts";
-import { ANVIL_WORK, MUSIC_WORK, anvilOf } from "../world/workplaces.ts";
+import { ANVIL_WORK, BROOM_WORK, FISH_WORK, HAWK_WORK, HOME_TRADES, LAMP_HELP, LAMP_WORK, MASON_WORK, MUSIC_WORK, SQUARE_TRADES, WASH_WORK, WATER_WORK, anvilOf, wellOf, yardOf, yardTask } from "../world/workplaces.ts";
 import { doorOf, findPath, nearestWalkable, walkable, walkwaysOf, type TileXY, type Walkways } from "../world/walkways.ts";
 import type { Errand, Task, Walker } from "./components.ts";
 import { combatText } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
 import { goInside } from "./interiors.ts";
+import { lampsDue, lampsHere, lightLamp, setLamps, updateLamps } from "./lamps.ts";
 
 // ---------- The census ----------
 const CITY: readonly Where[] = ["capital", "castle", "kingsroad"];
@@ -75,7 +76,7 @@ export const hourOf = (g: Game): number => (g as unknown as { hour?: number }).h
 const SOCIABLE = new Set(["cheerful", "chatty", "jolly", "loud", "easygoing", "romantic", "competitive", "mischievous", "lazy", "warm-hearted"]);
 
 // ---------- The places in an area, and where to stand at them ----------
-interface Standing { tile: TileXY; face: number | null; task?: Task }
+interface Standing { tile: TileXY; face: number | null; task?: Task; lamp?: number }
 /** Somewhere to gather round (tiles, its middle), standing `r` tiles out. */
 interface Ring { x: number; y: number; r: number }
 interface Places {
@@ -89,10 +90,18 @@ interface Places {
   church: Standing | null;
   /** Where a minstrel plays: on the fountain's south rim, facing out over the square. */
   stage: Standing | null;
+  /** The wells, and the work done at them: winding up water at the crank, the washing at tubs round about. */
+  wells: { x: number; y: number; crank: Standing | null; tubs: Standing[] }[];
+  /** Where to fish from: the refuges in a bridge's parapets, facing out over the water. */
+  perches: Standing[];
+  /** Open ground near somewhere (see openNear), worked out the first time it's asked for. */
+  open: Map<string, TileXY[]>;
+  /** Where the lamplighter stands to light each street lamp (in the order of lampsHere), facing it. */
+  lamps: (Standing | null)[];
 }
 
 function placesOf(area: string, ways: Walkways, props: readonly Prop[], people: readonly Resident[]): Places {
-  const stalls: Places["stalls"] = [], rings: Ring[] = [];
+  const stalls: Places["stalls"] = [], rings: Ring[] = [], wells: Places["wells"] = [], perches: Standing[] = [], lamps: Places["lamps"] = [];
   let stage: Standing | null = null;
   for (const p of props) {
     if (p.kind === "stall") {
@@ -109,8 +118,30 @@ function placesOf(area: string, ways: Walkways, props: readonly Prop[], people: 
       const tile = nearestWalkable(ways, p.x / T - 0.5, p.y / T + p.radius * 1.05 + 0.5, 2);
       if (tile) stage = { tile, face: Math.PI / 2, task: "lute" };
     }
-    if (p.kind === "well") rings.push({ x: p.x / T, y: p.y / T, r: 1.6 });
+    if (p.kind === "well") {
+      const x = p.x / T, y = p.y / T, at = wellOf(x, y), facing = (t: TileXY) => Math.atan2(y - t[1] - 0.5, x - t[0] - 0.5);
+      rings.push({ x, y, r: 1.6 });
+      wells.push({
+        x, y, crank: walkable(ways, ...at.crank) ? { tile: at.crank, face: Math.PI, task: "crank" } : null,
+        tubs: at.tubs.filter(t => walkable(ways, ...t)).map(t => ({ tile: t, face: facing(t), task: "wash" })),
+      });
+    }
     if (p.kind === "cross") rings.push({ x: p.x / T, y: p.y / T, r: 1.8 });
+    if (p.kind === "lamp") {                                  // beside it, on the side with the most street round about, facing it
+      const lx = Math.floor(p.x / T), ly = Math.floor(p.y / T), room = (t: TileXY) => [-1, 0, 1].flatMap(j => [-1, 0, 1].filter(i => walkable(ways, t[0] + i, t[1] + j))).length;
+      const sides = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).map(([i, j]): TileXY => [lx + i, ly + j]).filter(t => walkable(ways, ...t)).sort((a, b) => room(b) - room(a));
+      const tile = sides[0];
+      lamps.push(tile ? { tile, face: Math.atan2(ly - tile[1], lx - tile[0]), task: "lamp" } : null);
+    }
+    if (p.kind === "stoneBridge") {                         // a refuge: a tile let into the parapet, walled in to the north and south
+      const x0 = Math.floor(p.rect.x / T), x1 = Math.ceil((p.rect.x + p.rect.w) / T), y0 = Math.floor(p.rect.y / T), y1 = Math.ceil((p.rect.y + p.rect.h) / T), mid = (x0 + x1) / 2;
+      for (let y = y0 + 1; y < y1 - 1; y++) for (let x = x0; x < x1; x++) {
+        const inward = x < mid ? 1 : -1;
+        if (walkable(ways, x, y) && walkable(ways, x + inward, y) && !walkable(ways, x - inward, y) && !walkable(ways, x, y - 1) && !walkable(ways, x, y + 1)) {
+          perches.push({ tile: [x, y], face: inward > 0 ? Math.PI : 0, task: "fish" });
+        }
+      }
+    }
   }
   const inns: Ring[] = [];
   for (const id of ["maddox", "pike"]) {
@@ -124,7 +155,9 @@ function placesOf(area: string, ways: Walkways, props: readonly Prop[], people: 
     const cx = (st.rect.x + st.rect.w / 2) / T, cy = (st.rect.y + st.rect.h / 2) / T, door = doorOf(ways, props, Math.floor(cx), Math.floor(cy));
     if (door) church = { tile: door, face: Math.atan2(cy - door[1] - 0.5, cx - door[0] - 0.5) };
   }
-  return { stalls, rings, inns, church, stage };
+  const atStalls = new Set(stalls.flatMap(st => [...st.vendor, ...st.front].map(v => keyOf(v.tile))));   // no washing in the way of a stall
+  for (const w of wells) w.tubs = w.tubs.filter(t => !atStalls.has(keyOf(t.tile)));
+  return { stalls, rings, inns, church, stage, wells, perches, open: new Map(), lamps };
 }
 
 // ---------- The streets of the area the hero is in ----------
@@ -143,6 +176,8 @@ interface Streets {
   atWork: Map<number, TileXY>;
   /** Spots someone's standing at (a stall's counter), so nobody else stands there too. */
   claims: Map<string, Entity>;
+  /** A storyteller at his tale just now (see tellerOf), for those out for a chat to gather round. */
+  teller: Ring | null;
   timer: number;
   rng: Rng;
 }
@@ -155,6 +190,7 @@ const centre = (t: TileXY): [number, number] => [(t[0] + 0.5) * T, (t[1] + 0.5) 
 /** On arriving somewhere: fill its streets (as soon as the census is ready, the first time). */
 export function enterTownsfolk(g: Game): void {
   here = null;
+  setLamps(g);
   const area = g.area.def.id;
   if (!TOWNSFOLK.out[area]) return;
   if (census) { populate(g, census); return; }
@@ -173,8 +209,11 @@ export function populate(g: Game, people: readonly Resident[]): void {
   });
   const queue = walkersOf(people, area);
   for (let i = queue.length - 1; i > 0; i--) { const j = rng.int(0, i); [queue[i], queue[j]] = [queue[j]!, queue[i]!]; }
-  here = { area, ways, props, places: placesOf(area, ways, props, people), exits, queue, workers: [], atWork: new Map(), out: new Map(), claims: new Map(), timer: 0, rng };
+  here = { area, ways, props, places: placesOf(area, ways, props, people), exits, queue, workers: [], atWork: new Map(), out: new Map(), claims: new Map(), teller: null, timer: 0, rng };
   const s = here;
+  setLamps(g);
+  crew = new Set(queue.filter(r => r.age >= 14 && r.home.area === area && (LAMP_WORK.test(r.job) || LAMP_HELP.test(r.job)))
+    .sort((a, b) => Number(LAMP_WORK.test(b.job)) - Number(LAMP_WORK.test(a.job)) || a.id - b.id).slice(0, CRAFTS.lamps.crew).map(r => r.id));
   s.workers = queue.filter(r => r.age >= 14 && workOf(s, r, null) !== null);
   // Those at work are at their posts already; everyone else is somewhere along their way.
   const cap = capOf(s, hourOf(g));
@@ -197,16 +236,54 @@ const OPEN_WORK = new Set<Prop["kind"]>(["smithy", "stable", "rack", "trough", "
  * Where someone works in this area (if not at home), and whether they go in to do it: behind their own stall
  * (facing out over the counter); somewhere on the open ground they work on (the square, the bridge), spread
  * out and facing it; beside an open workshop (the smithy), facing it, the smith himself at the anvil;
- * a minstrel on the fountain's rim, playing to the square; or in at the door of the building they work
- * in (the church, the guildhall, the kitchen, a master's shop).
+ * a minstrel on the fountain's rim, playing to the square; a laundress at a tub by a well, a water-carrier
+ * at its crank; a sweeper somewhere about the square, broom in hand; a fisherman in a refuge in the
+ * bridge's parapet; a falconer on open ground in from the gate, a hawk on the fist; or in at the door of
+ * the building they work in (the church, the guildhall, the kitchen, a master's shop).
  */
 function workOf(s: Streets, r: Resident, e: Entity | null): { stand: Standing; goIn: boolean } | null {
-  if (r.day.area !== s.area || (r.day.x === r.home.x && r.day.y === r.home.y)) return null;
-  const dx = r.day.x + 0.5, dy = r.day.y + 0.5, toward = (t: TileXY) => Math.atan2(dy - t[1] - 0.5, dx - t[0] - 0.5);
+  if (crew.has(r.id) && lampsDue()) { const stand = lampFor(s, r, e); if (stand) return { stand, goIn: false }; }
+  if (r.day.area !== s.area) return null;
   const free = (t: TileXY) => { const c = s.claims.get(keyOf(t)); return c === undefined || c === e; };
+  if (r.day.x === r.home.x && r.day.y === r.home.y) return doorstepOf(s, r, free);
+  const dx = r.day.x + 0.5, dy = r.day.y + 0.5, toward = (t: TileXY) => Math.atan2(dy - t[1] - 0.5, dx - t[0] - 0.5);
   if (MUSIC_WORK.test(r.job) && s.places.stage && free(s.places.stage.tile)) return { stand: s.places.stage, goIn: false };
+  // The washing and the water, at the nearest well with a place free (a laundress at a tub, a water-carrier at the crank).
+  const atWell = WASH_WORK.test(r.job) ? (w: Places["wells"][number]) => w.tubs.find(t => free(t.tile))
+    : WATER_WORK.test(r.job) ? (w: Places["wells"][number]) => (w.crank && free(w.crank.tile) ? w.crank : undefined) : null;
+  if (atWell) {
+    const near = s.places.wells.filter(w => Math.hypot(w.x - dx, w.y - dy) < 16).sort((a, b) => Math.hypot(a.x - dx, a.y - dy) - Math.hypot(b.x - dx, b.y - dy));
+    for (const w of near) { const stand = atWell(w); if (stand) return { stand, goIn: false }; }
+  }
+  if (FISH_WORK.test(r.job)) {                               // fishing off the bridge, from a refuge in the parapet
+    const perch = s.places.perches.filter(p => free(p.tile));
+    if (perch.length) return { stand: perch[s.rng.int(0, perch.length - 1)]!, goIn: false };
+  }
+  if (HAWK_WORK.test(r.job)) {                               // on the open ground nearest the gate, a hawk on the fist, turned to the camera to show it
+    const spots = openNear(s, r.day.x, r.day.y).filter(free);
+    if (spots.length) return { stand: { tile: spots[s.rng.int(0, spots.length - 1)]!, face: Math.PI / 2 + (s.rng.next() - 0.5) * 1.2, task: "hawk" }, goIn: false };
+  }
   const stall = s.places.stalls.find(st => Math.hypot(st.x - dx, st.y - dy) < 2.5 && st.vendor.length);
   if (stall) return { stand: stall.vendor.find(v => { const c = s.claims.get(keyOf(v.tile)); return c === undefined || c === e; }) ?? stall.vendor[0]!, goIn: false };
+  // Out on the open ground: a sweeper, here and there, this way and that; a traveller plying their trade (the
+  // knife-grinder side-on at his wheel, the tinker and the storyteller turned to the camera).
+  const trade = BROOM_WORK.test(r.job) ? "broom" : SQUARE_TRADES.find(([job]) => job.test(r.job))?.[1];
+  if (trade) {
+    const stalls = new Set(s.places.stalls.flatMap(st => [...st.vendor, ...st.front].map(v => keyOf(v.tile))));
+    const face = () => (trade === "broom" ? s.rng.next() * Math.PI * 2 : trade === "grind" ? (s.rng.next() < 0.5 ? 0 : Math.PI) : Math.PI / 2 + (s.rng.next() - 0.5) * 0.8);
+    for (let tries = 0; tries < 6; tries++) {                // not in at a stall, among the buyers or behind the counter
+      const tile = nearestWalkable(s.ways, r.day.x + s.rng.int(-6, 6), r.day.y + s.rng.int(-5, 5), 4);
+      if (tile && !stalls.has(keyOf(tile)) && free(tile)) return { stand: { tile, face: face(), task: trade }, goIn: false };
+    }
+  }
+  const workDoor = MASON_WORK.test(r.job) ? doorOf(s.ways, s.props, r.day.x, r.day.y) : null;
+  if (workDoor) {                                            // carving a block outside the church they're building, near its door, turned to the camera
+    const [cx, cy] = workDoor;
+    for (let tries = 0; tries < 8; tries++) {
+      const tile = nearestWalkable(s.ways, cx + s.rng.int(-4, 4), cy + s.rng.int(0, 3), 2);
+      if (tile && keyOf(tile) !== keyOf(workDoor) && free(tile)) return { stand: { tile, face: Math.PI / 2 + (s.rng.next() - 0.5) * 0.6, task: "chisel" }, goIn: false };
+    }
+  }
   if (walkable(s.ways, r.day.x, r.day.y)) {                  // open ground: somewhere about it, not all on the one spot
     const tile = nearestWalkable(s.ways, r.day.x + s.rng.int(-3, 3), r.day.y + s.rng.int(-3, 3), 3);
     return tile && { stand: { tile, face: tile[0] === r.day.x && tile[1] === r.day.y ? null : toward(tile) }, goIn: false };
@@ -218,12 +295,72 @@ function workOf(s: Streets, r: Resident, e: Entity | null): { stand: Standing; g
     if (anvil && spot && ANVIL_WORK.test(r.job) && free(spot)) {
       return { stand: { tile: spot, face: Math.atan2(anvil.y - spot[1] - 0.5, anvil.x - spot[0] - 0.5), task: "anvil" }, goIn: false };
     }
-    // Everyone else stands about it, but not in the smith's way.
+    if (at.kind === "smithy") {                              // the yard's other trades, each at a station of their own
+      const trade = yardTask(r.job), station = trade && yardOf(at.rect).find(st => st.task === trade && walkable(s.ways, ...st.tile) && free(st.tile));
+      if (station) return { stand: { tile: station.tile, face: station.face, task: station.task }, goIn: false };
+    }
+    // Everyone else stands about it, fetching and carrying: spread round the yard, not in the smith's way nor at anyone's station.
+    const kept = new Set([...(spot ? [spot] : []), ...(at.kind === "smithy" ? yardOf(at.rect).map(st => st.tile) : [])].map(keyOf));
+    const clear = (t: TileXY) => !kept.has(keyOf(t)) && !(spot && Math.abs(t[0] - spot[0]) + Math.abs(t[1] - spot[1]) <= 1) && free(t);
+    for (let tries = 0; tries < 6; tries++) {
+      const t = nearestWalkable(s.ways, r.day.x + s.rng.int(-4, 4), r.day.y + s.rng.int(-3, 4), 3);
+      if (t && clear(t)) return { stand: { tile: t, face: toward(t) }, goIn: false };
+    }
     const tile = nearestWalkable(s.ways, r.day.x, r.day.y, 3), off = tile && spot && keyOf(tile) === keyOf(spot) ? nearestWalkable(s.ways, spot[0] - 2, spot[1], 3) : tile;
     return off && { stand: { tile: off, face: toward(off) }, goIn: false };
   }
   const door = doorOf(s.ways, s.props, r.day.x, r.day.y);
   return door && { stand: { tile: door, face: null }, goIn: true };
+}
+
+/**
+ * The open ground nearest a place (within 16 tiles): tiles in the clear, with nothing but open ground two
+ * tiles round about (not a passage, a lane or a strip under a wall), the nearest of them and any nearly as
+ * near. Room for a falconer's hawk to come and go.
+ */
+function openNear(s: Streets, x: number, y: number): TileXY[] {
+  const key = `${x},${y}`, known = s.places.open.get(key);
+  if (known) return known;
+  const clear = (cx: number, cy: number) => { for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (!walkable(s.ways, cx + i, cy + j)) return false; return true; };
+  const found: [TileXY, number][] = [];
+  for (let j = -16; j <= 16; j++) for (let i = -16; i <= 16; i++) if (clear(x + i, y + j)) found.push([[x + i, y + j], Math.hypot(i, j)]);
+  const nearest = Math.min(...found.map(([, d]) => d)), tiles = found.filter(([, d]) => d <= nearest + 3).map(([t]) => t);
+  s.places.open.set(key, tiles);
+  return tiles;
+}
+
+/** Whether someone's day is spent at home (so, if they're in a trade, at their own front door: doorstepOf). */
+const worksAtHome = (r: Resident) => r.day.x === r.home.x && r.day.y === r.home.y && r.day.area === r.home.area;
+/** Whether as many of those out are at work as should be (TOWNSFOLK.working): the streets are for buyers too. */
+function workingFull(g: Game, s: Streets): boolean {
+  let n = 0;
+  for (const e of s.out.values()) if (g.world.get(e, "walker")?.plan === "work") n++;
+  return n >= capOf(s, hourOf(g)) * TOWNSFOLK.working;
+}
+/** Whether there are as many out at work by their own doors as there should be (TOWNSFOLK.doorsteps). */
+function doorstepsFull(g: Game, s: Streets): boolean {
+  let n = 0;
+  for (const [id, e] of s.out) if (g.world.get(e, "walker")?.plan === "work" && worksAtHome(byId.get(id)!)) n++;
+  return n >= TOWNSFOLK.doorsteps;
+}
+
+/**
+ * Where someone who works at home in a trade works in working hours: out at a bench beside their own front
+ * door, one side of it or the other (never in the doorway). A house fronting south, they face out over the
+ * street to the camera; any other way, they stand side-on along the house front, facing away from the door,
+ * so their hands' work still shows.
+ */
+function doorstepOf(s: Streets, r: Resident, free: (t: TileXY) => boolean): { stand: Standing; goIn: boolean } | null {
+  const task = HOME_TRADES.find(([job]) => job.test(r.job))?.[1], door = task && doorOf(s.ways, s.props, r.home.x, r.home.y);
+  if (!task || !door) return null;
+  const ox = door[0] - r.home.x, oy = door[1] - r.home.y, out: TileXY = Math.abs(ox) >= Math.abs(oy) ? [Math.sign(ox), 0] : [0, Math.sign(oy)];
+  for (const side of [1, -1]) {
+    const along: TileXY = [out[1] * side, -out[0] * side], tile: TileXY = [door[0] + along[0], door[1] + along[1]];
+    if (!walkable(s.ways, ...tile) || !free(tile)) continue;
+    const face = out[1] === 1 ? Math.PI / 2 : Math.atan2(along[1], along[0]);
+    return { stand: { tile, face, task }, goIn: false };
+  }
+  return null;
 }
 
 /** A place in a ring round something, facing its middle. */
@@ -236,11 +373,15 @@ const any = <V>(s: Streets, list: readonly V[]): V | undefined => (list.length ?
 /** What someone does next, by the hour, who they are and what they've just done. */
 function decide(g: Game, s: Streets, r: Resident, w: Walker | null, crowded: boolean): Errand {
   const h = hourOf(g), H = TOWNSFOLK.hours, p = s.places, roll = s.rng.next();
-  const adult = r.age >= 16, old = r.age >= 60, works = workOf(s, r, null) !== null;
+  const starting = w?.plan !== "work";                      // not at work already: only if there's room for more at it
+  const works = workOf(s, r, null) !== null && !(starting && (workingFull(g, s) || (worksAtHome(r) && doorstepsFull(g, s))));
+  const adult = r.age >= 16, old = r.age >= 60;
   const drinker = adult && p.inns.length > 0 && r.traits.some(t => SOCIABLE.has(t));
   if (r.age < 14) return h >= H.kidsIn || h < 7 ? "home" : "play";
+  if (crew.has(r.id) && lampsDue()) return "work";          // round the street lamps at dusk, however busy the streets
   if (crowded) return "home";
   if (h >= H.bedtime || h < 6) return drinker && h >= H.bedtime && roll < 0.3 ? "drink" : "home";
+  if (works && worksAtHome(r) && w?.plan === "work" && roll < 0.3) return "home";   // in for a while: someone else's turn at their door
   if (works && h >= H.workFrom && h < H.workTo) return w?.plan === "work" && roll < 0.2 ? (roll < 0.1 && p.stalls.length ? "shop" : "chat") : "work";
   if (h >= H.innFrom && p.inns.length && adult && roll < (drinker ? 0.55 : 0.18)) return "drink";
   if (h >= H.innFrom + 2 && roll < 0.55) return "home";
@@ -266,7 +407,11 @@ function destination(s: Streets, r: Resident, e: Entity | null, plan: Errand): {
       stand = any(s, any(s, stalls)?.front.filter(free) ?? []);
       break;
     }
-    case "chat": { const ring = any(s, p.rings); stand = ring && inRing(s, ring); break; }
+    case "chat": {                                            // round a storyteller at his tale, if there is one, or the fountain, a well, the cross
+      const ring = (s.rng.next() < 0.5 ? s.teller : null) ?? any(s, p.rings);
+      stand = ring && inRing(s, ring);
+      break;
+    }
     case "drink": { const inn = any(s, p.inns); stand = inn && inRing(s, inn); break; }
     case "church": if (p.church) return { stand: p.church, goIn: s.rng.next() < 0.5 }; break;
     case "errand": { const t = any(s, s.ways.streets); stand = t && { tile: t, face: null }; break; }
@@ -286,10 +431,46 @@ function setOff(s: Streets, e: Entity, w: Walker, r: Resident, plan: Errand, fro
   if (!dest || !path) return false;
   release(s, e);
   if (plan === "work" || plan === "shop") s.claims.set(keyOf(dest.stand.tile), e);
+  if (dest.stand.lamp !== undefined) aiming.set(e, dest.stand.lamp);
   Object.assign(w, { plan, path, goIn: dest.goIn, face: dest.stand.face, task: dest.stand.task ?? null, moving: true, wait: 0, playAt: null, runTo: null });
   return true;
 }
-function release(s: Streets, e: Entity): void { for (const [k, c] of s.claims) if (c === e) s.claims.delete(k); }
+function release(s: Streets, e: Entity): void { for (const [k, c] of s.claims) if (c === e) s.claims.delete(k); aiming.delete(e); raised.delete(e); }
+
+// ---------- The street lamps ----------
+/** Who goes round lighting the lamps at dusk: the lamplighter, and a sweep's helper or two (CRAFTS.lamps.crew). */
+let crew = new Set<number>();
+/** The lamp each of them is off to light; the last one each lit (where they are on their round); how long their pole's been up. */
+const aiming = new Map<Entity, number>(), lastLit = new Map<number, TileXY>(), raised = new Map<Entity, number>();
+
+/**
+ * The next lamp on someone's round: of those still dark that nobody else is off to, the nearest to where they
+ * are (the last they lit, or their door), leaving those nearer the others on the round to them.
+ */
+function lampFor(s: Streets, r: Resident, e: Entity | null): Standing | null {
+  const where = (id: number) => lastLit.get(id) ?? [byId.get(id)!.home.x, byId.get(id)!.home.y] as const, [fx, fy] = where(r.id);
+  const others = [...crew].filter(id => id !== r.id).map(where), taken = new Set([...aiming].filter(([o]) => o !== e).map(([, i]) => i));
+  let best: Standing | null = null, bestD = Infinity;
+  lampsHere().forEach((l, i) => {
+    const [x, y] = l.tile, stand = s.places.lamps[i];
+    const d = Math.hypot(x - fx, y - fy) - 0.5 * Math.min(Infinity, ...others.map(([ox, oy]) => Math.hypot(x - ox, y - oy)));
+    if (stand && !l.lit && !taken.has(i) && d < bestD) { best = { ...stand, lamp: i }; bestD = d; }
+  });
+  return best;
+}
+
+/** At a lamp: the pole up to it, it catches, the pole down, and on to the next. */
+function tend(s: Streets, e: Entity, w: Walker, dt: number): void {
+  const up = (raised.get(e) ?? 0) + dt, i = aiming.get(e);
+  raised.set(e, up);
+  if (i !== undefined && up >= CRAFTS.lamps.raise) {
+    lightLamp(i);
+    const at = s.places.lamps[i];
+    if (at) lastLit.set(w.id, at.tile);
+    aiming.delete(e);
+  }
+  if (up >= CRAFTS.lamps.stay) w.wait = 0;
+}
 
 // ---------- Coming out ----------
 /** A grown-up of this child's house who could take them out. */
@@ -306,12 +487,31 @@ function comeOut(g: Game, s: Streets, along = 0): void {
   // In working hours, someone who works here and isn't at it yet goes first: stalls don't stand empty all day.
   const h = hourOf(g), working = h >= TOWNSFOLK.hours.workFrom && h < TOWNSFOLK.hours.workTo;
   // After hours, those who went in to work come back out first, on their way home.
-  const due = working ? s.workers.filter(r => !s.out.has(r.id) && !s.atWork.has(r.id)) : [...s.atWork.keys()].flatMap(id => (s.out.has(id) ? [] : [byId.get(id)!]));
-  // Before anyone, the work you can see and hear: the smith to his anvil, the minstrel to the fountain.
-  let showing = working ? due.find(r => workOf(s, r, null)?.stand.task) : undefined;
+  // (Not those who work at their own doors once there are enough of them out: see doorstepsFull.)
+  const full = doorstepsFull(g, s);
+  const due = working && workingFull(g, s) ? [] : working ? s.workers.filter(r => !s.out.has(r.id) && !s.atWork.has(r.id) && !(full && worksAtHome(r))) : [...s.atWork.keys()].flatMap(id => (s.out.has(id) ? [] : [byId.get(id)!]));
+  // Before anyone, the work you can see and hear: the smith to his anvil, the minstrel to the fountain, the
+  // washing and the water at the well, a sweeper on the square; work nobody's at yet first, so it all shows.
+  // (The trades at their own doors come out in their turn, not ahead of the rest.)
+  const shown = new Set([...s.out.values()].map(e => g.world.get(e, "walker")?.task));
+  const taskOf = (r: Resident) => (working && !worksAtHome(r) ? workOf(s, r, null)?.stand.task : undefined);
+  // And before even those, while few stalls have anyone behind them, someone to mind one that hasn't: the
+  // market's what the square is for (but not every stall at once, or there'd be nobody left to buy).
+  const minded = s.places.stalls.filter(st => st.vendor.some(v => s.claims.has(keyOf(v.tile)))).length;
+  const unminded = new Set(minded < TOWNSFOLK.minded ? s.places.stalls.filter(st => !st.vendor.some(v => s.claims.has(keyOf(v.tile)))).flatMap(st => st.vendor.map(v => keyOf(v.tile))) : []);
+  const minding = (r: Resident) => { const at = unminded.size && working ? workOf(s, r, null)?.stand.tile : undefined; return !!at && unminded.has(keyOf(at)); };
+  // But first of all, at dusk, the lamplighters, on their round.
+  let showing = (lampsDue() ? s.queue.find(r => crew.has(r.id) && !s.out.has(r.id) && !s.atWork.has(r.id)) : undefined)
+    ?? due.find(minding) ?? due.find(r => { const t = taskOf(r); return t && !shown.has(t); });
+  // Then, while there's room at the doors, one of the trades worked at home, from a house near the hero: their work is there to be seen.
+  if (!showing && working && !full && s.rng.next() < 0.5) {
+    const hero = g.world.need(g.player, "transform"), hx = (hero.x + HALF) / T, hy = (hero.y + HALF) / T;
+    const near = due.filter(r => worksAtHome(r) && workOf(s, r, null)).sort((a, b) => Math.hypot(a.home.x - hx, a.home.y - hy) - Math.hypot(b.home.x - hx, b.home.y - hy));
+    showing = any(s, near.slice(0, 8));
+  }
   for (let tries = 0; tries < Math.min(s.queue.length, 60); tries++) {
     let r: Resident;
-    if (showing) { r = showing; due.splice(due.indexOf(showing), 1); showing = undefined; }
+    if (showing) { r = showing; if (due.includes(showing)) due.splice(due.indexOf(showing), 1); showing = undefined; }
     else if (due.length && s.rng.next() < 0.6) r = due.splice(s.rng.int(0, due.length - 1), 1)[0]!;
     else { r = s.queue.shift()!; s.queue.push(r); }      // round the queue in turn
     if (s.out.has(r.id)) continue;
@@ -327,7 +527,7 @@ function comeOut(g: Game, s: Streets, along = 0): void {
         if (!mates.length) continue;                         // nobody to go out with: they stay in
         party = [r, ...mates].sort((a, b) => b.age - a.age);
       }
-    } else if (!fromWork && s.rng.next() < 0.45) party = [r, ...kidsOf(s, r).slice(0, s.rng.int(1, 2))];
+    } else if (!fromWork && !(crew.has(r.id) && lampsDue()) && s.rng.next() < 0.45) party = [r, ...kidsOf(s, r).slice(0, s.rng.int(1, 2))];
     const leader = party[0]!, kids = party.length > 1 && leader.age < 14;
     let plan = kids ? "play" : decide(g, s, leader, null, false);
     if (fromWork) plan = plan === "drink" ? "drink" : "home";   // done for the day: home (or the inn)
@@ -592,6 +792,22 @@ function answerDoors(g: Game, s: Streets, dt: number): void {
 // ---------- Every frame ----------
 /** Everyone walks on, stays at what they're doing, keeps with their party; the streets fill and empty with the hour. */
 /** Seconds to each minstrel's next note. */
+/** A storyteller out at his tale, to gather round: in a ring a little way off. */
+function tellerOf(g: Game, s: Streets): Ring | null {
+  for (const e of s.out.values()) {
+    const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
+    if (w && t && w.plan === "work" && w.task === "tell" && !w.moving) return { x: (t.x + HALF) / T, y: (t.y + HALF) / T, r: 1.6 };
+  }
+  return null;
+}
+/** A storyteller at his tale: now and then a line of it floats up over the square. */
+function tell(g: Game, s: Streets, e: Entity, t: { x: number; y: number }, dt: number): void {
+  const left = (tunes.get(e) ?? 0) - dt;
+  if (left > 0) { tunes.set(e, left); return; }
+  tunes.set(e, between(s.rng, CRAFTS.tale));
+  combatText(g, t.x, t.y - 8, CRAFTS.tales[s.rng.int(0, CRAFTS.tales.length - 1)]!, CRAFTS.tellColour);
+}
+
 const tunes = new Map<Entity, number>();
 /** A minstrel at his playing: now and then a note floats up over the square. */
 function play(g: Game, s: Streets, e: Entity, t: { x: number; y: number }, dt: number): void {
@@ -604,9 +820,13 @@ function play(g: Game, s: Streets, e: Entity, t: { x: number; y: number }, dt: n
 export function updateTownsfolk(g: Game, dt: number): void {
   const s = here;
   if (!s || s.area !== g.area.def.id || g.state !== "play") return;
+  updateLamps(g);
+  const lighting = lampsDue();
+  if (!lighting) lastLit.clear();                           // the round's done: tomorrow's starts from their doors again
   const hero = g.world.need(g.player, "transform"), conversation = g.world.get(g.player, "conversation"), talkingTo = conversation?.with;
   if (talkingTo !== lastTalk) { lastTalk = talkingTo; if (talkingTo !== undefined) talkStarted(g, s, talkingTo); }
   const cap = capOf(s, hourOf(g)), crowded = s.out.size > cap * 1.15;
+  s.teller = tellerOf(g, s);
   answerDoors(g, s, dt);
   const ghost = g.world.query("ghost", "transform")[0]?.[1].transform;
   for (const [id, e] of [...s.out]) {
@@ -643,12 +863,16 @@ export function updateTownsfolk(g: Game, dt: number): void {
     if (!w.moving) {
       if (w.plan === "play" && w.playAt) runAbout(g, s, w, t, w.playAt, dt);
       if (w.plan === "work" && w.task === "lute") play(g, s, e, t, dt);
+      if (w.plan === "work" && w.task === "tell") tell(g, s, e, t, dt);
+      if (w.plan === "work" && w.task === "lamp") tend(s, e, w, dt);
+      else if (lighting && crew.has(w.id) && w.wait > 1) w.wait = 1;   // dusk: put down what they're at, and off round the lamps
       if ((w.wait -= dt) <= 0) next(g, s, e, w, t, crowded);
       continue;
     }
     walk(g, s, e, w, t, dt, hero);
   }
-  if (!ghost && s.out.size < cap && (s.timer -= dt) <= 0) {
+  const lighterIn = lighting && s.queue.some(r => crew.has(r.id) && !s.out.has(r.id) && !s.atWork.has(r.id));
+  if (!ghost && (s.out.size < cap || lighterIn) && (s.timer -= dt) <= 0) {
     s.timer = between(s.rng, TOWNSFOLK.every);
     comeOut(g, s);
   }
@@ -670,7 +894,7 @@ function walk(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: numb
   const hx = hero.x - t.x, hy = hero.y - t.y, hd = Math.hypot(hx, hy);
   if (!w.fleeing && hd < TOWNSFOLK.personal && d > 0 && (hx * dx + hy * dy) / (hd * d || 1) > 0.3 && w.blockedFor < TOWNSFOLK.patience) { w.blockedFor += dt; return; }
   if (hd >= TOWNSFOLK.personal) w.blockedFor = 0;
-  const step = w.speed * dt;
+  const step = w.speed * (w.task === "lamp" ? CRAFTS.lamps.pace : 1) * dt;   // the lamplighters hurry round
   if (d <= step) { t.x = tx - HALF; t.y = ty - HALF; w.path.shift(); }
   else { t.x += (dx / d) * step; t.y += (dy / d) * step; }
   if (d > 0.01) w.facing = Math.atan2(dy, dx);

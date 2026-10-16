@@ -212,6 +212,29 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 #dialogue .say { margin: 0; min-height: calc(var(--u) * 20); }
 #dialogue .more { color: var(--stone); text-align: right; font-size: calc(var(--u) * 5); line-height: calc(var(--u) * 7); min-height: calc(var(--u) * 7); }
 
+/* The woodwarden's scrap of paper and stub of crayon: the watchword is written on it in waxy red. */
+#paper { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgb(20 16 30 / 0.45); }
+#paper[hidden] { display: none; }
+#paper form {
+  display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 5);
+  width: min(calc(var(--u) * 150), calc(100vw - 32px)); box-sizing: border-box; padding: calc(var(--u) * 9) calc(var(--u) * 10) calc(var(--u) * 8);
+  background: #e8dcc4; color: var(--bark); transform: rotate(-2deg);
+  clip-path: polygon(0 3%, 9% 0, 31% 2%, 58% 0, 83% 3%, 100% 1%, 98% 38%, 100% 71%, 97% 100%, 66% 97%, 37% 100%, 12% 98%, 0 100%, 2% 62%);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
+}
+#paper .hint { margin: 0; color: var(--oak); font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9); }
+#paper .crayon {
+  width: 100%; box-sizing: border-box; padding: calc(var(--u) * 2) 0; text-align: center;
+  background: transparent; border: none; border-bottom: 1px dashed var(--oak); outline: none;
+  color: var(--ember); caret-color: var(--ember); font-size: calc(var(--u) * 12); line-height: calc(var(--u) * 15);
+  text-shadow: 0 0 1px var(--ember), 1px 0 0 rgb(200 66 58 / 0.5);
+}
+#paper button {
+  padding: calc(var(--u) * 2) calc(var(--u) * 6); cursor: pointer; font-size: calc(var(--u) * 6); line-height: calc(var(--u) * 9);
+  background: var(--bark); color: var(--bone); border: 1px solid var(--oak);
+}
+#paper button:hover { background: var(--oak); }
+
 /* Cutscenes: black bars slide in top and bottom; the HUD and menu bar step aside. */
 .letterbox {
   position: fixed;

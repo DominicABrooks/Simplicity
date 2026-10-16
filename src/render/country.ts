@@ -57,10 +57,11 @@ export function buildWatermill(ctx: RenderContext, parent: THREE.Group, p: PropO
   for (const x of [-w / 4, w / 4]) put(g, box(0.36, 0.44, 0.06), lambert("#5e4630"), x, 2.7, -d / 2 - 0.02);
   const wheel = new THREE.Group(), dark = lambert(DARK_WOOD), R = 1.5;
   for (const s of [-1, 1]) put(wheel, new THREE.TorusGeometry(R, 0.08, 4, 16), dark, s * 0.3, 0, 0, 0, Math.PI / 2, 0);
+  const paddle = lambert(WOOD);
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2;
-    put(wheel, box(0.7, 0.06, 0.4), lambert(WOOD), 0, Math.sin(a) * R, Math.cos(a) * R, a, 0, 0);
-    if (i % 3 === 0) put(wheel, box(0.06, R * 2, 0.08), dark, 0, 0, 0, a, 0, 0);
+    put(wheel, box(0.7, 0.06, 0.4), paddle, 0, Math.sin(a) * R, Math.cos(a) * R, a, 0, 0);
+    if (i % 3 === 0 && i < 6) put(wheel, box(0.06, R * 2, 0.08), dark, 0, 0, 0, a, 0, 0);   // two spokes across, not four in the same two places
   }
   wheel.position.set(0, 0.6, d / 2 + 0.6);
   g.add(wheel);
@@ -284,8 +285,8 @@ export function buildFence(ctx: RenderContext, parent: THREE.Group, p: PropOf<"f
   p.points.slice(1).forEach((b, i) => {
     const a = p.points[i]!, ax = a.x / T, az = a.y / T, bx = b.x / T, bz = b.y / T, len = Math.hypot(bx - ax, bz - az), yaw = Math.atan2(-(bz - az), bx - ax);
     const run = new THREE.Group();
-    const posts = Math.max(1, Math.round(len / 1.5));
-    for (let k = 0; k <= posts; k++) put(run, box(0.12, 0.9, 0.12), dark, -len / 2 + (k * len) / posts, 0.45, 0);
+    const posts = Math.max(1, Math.round(len / 1.5));                                     // the corner post is the last run's, not drawn twice
+    for (let k = i ? 1 : 0; k <= posts; k++) put(run, box(0.12, 0.9, 0.12), dark, -len / 2 + (k * len) / posts, 0.45, 0);
     for (const y of [0.4, 0.75]) put(run, box(len, 0.07, 0.06), wood, 0, y, 0);
     run.position.set((ax + bx) / 2, 0, (az + bz) / 2);
     run.rotation.y = yaw;
@@ -306,7 +307,7 @@ export function buildPavilion(ctx: RenderContext, parent: THREE.Group, p: PropOf
   put(g, new THREE.ConeGeometry(1.35, 1.4, 12), colour, 0, 2.2, 0);
   for (let i = 0; i < 12; i++) {                                                          // the scalloped valance
     const a = (i / 12) * Math.PI * 2;
-    put(g, new THREE.CircleGeometry(0.22, 6, 0, Math.PI), i % 2 ? white : colour, Math.sin(a) * 1.3, 1.5, Math.cos(a) * 1.3, Math.PI, a, 0);
+    put(g, new THREE.CircleGeometry(0.22, 6, 0, Math.PI), i % 2 ? white : colour, Math.sin(a) * 1.3, 1.5, Math.cos(a) * 1.3, 0, a, Math.PI);   // flipped in its own plane, so it hangs flat round the rim
   }
   const flag = pennant(ctx, 0.9, 0.7);
   flag.group.position.y = 2.85;

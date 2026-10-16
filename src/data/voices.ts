@@ -8,7 +8,6 @@
 // rumour about the speaker's own family.
 
 import type { GiftKind } from "./items.ts";
-import { KING_WRIT } from "./king.ts";
 
 export type Voice = "warm" | "gruff" | "shy" | "chatty" | "dreamy" | "plain";
 
@@ -347,11 +346,9 @@ export const GIFT = {
   ] as readonly GiftLine[],
   /** From a guard who's got used to you. */
   guard: [{ say: "Here, take this bread. The cook's spare. Don't tell the sergeant.", gives: "loaf" }] as readonly GiftLine[],
-  /** The King's writ, at the end of his audience (src/data/king.ts). */
-  king: [KING_WRIT] as readonly GiftLine[],
 };
 
 /** What each gift line hands over, by the line itself: how a conversation knows a line is a gift. */
 export const GIFT_OF: ReadonlyMap<string, GiftKind> = new Map(
-  [...GIFT.work.flatMap(([, lines]) => lines), ...GIFT.fond, ...GIFT.kid, ...GIFT.guard, ...GIFT.king].map(l => [l.say, l.gives]),
+  [...GIFT.work.flatMap(([, lines]) => lines), ...GIFT.fond, ...GIFT.kid, ...GIFT.guard].map(l => [l.say, l.gives]),
 );

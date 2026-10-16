@@ -94,7 +94,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     const occluders = built.flatMap(b => b.occluders);
     compactScenery(scenery, occluders.map(o => o.object), animated, [terrain.group]);
     occlusion.set(occluders, terrain.trees);
-    koi.setMap(layout.map);
+    koi.setMap(layout.map, layout.props);
     targetRing.setProps(props);
     ambient.setMap(layout.map, !!def.life?.ambient);
     const p = g.world.need(g.player, "transform");

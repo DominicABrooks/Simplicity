@@ -161,7 +161,9 @@ export function buildCurtainWall(ctx: RenderContext, parent: THREE.Group, p: Pro
     const rail = new THREE.Mesh(box(len, 0.35, 0.2), stone);
     rail.position.set(0, H + 0.175, -outSide * (D / 2 - 0.1));
     seg.add(body, parapet, teeth, rail);
-    seg.position.set((a.x + b.x) / 2, 0, (a.z + b.z) / 2);
+    // Runs overlap where they meet (a wall's own corners, and where one wall meets another): each heading
+    // (to the nearest eighth of a turn) stands a hair higher than the last, so their tops don't fight there.
+    seg.position.set((a.x + b.x) / 2, 0.01 * ((Math.round(yaw / (Math.PI / 4)) % 4 + 4) % 4), (a.z + b.z) / 2);
     seg.rotation.y = yaw;
     parent.add(seg);
     occluders.push({ object: seg, x0: Math.min(a.x, b.x) - D / 2, x1: Math.max(a.x, b.x) + D / 2, z0: Math.min(a.z, b.z) - D / 2, z1: Math.max(a.z, b.z) + D / 2, height: H + 1.3 });
@@ -251,7 +253,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
       for (const sx of [-1, 1]) mk(0.16, 0.42, 0.04, shutter, sx * 0.25, facing * 0.03);
     } else {
       mk(0.34, 0.42, 0.06, shutter, 0, 0);
-      mk(0.03, 0.42, 0.07, frame, 0, 0);
+      mk(0.03, 0.4, 0.08, frame, 0, 0);                       // the bar between them: a little proud, its top a little under theirs, not flush
     }
     mk(0.44, 0.07, 0.07, frame, 0, 0, y - 0.25);
   };
@@ -265,7 +267,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
     walls.position.set(0, y + h / 2, out / 2);
     g.add(walls);
     if (floor > 0) {
-      const beam = new THREE.Mesh(box(w, 0.1, 0.08), frame);
+      const beam = new THREE.Mesh(box(w + 0.02, 0.1, 0.08), frame);   // its ends a hair past the walls', not flush with them
       beam.position.set(0, y + 0.02, d / 2 + out + 0.02);
       g.add(beam);
     }
@@ -311,7 +313,7 @@ export function buildHouse(ctx: RenderContext, parent: THREE.Group, p: PropOf<"h
   // A shop: the ground floor's front open over a counter of goods, the shutter propped up as an awning.
   if (p.shop) {
     const sw = Math.max(1.2, w - 1.6), sx = -w / 2 + 0.3 + sw / 2;
-    const dark = new THREE.Mesh(box(sw, 0.95, 0.05), basic("#2a1e16"));
+    const dark = new THREE.Mesh(box(sw - 0.02, 0.95, 0.05), basic("#2a1e16"));   // its ends just inside the counter's, not flush
     dark.position.set(sx, 0.95, front);
     const counter = new THREE.Mesh(box(sw, 0.55, 0.4), lambert(WOOD));
     counter.position.set(sx, 0.275, front + 0.2);
@@ -414,7 +416,8 @@ export function buildKeep(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ke
   g.add(hall);
   // Battlements round the hall's roof.
   for (const z of [d / 2 - 0.2, -d / 2 + 0.2]) { const m = merlons(w, H, 0.4, stone); m.position.z = z; g.add(m); }
-  for (const x of [w / 2 - 0.2, -w / 2 + 0.2]) { const m = merlons(d, H, 0.4, stone); m.rotation.y = Math.PI / 2; m.position.x = x; g.add(m); }
+  // (The sides' stop short of the corners, which the front's and back's already have: overlapping there, their tops fought.)
+  for (const x of [w / 2 - 0.2, -w / 2 + 0.2]) { const m = merlons(d - 0.8, H, 0.4, stone); m.rotation.y = Math.PI / 2; m.position.x = x; g.add(m); }
   // The great tower and its spire.
   const ds = Math.min(w, d) * 0.45, dh = H * 0.85, sh = H * 0.75;
   const donjon = new THREE.Mesh(tiledBox(ds, dh, ds * 0.85, 0.8), stone);

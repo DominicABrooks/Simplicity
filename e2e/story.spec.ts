@@ -1,11 +1,11 @@
 // The story's big beats, played through in the browser: waking in the Witchwood, the road north to Kingsholm,
-// and the King's audience in the Throne Room (the cutscene, his speech, his writ and his task).
+// and the King's audience in the Throne Room (the cutscene, his speech, his watchword and his task).
 import { expect, test, type Page } from "@playwright/test";
-import { KING, KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../src/data/king.ts";
-import { areaId, bag, clickOn, expectToast, find, hold, journey, placeHero, play, readConversation, startGame, toasts, travel, waitFor } from "./game.ts";
+import { WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
+import { KING, KING_AGAIN, KING_AUDIENCE, KINGS_TASK, WATCHWORD } from "../src/data/king.ts";
+import { areaId, clickOn, expectToast, find, hold, journey, placeHero, play, readConversation, startGame, toasts, travel, waitFor } from "./game.ts";
 
 const ROAD_TO_THE_KING = ["kingsroad", "capital", "castle", "throneroom"];
-const WRIT = "The King's Writ";
 const inCutscene = (page: Page) => page.locator("body.in-cutscene");
 
 test("the title screen gives way to the hero waking in the Witchwood", async ({ page }) => {
@@ -35,7 +35,7 @@ test("the road north: through the cave, over the King's Bridge, the city, the ca
 });
 
 test.describe("the King's audience", () => {
-  test("plays as a cutscene: control taken, walked up the carpet, the speech, the writ and the task", async ({ page }) => {
+  test("plays as a cutscene: control taken, walked up the carpet, the speech, the watchword and the task", async ({ page }) => {
     await startGame(page);
     await journey(page, ...ROAD_TO_THE_KING);
 
@@ -53,30 +53,28 @@ test.describe("the King's audience", () => {
     const king = (await find(page, "king"))!, hero = await page.evaluate(() => ({ ...window.simplicity.hero() }));
     expect(Math.hypot(king.x - hero.x, king.y - hero.y)).toBeLessThan(40);
 
-    // The scene ends: control back, the writ in the bag, and the task.
+    // The scene ends: control back, and the task.
     await expect(inCutscene(page)).toHaveCount(0);
-    expect(await bag(page)).toContain(WRIT);
     await expectToast(page, KINGS_TASK);
     await hold(page, "s", 0.5);
     const free = await page.evaluate(() => ({ ...window.simplicity.hero() }));
     expect(Math.hypot(free.x - hero.x, free.y - hero.y)).toBeGreaterThan(3);
   });
 
-  test("Escape skips it, and still hands over the writ and the task", async ({ page }) => {
+  test("Escape skips it, and still sets the task", async ({ page }) => {
     await startGame(page);
     await journey(page, ...ROAD_TO_THE_KING);
     await expect(inCutscene(page)).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(inCutscene(page)).toHaveCount(0);
     await expect(page.locator("#dialogue")).toBeHidden();
-    expect(await bag(page)).toContain(WRIT);
     await expectToast(page, KINGS_TASK);
     // He's where the scene would have walked him: before the King.
     const king = (await find(page, "king"))!, hero = await page.evaluate(() => ({ ...window.simplicity.hero() }));
     expect(Math.hypot(king.x - hero.x, king.y - hero.y)).toBeLessThan(40);
   });
 
-  test("plays once: going back in, there's no scene, one writ, and the King tells him to get on with it", async ({ page }) => {
+  test("plays once: going back in, there's no scene, and the King tells him to get on with it", async ({ page }) => {
     await startGame(page);
     await journey(page, ...ROAD_TO_THE_KING);
     await page.keyboard.press("Escape");
@@ -85,7 +83,6 @@ test.describe("the King's audience", () => {
     await journey(page, "castle", "throneroom");
     await play(page, 1);
     await expect(inCutscene(page)).toHaveCount(0);
-    expect((await bag(page)).filter(n => n === WRIT)).toHaveLength(1);
 
     // Up to the King and click on him.
     const king = (await find(page, "king"))!;
@@ -111,8 +108,62 @@ test.describe("the King's audience", () => {
     await waitFor(page, () => window.simplicity.game.area.def.id === "witchwood");
     await page.keyboard.up("r");
     await waitFor(page, () => window.simplicity.game.state === "play");
-    expect(await bag(page)).not.toContain(WRIT);
     await journey(page, ...ROAD_TO_THE_KING);
     await expect(inCutscene(page)).toBeVisible();
+  });
+});
+
+test.describe("the woodwardens' barricade", () => {
+  /** Up to a warden, click on them, and hear them out: they hand over the paper. */
+  async function askedForIt(page: Page): Promise<string[]> {
+    const warden = await page.evaluate(name => {
+      const g = window.simplicity.game, hit = g.world.query("targetable", "transform").find(([, c]) => c.targetable.name === name)!;
+      return { id: hit[0], x: hit[1].transform.x, y: hit[1].transform.y };
+    }, WOODWARDEN.name);
+    await placeHero(page, { x: warden.x, y: warden.y - 14 });
+    await play(page, 1.5);                                   // the camera glides after him
+    for (let i = 0; i < 5 && !(await page.locator("#dialogue").isVisible()); i++) {
+      await clickOn(page, warden.id, 1);
+      await play(page, 0.5);
+    }
+    return readConversation(page, WOODWARDEN.name);
+  }
+  /** Into the gate in the barricade: through it to the Ashwild, or turned back. */
+  const tryTheGate = (page: Page) => page.evaluate(() => {
+    const g = window.simplicity.game, exit = g.area.layout.exits.find(e => e.to.area === "ashwild")!;
+    Object.assign(window.simplicity.hero(), { x: exit.rect.x + exit.rect.w / 2 - 4, y: exit.rect.y + exit.rect.h / 2 - 4 });
+  });
+
+  test("hands you paper and a crayon: the wrong word turns you back, the King's watchword lets you through", async ({ page }) => {
+    await startGame(page);
+    await tryTheGate(page);
+    await play(page, 1);
+    expect(await areaId(page)).toBe("witchwood");
+
+    // They ask, and hand over the paper: what he types goes on it, not into walking about.
+    expect(await askedForIt(page)).toEqual([...WARDEN_TALK.ask]);
+    const paper = page.locator("#paper"), crayon = paper.locator(".crayon");
+    await expect(paper).toBeVisible();
+    await expect(crayon).toBeFocused();
+    const before = await page.evaluate(() => ({ ...window.simplicity.hero() }));
+    await crayon.pressSequentially("wasd");
+    await crayon.fill("");
+    await crayon.pressSequentially("Open sesame");
+    expect(await page.evaluate(() => ({ ...window.simplicity.hero() }))).toEqual(before);
+    await crayon.press("Enter");
+    await expect(paper).toBeHidden();
+    const wrong = await readConversation(page, WOODWARDEN.name);
+    expect(wrong[0]).toContain('"Open sesame"? That\'s not it.');
+    await tryTheGate(page);
+    await play(page, 1);
+    expect(await areaId(page)).toBe("witchwood");
+
+    // Again, with the watchword: and through the gate.
+    await askedForIt(page);
+    await crayon.pressSequentially(WATCHWORD.toLowerCase());
+    await paper.getByRole("button", { name: "Hand it back" }).click();
+    expect(await readConversation(page, WOODWARDEN.name)).toEqual([...WARDEN_TALK.right]);
+    await travel(page, "ashwild");
+    expect(await areaId(page)).toBe("ashwild");
   });
 });

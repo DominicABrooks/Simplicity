@@ -1,6 +1,7 @@
 // Areas: the world is a graph of areas joined by exits (caves, for now). Each area is a module in
 // src/areas/ exporting an AreaDef. Only the area you're in is built and in memory; the others are
 // just ids until you travel there (and every area but the home one is downloaded on first visit).
+import type { School } from "../data/enemies.ts";
 import type { CurioId } from "../data/items.ts";
 import type { Rect } from "../data/world.ts";
 import type { Point } from "./collision.ts";
@@ -13,12 +14,13 @@ export interface Destination {
 }
 
 /**
- * Walk into `rect` to travel to `to`. A door `locked` with a curiosity (the Rusted Key) opens for whoever carries it,
- * and stays open: see src/game/undercroft.ts.
+ * Walk into `rect` to travel to `to`; if it `needs` the King's watchword, only once the hero has written it for the wardens. A door
+ * `locked` with a curiosity (the Rusted Key) opens for whoever carries it, and stays open: see src/game/curios.ts.
  */
 export interface ExitDef {
   rect: Rect;
   to: Destination;
+  needs?: "watchword";
   locked?: CurioId;
 }
 
@@ -134,6 +136,8 @@ export type Prop =
   | { kind: "bunting"; from: Point; to: Point; height: number; masts?: boolean }
   /** A tall pole flying a banner. */
   | { kind: "standard"; x: number; y: number }
+  /** An iron street lamp on a post, dark by day, lit at dusk by the lamplighter (see src/game/lamps.ts). */
+  | { kind: "lamp"; x: number; y: number }
   /** Flagstones over a rect, with a kerb round the edge and rings of paving round `centre` (not solid). */
   | { kind: "plaza"; rect: Rect; centre: Point }
   // What you'd find in a castle (src/render/castle.ts). Long things lie along their rect's long side.
@@ -146,8 +150,16 @@ export type Prop =
   | { kind: "tomb"; x: number; y: number; facing: Facing; effigy: boolean }
   /** A ring of `stones` old grey standing stones, `radius` tiles out, the `gap`th (from the north, clockwise) missing. */
   | { kind: "stoneRing"; x: number; y: number; radius: number; stones: number; gap: number }
-  /** A guard at their post, keeping watch toward `facing`. A game entity (a friendly target), not scenery. */
-  | { kind: "guard"; x: number; y: number; facing: Facing }
+  /** A barricade of sharpened stakes across a trail, open only at its gate: `gate` tiles from its west end, `gateW` wide. */
+  | { kind: "barricade"; rect: Rect; gate: number; gateW: number }
+  /** A cold crack in the ground, `len` tiles long, turned `angle` (a game angle): where the dark gets in. Not solid. */
+  | { kind: "crack"; x: number; y: number; len: number; angle: number }
+  /** A boss's arena (see src/world/arena.ts): a scorched ritual circle `radius` tiles across, ringed by `pillars` burnt standing stones, the `gap`th (from the north, clockwise) left out for the way in. */
+  | { kind: "arena"; x: number; y: number; radius: number; pillars: number; gap: number }
+  /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
+  | { kind: "boss"; x: number; y: number; who: "cinder" }
+  /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */
+  | { kind: "guard"; x: number; y: number; facing: Facing; name?: string }
   /** A fire bowl on a tripod. */
   | { kind: "brazier"; x: number; y: number }
   /** A practice dummy, its target toward `facing`. */
@@ -202,6 +214,8 @@ export interface AreaLayout {
 export interface AreaLife {
   /** Slimes and mages, topped up over time. */
   enemies: boolean;
+  /** Which mages come, from the start rather than after a few kills, and how many more than usual. */
+  mages?: { schools: readonly School[]; extra?: number };
   /** Potions scattered on arrival. */
   potions: boolean;
   /** Critters and grass, reeds and mushrooms. */

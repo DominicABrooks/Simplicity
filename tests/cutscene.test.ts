@@ -1,16 +1,15 @@
 // The King's audience as a cutscene: the first time the hero walks into the Throne Room, the scene takes over,
-// walks him up the carpet, the King has his say and hands over his writ, and then the hero's his own again.
+// walks him up the carpet, the King has his say and tells him the watchword, and then the hero's his own again.
 import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import type { Entity } from "../src/core/ecs.ts";
 import { SCENES } from "../src/data/cutscenes.ts";
-import { KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../src/data/king.ts";
+import { KING_AGAIN, KING_AUDIENCE, KING_WATCHWORD, KINGS_TASK } from "../src/data/king.ts";
 import { cutscene, holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { advanceTalk, startTalk, talking, updateTalk } from "../src/game/talk.ts";
 import { enterArea } from "../src/game/travel.ts";
-import { makeItem } from "../src/items/items.ts";
 
 const DT = 1 / 30;
 const audience = SCENES.find(s => s.id === "audience")!;
@@ -40,7 +39,6 @@ function hearHimOut(g: Game): string[] {
   for (let t = 0; t < 10 && cutscene(g); t += DT) frame(g);
   return heard;
 }
-const writs = (g: Game) => g.inventory.grid.filter(e => e.item.name === "The King's Writ").length;
 
 describe("the King's audience", () => {
   it("plays the first time the hero walks into the Throne Room", async () => {
@@ -57,17 +55,15 @@ describe("the King's audience", () => {
     expect(g.input.attackPressed).toBe(false);
   });
 
-  it("walks him up the carpet to stand before the King, who then says his piece and hands over his writ", async () => {
+  it("walks him up the carpet to stand before the King, who then says his piece and tells him the watchword", async () => {
     const { g, king, toasts } = await intoTheThroneRoom();
     const hero = g.world.need(g.player, "transform"), at = g.world.need(king, "transform"), start = hero.y;
     untilSpeech(g);
     expect(hero.y).toBeLessThan(start - 60);                            // a long walk up the hall
     expect(Math.hypot(hero.x - at.x, hero.y - at.y)).toBeCloseTo(audience.beats.find(b => b.approach)!.approach!, 0);
     expect(talking(g)?.name).toBe("King Osric");
-    expect(writs(g)).toBe(0);
     expect(hearHimOut(g)).toEqual([...KING_AUDIENCE]);
-    expect(writs(g)).toBe(1);
-    expect(toasts).toContain("Received The King's Writ");
+    expect(KING_AUDIENCE).toContain(KING_WATCHWORD);
     expect(toasts).toContain(KINGS_TASK);
     expect(cutscene(g)).toBeNull();
   });
@@ -82,7 +78,6 @@ describe("the King's audience", () => {
     Object.assign(g.world.need(g.player, "transform"), { x: at.x, y: at.y + 20 });
     startTalk(g, king);
     expect(KING_AGAIN).toContain(talking(g)!.lines[0]);
-    expect(writs(g)).toBe(1);                                           // and no second writ
   });
 
   it("plays again on a new run", async () => {
@@ -94,24 +89,14 @@ describe("the King's audience", () => {
     expect(cutscene(g)).not.toBeNull();
   });
 
-  it("can be skipped: the writ's given, the task's set, and he's standing before the King", async () => {
+  it("can be skipped: the task's set, and he's standing before the King", async () => {
     const { g, king, toasts } = await intoTheThroneRoom();
     for (let i = 0; i < 20; i++) frame(g);                              // partway in
     skipCutscene(g);
     expect(cutscene(g)).toBeNull();
     expect(talking(g)).toBeNull();
-    expect(writs(g)).toBe(1);
     expect(toasts).toContain(KINGS_TASK);
     const hero = g.world.need(g.player, "transform"), at = g.world.need(king, "transform");
     expect(Math.hypot(hero.x - at.x, hero.y - at.y)).toBeLessThan(30);
-  });
-
-  it("puts the writ down at his feet if his bag's full", async () => {
-    const { g } = await intoTheThroneRoom();
-    while (g.inventory.add(makeItem("ring")));
-    skipCutscene(g);
-    expect(writs(g)).toBe(0);
-    const dropped = g.world.query("pickup").filter(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === "The King's Writ");
-    expect(dropped).toHaveLength(1);
   });
 });
