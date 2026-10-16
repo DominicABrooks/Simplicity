@@ -18,6 +18,8 @@ import { DARK_WOOD, IRON, type PropOf } from "./town.ts";
 import type { EntityView } from "./views.ts";
 import { sealOpen } from "../game/undercroft.ts";
 import { stitchesMended } from "../game/sealchamber.ts";
+import { cutscene } from "../game/cutscene.ts";
+import { EYE_BEATS } from "../data/cutscenes.ts";
 
 const STONE = "#8f8a80", PALE_STONE = "#b9b2a4", EFFIGY = "#cbc4b6", AEL = "#7fd8c4";
 
@@ -520,7 +522,7 @@ const SNAPPED = [1, 4];
  * three fires' colours: two snapped, their ends lifted, dim, and in the crack's widest stretch an eye, pale and not
  * Ael's colour, looking up; till the burning pendant pulls them tight, when they're whole and bright and the eye shuts.
  */
-interface StitchesView { group: THREE.Group; whole: THREE.Mesh[]; broken: THREE.Group; eye: THREE.Group; eyeGlow: THREE.MeshBasicMaterial; light: THREE.PointLight; bars: THREE.MeshBasicMaterial[]; shut: number }
+interface StitchesView { group: THREE.Group; whole: THREE.Mesh[]; broken: THREE.Group; eye: THREE.Group; pupil: THREE.Mesh; eyeGlow: THREE.MeshBasicMaterial; light: THREE.PointLight; bars: THREE.MeshBasicMaterial[]; shut: number; lid: number }
 export const stitches: EntityView<StitchesView> = {
   create(ctx, _e, g) {
     const group = new THREE.Group(), broken = new THREE.Group(), eye = new THREE.Group(), whole: THREE.Mesh[] = [];
@@ -534,11 +536,13 @@ export const stitches: EntityView<StitchesView> = {
       }
     }
     group.add(broken);
-    const eyeGlow = ctx.glow("#c6b4ff", { transparent: true, opacity: 0.7 }), mid = crackSegments()[2]!;
-    put(eye, box(0.42, 0.02, 0.09), eyeGlow, 0, 0, 0);
-    put(eye, box(0.08, 0.025, 0.1), ctx.basic("#120a1c"), 0, 0.005, 0);   // its pupil
-    eye.position.set(mid.x, 0.09, mid.z);
-    eye.rotation.y = mid.yaw;
+    // The eye sits where the crack's two widest stretches meet, under the middle of it (where its scene looks).
+    const eyeGlow = ctx.glow("#c6b4ff", { transparent: true, opacity: 0.7 }), [a, b] = [crackSegments()[2]!, crackSegments()[3]!];
+    put(eye, box(0.72, 0.02, 0.16), eyeGlow, 0, 0, 0);
+    const pupil = put(eye, box(0.11, 0.025, 0.17), ctx.basic("#120a1c"), 0, 0.005, 0);
+    eye.position.set(0, 0.09, 1.32);
+    eye.rotation.y = (a.yaw + b.yaw) / 2;
+    const mid = { x: 0, z: 1.32 };
     group.add(eye);
     const light = new THREE.PointLight("#9a86e8", 0.8, 2.6, 1.6);
     light.position.set(mid.x, 0.4, mid.z);
@@ -547,7 +551,7 @@ export const stitches: EntityView<StitchesView> = {
     if (nest) group.position.set(nest.x / T, 0, nest.y / T);
     ctx.scene.add(group);
     const shut = stitchesMended(g) ? 1 : 0;
-    return { group, whole, broken, eye, eyeGlow, light, bars, shut };
+    return { group, whole, broken, eye, pupil, eyeGlow, light, bars, shut, lid: 0 };
   },
   update(_ctx, v, _e, g, f) {
     const mended = stitchesMended(g);
@@ -555,8 +559,21 @@ export const stitches: EntityView<StitchesView> = {
     v.broken.visible = !mended;
     v.whole.forEach((m, i) => { m.visible = mended || !SNAPPED.includes(i); });
     for (const b of v.bars) b.opacity = mended ? 0.95 : 0.4 + Math.sin(f.t * 3) * 0.12;
-    const look = 1 - ease(v.shut);
-    v.eye.scale.set(1, 1, Math.max(0.01, look * (0.8 + Math.sin(f.t * 0.7) * 0.2)));
+    // The eye: in its scene, shut, then opening, then searching along the crack (past him, back) and narrowing; after,
+    // narrowed, drifting. Shut for good once the stitches are tight.
+    const scene = cutscene(g), seen = scene?.scene === "eye" ? scene : null;
+    let lid = 0.45 + Math.sin(f.t * 0.7) * 0.08, pupil = Math.sin(f.t * 0.4) * 0.08;
+    if (seen && seen.beat === 0) lid = 0;
+    if (seen && seen.beat === 1) lid = ease(Math.min(1, seen.t / EYE_BEATS.open));
+    if (seen && seen.beat === 2) {
+      const k = seen.t / EYE_BEATS.search, sweep = Math.min(1, k / 0.65);
+      pupil = Math.sin(sweep * Math.PI * 2) * 0.26 * (1 - sweep * 0.3);
+      lid = k < 0.65 ? 1 : 1 - ease(Math.min(1, (k - 0.65) / 0.25)) * 0.55;
+    }
+    v.lid += (lid - v.lid) * Math.min(1, f.dt * 12);
+    v.pupil.position.x = pupil;
+    const look = (1 - ease(v.shut)) * v.lid;
+    v.eye.scale.set(1, 1, Math.max(0.01, look));
     v.eye.visible = look > 0.02;
     v.eyeGlow.opacity = 0.7 * look;
     v.light.intensity = 0.8 * look;

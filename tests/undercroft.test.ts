@@ -15,6 +15,7 @@ import { lastStone, stoneSystem, touchStone, wakeOnStone } from "../src/game/sto
 import { chargePendant, pendantCharge, pendantCharged } from "../src/game/pendant.ts";
 import { sealOf, sealOpen, socketOf } from "../src/game/undercroft.ts";
 import { crackAt, nestAt, stitchesMended } from "../src/game/sealchamber.ts";
+import { cutscene, holdInput, skipCutscene, updateCutscene } from "../src/game/cutscene.ts";
 import { CLUES } from "../src/data/clues.ts";
 import { makeCurio } from "../src/items/items.ts";
 import { step } from "../src/systems/index.ts";
@@ -330,5 +331,34 @@ describe("the crack in the deep places", () => {
     step(g, DT);
     expect(toasts).not.toContain(CHAMBER_SAYS.unworn);
     expect(toasts).not.toContain(CHAMBER_SAYS.nest[0]);
+  });
+});
+
+/** A frame as the game plays it, with the cutscene's part (src/main.ts). */
+const frame = (g: Game) => { holdInput(g); step(g, DT); updateCutscene(g, DT); };
+
+describe("the eye, the first time in", () => {
+  it("plays once as he comes in: he's held while the camera goes down to the eye and back, then he's free", async () => {
+    const { g } = await at("sealchamber", "door");
+    frame(g);
+    frame(g);
+    expect(cutscene(g)?.scene).toBe("eye");
+    const from = { ...hero(g) };
+    g.input.keys.add("KeyW");
+    for (let t = 0; t < 6; t += DT) { g.input.keys.add("KeyW"); frame(g); if (!cutscene(g)) break; }
+    expect(cutscene(g)).toBeNull();
+    expect({ x: hero(g).x, y: hero(g).y }).toEqual({ x: from.x, y: from.y });
+    expect(stitchesMended(g)).toBe(false);
+    enterArea(g, await loadArea("undercroft"), "seal");
+    enterArea(g, await loadArea("sealchamber"), "door");
+    frame(g); frame(g);
+    expect(cutscene(g)).toBeNull();
+  });
+
+  it("can be skipped", async () => {
+    const { g } = await at("sealchamber", "door");
+    frame(g); frame(g);
+    skipCutscene(g);
+    expect(cutscene(g)).toBeNull();
   });
 });

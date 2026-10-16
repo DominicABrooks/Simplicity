@@ -71,7 +71,9 @@ Behind it, **the deep places** (`src/areas/sealchamber.ts`, `src/game/sealchambe
 lock on somebody else's door (HISTORY.md, and the Erl-King says so): the somebody else's door is the crack across
 this floor. The Old Mother laid her eggs right on top of it to hold it shut; with them gone, only the Vael's
 stitches across it hold it, in the three fires' colours, and two have snapped, an eye under it, pale and not Ael's
-colour, looking up. Walk up to the crack wearing the pendant and Ael's warmth runs down into the stitches: they pull
+colour, looking up. The first time in, a wordless scene (`eye` in `src/data/cutscenes.ts`): the camera eases down
+over the crack, the eye opens and searches along it, past the hero and back (it can't see him, the Erl-King says;
+it finds only warmth), and narrows. Walk up to the crack wearing the pendant and Ael's warmth runs down into the stitches: they pull
 tight and the eye shuts, for now (not worn, it says something of Ael's would know how). So opening the lock makes
 the seal stronger, not weaker. Then the stone nest, gilt still in its three hollows, a bowl of milk beside it, two
 Vael lamps, the Song of the Seal on three slabs against the back wall; walking up to the nest tells what it was

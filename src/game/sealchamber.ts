@@ -7,6 +7,7 @@ import { CHAMBER, CHAMBER_SAYS } from "../data/undercroft.ts";
 import { HALF, T } from "../data/world.ts";
 import { makeItem } from "../items/items.ts";
 import { toast, type Game } from "./game.ts";
+import { cutscene } from "./cutscene.ts";
 import { wearingPendant } from "./pendant.ts";
 import { sound } from "./sfx.ts";
 import { dropLoot } from "./spawn.ts";
@@ -40,6 +41,7 @@ export function sealChamberSystem(g: Game): void {
   if (!g.world.query("renderable").some(([, c]) => c.renderable.kind === "stitches")) {
     g.world.create({ transform: crackAt(), renderable: { kind: "stitches" } });   // drawn by src/render/undercroft.ts
   }
+  if (cutscene(g)) return;                                   // the eye's scene: he only watches
   const p = g.world.need(g.player, "transform"), nest = nestAt(), crack = crackAt();
   if (!run.mended && Math.hypot(p.x - crack.x, p.y - crack.y) < CHAMBER.crack) {
     if (wearingPendant(g)) {

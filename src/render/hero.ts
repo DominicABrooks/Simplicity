@@ -354,7 +354,7 @@ export function createHeroView(ctx: RenderContext): HeroView {
       // Aim marker on the ground, a short way out along the aim.
       reticle.position.set(px + Math.cos(m.aim) * 1.4, MARKER_Y, pz + Math.sin(m.aim) * 1.4);
       reticle.rotation.y = -m.aim;
-      reticle.visible = !m.swimming && !(status.sheep > 0) && g.state !== "credits";   // nothing to aim at in the credits
+      reticle.visible = !m.swimming && !(status.sheep > 0) && g.state !== "credits" && !g.world.has(g.player, "cutscene");   // nothing to aim at in the credits, or a scene
     },
   };
 }
