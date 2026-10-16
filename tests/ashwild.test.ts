@@ -8,6 +8,7 @@ import { area as witchwood } from "../src/areas/witchwood.ts";
 import { CINDER, CINDER_FALLS, WARDEN_TALK, WOODWARDEN } from "../src/data/ashwild.ts";
 import { WATCHWORD } from "../src/data/king.ts";
 import { beaten, bossSystem } from "../src/game/bosses.ts";
+import { cinderFightSystem } from "../src/game/cinderfight.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
@@ -126,6 +127,12 @@ describe("the Ashwild", () => {
     return g;
   }
   const cinder = (g: Game) => g.world.query("targetable", "health").find(([, c]) => c.targetable.name === CINDER.name);
+  /** Walk in among the arena's stones (where the fire shuts and he comes out). */
+  function stepIn(g: Game) {
+    Object.assign(g.world.need(g.player, "transform"), { x: CINDER_AT.x, y: CINDER_AT.y + 20 });
+    cinderFightSystem(g, 1 / 60);
+    return cinder(g);
+  }
 
   it("is ash woods, back up the trail to the Witchwood", () => {
     const layout = ashwild.build();
@@ -141,9 +148,18 @@ describe("the Ashwild", () => {
     expect([...schools]).toEqual(["ember"]);
   });
 
-  it("has Cinder waiting at the Greyed's camp: tougher than any mage, and quicker", async () => {
+  it("has Cinder waiting at the Greyed's camp, out of sight until you step in among the stones", async () => {
     const g = await inAshwild();
-    const [e, { health }] = cinder(g)!;
+    expect(cinder(g)).toBeUndefined();
+    Object.assign(g.world.need(g.player, "transform"), { x: CINDER_AT.x, y: CINDER_AT.y + 80 });   // just outside them
+    cinderFightSystem(g, 1 / 60);
+    expect(cinder(g)).toBeUndefined();
+    expect(stepIn(g)).toBeDefined();
+  });
+
+  it("brings Cinder out into the middle: tougher than any mage, and quicker", async () => {
+    const g = await inAshwild();
+    const [e, { health }] = stepIn(g)!;
     expect(health.maxHp).toBe(CINDER.hp);
     expect(g.world.need(e, "transform")).toMatchObject(CINDER_AT);
     const m = g.world.need(e, "mage");
@@ -155,7 +171,7 @@ describe("the Ashwild", () => {
   it("once beaten, stays beaten for the run, leaving a fine weapon and the news; a new run brings him back", async () => {
     const g = await inAshwild(), toasts: string[] = [];
     g.events.on("toast", ({ text }) => toasts.push(text));
-    const [e, { health }] = cinder(g)!;
+    const [e, { health }] = stepIn(g)!;
     health.hp = 0;
     bossSystem(g, 1 / 60);
     deathSystem(g);
@@ -164,14 +180,15 @@ describe("the Ashwild", () => {
     expect(g.world.query("pickup").some(([, { pickup }]) => pickup.kind === "loot" && pickup.item.slot === "weapon" && pickup.item.rarity === "rare")).toBe(true);
     expect(g.world.has(e, "transform")).toBe(false);
     enterArea(g, await loadArea("ashwild"), "witchwood");
-    expect(cinder(g)).toBeUndefined();
+    expect(stepIn(g)).toBeUndefined();
     resetGame(g);
     enterArea(g, await loadArea("ashwild"), "witchwood");
-    expect(cinder(g)).toBeDefined();
+    expect(stepIn(g)).toBeDefined();
   });
 
   it("isn't counted beaten just because you left", async () => {
     const g = await inAshwild();
+    stepIn(g);
     enterArea(g, await loadArea("witchwood"), "ashwild");
     bossSystem(g, 1 / 60);
     expect(beaten(g, "cinder")).toBe(false);

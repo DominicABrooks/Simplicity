@@ -23,7 +23,7 @@ export const LAIRS = {
     area: "ashwild", entry: "witchwood", ready: CINDER_READY,
     stage(g) {
       const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "cinder")!;
-      return { x: at.x - HALF, y: at.y - HALF + 5 * T };
+      return { x: at.x - HALF, y: at.y - HALF + 4 * T };     // in among the stones: the fire shuts, and out he comes
     },
   },
   /** The Grey Ringer, in St Mary's churchyard: made night, and up she comes, rumour or none (src/game/ghost.ts). */

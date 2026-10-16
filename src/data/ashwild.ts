@@ -51,7 +51,7 @@ export const CINDER = {
 
 /**
  * Cinder's fight, in his arena (src/game/cinderfight.ts). Step in among the stones and fire leaps up between
- * them: there's no way out until one of you falls. Then the ground erupts under you, a few spots at a time
+ * them, and Cinder steps out of it: there's no way out until one of you falls. Then the ground erupts under you, a few spots at a time
  * (each marked a moment before it goes up, then burning a while after: dash or jump clear), and every so
  * often a wall of fire sweeps across the circle from one side to the other (jump it, or dash through).
  * Below half health he's angry, and all of it comes faster. Distances in game px, times in seconds.
@@ -75,6 +75,7 @@ export const CINDER_FIGHT = {
   },
   say: {
     shut: "Fire leaps up between the stones! There's no way out.",
+    rise: "Cinder steps out of the flames.",
     beam: "Cinder sweeps a wall of fire across the circle!",
     open: "The fire between the stones gutters out.",
   },

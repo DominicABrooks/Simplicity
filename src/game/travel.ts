@@ -6,7 +6,7 @@ import { FACING_ANGLE, type AreaDef } from "../world/area.ts";
 import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { doorStep } from "../world/townkit.ts";
-import { leaveBosses, spawnBoss } from "./bosses.ts";
+import { awaitBoss, leaveBosses } from "./bosses.ts";
 import { spawnBed, spawnTent } from "./sleeping.ts";
 import { lockedOut } from "./undercroft.ts";
 import { passedBarricade, wardenStops, wardenSystem } from "./watchword.ts";
@@ -40,7 +40,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
     if (prop.kind === "camp") { spawnCampfire(g, prop.fire.x, prop.fire.y); if (prop.tent) spawnTent(g, prop.tent); }
     if (prop.kind === "furniture" && prop.item === "bed") spawnBed(g, prop);
     if (prop.kind === "guard") spawnGuard(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing], prop.name);
-    if (prop.kind === "boss") spawnBoss(g, prop.who, prop.x - HALF, prop.y - HALF);
+    if (prop.kind === "boss") awaitBoss(g, prop.who, prop.x - HALF, prop.y - HALF);
     if (prop.kind === "king") spawnKing(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
     if (prop.kind === "dummy" || prop.kind === "target") spawnTraining(g, prop.kind === "dummy" ? "dummy" : "butt", prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
   }

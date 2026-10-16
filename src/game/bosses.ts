@@ -1,4 +1,5 @@
-// The Greyed's named lieutenants, waiting where the story puts them (a "boss" prop, see src/areas/). Cinder,
+// The Greyed's named lieutenants, waiting where the story puts them (a "boss" prop, see src/areas/), and
+// summoned only when their fight starts (Cinder's: src/game/cinderfight.ts). Cinder,
 // in the Ashwild, is an Ember mage underneath (src/systems/mage.ts runs him; he has a body all his own), only far tougher,
 // and hurried along here: his casts, sheep orbs and blinks come back faster. Beat him and he stays beaten
 // for the run; he always leaves a fine weapon behind; and the game says so.
@@ -14,15 +15,22 @@ import { toast, type Game } from "./game.ts";
 
 type Who = "cinder";
 
-/** Who's been beaten this run (by name), and the boss in the area now, with where they last stood. */
-interface Bosses { beaten: Set<Who>; here: { e: Entity; who: Who; x: number; y: number } | null }
+/**
+ * Who's been beaten this run (by name); the boss whose lair this area is, waiting to be summoned (no one's
+ * there until the fight starts: see summonBoss); and the boss out in the area now, with where they last stood.
+ */
+interface Bosses {
+  beaten: Set<Who>;
+  lair: { who: Who; x: number; y: number } | null;
+  here: { e: Entity; who: Who; x: number; y: number } | null;
+}
 const state = new WeakMap<Game, Bosses>();
 function bossesOf(g: Game): Bosses {
   let s = state.get(g);
   if (!s) {
-    const fresh: Bosses = { beaten: new Set(), here: null };
+    const fresh: Bosses = { beaten: new Set(), lair: null, here: null };
     state.set(g, s = fresh);
-    g.events.on("reset", () => { fresh.beaten.clear(); fresh.here = null; });
+    g.events.on("reset", () => { fresh.beaten.clear(); fresh.lair = fresh.here = null; });
   }
   return s;
 }
@@ -33,10 +41,24 @@ export const bossHere = (g: Game): Entity | null => state.get(g)?.here?.e ?? nul
 /** Whether the hero has beaten someone this run. */
 export const beaten = (g: Game, who: Who): boolean => bossesOf(g).beaten.has(who);
 
-/** Put a boss where the area wants them, unless they're already beaten. Cell top-left, game px. */
-export function spawnBoss(g: Game, who: Who, x: number, y: number): Entity | null {
+/**
+ * This area's a boss's lair: they'll be summoned at (x, y) (cell top-left, game px) when the fight starts,
+ * unless they're already beaten. Not before: nobody can pick at them from outside their arena.
+ */
+export function awaitBoss(g: Game, who: Who, x: number, y: number): void {
   const s = bossesOf(g);
-  if (s.beaten.has(who)) return null;
+  s.lair = s.beaten.has(who) ? null : { who, x, y };
+}
+
+/** The boss waiting in this area's lair to be summoned, if there's one. */
+export const bossWaiting = (g: Game): Who | null => state.get(g)?.lair?.who ?? null;
+
+/** The fight starts: out comes the boss waiting here, where their lair puts them. */
+export function summonBoss(g: Game): Entity | null {
+  const s = bossesOf(g), lair = s.lair;
+  if (!lair) return null;
+  const { who, x, y } = lair;
+  s.lair = null;
   const e = g.world.create({
     transform: { x, y },
     knockback: { vx: 0, vy: 0 },
@@ -50,6 +72,7 @@ export function spawnBoss(g: Game, who: Who, x: number, y: number): Entity | nul
     renderable: { kind: "cinder" },                         // his own look: see src/render/models/cinder.ts
   });
   s.here = { e, who, x, y };
+  g.fx.push({ type: "burst", x, y, palette: "fire" });
   return e;
 }
 
@@ -83,8 +106,8 @@ export function bossSystem(g: Game, dt: number): void {
   s.here = null;
 }
 
-/** Leaving an area: forget its boss without counting them beaten. */
+/** Leaving an area: forget its boss (and its lair) without counting them beaten. */
 export function leaveBosses(g: Game): void {
   const s = state.get(g);
-  if (s) s.here = null;
+  if (s) s.lair = s.here = null;
 }

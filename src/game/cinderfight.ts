@@ -1,12 +1,14 @@
-// Cinder's fight in his arena (the rules are CINDER_FIGHT, in src/data/ashwild.ts). Once the hero steps in
-// among the stones, fire shuts the circle until one of them falls; then the ground erupts under him a few
+// Cinder's fight in his arena (the rules are CINDER_FIGHT, in src/data/ashwild.ts). He isn't there until the
+// hero steps in among the stones: then fire shuts the circle, Cinder steps out of it into the middle, and
+// nobody leaves until one of them falls (so there's no picking at him from outside, or slipping out to heal).
+// Then the ground erupts under the hero a few
 // spots at a time, and walls of fire sweep across the circle for him to jump. Drawn by the blaze view
 // (src/render/blaze.ts), on an entity made for the fight at the circle's middle.
 import type { Entity } from "../core/ecs.ts";
 import { CINDER_FIGHT as F } from "../data/ashwild.ts";
 import { HALF } from "../data/world.ts";
 import type { Transform } from "./components.ts";
-import { beaten, bossHere } from "./bosses.ts";
+import { beaten, bossHere, bossWaiting, summonBoss } from "./bosses.ts";
 import { isFrozen } from "./cheats.ts";
 import { damagePlayer } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
@@ -46,19 +48,17 @@ export function beamAt(f: CinderFight, b: Beam): number {
   return b.dir === "east" ? f.x + across : b.dir === "west" ? f.x - across : b.dir === "south" ? f.y + across : f.y - across;
 }
 
-/** Every frame: shut the circle when the hero steps in, run the fire while he's in it, open it when Cinder falls. */
+/** Every frame: shut the circle (and summon Cinder) when the hero steps in, run the fire, open it when Cinder falls. */
 export function cinderFightSystem(g: Game, dt: number): void {
   if (!listening.has(g)) { listening.add(g); g.events.on("reset", () => fights.delete(g)); }
-  const cinder = bossHere(g), f = fights.get(g);
-  const alive = cinder !== null && (g.world.get(cinder, "health")?.hp ?? 0) > 0;
-  if (f && !alive) { open(g, f, beaten(g, "cinder")); return; }
-  if (!alive) return;
-  const fight = f ?? shut(g);
-  if (!fight) return;
-  run(g, fight, cinder, dt);
+  const f = fights.get(g);
+  if (!f) { if (bossWaiting(g) === "cinder") shut(g); return; }
+  const cinder = bossHere(g);
+  if (cinder === null || (g.world.get(cinder, "health")?.hp ?? 0) <= 0) { open(g, f, beaten(g, "cinder")); return; }
+  run(g, f, cinder, dt);
 }
 
-/** The hero's far enough in among the stones: up goes the fire. */
+/** The hero's far enough in among the stones: up goes the fire, and out of it steps Cinder. */
 function shut(g: Game): CinderFight | null {
   const arena = g.area.layout.props.find(p => p.kind === "arena");
   if (arena?.kind !== "arena") return null;
@@ -70,6 +70,8 @@ function shut(g: Game): CinderFight | null {
   g.shake = Math.max(g.shake, 2);
   sound(g, "nova", p);
   toast(g, F.say.shut, true);
+  summonBoss(g);
+  toast(g, F.say.rise);
   return f;
 }
 
