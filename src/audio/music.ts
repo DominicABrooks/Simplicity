@@ -1,9 +1,10 @@
 // Plays the music (src/data/music.ts) with WebAudio, a half-beat at a time, a little ahead of the clock. The tune is
 // made up as it goes: a held chord a bar, a low note under it, now and then a ripple, and a tune that wanders the
 // scale and leans on the chord's notes. Changing area fades one theme out and the next in; the hour and the weather
-// change it gently as it plays. Like the sound effects, it waits for the first click or key press.
+// change it gently as it plays. Like the sound effects, it waits for the first click or key press. N turns it off and
+// on again, and that's remembered for the next visit.
 import { MUSIC_FADE, MUSIC_VOLUME, THEMES, hz, moodOf, noteOf, playing, scaleOf, themeFor, type Playing, type Theme, type ThemeId } from "../data/music.ts";
-import type { Game } from "../game/game.ts";
+import { toast, type Game } from "../game/game.ts";
 
 export interface MusicPlayer {
   /** Keep the music going for the game as it is now: call it every frame. */
@@ -14,17 +15,20 @@ export interface MusicPlayer {
 const LOOKAHEAD = 0.3;
 /** Half-beats a bar. */
 const STEPS = 8;
+/** The key that turns the music off and on, and where that's kept. */
+const MUTE_KEY = "n", STORAGE_KEY = "simplicity.musicOff";
 
 /** What's playing, for looking at from the console. */
-export const nowPlaying: { theme: ThemeId | null; playing: Playing | null } = { theme: null, playing: null };
+export const nowPlaying: { theme: ThemeId | null; playing: Playing | null; muted: boolean } = { theme: null, playing: null, muted: false };
 
 export function createMusicPlayer(): MusicPlayer {
-  let ctx: AudioContext | null = null, filter: BiquadFilterNode | null = null, echo: GainNode | null = null;
+  let ctx: AudioContext | null = null, master: GainNode | null = null, filter: BiquadFilterNode | null = null, echo: GainNode | null = null;
   const unlock = (): void => {
     if (!ctx) {
       ctx = new AudioContext();
-      const master = ctx.createGain(), delay = ctx.createDelay(1), feedback = ctx.createGain();
-      master.gain.value = MUSIC_VOLUME;
+      master = ctx.createGain();
+      const delay = ctx.createDelay(1), feedback = ctx.createGain();
+      master.gain.value = muted ? 0 : MUSIC_VOLUME;
       master.connect(ctx.destination);
       filter = ctx.createBiquadFilter();
       filter.type = "lowpass";
@@ -41,6 +45,17 @@ export function createMusicPlayer(): MusicPlayer {
   };
   addEventListener("pointerdown", unlock);
   addEventListener("keydown", unlock);
+
+  let muted = false, game: Game | null = null;
+  try { muted = localStorage.getItem(STORAGE_KEY) === "1"; } catch { /* storage unavailable */ }
+  addEventListener("keydown", e => {
+    if (e.key.toLowerCase() !== MUTE_KEY || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    muted = !muted;
+    try { localStorage.setItem(STORAGE_KEY, muted ? "1" : "0"); } catch { /* storage unavailable */ }
+    if (ctx && master) master.gain.setTargetAtTime(muted ? 0 : MUSIC_VOLUME, ctx.currentTime, 0.1);
+    if (game) toast(game, muted ? "Music off (N)" : "Music on (N)");
+  });
 
   let id: ThemeId | null = null, out: GainNode | null = null;
   let step = 0, bar = 0, nextAt = 0, tune = 7;
@@ -84,6 +99,8 @@ export function createMusicPlayer(): MusicPlayer {
 
   return {
     update(g) {
+      game = g;
+      nowPlaying.muted = muted;
       if (!ctx || !filter || !echo || ctx.state !== "running") return;
       const now = ctx.currentTime, want = themeFor(g.state, g.area.def);
       if (want !== id) {
@@ -107,6 +124,7 @@ export function createMusicPlayer(): MusicPlayer {
       if (!id) { nowPlaying.playing = null; return; }
       const theme: Theme = THEMES[id], p = playing(theme, moodOf(theme, g.hour, g.weather));
       nowPlaying.playing = p;
+      if (muted) { nextAt = now + 0.05; return; }                    // nothing's laid down while it's off
       filter.frequency.setTargetAtTime(p.bright, now, 1.5);
       echo.gain.setTargetAtTime(p.echo, now, 1.5);
       if (nextAt < now - 0.5) nextAt = now + 0.05;                    // back from a hidden tab: don't play the missed notes all at once

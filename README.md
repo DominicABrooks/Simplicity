@@ -35,6 +35,8 @@ CI runs lint, typecheck, tests and the build on every push and pull request; a p
 
 WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. The buttons in the bottom-right open your inventory (I) and the map (M). Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
 
+**Music:** every area has its own tune, made up as it plays, and it changes with the hour and the weather: slower, lower and darker by night, a drone under the rain, thin and echoing in fog. Press N to turn it off or on again; it remembers.
+
 **Map:** press M (or the map button) for a parchment map of the area you're in, showing where you are and which way you're facing, the camp and the caves.
 
 **Areas:** you start in **Witchwood**. A dirt path leads north from the camp through the woods to a cave; walk in to come out at **the King's Bridge** below **Capital City**, the seat of the kingdom of men and the richest city in it, a city of three districts:
