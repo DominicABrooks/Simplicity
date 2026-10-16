@@ -1,9 +1,9 @@
-// The Great Koi: the very large koi under the Frozen Hollow's ice. Fish through the hole while it's down there and it
+// The Great Koi: the very large koi under the ice in the Koi Grotto. Fish through the hole while it's down there and it
 // takes the line, bursts out through the ice, and has to be fought: leaping and slamming down, spitting freezing water.
 // Landed, it leaves the legendary pole strung with its whisker, which catches better; and the hole gives golden koi.
 import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
-import { ICE_HOLE } from "../src/areas/hollow.ts";
+import { ICE_HOLE } from "../src/areas/grotto.ts";
 import { GREAT_KOI, WHISKER_ROD } from "../src/data/hollow.ts";
 import { CATCH_ODDS, FISH, LEGENDARY_CATCH_ODDS } from "../src/data/items.ts";
 import { FISHING } from "../src/data/player.ts";
@@ -25,7 +25,7 @@ async function atTheHole(rod = makeItem("rod")): Promise<Game> {
   const g = createGame();
   resetGame(g);
   setState(g, "play");
-  enterArea(g, await loadArea("hollow"), "stone");
+  enterArea(g, await loadArea("grotto"), "hollow");
   g.inventory.reset([rod]);
   Object.assign(g.world.need(g.player, "transform"), { x: HOLE.x - 2 * T, y: HOLE.y });
   return g;
@@ -88,7 +88,7 @@ describe("the Great Koi", () => {
     const g = await atTheHole();
     strike(g);
     const [, { transform: k, koi }] = koiOf(g)!, me = g.world.need(g.player, "transform"), health = g.world.need(g.player, "health");
-    Object.assign(me, { x: k.x - 24, y: k.y });               // west, clear of the arena's pillars
+    Object.assign(me, { x: k.x - 24, y: k.y });               // west, out on the ice
     koi.timer = 0; koi.spit = 99;
     greatKoiSystem(g, DT);
     expect(koi.hop).toBeGreaterThan(0);
@@ -114,16 +114,16 @@ describe("the Great Koi", () => {
     expect(bolts.every(([, c]) => c.bolt.kind === "frost")).toBe(true);
   });
 
-  it("keeps everything else away while it's out, and once it's landed, until he leaves and comes back", async () => {
-    const g = await atTheHole();
+  it("has the grotto to itself: nothing else comes in, before it's out, while it's out, or after it's landed", async () => {
+    const g = await atTheHole(), quiet = () => { for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); } };
+    quiet();
+    expect(g.world.count("enemy")).toBe(0);
     strike(g);
-    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    quiet();
     expect(g.world.count("enemy")).toBe(1);
     land(g);
-    for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
+    quiet();
     expect(g.world.count("enemy")).toBe(0);
-    enterArea(g, await loadArea("hollow"), "stone");
-    expect(g.world.count("enemy")).toBeGreaterThan(0);
   });
 
   it("landed, leaves the legendary pole (for good: it doesn't fade), and the hole gives golden koi; a new run puts it back", async () => {
@@ -143,7 +143,7 @@ describe("the Great Koi", () => {
     expect(greatKoiOut(g)).toBeNull();
     resetGame(g);
     setState(g, "play");
-    enterArea(g, await loadArea("hollow"), "stone");
+    enterArea(g, await loadArea("grotto"), "hollow");
     g.inventory.reset([makeItem("rod")]);
     Object.assign(g.world.need(g.player, "transform"), { x: HOLE.x - 2 * T, y: HOLE.y });
     strike(g);

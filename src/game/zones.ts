@@ -35,6 +35,12 @@ export const ZONES: Record<string, Zone> = {
     ready: { level: 6, kit: [CINDERS_BRAND, ...RIME_READY.kit.filter(([type]) => type !== "bow")] },
     passed: g => { passBarricade(g); passYssa(g, "name"); },
   },
+  /** In from the Hollow, kitted as he'd be on first coming down there (the starter kit has the pole). */
+  grotto: {
+    entry: "hollow",
+    ready: { level: 6, kit: [CINDERS_BRAND, ...RIME_READY.kit.filter(([type]) => type !== "bow")] },
+    passed: g => { passBarricade(g); passYssa(g, "name"); },
+  },
   /** Up the frozen stream, with everything from the Hollow: the longbow in hand, Rime's circlet on, Cinder's Brand in the bag. */
   rift: {
     entry: "hollow",

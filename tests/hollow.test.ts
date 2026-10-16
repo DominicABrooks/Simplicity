@@ -1,18 +1,16 @@
 // The Frozen Hollow: always winter, a frozen lake you can walk on, the hollow stone at its entrance (touch it and,
-// falling, you wake there), Frost mages out on the ice, the golden koi through a hole in it, and Rime's stage ready.
+// falling, you wake there), Frost mages out on the ice, Rime's stage ready, trails to everything, and the way into the
+// ice cave under the rim where the koi are (tests/grotto.test.ts).
 import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
-import { HOLLOW_STONE, ICE_HOLE, RIME_AT, area as hollow } from "../src/areas/hollow.ts";
-import { FISH } from "../src/data/items.ts";
+import { GROTTO_MOUTH, HOLLOW_STONE, RIME_AT, area as hollow } from "../src/areas/hollow.ts";
+import { CLIMB } from "../src/data/hollow.ts";
 import { HALF, T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
-import { landGreatKoi } from "../src/game/greatkoi.ts";
 import { lastStone, stoneSystem, wakeOnStone } from "../src/game/stones.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
-import { makeItem } from "../src/items/items.ts";
-import { waterAt } from "../src/systems/fishing.ts";
 import { step } from "../src/systems/index.ts";
 import { arenaPlan } from "../src/world/arena.ts";
 import { blocked, moveBy, tileAt } from "../src/world/collision.ts";
@@ -62,6 +60,41 @@ describe("the Frozen Hollow", () => {
     expect(blocked(layout.map, stage.x + stage.radius * T - HALF, stage.y - HALF, false)).toBe(false);
   });
 
+  it("has no hole in its ice: the koi are fished in the grotto, whose mouth is under the north rim", () => {
+    expect(layout.map.tiles.flat()).not.toContain(Tile.Water);
+    const cave = layout.props.find(p => p.kind === "cave");
+    expect(cave).toMatchObject({ x: GROTTO_MOUTH.x * T, y: GROTTO_MOUTH.y * T, facing: "south" });
+    const exit = layout.exits.find(x => x.to.area === "grotto")!;
+    expect(exit.to).toEqual({ area: "grotto", entry: "hollow" });
+    // Walking up to it from the bowl, he walks into it; coming out, he's just below it, and not in it again.
+    expect(blocked(layout.map, exit.rect.x, exit.rect.y, false)).toBe(false);
+    const back = layout.entries.grotto!;
+    expect(back.y).toBeGreaterThan(exit.rect.y + exit.rect.h);
+    expect(back.y).toBeLessThan(exit.rect.y + 2 * T);
+  });
+
+  it("has trails from the track to the lake shore, the hut door, the cave mouth and the foot of the climb", () => {
+    const { tiles, width: W } = layout.map, path = (x: number, y: number) => tiles[y]?.[x] === Tile.Path;
+    const seen = new Set<number>(), todo = [[W - 1, 17] as [number, number]];
+    while (todo.length) {
+      const [x, y] = todo.pop()!;
+      if (!path(x, y) || seen.has(y * W + x)) continue;
+      seen.add(y * W + x);
+      todo.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    }
+    const on = (x: number, y: number) => seen.has(y * W + x);
+    const near = (test: (x: number, y: number) => boolean) => [...seen].some(i => {
+      const x = i % W, y = Math.floor(i / W);
+      return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => test(x + dx!, y + dy!));
+    });
+    expect(near((x, y) => tiles[y]?.[x] === Tile.Ice)).toBe(true);                         // down to the shore
+    const hut = layout.props.find(p => p.kind === "hall");
+    if (hut?.kind !== "hall") throw new Error("no hut");
+    expect(on(Math.floor((hut.rect.x + hut.rect.w / 2) / T), (hut.rect.y + hut.rect.h) / T)).toBe(true);   // past his door
+    expect(on(GROTTO_MOUTH.x, GROTTO_MOUTH.y + 1) || on(GROTTO_MOUTH.x - 1, GROTTO_MOUTH.y + 1)).toBe(true);
+    expect(on(CLIMB.x, CLIMB.post)).toBe(true);
+  });
+
   it("is hunted by Frost mages only, out on the ice", async () => {
     const g = await inHollow();
     for (let i = 0; i < 200; i++) spawnEnemy(g, 40);
@@ -69,38 +102,6 @@ describe("the Frozen Hollow", () => {
     expect(mages.length).toBeGreaterThan(0);
     expect(new Set(mages.map(([, c]) => c.mage.school))).toEqual(new Set(["frost"]));
     for (const [, { transform: t }] of mages) expect(tileAt(g.map, t.x + HALF, t.y + HALF)).toBe(Tile.Ice);
-  });
-});
-
-describe("the hole in the ice", () => {
-  it("is open water with ice all round it", async () => {
-    const g = await inHollow();
-    const { x: x0, y: y0, w, h } = ICE_HOLE, inside = (x: number, y: number) => x >= x0 && x < x0 + w && y >= y0 && y < y0 + h;
-    for (let y = y0 - 1; y <= y0 + h; y++) for (let x = x0 - 1; x <= x0 + w; x++) {
-      const corner = (x < x0 || x >= x0 + w) && (y < y0 || y >= y0 + h);
-      if (!corner) expect(g.map.tiles[y]![x], `${x},${y}`).toBe(inside(x, y) ? Tile.Water : Tile.Ice);
-    }
-    expect(waterAt(g, ICE_HOLE.x * T, ICE_HOLE.y * T)).toBe("hole");
-  });
-
-  it("once the Great Koi's landed, gives up a golden koi every time, never anything else", async () => {
-    const g = await inHollow();
-    landGreatKoi(g, 0, 0);                                    // the big one's out of there (see tests/greatkoi.test.ts)
-    g.inventory.reset([makeItem("rod")]);
-    Object.assign(g.world.need(g.player, "transform"), { x: (ICE_HOLE.x - 2) * T, y: ICE_HOLE.y * T });
-    const a = g.world.need(g.player, "actions");
-    for (let i = 0; i < 12; i++) {
-      a.fishing = { phase: "bite", x: ICE_HOLE.x * T, y: ICE_HOLE.y * T, t: 0, biteAt: 0, basin: false };
-      a.cooldown = 0;
-      const before = new Set(g.inventory.grid.map(e => e.item.id));
-      g.rng.next = () => 0.99;                               // the dice that would give a pond koi, and no curio
-      g.input.attackPressed = true;
-      step(g, DT);
-      const caught = g.inventory.grid.map(e => e.item).find(it => !before.has(it.id));
-      expect(caught?.name).toBe(FISH.rare.name);
-      expect(caught?.heal).toBe(FISH.rare.heal);
-      g.inventory.reset([makeItem("rod")]);
-    }
   });
 });
 

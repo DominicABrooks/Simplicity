@@ -177,6 +177,10 @@ export type Prop =
   /** Rime's arena (the Frozen Hollow; see src/world/arena.ts): frost runes scratched into the ice, ringed by `pillars` pillars of
    * ice `radius` tiles out, the `gap`th (from the north, clockwise) left out for the way in. The pillars are solid. */
   | { kind: "rimeStage"; x: number; y: number; radius: number; pillars: number; gap: number }
+  /** The walls of an ice cave (src/render/grotto.ts): rock sheathed in ice over each of `cells`, its Wall tiles, `open` saying which
+   * of its sides face the cave floor (1 north, 2 east, 4 south, 8 west; 0 deep in the rock); and `hole`, the hole cut in the ice
+   * (its top-left tile and size), to dress round. The tiles block; the prop doesn't. */
+  | { kind: "iceWalls"; cells: { x: number; y: number; open: number }[]; hole?: { x: number; y: number; w: number; h: number } }
   /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
   | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" | "calder" }
   /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */

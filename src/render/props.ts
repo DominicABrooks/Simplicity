@@ -20,6 +20,7 @@ import { buildBridge, buildCurtainWall, buildHouse, buildKeep } from "./town.ts"
 import { buildArena, buildBarricade, buildCrack, buildGreatCrack } from "./wild.ts";
 import { buildCrypt, buildCryptDoor, buildStoneRing, buildTomb, buildVaelNest } from "./undercroft.ts";
 import { buildOldStone, buildRimeStage } from "./hollow.ts";
+import { buildIceWalls } from "./grotto.ts";
 import { buildFairyRing } from "./fey.ts";
 
 /** What a built prop gives back: a per-frame update if it animates, and occluders if it's tall. */
@@ -93,6 +94,7 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   stoneRing: buildStoneRing,
   oldStone: buildOldStone,
   rimeStage: buildRimeStage,
+  iceWalls: buildIceWalls,
   fairyRing: buildFairyRing,
   boss: () => undefined,                                    // a game entity (see src/game/bosses.ts), drawn by its view
 };
