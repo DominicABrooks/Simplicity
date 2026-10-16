@@ -333,8 +333,9 @@ function slime(g: Game, x: number, y: number): Entity {
 function gatherRound(g: Game, x: number, y: number, r: number): void {
   g.world.query("walker", "transform").forEach(([, c], i, all) => {
     const a = Math.PI * (0.15 + 0.7 * (i / Math.max(1, all.length - 1))), d = r + (i % 3) * 6;
-    Object.assign(c.transform, { x: x + Math.cos(a) * d - HALF, y: y + Math.sin(a) * d * 0.8 - HALF });
-    Object.assign(c.walker, { path: [], moving: false, wait: 999, follow: null, goIn: false, task: null, facing: Math.atan2(-Math.sin(a), -Math.cos(a)) });
+    const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.8;   // the crescent a little squashed, for the camera
+    Object.assign(c.transform, { x: px - HALF, y: py - HALF });
+    Object.assign(c.walker, { path: [], moving: false, wait: 999, follow: null, goIn: false, task: null, facing: Math.atan2(y - py, x - px) });   // each looking right at it
   });
 }
 
@@ -443,7 +444,7 @@ const SHOTS: readonly Shot[] = [
       gatherRound(g, x, ky, 3.2 * T);
       heroAt(g, x + 4 * T, ky + 3 * T, x, ky);
       return {
-        from: cam(x, ky, 0.55, 0.3), to: cam(x, ky + T, 1.15, -0.3), says: [SHOT_SAYS.chronicle, followedLine(run.followed)].filter(Boolean).join(" "),
+        from: cam(x, ky, 0.55, 0.3), to: cam(x, ky + T, 0.75, -0.3), says: [SHOT_SAYS.chronicle, followedLine(run.followed)].filter(Boolean).join(" "),
         play: () => gatherRound(g, x, ky, 3.2 * T),
       };
     },

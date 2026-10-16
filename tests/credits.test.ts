@@ -126,8 +126,9 @@ describe("the credits", () => {
     expect(g.weather).toMatchObject({ kind: "clear", rain: 0, fog: 0 });
   });
 
-  it("stand the King clear of the market stalls at the cross, reading the chronicle", async () => {
+  it("stand the King clear of the market stalls at the cross, reading the chronicle, everyone looking at him", async () => {
     const g = await atTheCastle();
+    g.events.on("area", () => enterTownsfolk(g));
     toTheKing(g);
     await rollCredits(g);
     let checked = false;
@@ -137,6 +138,10 @@ describe("the credits", () => {
       if (!king) continue;
       const x = king.x + 4, y = king.y + 4;
       for (const [dx, dy] of [[0, 0], [T, 0], [-T, 0], [0, T], [0, -T]]) expect(solidAt(g.map, x + dx!, y + dy!), `${dx},${dy}`).toBe(false);
+      for (const [, { walker: w, transform: t }] of g.world.query("walker", "transform")) {   // and everyone gathered round looking at him
+        const at = Math.atan2(king.y - t.y, king.x - t.x);
+        expect(Math.abs(Math.atan2(Math.sin(w.facing - at), Math.cos(w.facing - at)))).toBeLessThan(0.02);
+      }
       checked = true;
     }
     expect(checked).toBe(true);
