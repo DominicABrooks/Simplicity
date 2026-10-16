@@ -76,16 +76,18 @@ export const CINDER_FIGHT = {
   /**
    * The inferno: the first time he's down to `at` of his health, he steps out through the fire and stands among the
    * stones, out of reach (warded: `warded` is what a blow on him says), and for `last` seconds the circle is a furnace.
-   * He paces round outside it (`orbit` px out past the fire, `pace` radians a second). Spokes of fire flare up from the
-   * middle (`warn` seconds smouldering first) and turn like a wheel (`turn` radians a second), `spokes` of them, more
-   * after `more` seconds, and halfway through the wheel stops and turns the other way; they're `width` px thick and
-   * hurt `damage`, and a jump or a dash clears them. And every `every` seconds he throws a fan of fire from where he
+   * He paces round outside it (`orbit` px out past the fire, `pace` radians a second). `spokes` spokes of fire flare up
+   * from the middle (`warn` seconds smouldering first, harmless) and turn like a wheel (`turn` radians a second); they're
+   * `width` px thick and hurt `damage`, and a jump or a dash clears them. Then the wheel turns back (`turnBack`), never
+   * all at once: `at` seconds in it slows to a stop over `slow` s, stands still for `hold` s, flickering, while one more
+   * spoke smoulders up in the widest gap (on the side away from the hero; the others don't move), and he holds his fire;
+   * then it gathers speed the other way over `rise` s. And every `every` seconds he throws a fan of fire from where he
    * stands, `count` bolts `spread` radians wide at `speed` px/s, lasting `life` s; the standing stones stop them. At the
    * end he bursts back into the middle, throwing a ring of `burst` bolts out round him.
    */
   inferno: {
     at: 0.25, last: 16, warded: "Out of reach!", orbit: 10, pace: 0.35,
-    wheel: { spokes: [2, 3], more: 8, warn: 1.4, turn: 0.75, width: 3.5, damage: 1 },
+    wheel: { spokes: 2, warn: 1.4, turn: 0.75, width: 3.5, damage: 1, turnBack: { at: 7, slow: 1.2, hold: 1.8, rise: 1.2 } },
     fan: { first: 2.2, every: 1.5, count: 5, spread: 0.6, speed: 38, life: 5 },
     burst: { count: 14, speed: 42 },
   },

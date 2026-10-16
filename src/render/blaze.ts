@@ -5,7 +5,7 @@
 import * as THREE from "three";
 import { CINDER_FIGHT as F } from "../data/ashwild.ts";
 import { PAL } from "../data/palette.ts";
-import { beamAt, cinderFight, spokesOf, type Beam, type CinderFight, type Flare } from "../game/cinderfight.ts";
+import { beamAt, cinderFight, spokesOf, wheelStill, type Beam, type CinderFight, type Flare } from "../game/cinderfight.ts";
 import { GROUND, PX_PER_TILE, onGround, toWorld, type RenderContext } from "./context.ts";
 import { disposeTree } from "./dispose.ts";
 import { hash } from "./terrain.ts";
@@ -113,15 +113,18 @@ function poseBeam(ctx: RenderContext, m: BeamMesh, f: CinderFight, b: Beam, ring
   }
 }
 
-/** A spoke of the wheel: a wall of fire from the middle out to the ring, at game angle `a`; low and smouldering while it warns. */
-function poseSpoke(ctx: RenderContext, m: BeamMesh, f: CinderFight, a: number, t: number): void {
-  const len = f.r / PX_PER_TILE, warning = (f.inferno?.t ?? 0) < F.inferno.wheel.warn;
+/**
+ * A spoke of the wheel: a wall of fire from the middle out to the ring, at game angle `a`; low and smouldering while it
+ * warns (`up`, growing as it comes), and flickering while the wheel stands still to turn back.
+ */
+function poseSpoke(ctx: RenderContext, m: BeamMesh, f: CinderFight, a: number, live: boolean, up: number, t: number): void {
+  const len = f.r / PX_PER_TILE, warning = !live, still = wheelStill(f);
   m.group.rotation.y = -a;
   m.group.position.set(Math.cos(a) * len / 2, 0, Math.sin(a) * len / 2);
   m.group.scale.set(len, 1, 1);
   m.warn.visible = warning;
   m.mats[0]!.opacity = 0.35 + Math.sin(t * 20) * 0.25;
-  m.wall.scale.y = warning ? 0.25 : 1.1 + Math.sin(t * 17 + a) * 0.08;
+  m.wall.scale.y = warning ? 0.1 + 0.3 * up : still ? 0.75 + Math.abs(Math.sin(t * 9)) * 0.55 : 1.1 + Math.sin(t * 17 + a) * 0.08;
   m.flames.forEach((fl, i) => { fl.scale.set(1 / len, 0.75 + Math.sin(t * (11 + (i % 4) * 3) + i) * 0.25, 1); });
   if (!warning && Math.random() < 0.5) {                      // sparks thrown off it as it turns
     const [cx, cz] = toWorld(f.x, f.y), along = Math.random() * len;
@@ -165,7 +168,7 @@ export const blaze: EntityView<BlazeView> = {
     fight.beams.forEach((b, i) => poseBeam(ctx, v.beams[i]!, fight, b, v.ringR, f.t));
     const spokes = spokesOf(fight);
     fit(v.spokes, spokes.length, () => makeBeam(ctx, v.group));
-    spokes.forEach((a, i) => poseSpoke(ctx, v.spokes[i]!, fight, a, f.t));
+    spokes.forEach((s, i) => poseSpoke(ctx, v.spokes[i]!, fight, s.a, s.live, s.up, f.t));
   },
   remove(ctx, v) {
     ctx.scene.remove(v.group);

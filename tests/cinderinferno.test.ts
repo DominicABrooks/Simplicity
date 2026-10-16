@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { CINDER_AT } from "../src/areas/ashwild.ts";
 import { CINDER, CINDER_FIGHT as F } from "../src/data/ashwild.ts";
-import { cinderFight, cinderFightSystem, spokesOf } from "../src/game/cinderfight.ts";
+import { cinderFight, cinderFightSystem, spokesOf, wheelStill } from "../src/game/cinderfight.ts";
 import { hitEnemy } from "../src/game/combat.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -62,15 +62,39 @@ describe("Cinder's inferno", () => {
     toAQuarter(g);
     const f = cinderFight(g)!;
     run(g, F.inferno.wheel.warn + 0.1);
-    const onSpoke = () => { const a = spokesOf(f)[0]!; Object.assign(hero(g), { x: f.x + Math.cos(a) * 20, y: f.y + Math.sin(a) * 20 }); };
+    const onSpoke = () => { const { a } = spokesOf(f)[0]!; Object.assign(hero(g), { x: f.x + Math.cos(a) * 20, y: f.y + Math.sin(a) * 20 }); };
     const hp = g.world.need(g.player, "health"), motion = g.world.need(g.player, "motion");
     run(g, 0.5, () => { onSpoke(); motion.jump = 0.3; });
     expect(hp.hp).toBe(hp.maxHp);                                // jumped it
     run(g, 0.05, () => { onSpoke(); motion.jump = 0; });
     expect(hp.hp).toBeLessThan(hp.maxHp);                        // stood in it
-    expect(spokesOf(f).length).toBe(F.inferno.wheel.spokes[0]);
-    run(g, F.inferno.wheel.more);
-    expect(spokesOf(f).length).toBe(F.inferno.wheel.spokes[1]);
+  });
+
+  it("turns back fair: slows to a stop, stands still while one more spoke smoulders up away from him, then speeds up the other way", async () => {
+    const g = await inFight();
+    toAQuarter(g);
+    const f = cinderFight(g)!, B = F.inferno.wheel.turnBack, angle = () => f.inferno!.wheel;
+    run(g, B.at - 0.5);
+    const a0 = angle(); run(g, 0.2); const full = angle() - a0;                 // turning at full speed
+    run(g, 0.3 + B.slow / 2);
+    const a1 = angle(); run(g, 0.2); const slowing = angle() - a1;
+    expect(Math.abs(slowing)).toBeLessThan(Math.abs(full));                     // slowing, the same way
+    expect(Math.sign(slowing)).toBe(Math.sign(full));
+    const before = spokesOf(f).map(s => s.a);
+    run(g, B.slow / 2 + 0.1);                                                   // stood still now
+    expect(wheelStill(f)).toBe(true);
+    const spokes = spokesOf(f);
+    expect(spokes).toHaveLength(F.inferno.wheel.spokes + 1);
+    spokes.slice(0, -1).forEach((s, i) => expect(s.a).toBeCloseTo(before[i]!, 1));   // the others didn't move
+    expect(spokes.at(-1)!.live).toBe(false);                                    // the new one smoulders first
+    const facing = Math.atan2(hero(g).y - f.y, hero(g).x - f.x), off = spokes.at(-1)!.a - facing;
+    expect(Math.abs(Math.atan2(Math.sin(off), Math.cos(off)))).toBeGreaterThan(Math.PI / 2);   // on the far side from him
+    const a2 = angle(); run(g, 0.5); expect(angle()).toBeCloseTo(a2, 5);         // and the wheel holds still
+    run(g, B.hold);
+    expect(spokesOf(f).every(s => s.live)).toBe(true);
+    const a3 = angle(); run(g, 0.2); const back = angle() - a3;
+    expect(Math.sign(back)).toBe(-Math.sign(full));                             // the other way now
+    expect(Math.abs(back)).toBeLessThan(Math.abs(full));                        // and gathering speed
   });
 
   it("throws fans of fire across the circle from outside", async () => {

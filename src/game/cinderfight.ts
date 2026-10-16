@@ -25,11 +25,13 @@ export interface Flare { x: number; y: number; t: number; hit: boolean }
 export type Sweep = "east" | "west" | "south" | "north";
 /** A wall of fire smouldering at its edge (t < warn), then sweeping across (t < warn + sweep). */
 export interface Beam { dir: Sweep; t: number; hit: boolean }
+/** A spoke of the inferno's wheel: where it stands on the wheel (radians from the wheel's angle), and how long it's been there (s). */
+export interface Spoke { off: number; t: number }
 /**
  * The inferno, while it lasts: seconds in; where he stands outside the fire (an angle round the circle); the wheel of
- * fire's angle and which way it's turning; and seconds to his next fan of fire.
+ * fire's angle, which way it turns first, and its spokes; and seconds to his next fan of fire.
  */
-export interface Inferno { t: number; at: number; wheel: number; spin: 1 | -1; nextFan: number }
+export interface Inferno { t: number; at: number; wheel: number; spin: 1 | -1; spokes: Spoke[]; nextFan: number }
 
 export interface CinderFight {
   /** The circle's middle (cell top-left) and how far in it keeps you (px). */
@@ -161,7 +163,8 @@ function startInferno(g: Game, f: CinderFight, cinder: Entity): void {
   f.infernoDone = true;
   f.flares = []; f.beams = [];
   const at = Math.atan2(him.y - f.y, him.x - f.x) + Math.PI;  // out the far side from where he was
-  f.inferno = { t: 0, at, wheel: g.rng.next() * Math.PI * 2, spin: g.rng.next() < 0.5 ? 1 : -1, nextFan: I.fan.first };
+  const spokes = Array.from({ length: I.wheel.spokes }, (_, i) => ({ off: (i / I.wheel.spokes) * Math.PI * 2, t: 0 }));
+  f.inferno = { t: 0, at, wheel: g.rng.next() * Math.PI * 2, spin: g.rng.next() < 0.5 ? 1 : -1, spokes, nextFan: I.fan.first };
   g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "arcane" });
   standOutside(f, him);
   g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "fire" });
@@ -181,12 +184,46 @@ function standOutside(f: CinderFight, him: Transform): void {
   him.y = f.y + Math.sin(a) * d;
 }
 
-/** The angles of the wheel's spokes of fire now. */
-export function spokesOf(f: CinderFight): number[] {
-  const inf = f.inferno;
+/** The wheel's spokes of fire now: each one's angle, whether it burns yet, and how far up it's smouldered (0-1). */
+export function spokesOf(f: CinderFight): { a: number; live: boolean; up: number }[] {
+  const inf = f.inferno, warn = F.inferno.wheel.warn;
   if (!inf) return [];
-  const W = F.inferno.wheel, n = inf.t >= W.more ? W.spokes[1] : W.spokes[0];
-  return Array.from({ length: n }, (_, i) => inf.wheel + (i / n) * Math.PI * 2);
+  return inf.spokes.map(s => ({ a: inf.wheel + s.off, live: s.t >= warn, up: Math.min(1, s.t / warn) }));
+}
+
+/** When the wheel turns back: the moments it starts to slow, stands still, and starts again (seconds into the inferno). */
+const turnBack = () => {
+  const B = F.inferno.wheel.turnBack, still = B.at + B.slow, again = still + B.hold;
+  return { slowing: B.at, still, again, full: again + B.rise };
+};
+
+/** Whether the wheel's standing still, turning back (for its spokes to flicker in warning). */
+export function wheelStill(f: CinderFight): boolean {
+  const t = f.inferno?.t ?? -1, T = turnBack();
+  return t >= T.still && t < T.again;
+}
+
+/** How fast the wheel turns now (radians a second, signed): nothing while it smoulders; slowing, still, gathering speed back. */
+function wheelSpeed(inf: Inferno): number {
+  const W = F.inferno.wheel, T = turnBack(), t = inf.t, v = inf.spin * W.turn;
+  if (t < W.warn) return 0;
+  if (t < T.slowing) return v;
+  if (t < T.still) return v * (1 - (t - T.slowing) / (T.still - T.slowing));
+  if (t < T.again) return 0;
+  if (t < T.full) return -v * ((t - T.again) / (T.full - T.again));
+  return -v;
+}
+
+/** One more spoke, as the wheel stands still: in its widest gap, on the side away from the hero; the others stay put. */
+function addSpoke(f: CinderFight, inf: Inferno, hero: { x: number; y: number }): void {
+  const offs = inf.spokes.map(s => s.off).sort((a, b) => a - b), gaps = offs.map((o, i) => {
+    const next = i + 1 < offs.length ? offs[i + 1]! : offs[0]! + Math.PI * 2;
+    return { mid: (o + next) / 2, size: next - o };
+  });
+  const widest = Math.max(...gaps.map(g => g.size)), facing = Math.atan2(hero.y - f.y, hero.x - f.x);
+  const away = (m: number) => Math.abs(Math.atan2(Math.sin(inf.wheel + m - facing), Math.cos(inf.wheel + m - facing)));
+  const pick = gaps.filter(g => g.size > widest - 1e-6).sort((a, b) => away(b.mid) - away(a.mid))[0]!;
+  inf.spokes.push({ off: pick.mid, t: 0 });
 }
 
 /** How far the hero (cell top-left) is from a spoke of fire running out from the middle at `a` (px). */
@@ -203,13 +240,19 @@ function inferno(g: Game, f: CinderFight, cinder: Entity, dt: number, safe: bool
   inf.at += I.pace * dt;
   standOutside(f, him);
   g.world.need(cinder, "mage").held = true;
-  // The wheel: smouldering first, then turning; halfway through it stops dead and turns back the other way.
-  if (was < I.last / 2 && inf.t >= I.last / 2) { inf.spin = inf.spin === 1 ? -1 : 1; sound(g, "nova", h.pos); g.shake = Math.max(g.shake, 1.5); }
-  if (inf.t >= W.warn) inf.wheel += inf.spin * W.turn * dt;
+  // The wheel: smouldering first, then turning; then slowing to a stop, standing still while one more spoke smoulders
+  // up, and gathering speed back the other way. Only a spoke that's done smouldering burns.
+  const T = turnBack();
+  for (const s of inf.spokes) s.t += dt;
+  inf.wheel += wheelSpeed(inf) * dt;
   if (was < W.warn && inf.t >= W.warn) sound(g, "nova", h.pos);
-  if (was < W.more && inf.t >= W.more) { sound(g, "cast", him); g.shake = Math.max(g.shake, 1.5); }
-  if (inf.t >= W.warn && !safe && spokesOf(f).some(a => fromSpoke(f, a, h.pos) < W.width)) damagePlayer(g, f.x, f.y, W.damage);
-  // His fans of fire, aimed at the hero from wherever he stands.
+  if (was < T.slowing && inf.t >= T.slowing) sound(g, "spell", him);                       // it's slowing: something's coming
+  if (was < T.still && inf.t >= T.still) { addSpoke(f, inf, h.pos); sound(g, "cast", him); g.shake = Math.max(g.shake, 1.5); }
+  if (was < T.again && inf.t >= T.again) sound(g, "nova", h.pos);                          // and off it goes, the other way
+  if (!safe && spokesOf(f).some(s => s.live && fromSpoke(f, s.a, h.pos) < W.width)) damagePlayer(g, f.x, f.y, W.damage);
+  // His fans of fire, aimed at the hero from wherever he stands; held while the wheel turns back.
+  const turning = inf.t >= T.slowing && inf.t < T.again;
+  if (turning) inf.nextFan = Math.max(inf.nextFan, 0.6);
   if ((inf.nextFan -= dt) <= 0) {
     inf.nextFan = I.fan.every;
     const aim = Math.atan2(h.pos.y - him.y, h.pos.x - him.x), o = MAGE.boltOffset;
