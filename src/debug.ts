@@ -47,6 +47,11 @@ export function exposeDebug(g: Game, view: Renderer): void {
   }
   /** A fresh run, arriving in an area the way a player would usually come in (or by `entry`), at the level and in the
    *  gear they'd have by then, with the gates behind them open (src/game/zones.ts). */
+  /** Set the time of day (any number: it wraps round to 0-24). */
+  function setHour(h: number): number {
+    g.hour = ((h % 24) + 24) % 24;
+    return g.hour;
+  }
   async function area(id: string = "witchwood", entry?: string): Promise<string> {
     if (!AREA_IDS.includes(id)) return `No area "${id}". Try: ${AREA_IDS.join(", ")}`;
     const def = await loadArea(id), zone = ZONES[id], entries = Object.keys(layoutOf(def).entries);
@@ -75,6 +80,8 @@ export function exposeDebug(g: Game, view: Renderer): void {
       /** Getting about: area("hollow") or area("capital", "castle") starts a fresh run there (or load the page with ?area=hollow,
        *  and &entry=stone for another way in; &god and &freeze work here too). */
       area,
+      /** The time of day: hour(23) makes it 11 at night (or load the page with ?hour=23); with nothing, the hour it is now. */
+      hour: (h?: number) => (h === undefined ? g.hour : setHour(h)),
       god: (on = !isGod(g)) => `god ${setGod(g, on) ? "on" : "off"}`,
       freeze: (on = !isFrozen(g)) => `freeze ${setFrozen(g, on) ? "on" : "off"}`,
       /** The front doors in this area you can knock at, their names, and how many are home behind each. */
@@ -83,10 +90,12 @@ export function exposeDebug(g: Game, view: Renderer): void {
     },
   });
   // ?boss=cinder (with &god, &freeze): straight into the fight, after main.ts has put the title up. ?area=hollow (with
-  // &entry=stone): straight there.
-  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area");
+  // &entry=stone): straight there. ?hour=23 (0 to 24, fractions too): that time of day, there or wherever you start.
+  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour");
   if (q.has("god")) setGod(g, true);
   if (q.has("freeze")) setFrozen(g, true);
-  if (who) void boss(who);
+  if (at !== null && Number.isFinite(Number(at))) setHour(Number(at));
+  // A lair can set its own hour (the Ringer comes at night): the asked-for one wins.
+  if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
 }
