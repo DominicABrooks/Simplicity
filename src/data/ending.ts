@@ -80,12 +80,13 @@ export const KING_NO_PROOF: readonly string[] = [
  * which he's played, but what it changed. Some only play if the run did what they come of, and some lines change with
  * what else it did.
  */
-export type ShotId = "greyed" | "slimes" | "chronicle" | "eggs" | "rime" | "ringer" | "milk" | "fells";
+export type ShotId = "greyed" | "slimes" | "chronicle" | "eggs" | "hatch" | "rime" | "ringer" | "milk" | "fells";
 export const SHOT_SAYS: Record<ShotId, string> = {
   greyed: "With no one left to follow, the grey went out of the Greyed, one by one.",
   slimes: "The slimes sat still at last. Within the year they were the people of the Deep Hall again.",
   chronicle: "Next morning the King read the true chronicle at the market cross, went very red, and tore up the Edict.",
-  eggs: "The Vael came north over the King's Bridge, openly, for the first time in six hundred years, and this time the King gave them back their eggs. Under the Greyspines, beside their mother, three small dragons hatched, and the valley was whole again.",
+  eggs: "The Vael came north over the King's Bridge for their eggs, openly, for the first time in six hundred years. This time the King gave them back.",
+  hatch: "Under the Greyspines, beside their mother, three small dragons hatched. Their song with hers sealed the valley whole again.",
   // As this run went.
   rime: "With Rime gone, the lake in the Hollow never froze again. The fishers walked up to it every spring.",
   ringer: "Since you laid her to rest, St Mary's bell has only rung on Sundays.",

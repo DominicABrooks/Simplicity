@@ -105,6 +105,19 @@ export const SFX = {
   bite: { tones: [{ wave: "noise", from: 900, to: 400, dur: 0.15, gain: 0.25, q: 2 }, { wave: "sine", from: 600, to: 300, dur: 0.1, gain: 0.1 }] },
   catch: { tones: [{ wave: "noise", from: 700, to: 300, dur: 0.3, gain: 0.25, q: 1 }, { wave: "square", from: 784, dur: 0.1, gain: 0.07, delay: 0.1 }, { wave: "square", from: 1047, dur: 0.14, gain: 0.07, delay: 0.18 }] },
 
+  // The Old Mother and her eggs, in the credits (src/game/credits.ts): a great slow wingbeat, her roar, the gilding
+  // ringing as it flakes off, and an egg cracking open with a chirp out of it.
+  wingbeat: { tones: [{ wave: "noise", from: 320, to: 110, dur: 0.45, gain: 0.4, q: 0.8 }, { wave: "sine", from: 70, to: 45, dur: 0.35, gain: 0.2 }] },
+  roar: { tones: [{ wave: "sawtooth", from: 120, to: 62, dur: 1.9, gain: 0.16 }, { wave: "noise", from: 700, to: 180, dur: 1.7, gain: 0.3, q: 0.6 },
+    { wave: "square", from: 90, to: 48, dur: 1.8, gain: 0.07, delay: 0.05 }, { wave: "sine", from: 55, to: 40, dur: 2, gain: 0.25 }] },
+  gilding: { tones: [1568, 2093, 2637, 3136].map((f, i) => ({ wave: "sine" as const, from: f, dur: 0.6, gain: 0.05, delay: i * 0.09 })) },
+  hatch: { tones: [{ wave: "noise", from: 2600, to: 1400, dur: 0.07, gain: 0.25, q: 3 }, { wave: "noise", from: 1900, to: 900, dur: 0.1, gain: 0.2, q: 3, delay: 0.08 },
+    { wave: "sine", from: 900, to: 1700, dur: 0.16, gain: 0.07, delay: 0.2 }, { wave: "sine", from: 1100, to: 1900, dur: 0.12, gain: 0.06, delay: 0.38 }], jitter: 0.08 },
+
+  // And their song, the three new voices and hers under them, that seals the valley whole: a D chord, rising.
+  song: { tones: [[147, 0, 3.2, 0.12], [294, 0.4, 2.8, 0.06], [440, 0.9, 2.6, 0.05], [587, 1.4, 2.4, 0.045], [740, 1.9, 2.2, 0.04], [880, 2.4, 2.4, 0.035]]
+    .map(([f, delay, dur, gain]) => ({ wave: "sine" as const, from: f!, to: f! * 1.003, dur: dur!, gain: gain!, delay })) },
+
   // The credits (src/game/credits.ts): a slow, warm air in D as the run plays back, a soft low note under each phrase.
   credits: { tones: air(TUNE, BASS) },
   creditsAnswer: { tones: air(ANSWER, ANSWER_BASS, 0.06) },

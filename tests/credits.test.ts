@@ -75,7 +75,7 @@ function toTheKing(g: Game): void {
   skipCutscene(g);
 }
 
-interface Played { says: string; held: number; asleep: boolean; folk: string[] }
+interface Played { says: string; held: number; asleep: boolean; folk: string[]; dragons: number; open: number }
 /** The tunes heard over the last credits played through. */
 let heard: string[] = [];
 const listen = (g: Game) => { heard.push(...g.sfx.map(s => s.id).filter(id => (CREDITS_AIR.turns as readonly string[]).includes(id))); g.sfx = []; };
@@ -88,10 +88,15 @@ async function playThrough(g: Game): Promise<Played[]> {
   for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60); i++) {
     listen(g);
     const shot = creditsShot(g), last = shots[shots.length - 1];
-    if (shot && last?.says === shot.says) { last.held += 1 / 60; last.asleep ||= creditsAsleep(g) !== null; }
+    if (shot && last?.says === shot.says) {
+      last.held += 1 / 60;
+      last.asleep ||= creditsAsleep(g) !== null;
+      last.dragons = Math.max(last.dragons, g.world.query("dragon").length);
+      last.open = Math.max(last.open, g.world.query("egg").filter(([, c]) => c.egg.open).length);
+    }
     else if (shot) {
       const folk = g.world.query("walker").map(([, c]) => residentById(c.walker.id)?.name ?? "");
-      shots.push({ says: shot.says, held: 1 / 60, asleep: creditsAsleep(g) !== null, folk });
+      shots.push({ says: shot.says, held: 1 / 60, asleep: creditsAsleep(g) !== null, folk, dragons: 0, open: 0 });
     }
   }
   return shots;
@@ -127,6 +132,12 @@ describe("the credits", () => {
     expect(last.says).toBe(SHOT_SAYS.fells);
     expect(last.asleep).toBe(true);                          // in the bed in the Fells' top room
     expect(last.folk).toEqual(expect.arrayContaining(["Wystan Fell", "Meg Fell"]));   // the Ranger home, and Meg
+    // The Old Mother flies over the bridge for her eggs; under the Greyspines all three hatch beside her.
+    const eggs = shots.find(s => s.says === SHOT_SAYS.eggs)!, hatch = shots.find(s => s.says === SHOT_SAYS.hatch)!;
+    expect(eggs.dragons).toBe(1);
+    expect(hatch.open).toBe(3);
+    expect(hatch.dragons).toBe(4);
+    expect(hatch.held).toBeGreaterThan(shotLength(SHOT_SAYS.hatch));   // held for the spectacle, not just the line
     // The tune comes round under the whole reel, every time a little different.
     const reel = shots.reduce((t, s) => t + s.held, 0);
     expect(heard.length).toBeGreaterThanOrEqual(Math.floor(reel / CREDITS_AIR.every));

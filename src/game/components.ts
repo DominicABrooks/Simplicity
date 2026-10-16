@@ -421,13 +421,31 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head" | "lantern";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head" | "lantern" | "dragon" | "egg";
 
 /** A beaten lieutenant's spirit, in the middle of their arena (src/game/spirits.ts): whose. */
 export interface Spirit { who: "cinder" | "rime" }
 
 /** The figure at the end of the street after dark (src/game/eerie.ts): how far it's faded in (0-1), and whether it's going. */
 export interface Watcher { shown: number; going: boolean }
+
+/**
+ * One of the Vael as a dragon, in the credits (src/game/credits.ts): the Old Mother, or a hatchling in its order's colours.
+ * Where it is (px, cell top-left, like a transform; its transform may be kept elsewhere, in the camera's reach, while
+ * it's far up in the sky), how high (world units), which way it faces (a game angle), and how big (1 a hatchling's
+ * length, near enough). Flying, its wings beat at `flap` (radians, run on by the credits); sitting, `neck` lifts its
+ * head from low over the ground (0) to up at the sky (1) and `spread` opens its wings from folded (0) to wide (1).
+ * `fire` is how hard it's breathing out its order's breath (0 to 1), and `grow` how far it's come into the world (0
+ * to 1: a hatchling, just out of the shell).
+ */
+export interface Dragon {
+  x: number; y: number; height: number; facing: number; size: number;
+  hide: "mother" | "ember" | "frost" | "storm";
+  pose: "fly" | "sit";
+  flap: number; neck: number; spread: number; fire: number; grow: number;
+}
+/** One of the three eggs: its order, how much of the King's gilding is still on it (0 to 1), how bright it glows, how near hatching (0 to 1), and whether it's open. */
+export interface Egg { school: "ember" | "frost" | "storm"; gilt: number; glow: number; crack: number; open: boolean }
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -465,4 +483,6 @@ export interface Components {
   pet: Pet;
   spirit: Spirit;
   watcher: Watcher;
+  dragon: Dragon;
+  egg: Egg;
 }

@@ -1,13 +1,15 @@
 // The credits (STORY.md, "0:55"; src/ui/credits.ts draws the caption and The End over them). After the King's had his
 // say, they don't play back what he's just been through: they show what came of it, a short shot at a time, in the
 // game's own world. The Greyed losing their grey, the slimes gone still, the King reading the true chronicle at the
-// cross, the Vael coming over the bridge for their eggs; and, as this run went, the lake in the Hollow open water if he
-// beat Rime, St Mary's churchyard quiet if he laid the Grey Ringer to rest, Yssa at the fountain if he met her; and last
-// his own ending, asleep in the Fells' house with a lantern of his own in the window, the Ranger home by the fire with
-// Meg. Some of what's said changes with what else he did. Each shot loads its area, clears off anything that'd wander
-// in, stands the people in it, and moves the camera itself (in, out, round), the clock running on so everything breathes
-// and flickers; a shot with a long line under it holds long enough to read. A little tune plays under them all, coming
-// round a little different each time. After, he's put back where he was.
+// cross, the Vael coming over the bridge for their eggs and the Old Mother flying in over it for them, and the eggs
+// hatching beside her under the Greyspines (her and her hatchlings drawn in src/render/dragons.ts); and, as this run
+// went, the lake in the Hollow open water if he beat Rime, St Mary's churchyard quiet if he laid the Grey Ringer to
+// rest, Yssa at the fountain if he met her; and last his own ending, asleep in the Fells' house with a lantern of his
+// own in the window, the Ranger home by the fire with Meg. Some of what's said changes with what else he did. Each shot
+// loads its area, clears off anything that'd wander in, stands the people in it, and moves the camera itself (in, out,
+// round), the clock running on so everything breathes and flickers; a shot with a long line under it holds long enough
+// to read. A little tune plays under them all, coming round a little different each time. After, he's put back where he
+// was.
 import { loadArea } from "../areas/index.ts";
 import type { Entity } from "../core/ecs.ts";
 import { CREDITS_TIME, CROWD_OF, RUN_SUMS, SHOT_SAYS, SHOT_SAYS_TOO, type ShotId } from "../data/ending.ts";
@@ -21,6 +23,8 @@ import { layoutOf } from "../world/layouts.ts";
 import { interiorOf, type Spot } from "../world/interiors.ts";
 import type { Resident } from "../world/residents.ts";
 import { registerArea } from "../areas/index.ts";
+import { Rng } from "../core/rng.ts";
+import { Town } from "../world/townkit.ts";
 import { beaten, type Who } from "./bosses.ts";
 import { crowdOf } from "./crowd.ts";
 import { curioFound } from "./curios.ts";
@@ -28,7 +32,7 @@ import type { Game } from "./game.ts";
 import { churchyardOf, hauntingOf } from "./ghost.ts";
 import { greatKoiBeaten } from "./greatkoi.ts";
 import { rimeFightSystem } from "./rimefight.ts";
-import type { Bed } from "./components.ts";
+import type { Bed, Dragon, Egg } from "./components.ts";
 import { sound } from "./sfx.ts";
 import { spawnKing } from "./spawn.ts";
 import { loadCensus } from "./townsfolk.ts";
@@ -52,7 +56,13 @@ interface Run {
  * A shot, staged: where the camera starts and ends (or follows the hero), what's said, what moves as it plays (k: 0 to
  * 1), and, if he's asleep in it, the bed he's lying in.
  */
-interface Staged { from: Cam; to: Cam; follow?: boolean; says: string; play?(k: number, dt: number): void; asleep?: Bed }
+interface Staged {
+  from: Cam; to: Cam; follow?: boolean; says: string; play?(k: number, dt: number): void; asleep?: Bed;
+  /** Or the camera's whole way through the shot, if it does more than go from one place to another. */
+  camAt?(k: number): Cam;
+  /** How long (s) it holds at the least, if there's more to see in it than its line takes to read. */
+  hold?: number;
+}
 
 /**
  * Each shot: whether this run had it, where it's set (or how to make the place, if it isn't one of the areas: null if
@@ -163,6 +173,7 @@ function playOn(g: Game, r: Reel, dt: number): boolean {
 /** Point the camera along the shot, k of the way through. */
 function aim(g: Game, r: Reel, k: number): void {
   const s = r.staged!, e = ease(k), hero = g.world.need(g.player, "transform");
+  if (s.camAt) { r.cam = s.camAt(k); return; }
   r.cam = {
     x: s.follow ? hero.x + HALF : lerp(s.from.x, s.to.x, e), y: s.follow ? hero.y + HALF : lerp(s.from.y, s.to.y, e),
     zoom: lerp(s.from.zoom, s.to.zoom, e), yaw: lerp(s.from.yaw, s.to.yaw, e),
@@ -204,7 +215,7 @@ function nextShot(g: Game, r: Reel): boolean {
   g.target = null;
   Object.assign(g.world.need(g.player, "status"), { hurt: 0, sheep: 0, frozen: 0, chill: 0 });
   r.staged = shot.stage(g, r.run);
-  r.length = shotLength(r.staged.says);
+  r.length = Math.max(shotLength(r.staged.says), r.staged.hold ?? 0);
   r.staged.play?.(0, 0);
   aim(g, r, 0);
   return false;
@@ -217,6 +228,16 @@ const firstEntry = (def: AreaDef) => Object.keys(layoutOf(def).entries)[0]!;
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const ease = (k: number) => k * k * (3 - 2 * k);
 const cam = (x: number, y: number, zoom: number, yaw = 0): Cam => ({ x, y, zoom, yaw });
+/** How far k is from a to b, 0 to 1. */
+const ramp = (k: number, a: number, b: number) => Math.max(0, Math.min(1, (k - a) / (b - a)));
+/** The camera through a shot by keyframes ([k, where]), easing from each to the next. */
+const keys = (frames: readonly [number, Cam][]) => (k: number): Cam => {
+  const last = frames[frames.length - 1]!, i = frames.findIndex(([at]) => at > k);
+  if (i < 0) return last[1];
+  if (i === 0) return frames[0]![1];
+  const [a, from] = frames[i - 1]!, [b, to] = frames[i]!, e = ease(ramp(k, a, b));
+  return { x: lerp(from.x, to.x, e), y: lerp(from.y, to.y, e), zoom: lerp(from.zoom, to.zoom, e), yaw: lerp(from.yaw, to.yaw, e) };
+};
 const propOf = <K extends Prop["kind"]>(g: Game, kind: K) => g.area.layout.props.find((p): p is Extract<Prop, { kind: K }> => p.kind === kind);
 
 /** Stand him at (x, y) (px, his centre), looking toward (tx, ty); walking, if he's moving. */
@@ -272,6 +293,30 @@ function gatherRound(g: Game, x: number, y: number, r: number): void {
   });
 }
 
+/**
+ * A dragon (px, cell top-left; see Dragon): its transform kept at `seen` if given, somewhere the camera's always on, so
+ * the renderer doesn't put it away while it's high in the sky and the ground under it is out of the picture.
+ */
+function dragonAt(g: Game, d: Partial<Dragon> & Pick<Dragon, "x" | "y" | "size" | "hide" | "pose">, seen?: { x: number; y: number }): Entity {
+  return g.world.create({
+    transform: { x: seen?.x ?? d.x, y: seen?.y ?? d.y },
+    dragon: { height: 0, facing: Math.PI / 2, flap: 0, neck: 0, spread: 0, fire: 0, grow: 1, ...d },
+    renderable: { kind: "dragon" },
+  });
+}
+/** One of the three eggs, standing (cell top-left). */
+const eggAt = (g: Game, school: Egg["school"], x: number, y: number, gilt: number, glow = 0): Entity =>
+  g.world.create({ transform: { x, y }, egg: { school, gilt, glow, crack: 0, open: false }, renderable: { kind: "egg" } });
+/** The wingbeats of a dragon in flight, run on by dt: a great whump at the bottom of each, and the ground shaking a little. */
+function beat(g: Game, d: Dragon, dt: number, pace: number): void {
+  const before = Math.floor(d.flap / (2 * Math.PI));
+  d.flap += dt * pace;
+  if (Math.floor(d.flap / (2 * Math.PI)) > before) { sound(g, "wingbeat"); g.shake = Math.max(g.shake, 0.5); }
+}
+/** The ground stops shaking (nobody's playing to settle it, in the credits). */
+const settle = (g: Game, dt: number) => { g.shake = Math.max(0, g.shake - dt * 2.5); };
+const ORDERS = ["ember", "frost", "storm"] as const;
+
 const SHOTS: readonly Shot[] = [
   // ---------- What it meant ----------
   {
@@ -323,26 +368,104 @@ const SHOTS: readonly Shot[] = [
     },
   },
   {
-    // The Vael on the King's Bridge, coming north for their eggs: one of each order in each row, walking up the deck
-    // in their own colours, the grey nowhere in them, to the King waiting under Southgate with him at his side.
+    // The Vael on the King's Bridge, come north for their eggs: one of each order in each row, walking up the deck in
+    // their own colours to the King waiting under Southgate, and on the stones before him the three eggs, still in the
+    // gold leaf they've worn six hundred years as "altar stones". It flakes off them in showers of sparks, one after
+    // another, and each glows its own colour; and then the Old Mother comes up the river behind the Vael, low enough to
+    // shake the bridge, her shadow going over the whole of it, and roars as she goes over her eggs and on over the city.
     id: "eggs", area: "kingsroad", hour: 8, had: () => true,
     stage(g) {
       const deck = propOf(g, "stoneBridge")!.rect, x = deck.x + deck.w / 2, top = deck.y + 2 * T, foot = deck.y + deck.h - 4 * T;
       spawnKing(g, x - HALF, top - HALF, Math.PI / 2);
       heroAt(g, x + 1.5 * T, top + HALF, x, foot);
-      const schools: School[] = ["ember", "frost", "storm"];
+      const ey = top + 1.5 * T, eggs = ORDERS.map((school, i) => eggAt(g, school, x + (i - 1) * 1.1 * T - HALF, ey + (i === 1 ? 0.3 * T : 0) - HALF, 1));
       const them = Array.from({ length: 6 }, (_, i) => ({
-        e: greyed(g, schools[i % 3]!, 0, 0), dx: ((i % 3) - 1) * 1.4 * T, back: Math.floor(i / 3) * 2 * T,
+        e: greyed(g, ORDERS[i % 3]!, 0, 0), dx: ((i % 3) - 1) * 1.4 * T, back: Math.floor(i / 3) * 2 * T,
       }));
-      const near = top + 3 * T;
+      const near = top + 3.4 * T, from = foot + 24 * T, to = top - 30 * T;
+      const her = dragonAt(g, { x: x - HALF, y: from, height: 6.5, facing: -Math.PI / 2, size: 5, hide: "mother", pose: "fly" }, { x: x - HALF, y: ey - HALF });
+      const keyed = keys([
+        [0, cam(x, foot, 0.8, 0.4)], [0.34, cam(x, ey + T, 0.7, 0.1)], [0.42, cam(x, ey, 0.5, -0.05)],
+        [0.55, cam(x, ey, 2.1, -0.15)], [0.85, cam(x, ey, 2.3, -0.3)], [1, cam(x, ey + T, 1.6, -0.35)],
+      ]);
+      // While she's over, the camera keeps her and the eggs both in the picture.
+      const shots = (k: number): Cam => {
+        const c = keyed(k), y = g.world.get(her, "dragon")?.y ?? ey, w = ramp(k, 0.42, 0.52) * (1 - ramp(k, 0.8, 0.95));
+        return { ...c, y: lerp(c.y, (y + HALF + ey) / 2, w * 0.8) };
+      };
+      const gilded = [false, false, false];
+      let roared = false;
       return {
-        from: cam(x, foot, 0.8, 0.4), to: cam(x, top + 2.5 * T, 1.05, -0.2), says: SHOT_SAYS.eggs,
-        play: k => {
-          const u = Math.min(1, k / 0.8);
+        from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.eggs, hold: 16,
+        play: (k, dt) => {
+          const u = ramp(k, 0, 0.34);
           for (const m of them) {
             Object.assign(g.world.need(m.e, "transform"), { x: x + m.dx - HALF, y: lerp(foot, near, u) + m.back - HALF });
             g.world.need(m.e, "mage").moving = u < 1;
           }
+          eggs.forEach((e, i) => {                           // the gold comes off, one after another
+            const egg = g.world.need(e, "egg"), a = 0.36 + i * 0.035;
+            egg.gilt = 1 - ramp(k, a, a + 0.05);
+            egg.glow = ramp(k, a + 0.02, a + 0.08);
+            if (!gilded[i] && k >= a) { gilded[i] = true; sound(g, "gilding"); }
+          });
+          const d = g.world.need(her, "dragon"), f = ramp(k, 0.42, 1);
+          d.y = lerp(from, to, f);
+          d.height = 6.5 - 2.5 * Math.sin(Math.PI * f);
+          if (f > 0 && f < 1) beat(g, d, dt, 2.2);
+          if (!roared && d.y <= ey + 3 * T) { roared = true; sound(g, "roar"); g.shake = Math.max(g.shake, 2.5); }
+          settle(g, dt);
+        },
+      };
+    },
+  },
+  {
+    // Under the Greyspines, the eggs home beside their mother: she lies curled at the head of a high meadow, the
+    // mountains close behind her, her head low over the three of them, glowing. One after another they rock, crack and
+    // burst open in their own colours, red, white and indigo, and out tumbles a hatchling, a little too big for a
+    // moment, hopping. Then she rears up, wings wide, and roars fire at the sky; they look up at her and each breathes
+    // its first small breath; and their song with hers seals the valley whole.
+    id: "hatch", area: "greyspines", load: async () => greyspines(), hour: 17.5, had: () => true,
+    stage(g) {
+      const mx = (g.map.width * T) / 2, my = 6 * T, ey = my + 5.6 * T;
+      const her = dragonAt(g, { x: mx - HALF, y: my - HALF, size: 4, hide: "mother", pose: "sit" });
+      const eggs = ORDERS.map((school, i) => eggAt(g, school, mx + (i - 1) * 1.2 * T - HALF, ey + (i === 1 ? 0.35 * T : 0) - HALF, 0, 0.8));
+      heroAt(g, mx + 4.5 * T, ey + 3 * T, mx, ey);
+      const young: (Entity | null)[] = [null, null, null];
+      let roared = false, sang = false;
+      const shots = keys([
+        [0, cam(mx, ey, 0.42, 0.35)], [0.42, cam(mx, ey + 0.3 * T, 0.55, 0.12)], [0.56, cam(mx, my - T, 2.1, -0.7)],
+        [0.78, cam(mx, my - 2 * T, 2.4, -1.05)], [1, cam(mx, my - T, 2.2, -0.55)],   // round her side as she rears, then out
+      ]);
+      return {
+        from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.hatch, hold: 19,
+        play: (k, dt) => {
+          eggs.forEach((e, i) => {
+            const a = 0.06 + i * 0.12, egg = g.world.need(e, "egg"), at = g.world.need(e, "transform");
+            egg.crack = ramp(k, a, a + 0.1);
+            egg.glow = 0.8 * (1 - ramp(k, a + 0.1, a + 0.25));
+            if (!egg.open && k >= a + 0.1) {
+              egg.open = true;
+              sound(g, "hatch");
+              young[i] = dragonAt(g, { x: at.x, y: at.y + 0.4 * T, size: 0.6, hide: egg.school, pose: "sit", grow: 0, facing: Math.PI / 2 + (i - 1) * 0.6 });
+            }
+          });
+          young.forEach((y, i) => {
+            if (y === null) return;
+            const d = g.world.need(y, "dragon"), born = 0.16 + i * 0.12, look = ramp(k, 0.55, 0.62), puff = 0.8 + i * 0.045;
+            d.grow = ramp(k, born, born + 0.05);
+            d.height = Math.abs(Math.sin((k - born) * 50)) * 0.22 * (1 - ramp(k, born + 0.05, born + 0.16));   // a few little hops
+            d.facing = lerp(Math.PI / 2 + (i - 1) * 0.6, -Math.PI / 2 + (i - 1) * 0.5, look);                  // round to look up at her
+            d.neck = 0.25 + 0.65 * look;
+            d.fire = k > puff && k < puff + 0.04 ? 1 : 0;
+          });
+          const d = g.world.need(her, "dragon");
+          d.neck = ramp(k, 0.5, 0.6) - 0.55 * ramp(k, 0.84, 0.95);
+          d.spread = ramp(k, 0.52, 0.6) * (1 - ramp(k, 0.86, 0.96));
+          d.fire = ramp(k, 0.6, 0.63) * (1 - ramp(k, 0.75, 0.79));
+          if (!roared && k >= 0.58) { roared = true; sound(g, "roar"); g.shake = Math.max(g.shake, 3); }
+          if (!sang && k >= 0.84) { sang = true; sound(g, "song"); }
+          settle(g, dt);
         },
       };
     },
@@ -433,6 +556,24 @@ async function fellsHouse(): Promise<AreaDef | null> {
   const { def, spots } = interiorOf(home.area, house, fellsHome, "The Fells' house");
   // Wystan's the one who was in the dungeon; Meg the eldest of those at home.
   fells = { spots, wystan: all.find(r => r.prisoner), meg: [...fellsHome].sort((a, b) => b.age - a.age)[0] };
+  registerArea(def);
+  return def;
+}
+
+/**
+ * Under the Greyspines, for the credits: a high meadow of grass and flowers with a few pines down its sides, small
+ * enough that the mountains the world always has round it (src/render/terrain.ts) stand up close all round.
+ */
+function greyspines(): AreaDef {
+  const def: AreaDef = {
+    id: "greyspines", name: "Under the Greyspines", life: { enemies: false, potions: false, ambient: true },
+    build: () => {
+      const W = 26, H = 20, town = new Town(W, H, Tile.Grass), rng = new Rng(61);
+      town.paint(() => rng.next() < 0.14, Tile.Flower);
+      town.paint((x, y) => (x < 3 || x >= W - 3) && y > 3 && rng.next() < 0.35, Tile.Tree);
+      return town.layout({ in: { x: (W / 2) * T - HALF, y: (H - 3) * T - HALF } }, []);
+    },
+  };
   registerArea(def);
   return def;
 }
