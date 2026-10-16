@@ -8,8 +8,9 @@ export interface TileMap {
   tiles: Tile[][];
   /** Things that block movement off the tile grid (buildings, posts, a tent, a fire pit), in game pixels. */
   solids: readonly Shape[];
-  /** How its woods look: green, or (deep in the Witchwood, where the dark gets in) ash-grey, or (the Frozen Hollow) under snow. */
-  look?: "green" | "ash" | "snow";
+  /** How its woods look: green, or (deep in the Witchwood, where the dark gets in) ash-grey, or (the Frozen Hollow) under snow, or
+   *  (the Thunder Rift) dark and slate-blue under the storm. */
+  look?: "green" | "ash" | "snow" | "storm";
 }
 
 export const tileOf = (map: TileMap, tx: number, ty: number): Tile =>

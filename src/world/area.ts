@@ -154,6 +154,8 @@ export type Prop =
   | { kind: "barricade"; rect: Rect; gate: number; gateW: number }
   /** A cold crack in the ground, `len` tiles long, turned `angle` (a game angle): where the dark gets in. Not solid. */
   | { kind: "crack"; x: number; y: number; len: number; angle: number }
+  /** The great crack in the Thunder Rift (src/render/wild.ts): a chasm `len` tiles long and `wide` across at its widest, centred on (x, y), turned to `angle`. Nothing crosses it. */
+  | { kind: "greatCrack"; x: number; y: number; len: number; wide: number; angle: number }
   /** A boss's arena (see src/world/arena.ts): a scorched ritual circle `radius` tiles across, ringed by `pillars` burnt standing stones, the `gap`th (from the north, clockwise) left out for the way in. */
   | { kind: "arena"; x: number; y: number; radius: number; pillars: number; gap: number }
   /** One of Ael's old stones (see src/game/stones.ts): grey, flat and faintly warm, set in the ground. Touch it and, if he

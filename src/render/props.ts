@@ -17,7 +17,7 @@ import { buildLamp } from "./lamp.ts";
 import { buildBunting, buildFountain, buildPlaza, buildStall, buildStandard, buildStock } from "./market.ts";
 import type { Occluder } from "./occlusion.ts";
 import { buildBridge, buildCurtainWall, buildHouse, buildKeep } from "./town.ts";
-import { buildArena, buildBarricade, buildCrack } from "./wild.ts";
+import { buildArena, buildBarricade, buildCrack, buildGreatCrack } from "./wild.ts";
 import { buildCryptDoor, buildStoneRing, buildTomb } from "./undercroft.ts";
 import { buildOldStone, buildRimeStage } from "./hollow.ts";
 
@@ -83,6 +83,7 @@ export const PROP_BUILDERS: { [K in Prop["kind"]]: Builder<K> } = {
   furniture: buildFurniture,
   barricade: buildBarricade,
   crack: buildCrack,
+  greatCrack: buildGreatCrack,
   arena: buildArena,
   cryptDoor: buildCryptDoor,
   tomb: buildTomb,

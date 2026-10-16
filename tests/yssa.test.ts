@@ -48,7 +48,7 @@ function write(g: Game, written: string | null) {
 
 describe("Yssa's track", () => {
   it("runs west from the Ashwild to the Frozen Hollow, and back", () => {
-    expect(hollow.build().exits.map(x => x.to)).toEqual([{ area: "ashwild", entry: "hollow" }]);
+    expect(hollow.build().exits.map(x => x.to)).toContainEqual({ area: "ashwild", entry: "hollow" });
     expect(hollow.build().entries.ashwild).toBeDefined();
   });
 

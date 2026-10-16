@@ -2,7 +2,7 @@
 // player would usually come, the level and gear they'd have by then, and the gates behind them already open. Areas
 // not listed here are reached by a fresh run's hero, with the starter kit, through their first way in.
 import { CINDER_READY } from "../data/ashwild.ts";
-import { CINDERS_BRAND, RIME_READY } from "../data/hollow.ts";
+import { CINDERS_BRAND, RIME_CIRCLET, RIME_READY } from "../data/hollow.ts";
 import type { KitPiece } from "../data/items.ts";
 import type { Game } from "./game.ts";
 import { passBarricade } from "./watchword.ts";
@@ -31,5 +31,11 @@ export const ZONES: Record<string, Zone> = {
     entry: "ashwild",
     ready: { level: 6, kit: [CINDERS_BRAND, ...RIME_READY.kit.filter(([type]) => type !== "bow")] },
     passed: g => { passBarricade(g); passYssa(g, "name"); },
+  },
+  /** Up the frozen stream, with everything from the Hollow: the longbow in hand, Rime's circlet on, Cinder's Brand in the bag. */
+  rift: {
+    entry: "hollow",
+    ready: { level: 8, kit: RIME_READY.kit.map(piece => (piece[0] === "hood" ? RIME_CIRCLET : piece)), bag: RIME_READY.bag },
+    passed: g => { passBarricade(g); passYssa(g, "name"); passYssa(g, "river"); },
   },
 };
