@@ -35,6 +35,7 @@ import { createCredits } from "./ui/credits.ts";
 import { watchEnding } from "./game/ending.ts";
 import { createSleepShade } from "./ui/sleepShade.ts";
 import { createFeyFade } from "./ui/feyFade.ts";
+import { createVictory } from "./ui/victory.ts";
 import { createFeySayings } from "./ui/feySayings.ts";
 import { createErlSpeech } from "./ui/erlSpeech.ts";
 import { createWatched } from "./ui/watched.ts";
@@ -59,6 +60,7 @@ const paper = createPaper(g);
 const letterbox = createLetterbox(g);
 const sleepShade = createSleepShade(g, view);
 const feyFade = createFeyFade(g);
+const victory = createVictory(g);
 const feySayings = createFeySayings(g);
 const erlSpeech = createErlSpeech(g, view);
 const watchedView = createWatched(g, view);
@@ -183,6 +185,7 @@ function frame(now: number): void {
   letterbox.draw();
   credits.draw(dt);
   feyFade.draw(dt);                                        // deep in a fairy ring, the screen's own furniture fades
+  victory.draw();                                          // a boss beaten: VICTORY across the screen
   feySayings.draw();                                       // and the fair folk talk to him
   erlSpeech.draw();                                        // and under the hill, their king
   watchedView.draw(dt);                                    // or, with the throne empty, the watchers murmuring, and the screen going wrong

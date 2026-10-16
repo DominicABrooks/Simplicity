@@ -336,6 +336,35 @@ body.in-cutscene #hudCanvas { opacity: 0; transition: opacity 0.4s; }
   background: radial-gradient(ellipse at center, transparent 30%, rgb(150 80 255 / 0.5) 72%, rgb(70 230 210 / 0.45) 100%);
 }
 #glitch i { position: absolute; width: 4px; height: 4px; border-radius: 50%; opacity: 0; box-shadow: 0 0 8px 3px currentColor; color: #b79cff; }
+/* A boss beaten (src/ui/victory.ts): VICTORY slamming in over turning golden rays, their name under it, confetti falling. */
+#victory { position: fixed; inset: 0; z-index: 47; pointer-events: none; overflow: hidden; }
+#victory[hidden] { display: none; }
+#victory .rays {
+  position: absolute; left: 50%; top: 34%; width: 160vmax; height: 160vmax; margin: -80vmax 0 0 -80vmax; border-radius: 50%;
+  background: repeating-conic-gradient(rgb(255 215 94 / 0.22) 0 8deg, transparent 8deg 20deg);
+  mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 32%);
+  animation: victory-rays 5.5s linear both;
+}
+#victory .word {
+  position: absolute; left: 0; right: 0; top: 26%; text-align: center; font-size: 64px; line-height: 72px; letter-spacing: 4px;
+  color: var(--glow); text-shadow: 5px 5px 0 #5a2a10, 0 0 18px rgb(255 200 80 / 0.9), 0 0 48px rgb(255 140 40 / 0.6);
+  animation: victory-slam 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both, victory-shine 1.6s ease-in-out 0.7s infinite alternate;
+}
+#victory .who {
+  position: absolute; left: 0; right: 0; top: calc(26% + 84px); padding: 0 16px; text-align: center; font-size: 18px; line-height: 24px;
+  color: var(--bone); text-shadow: 2px 2px 0 var(--ink); animation: victory-rise 0.6s ease-out 0.45s both;
+}
+#victory .confetti i {
+  position: absolute; top: -20px; border-radius: 1px;
+  animation-name: victory-fall; animation-timing-function: cubic-bezier(0.3, 0.1, 0.6, 1); animation-fill-mode: both;
+}
+@keyframes victory-rays { from { transform: rotate(0) scale(0.4); opacity: 0; } 12% { opacity: 1; } to { transform: rotate(40deg) scale(1); opacity: 1; } }
+@keyframes victory-slam { from { transform: scale(3.2); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
+@keyframes victory-shine { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+@keyframes victory-rise { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes victory-fall { from { transform: translate(0, 0) rotate(0); } to { transform: translate(var(--drift), 110vh) rotate(var(--spin)); } }
+@media (max-width: 600px) { #victory .word { font-size: 40px; line-height: 48px; } #victory .who { top: calc(26% + 58px); font-size: 14px; } }
+@media (prefers-reduced-motion: reduce) { #victory .rays, #victory .confetti { display: none; } #victory .word, #victory .who { animation: none; } }
 #sleepShade { position: fixed; inset: 0; z-index: 13; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
 #sleepShade.on { opacity: 1; }
 body.asleep #hudCanvas { z-index: 14; }   /* the clock running on, and the Zs, show over it */

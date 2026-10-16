@@ -72,6 +72,7 @@ describe("the hole in the ice", () => {
   it("once the Great Koi's landed, gives up a golden koi every time, never anything else", async () => {
     const g = await inGrotto();
     landGreatKoi(g, 0, 0);                                    // the big one's out of there (see tests/greatkoi.test.ts)
+    g.hitstop = 0;                                           // the world moving again, after the victory's dead stop
     g.inventory.reset([makeItem("rod")]);
     Object.assign(g.world.need(g.player, "transform"), { x: (ICE_HOLE.x - 2) * T, y: ICE_HOLE.y * T });
     const a = g.world.need(g.player, "actions");

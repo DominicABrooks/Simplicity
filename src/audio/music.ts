@@ -14,6 +14,7 @@ import { cinderFight } from "../game/cinderfight.ts";
 import { toast, type Game } from "../game/game.ts";
 import { ghostOut } from "../game/ghost.ts";
 import { rimeFight } from "../game/rimefight.ts";
+import { victoryOf } from "../game/victory.ts";
 import { UNDERHILL_ID, visitsUnderhill } from "../game/underhill.ts";
 
 export interface MusicPlayer {
@@ -232,7 +233,8 @@ export function createMusicPlayer(): MusicPlayer {
       if (!ctx || !master || !filter || !echo || ctx.state !== "running") return;
       const trance = tranceOf(g), now = ctx.currentTime;
       const fight = fighting(g);
-      const want = themeFor(g.state, g.area.def, { fey: trance > 0, watched: g.area.def.id === UNDERHILL_ID && visitsUnderhill(g) >= 3, hour: g.hour, boss: fight?.who });
+      const want = victoryOf(g) ? null                              // a boss just fell: quiet for the fanfare and the fireworks
+        : themeFor(g.state, g.area.def, { fey: trance > 0, watched: g.area.def.id === UNDERHILL_ID && visitsUnderhill(g) >= 3, hour: g.hour, boss: fight?.who });
       master.gain.setTargetAtTime(muted ? 0 : MUSIC_VOLUME * (1 - 0.35 * trance), now, 0.4);
       if (want !== id) {
         if (out) {

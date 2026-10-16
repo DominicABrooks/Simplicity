@@ -128,6 +128,21 @@ export const SFX = {
   murmur: { tones: [{ wave: "noise", from: 520, to: 380, dur: 1.4, gain: 0.12, q: 5, attack: 0.2 }, { wave: "noise", from: 900, to: 650, dur: 1.1, gain: 0.05, q: 6, delay: 0.25, attack: 0.15 },
     { wave: "triangle", from: 130, to: 110, dur: 1.5, gain: 0.05, attack: 0.25 }, { wave: "triangle", from: 123, to: 98, dur: 0.9, gain: 0.04, delay: 0.6, attack: 0.1 }], jitter: 0.15 },
 
+  // A boss beaten (src/game/victory.ts): a fanfare, brass up the chord in a dotted rhythm (da, da-da, da, DAAA) with a
+  // drum under it, then the whole chord held, ringing out; and the fireworks after it, each a thump, a crack and a
+  // crackle of sparks.
+  victory: { tones: [
+    ...([[392, 0, 0.3], [392, 0.3, 0.12], [523, 0.42, 0.22], [659, 0.64, 0.22], [784, 0.86, 1.6]] as const).flatMap(([f, delay, dur]) => [
+      { wave: "sawtooth" as const, from: f, dur, gain: 0.07, delay, attack: 0.02 },
+      { wave: "square" as const, from: f / 2, dur, gain: 0.05, delay, attack: 0.02 },
+    ]),
+    ...[523, 659, 784, 1047].map(f => ({ wave: "triangle" as const, from: f, to: f * 1.004, dur: 2.2, gain: 0.05, delay: 0.86, attack: 0.04 })),
+    ...[0, 0.42, 0.86].map(delay => ({ wave: "sine" as const, from: 110, to: 65, dur: 0.6, gain: 0.3, delay })),
+    { wave: "noise", from: 4000, to: 1500, dur: 1.4, gain: 0.08, q: 0.6, delay: 0.86 },
+  ] },
+  firework: { tones: [{ wave: "sine", from: 140, to: 60, dur: 0.25, gain: 0.18 }, { wave: "noise", from: 2600, to: 900, dur: 0.35, gain: 0.2, q: 0.7 },
+    ...[0.12, 0.2, 0.31, 0.4].map(delay => ({ wave: "noise" as const, from: 6000, dur: 0.05, gain: 0.07, q: 2, delay }))], jitter: 0.2 },
+
   // Pickups and fishing
   pickup: { tones: [{ wave: "square", from: 660, dur: 0.06, gain: 0.08 }, { wave: "square", from: 990, dur: 0.08, gain: 0.08, delay: 0.06 }] },
   drink: { tones: [0, 0.07, 0.14].map(delay => ({ wave: "sine" as const, from: 400, to: 700, dur: 0.07, gain: 0.15, delay })), jitter: 0.05 },
