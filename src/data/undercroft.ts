@@ -12,6 +12,8 @@ export const UNDERCROFT = {
   reach: 12, hint: 40,
   /** How near the sealed door (px, from the spot just in front of it) he must come to be told of it. */
   seal: 22,
+  /** Once woken, an old stone (src/game/stones.ts): its name, and how near the socket (px) he comes to touch it again. */
+  stone: { name: "The ring under St Mary's", touch: 20 },
   /** The ring's waking, as a ring of light going out over the room (px). */
   wake: 60,
   /** What it leaves him: a pendant with a chip of the ring in it, warm to the touch. */
@@ -31,9 +33,13 @@ export const UNDERCROFT_SAYS = {
     "A little door in the wall behind the ring, sealed and sealed again: iron bands, lead seals stamped with the Kellets' mark.",
     "Older than the seals, cut into the stone: three flames, a snowflake and a lightning bolt. The top band has snapped. Cold air comes under it.",
   ],
-  /** Setting it back. */
+  /** The sealed door, once the ring's whole again: said with the first of `seal` if he's not been up to it yet. */
+  sealCalm: "The three fires on the little door burn steady now the ring is whole, and no cold comes under it.",
+  /** Setting it back: what the ring was (HISTORY.md, "The Seal" and "88 AF"), and what it is to him now. */
   wake: [
     "The stone slides home into the socket, as if it had never left.",
-    "One by one, the old stones wake. The warmth of them goes right through you.",
+    "One by one, the old stones wake, and in their warmth you know this place: the Vael's temple floor. Under it the Old Mother laid her three eggs, one for each fire.",
+    "Aldric stole them, and Hereward gilded them for his treasury. Ever since, the ring has held the crack under the hill as shut as it could, alone.",
+    "The warmth goes right through you. The ring knows you now: fall, and Ael will wake you here.",
   ],
 } as const;

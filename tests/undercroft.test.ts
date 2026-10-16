@@ -11,7 +11,9 @@ import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
+import { lastStone, touchStone, wakeOnStone } from "../src/game/stones.ts";
 import { sealOf, socketOf } from "../src/game/undercroft.ts";
+import { CLUES } from "../src/data/clues.ts";
 import { makeCurio } from "../src/items/items.ts";
 import { step } from "../src/systems/index.ts";
 import { blocked } from "../src/world/collision.ts";
@@ -125,5 +127,59 @@ describe("the little sealed door behind the ring", () => {
     expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toEqual([...UNDERCROFT_SAYS.seal]);
     step(g, DT);
     expect(toasts.filter(t => UNDERCROFT_SAYS.seal.includes(t as never))).toHaveLength(UNDERCROFT_SAYS.seal.length);
+  });
+});
+
+describe("the ring, woken", () => {
+  /** Set the stone home: he's carrying it, and walks up to the socket. */
+  async function woken() {
+    const r = await at("undercroft", "steps", ["stone"]), s = socketOf(r.g)!;
+    Object.assign(hero(r.g), { x: s.x, y: s.y + 4 });
+    step(r.g, DT);
+    return { ...r, s };
+  }
+
+  it("says what the ring was: the Vael's temple floor, where the eggs were laid and taken from", async () => {
+    const { toasts } = await woken();
+    expect(toasts.join(" ")).toMatch(/temple floor.*three eggs.*Aldric.*Hereward.*crack/s);
+  });
+
+  it("is an old stone now: a fall wakes him in the ring, whole, his level kept", async () => {
+    const { g } = await woken();
+    expect(lastStone(g)).toEqual({ area: "undercroft", entry: "ring", name: UNDERCROFT.stone.name });
+    const wake = g.area.layout.entries.ring!;
+    expect(blocked(g.map, wake.x, wake.y, true)).toBe(false);
+    Object.assign(g.world.need(g.player, "hero"), { level: 5 });
+    g.world.need(g.player, "health").hp = 0;
+    setState(g, "dead");
+    expect(wakeOnStone(g)).toBe(true);
+    arrive(g, await loadArea("undercroft"));
+    expect({ x: hero(g).x, y: hero(g).y }).toEqual(wake);
+    expect(g.world.need(g.player, "hero").level).toBe(5);
+  });
+
+  it("is touched again when he comes back to it after touching another stone", async () => {
+    const { g, toasts, s } = await woken();
+    // He's touched the fountain stone since; then he walks up to the ring.
+    touchStone(g, { area: "capital", entry: "stone", name: "The fountain stone" }, 0, 0, true);
+    Object.assign(hero(g), { x: s.x, y: s.y + 4 });
+    step(g, DT);
+    expect(lastStone(g)?.entry).toBe("ring");
+    expect(toasts).toContain(`${UNDERCROFT.stone.name} glows under your hand`);
+  });
+
+  it("quiets the sealed door: the cold stops coming under it", async () => {
+    const { g, toasts } = await woken();
+    Object.assign(hero(g), sealOf(g)!);
+    step(g, DT);
+    expect(toasts).toContain(UNDERCROFT_SAYS.seal[0]);
+    expect(toasts).toContain(UNDERCROFT_SAYS.sealCalm);
+    expect(toasts).not.toContain(UNDERCROFT_SAYS.seal[1]);
+  });
+});
+
+describe("the stone's clues", () => {
+  it("one of them points to St Mary's, where it belongs", () => {
+    expect(CLUES.stone.some(l => l.includes("St Mary's"))).toBe(true);
   });
 });

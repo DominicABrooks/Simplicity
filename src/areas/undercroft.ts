@@ -5,12 +5,14 @@
 // faintly warm, one of them missing.
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout, Facing, FurnitureItem } from "../world/area.ts";
+import { ringPlan } from "../world/stonering.ts";
 import { Town, px } from "../world/townkit.ts";
 
 const W = 18, H = 18;
 /** The door, mid-south wall; the room's middle line; the ring's centre. */
 const DOOR_AT = W / 2 - 1, MID = W / 2;
 export const RING = { x: MID, y: 5.6, radius: 2.7, stones: 7, gap: 3 } as const;
+const SOCKET = ringPlan({ kind: "stoneRing", ...RING, x: RING.x * T, y: RING.y * T }).socket;
 
 function build(): AreaLayout {
   const town = new Town(W, H, Tile.Cobble);
@@ -41,8 +43,9 @@ function build(): AreaLayout {
   add("chest", W - 4, H - 1.5, "north");
 
   return town.layout(
-    // Down the steps, just inside the door.
-    { steps: { x: MID * T - HALF, y: (H - 2.6) * T - HALF } },
+    // Down the steps, just inside the door; and, once the ring's woken (src/game/undercroft.ts), in the ring, by the
+    // stone that went home, where Ael wakes him after a fall.
+    { steps: { x: MID * T - HALF, y: (H - 2.6) * T - HALF }, ring: { x: (SOCKET.x + (RING.x - SOCKET.x) * 0.4) * T - HALF, y: (SOCKET.z + (RING.y - SOCKET.z) * 0.4) * T - HALF } },
     // Back up the steps, into St Mary's churchyard.
     [{ rect: { x: DOOR_AT * T, y: (H - 1) * T + 3, w: 1.3 * T, h: T - 3 }, to: { area: "capital", entry: "undercroft" } }],
   );

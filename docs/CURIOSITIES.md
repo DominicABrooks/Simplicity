@@ -50,8 +50,13 @@ glowing blue-green and slowly turning, rings of light go out over the room, the 
 hero (healed to full), and a chip of the ring is left at its foot: the **Ringstone Pendant**. Come back and
 it's still standing there.
 
-*Still to do:* make the woken ring an old stone the hero wakes at after a fall, once the old stones are built
-(STORY.md, "Checkpoints").
+As it wakes, the ring tells him what it is (`UNDERCROFT_SAYS.wake`): the Vael's temple floor, where the Old Mother
+laid her three eggs; Aldric stole them and Hereward gilded them, and the ring has held the crack under the hill
+shut alone ever since. And it's an **old stone** now (STORY.md, "Checkpoints"): it knows him, and a fall wakes
+him in the ring; walk up to it again after touching another stone and it knows him again. The little sealed door
+behind the ring, the Vael's lock on somebody else's door, goes quiet: no cold comes under it any more.
+
+The way to it: one of the stone's clues (`CLUES.stone`) sends him to St Mary's, built on stones like it.
 
 ## Old Gil's eye (built)
 

@@ -42,8 +42,14 @@ export function stoneSystem(g: Game): void {
 }
 
 function touch(g: Game, stone: OldStone): void {
-  state(g).stone = { area: g.area.def.id, entry: stone.entry, name: stone.name };
-  g.fx.push({ type: "burst", x: stone.x - HALF, y: stone.y - HALF, palette: "spark" });
+  touchStone(g, { area: g.area.def.id, entry: stone.entry, name: stone.name }, stone.x - HALF, stone.y - HALF);
+}
+
+/** He touches a stone (at x, y: game px), an old stone or one that's become one (the Undercroft's woken ring): it knows him. Quietly, if it's just said so another way. */
+export function touchStone(g: Game, stone: Touched, x: number, y: number, quiet = false): void {
+  state(g).stone = { ...stone };
+  if (quiet) return;
+  g.fx.push({ type: "burst", x, y, palette: "spark" });
   sound(g, "pickup");
   toast(g, `${stone.name} glows under your hand`, true);
 }
