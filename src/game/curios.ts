@@ -17,20 +17,21 @@ export function spentCurios(g: Game): Set<CurioId> {
 }
 
 /**
- * Is this catch a curiosity? Catches go in windows of CURIO_WINDOW, and one in each window (which one is picked as
- * it opens) is: so a curiosity can't keep away for long, however the dice fall. A new run starts a fresh window.
+ * Is this catch a curiosity? Catches go in windows, and one in each window (which one is picked as it opens) is: so a
+ * curiosity can't keep away for long, however the dice fall. A run's first window is CURIO_WINDOW.first catches long,
+ * so the first comes up soon; every one after, CURIO_WINDOW.after. A new run starts afresh.
  */
-const windows = new WeakMap<Game, { n: number; at: number }>();
+const windows = new WeakMap<Game, { n: number; at: number; size: number }>();
 export function curioDue(g: Game): boolean {
   let w = windows.get(g);
   if (!w) {
-    const fresh = { n: 0, at: 0 };
+    const fresh = { n: 0, at: 0, size: CURIO_WINDOW.first as number };
     windows.set(g, w = fresh);
-    g.events.on("reset", () => { fresh.n = 0; });
+    g.events.on("reset", () => { fresh.n = 0; fresh.size = CURIO_WINDOW.first; });
   }
-  if (w.n === 0) w.at = g.rng.int(0, CURIO_WINDOW - 1);
+  if (w.n === 0) w.at = g.rng.int(0, w.size - 1);
   const due = w.n === w.at;
-  w.n = (w.n + 1) % CURIO_WINDOW;
+  if (++w.n === w.size) { w.n = 0; w.size = CURIO_WINDOW.after; }
   return due;
 }
 

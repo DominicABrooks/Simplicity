@@ -1,4 +1,4 @@
-// Curiosities: one catch in every twenty comes up something stranger than a koi, never one the hero's already carrying.
+// Curiosities: one catch in every ten (the run's first in five) comes up something stranger than a koi, never one the hero's already carrying.
 import { describe, expect, it } from "vitest";
 import { CURIO_IDS, CURIO_WINDOW, CURIOS, type CurioId } from "../src/data/items.ts";
 import { T, Tile } from "../src/data/world.ts";
@@ -39,14 +39,26 @@ function strike(g: Game, roll?: number) {
 }
 
 describe("curiosities", () => {
-  /** Fish out a window of twenty catches, the dice falling as they will: the curiosities that came up. */
-  const window = (g: Game): CurioId[] =>
-    Array.from({ length: CURIO_WINDOW }, () => strike(g).anim?.curio ?? null).filter((c): c is CurioId => !!c);
+  /** Fish out a window of catches (the run's first is shorter), the dice falling as they will: the curiosities that came up. */
+  const window = (g: Game, length: number = CURIO_WINDOW.after): CurioId[] =>
+    Array.from({ length }, () => strike(g).anim?.curio ?? null).filter((c): c is CurioId => !!c);
+  /** All of a run's windows, the first one first. */
+  const windows = (g: Game, n: number): CurioId[] => [...window(g, CURIO_WINDOW.first), ...Array.from({ length: n - 1 }, () => window(g)).flat()];
 
-  it("one comes up in every twenty catches, never more and never fewer, however the dice fall", () => {
-    expect(CURIO_WINDOW).toBe(20);
+  it("the first comes up in the first five catches, then one in every ten, never more and never fewer, however the dice fall", () => {
+    expect(CURIO_WINDOW).toEqual({ first: 5, after: 10 });
     const { g } = fisher();
-    for (let i = 0; i < 4; i++) expect(window(g)).toHaveLength(1);
+    expect(window(g, CURIO_WINDOW.first)).toHaveLength(1);
+    for (let i = 0; i < 3; i++) expect(window(g)).toHaveLength(1);
+  });
+
+  it("a new run's first comes up in its first five again", () => {
+    const { g } = fisher();
+    window(g, CURIO_WINDOW.first); window(g);
+    resetGame(g);
+    setState(g, "play");
+    g.inventory.reset([makeItem("rod")]);
+    expect(window(g, CURIO_WINDOW.first)).toHaveLength(1);
   });
 
   it("the mysterious stone says someone may be interested in it", () => {
@@ -73,7 +85,7 @@ describe("curiosities", () => {
 
   it("never one he's already carrying: each comes up once, and then it's koi", () => {
     const { g } = fisher(), found: string[] = [];
-    for (let i = 0; i < CURIO_IDS.length; i++) found.push(...window(g));
+    found.push(...windows(g, CURIO_IDS.length));
     expect(found.sort()).toEqual([...CURIO_IDS].sort());
     expect(window(g)).toEqual([]);
   });

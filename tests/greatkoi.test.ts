@@ -5,10 +5,11 @@ import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { ICE_HOLE } from "../src/areas/grotto.ts";
 import { GREAT_KOI, WHISKER_ROD } from "../src/data/hollow.ts";
-import { CATCH_ODDS, FISH, LEGENDARY_CATCH_ODDS } from "../src/data/items.ts";
+import { CATCH_ODDS, CURIO_IDS, FISH, LEGENDARY_CATCH_ODDS } from "../src/data/items.ts";
 import { FISHING } from "../src/data/player.ts";
 import { T, Tile } from "../src/data/world.ts";
 import { bossBar } from "../src/game/bossbar.ts";
+import { spentCurios } from "../src/game/curios.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { greatKoiBeaten, greatKoiOut, greatKoiSystem } from "../src/game/greatkoi.ts";
 import { resetGame } from "../src/game/reset.ts";
@@ -158,6 +159,7 @@ describe("the legendary pole", () => {
   it("lands golden koi far more often", async () => {
     const roll = (CATCH_ODDS.rare + LEGENDARY_CATCH_ODDS.rare) / 2;   // silver with an old pole, golden with this one
     const old = await pondside(makeItem("rod")), great = await pondside(rod());
+    for (const { g } of [old, great]) for (const id of CURIO_IDS) spentCurios(g).add(id);   // koi only: no curiosity on the line
     expect(strike(old.g, old.water, roll)?.name).toBe(FISH.magic.name);
     expect(strike(great.g, great.water, roll)?.name).toBe(FISH.rare.name);
   });

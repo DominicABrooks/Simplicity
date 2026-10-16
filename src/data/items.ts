@@ -55,8 +55,8 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
 
 /**
  * Now and then it isn't a koi on the hook at all but something stranger, lost in the water who knows how: one catch
- * in every twenty (CURIO_WINDOW), somewhere in the twenty, is one of these, never one you're already carrying. Each
- * says something of itself.
+ * in every ten (CURIO_WINDOW), somewhere in the ten, is one of these, never one you're already carrying; the first of a
+ * run sooner, one in the first five. Each says something of itself.
  */
 export type CurioId = "stone" | "key" | "eye" | "bottle" | "bell";
 export const CURIOS: Record<CurioId, { type: ItemType; name: string; note: string }> = {
@@ -67,7 +67,7 @@ export const CURIOS: Record<CurioId, { type: ItemType; name: string; note: strin
   bell:   { type: "bell", name: "Little Handbell", note: "It rings at nine every night, though nobody rings it." },
 };
 export const CURIO_IDS = Object.keys(CURIOS) as CurioId[];
-export const CURIO_WINDOW = 20;
+export const CURIO_WINDOW = { first: 5, after: 10 } as const;
 
 /** What people give the hero when they talk to him: the gift lines in src/data/voices.ts say which. */
 export type GiftKind = "loaf" | "koi" | "stone";
