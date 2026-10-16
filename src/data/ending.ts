@@ -48,6 +48,84 @@ export const CROWD_SAYS: readonly string[] = [
   "Somebody tell Quill.",
 ];
 
+/**
+ * Talking to people on his way up with the head, each as they stand on the Edict (src/world/people.ts): those who say
+ * there are no witches, the King's loyal, the quiet, the whisperers, the defiant and the informers. Children have their
+ * own, those already following him theirs, and the guards theirs.
+ */
+export const HEAD_TALK = {
+  denies: [
+    "That's a rock. A rock with a face. There are no witches, so that's a rock with a face.",
+    "Whatever that is, it isn't what it looks like. It can't be. ...Can it?",
+    "I don't know what that is and I'm not going to ask.",
+  ],
+  loyal: [
+    "Is that for the King? Go on, then, he's up at the castle. Straight up Castle Street.",
+    "Whatever it is, His Majesty will know what to make of it. Off you go.",
+    "Stand up straight when you hand it over. He likes that.",
+  ],
+  quiet: [
+    "...Is that who I think it is? No. Don't tell me. Just go on up.",
+    "Oh. Oh, my. I'll walk a little way with you, if that's all right.",
+    "I never said a word about him. Not once. ...Is it really over?",
+  ],
+  whispering: [
+    "It's him, isn't it? The storm mage. I knew it. I told everyone and nobody listened.",
+    "Psst. Is that HIM? It is. It's him! ...Why am I still whispering?",
+    "I said there was one out there. Didn't I say? I said!",
+  ],
+  defiant: [
+    "Ha! Look at that! Let's see Quill read THAT out at the cross!",
+    "I knew someone would do it. Didn't think it'd be a little stone fellow, mind.",
+    "No witches, they said. Tell that to him. Well. Tell it to his head.",
+  ],
+  informer: [
+    "I'll be making a note of this. A full note. ...Could I have a closer look first?",
+    "Carrying a head about the streets. There's probably a rule against that. There ought to be.",
+    "Who do I even report this to? The King? You're going to the King. Never mind.",
+  ],
+  child: ["Is that a real head?", "Can I hold it? Please? I'll be careful!", "Does it bite?", "Mum! Mum, look what it's got!"],
+  following: [
+    "Don't mind me. I'm just walking this way. Same way as you. Coincidence.",
+    "Go on, go on, we're right behind you!",
+    "Half the street's following you, you know. Have you looked back?",
+  ],
+  guard: [
+    "Is that... Right. Go on through. Straight up to the keep. Quickly.",
+    "I'm not paid enough to ask what that is. Go on in.",
+  ],
+} as const;
+
+/** And once the King's had his say on the keep steps, and the city knows: as they stand on it. */
+export const AFTER_TALK = {
+  denies: [
+    "Well. I suppose I'll have to stop saying there aren't any witches. Weren't. Aren't now. You know what I mean.",
+    "I was wrong. There. I've said it. Don't make me say it twice.",
+  ],
+  loyal: [
+    "The King's to read the whole true chronicle at the cross. Takes a big man to go that red in public.",
+    "Long live the King. And long live you, little stone fellow.",
+  ],
+  quiet: [
+    "It's quiet out here now. The good kind of quiet.",
+    "I slept all night last night. First time in a year.",
+  ],
+  whispering: [
+    "We don't have to whisper any more! ...Sorry. Habit.",
+    "I can say it out loud now. Witches. There were witches. And you saw them off!",
+  ],
+  defiant: [
+    "No more Edict! I'm going to say \"witch\" all day. Witch. Witch witch witch.",
+    "Told you so. Told everyone so. Feels wonderful.",
+  ],
+  informer: [
+    "Nothing left to report. I'll have to take up a hobby.",
+    "I've torn up my notes. Well. Most of my notes.",
+  ],
+  child: ["Did you really beat a wizard? Show me how!", "Is your arm stone all the way through?", "When I'm big I'm going to be made of stone too."],
+  guard: ["Thank you. From all of us on the gate.", "Quiet watch, these days. I could get used to it."],
+} as const;
+
 /** On the keep steps: the King, out to see what all the noise is, looks at the head at his feet. */
 export const KING_HOMECOMING: readonly string[] = [
   "(He looks at it for a long time.)",

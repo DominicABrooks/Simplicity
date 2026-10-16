@@ -5,14 +5,15 @@
 // the noise is, and as the hero comes near, the homecoming scene plays (src/data/cutscenes.ts): he sets the head at
 // the King's feet, the King has his say, and the credits roll (src/ui/credits.ts). After, the game goes on.
 import type { Entity } from "../core/ecs.ts";
-import { HOMECOMING } from "../data/ending.ts";
+import { AFTER_TALK, HEAD_TALK, HOMECOMING } from "../data/ending.ts";
 import { CALDER_FIGHT } from "../data/rift.ts";
 import { HALF } from "../data/world.ts";
 import type { CurrentArea } from "./game.ts";
 import { beaten } from "./bosses.ts";
 import { calderGone } from "./calderfight.ts";
 import { onCue, onlyIf } from "./cutscene.ts";
-import { disperseCrowd, gatherCrowd } from "./crowd.ts";
+import type { Resident } from "../world/residents.ts";
+import { disperseCrowd, gatherCrowd, processionOn } from "./crowd.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { carryingHead, giveUpHead } from "./head.ts";
 import { spawnKing } from "./spawn.ts";
@@ -24,14 +25,16 @@ interface Ending {
   /** He's set the head at the King's feet; the credits have rolled. */
   laid: boolean;
   over: boolean;
+  /** Who's had their say about it since (by their conversation key). */
+  told: Set<string>;
 }
 const endings = new WeakMap<Game, Ending>();
 function endingOf(g: Game): Ending {
   let s = endings.get(g);
   if (!s) {
-    const fresh: Ending = { glow: null, laid: false, over: false };
+    const fresh: Ending = { glow: null, laid: false, over: false, told: new Set() };
     endings.set(g, s = fresh);
-    g.events.on("reset", () => Object.assign(fresh, { glow: null, laid: false, over: false }));
+    g.events.on("reset", () => Object.assign(fresh, { glow: null, laid: false, over: false, told: new Set() }));
   }
   return s;
 }
@@ -41,6 +44,21 @@ export const wayHomeOpen = (g: Game): boolean => beaten(g, "calder") && (calderG
 
 /** Has he set the head at the King's feet (this run)? */
 export const headLaid = (g: Game): boolean => endingOf(g).laid;
+
+/**
+ * What someone says to him at the end, instead of their usual (null if it's not the time): on his way up with the head,
+ * how they take the sight of it, as they stand on the Edict (or as a child, one of the crowd behind him, or a guard);
+ * and once the King's told the city, the first time each speaks to him after, how they take that. `key` is their
+ * conversation key; `r` who they are, if they're one of the townsfolk (else a guard).
+ */
+export function endingTalk(g: Game, key: string, r: Resident | undefined, following: boolean): string[] | null {
+  const kid = !!r && r.age < 12, pick = (lines: readonly string[]) => [lines[Math.floor(g.rng.next() * lines.length)]!];
+  if (processionOn(g)) return pick(!r ? HEAD_TALK.guard : kid ? HEAD_TALK.child : following ? HEAD_TALK.following : HEAD_TALK[r.stance]);
+  const s = endingOf(g);
+  if (!s.laid || s.told.has(key)) return null;
+  s.told.add(key);
+  return pick(!r ? AFTER_TALK.guard : kid ? AFTER_TALK.child : AFTER_TALK[r.stance]);
+}
 
 /** The rift stone, if this is the Rift. */
 const riftStone = (g: Game) => (g.area.def.id === "rift" ? g.area.layout.props.find(p => p.kind === "oldStone") : undefined);

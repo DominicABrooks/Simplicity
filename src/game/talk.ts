@@ -29,7 +29,7 @@ import { gilLines, isGil } from "./quay.ts";
 import { isYssa, yssaAsking, yssaAsks, yssaLines } from "./yssa.ts";
 import { spiritLines } from "./spirits.ts";
 import { beaten } from "./bosses.ts";
-import { headLaid } from "./ending.ts";
+import { endingTalk, headLaid } from "./ending.ts";
 import { carryingHead } from "./head.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
@@ -62,20 +62,23 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   if (isKing && visits === 0 && !beaten(g, "calder")) toast(g, KINGS_TASK, true);
   // The woodwardens at the barricade ask for the King's watchword, and hand him paper to write it on; once he's through, he's through.
   const warden = name === WOODWARDEN.name, yssa = isYssa(g, e), asking = (warden && !passedBarricade(g)) || (yssa && yssaAsking(g));
-  const lines = isKing ? kingLines(g, visits)
+  // At the end, the townsfolk and the guards have only one thing to talk about (src/game/ending.ts).
+  const ending = !isKing && (resident || g.world.has(e, "sentry")) && !warden && !yssa && !isGil(g, e) && !g.world.has(e, "spirit")
+    ? endingTalk(g, key, resident, who?.crowd?.mode === "follow") : null;
+  const lines = ending ? ending : isKing ? kingLines(g, visits)
     : warden ? [...(asking ? WARDEN_TALK.ask : WARDEN_TALK.through)]
     : yssa ? yssaLines(g)
     : g.world.has(e, "spirit") ? spiritLines(g, e)
     : isGil(g, e) ? gilLines(g)
     : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
-  const clue = resident ? curioClue(g) : null;
+  const clue = resident && !ending ? curioClue(g) : null;
   if (clue) lines.splice(Math.min(1, lines.length), 0, clue);
   // And if something after dark frightened them lately (src/game/frights.ts), that comes first, after their greeting.
-  const fright = resident ? frightLines(g, resident, voiceOf(resident)) : [];
+  const fright = resident && !ending ? frightLines(g, resident, voiceOf(resident)) : [];
   if (fright.length) lines.splice(Math.min(1, lines.length), 0, ...fright);
   // Or, now and then, the Dim Man (src/game/dimman.ts): a word about him, or the next of his story, before they go.
-  const dim = resident && !fright.length ? dimManLines(g, resident, voiceOf(resident)) : [];
+  const dim = resident && !ending && !fright.length ? dimManLines(g, resident, voiceOf(resident)) : [];
   if (dim.length) lines.splice(Math.max(1, lines.length - 1), 0, ...dim);
   g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0, ...(asking ? { then: "paper" as const } : {}) });
   said(g);

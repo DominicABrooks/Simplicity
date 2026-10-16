@@ -9,7 +9,7 @@ import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { CALDER_STAND } from "../src/areas/rift.ts";
 import { SCENES } from "../src/data/cutscenes.ts";
-import { CROWD, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF } from "../src/data/ending.ts";
+import { AFTER_TALK, CROWD, HEAD_TALK, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF } from "../src/data/ending.ts";
 import { CALDER_FIGHT as F, CALDERS_HEAD } from "../src/data/rift.ts";
 import { HALF, T } from "../src/data/world.ts";
 import { beaten, bossSystem } from "../src/game/bosses.ts";
@@ -21,7 +21,7 @@ import { createGame, setState, type Game } from "../src/game/game.ts";
 import { carryingHead, giveUpHead } from "../src/game/head.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "../src/game/talk.ts";
-import { populate, setCensus, updateTownsfolk } from "../src/game/townsfolk.ts";
+import { populate, residentById, setCensus, updateTownsfolk } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
 import { deathSystem } from "../src/systems/enemies.ts";
@@ -196,5 +196,36 @@ describe("the end of the story path", () => {
     Object.assign(g.world.need(g.player, "transform"), { x: transform.x, y: transform.y + 10 });
     startTalk(g, king);
     expect(talking(g)!.lines).toEqual(KING_NO_PROOF);
+  });
+
+  it("on his way up with the head, the townsfolk and the guards talk about nothing else; after, each has a word on it once", async () => {
+    const g = await home();
+    populate(g, people);
+    const hero = g.world.need(g.player, "transform");
+    /** Talk to them: what they say. */
+    const hear = (e: number) => {
+      endTalk(g);
+      const t = g.world.need(e, "transform");
+      Object.assign(hero, { x: t.x + 6, y: t.y });
+      startTalk(g, e);
+      return talking(g)!.lines;
+    };
+    const grownUp = g.world.query("walker").find(([, c]) => (residentById(c.walker.id)?.age ?? 0) >= 14)!;
+    const r = residentById(grownUp[1].walker.id)!;
+    expect(HEAD_TALK[r.stance]).toContain(hear(grownUp[0])[0]);
+    expect(hear(grownUp[0])).toHaveLength(1);
+    // The guards at the castle gate.
+    enterArea(g, await loadArea("castle"), "town");
+    const guard = g.world.query("sentry", "renderable").find(([, c]) => c.renderable.kind === "guard")![0];
+    expect(HEAD_TALK.guard).toContain(hear(guard)[0]);
+    // The head laid at the King's feet: a word on that, the first time, and then their usual.
+    const at = kingOf(g)![1].transform;
+    endTalk(g);
+    Object.assign(hero, { x: at.x, y: at.y + 40 });
+    frame(g);
+    skipCutscene(g);
+    endCredits(g);
+    expect(AFTER_TALK.guard).toContain(hear(guard)[0]);
+    expect(AFTER_TALK.guard).not.toContain(hear(guard)[0]);
   });
 });
