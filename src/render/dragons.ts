@@ -39,7 +39,7 @@ type Hide = (typeof HIDES)[Dragon["hide"]];
 interface DragonView {
   group: THREE.Group; shadow: THREE.Mesh; chest: THREE.Mesh;
   legs: THREE.Group[]; neck: THREE.Group[]; head: THREE.Group; jaw: THREE.Group; mouth: THREE.Object3D; tail: THREE.Group[];
-  wings: [THREE.Group, THREE.Group]; wrists: [THREE.Group, THREE.Group];
+  wings: [THREE.Group, THREE.Group]; wrists: [THREE.Group, THREE.Group]; folds: [(k: number) => void, (k: number) => void];
   light: THREE.PointLight; k: number;
 }
 
@@ -58,11 +58,19 @@ function flatTris(tris: readonly P[]): THREE.BufferGeometry {
   geo.computeVertexNormals();
   return geo;
 }
-/** A fan of triangles from the first point through the rest. */
-const fan = (pts: readonly P[]) => flatTris(pts.slice(1, -1).flatMap((p, i) => [pts[0]!, p, pts[i + 2]!]));
-/** The band between two runs of points, an inner and an outer, the same length. */
-const band = (inner: readonly P[], outer: readonly P[]) =>
-  flatTris(inner.slice(0, -1).flatMap((a, i) => [a, outer[i]!, outer[i + 1]!, a, outer[i + 1]!, inner[i + 1]!]));
+/** Write these points (x, z on y = 0) into a flat mesh's positions, in place, triangle by triangle. */
+function reshape(geo: THREE.BufferGeometry, tris: readonly P[]): void {
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  tris.forEach(([x, z], i) => pos.setXYZ(i, x, 0, z));
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+}
+/** A fan of triangles from the first point through the rest; the band between two runs of points, the same length. */
+const fanTris = (pts: readonly P[]) => pts.slice(1, -1).flatMap((p, i) => [pts[0]!, p, pts[i + 2]!]);
+const bandTris = (inner: readonly P[], outer: readonly P[]) => inner.slice(0, -1).flatMap((a, i) => [a, outer[i]!, outer[i + 1]!, a, outer[i + 1]!, inner[i + 1]!]);
+/** A point (x, z) turned about the origin by `by` (radians, the way rotation.y turns things). */
+const turned = ([x, z]: P, by: number): P => [x * Math.cos(by) + z * Math.sin(by), -x * Math.sin(by) + z * Math.cos(by)];
 /** Toward `o` from `p`, `k` of the way. */
 const toward = (p: P, o: P, k: number): P => [p[0] + (o[0] - p[0]) * k, p[1] + (o[1] - p[1]) * k];
 /** A bone on the plane y = 0 from a to b (x, z), tapering. */
@@ -76,10 +84,13 @@ function rod(o: THREE.Object3D, a: P, b: P, r0: number, r1: number, mat: THREE.M
  * along the leading edge, bowed forward, out to the tip, and two more fingers sweeping back to the trailing edge; the
  * membrane deep (as deep as the body is long, near the root), scalloped between the fingertips: red out from the arm,
  * cream toward the trailing edge. One sheet, in two flat colours side by side, nothing laid over it (anything that
- * close to it would flicker through it, with every vertex snapped to the screen's coarse grid). The fingers fold back
- * along the arm at the wrist, and at rest the folded wing is what she stands on in front, the wrist claw on the ground.
+ * close to it would flicker through it, with every vertex snapped to the screen's coarse grid).
+ * It folds the way a wing does, not all of a piece: each finger closes its own way till all three lie together back
+ * along the arm, and the membrane between them gathers up with them (made again from where the fingers are whenever
+ * they move), the scallops drawn in; the membrane nearer the body draws in to a sliver along the arm. `fold` (0 open,
+ * 1 closed) does it.
  */
-function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, pale: THREE.Material, s: 1 | -1, span: number): { shoulder: THREE.Group; wrist: THREE.Group } {
+function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, pale: THREE.Material, s: 1 | -1, span: number): { shoulder: THREE.Group; wrist: THREE.Group; fold: (k: number) => void } {
   const shoulder = new THREE.Group(), m = new THREE.Group(), W: P = [0.2, 0.61];
   m.scale.set(span, span, s * span);
   shoulder.add(m);
@@ -90,24 +101,41 @@ function wing(bone: THREE.Material, claw: THREE.Material, top: THREE.Material, p
   m.add(wrist);
   put(wrist, ball(0.055), bone, 0, 0, 0);
   put(wrist, toX(cone(0.03, 0.13)), claw, 0.04, 0, 0);       // the wrist claw, forward
-  // The hand, from the wrist: the leading edge bowed forward to the tip, two fingers back to the trailing edge,
-  // and the scallops between, pulled in.
+  // The hand, from the wrist: the leading edge bowed forward to the tip, two fingers back to the trailing edge. Each
+  // finger turns on the wrist as a piece; closed, they lie together, pointing back along the arm.
   const lead: P = [0.1, 0.64], tip: P = [-0.31, 1.13], f2: P = [-0.98, 0.69], f3: P = [-1.09, 0];
-  const s1: P = [-0.41, 0.86], s2: P = [-0.82, 0.39];
-  rod(wrist, [0, 0], lead, 0.04, 0.03, bone);
-  rod(wrist, lead, tip, 0.03, 0.012, bone);
-  rod(wrist, [0, 0], f2, 0.035, 0.012, bone);
-  rod(wrist, [0, 0], f3, 0.035, 0.014, bone);
-  const edge: P[] = [lead, tip, s1, f2, s2, f3];
-  // Red out from the arm, cream the outer part toward the trailing edge.
-  const inner = edge.map((p, i) => toward([0, 0], p, i === 0 || i === 1 ? 0.92 : 0.55));
-  put(wrist, fan([[0, 0], ...inner]), top, 0, 0, 0);
-  put(wrist, band(inner, edge), pale, 0, 0, 0);
-  // Nearer the body: from the shoulder out to the wrist and the last fingertip, scalloped back in to the flank.
-  const f3m: P = [W[0] + f3[0], W[1] + f3[1]], s3: P = [-0.66, 0.3], root: P = [-0.6, 0.02];
-  put(m, fan([[0, 0], W, f3m, s3, root]), top, 0, 0, 0);
-  return { shoulder, wrist };
+  const finger = () => { const f = new THREE.Group(); wrist.add(f); return f; };
+  const g1 = finger(), g2 = finger(), g3 = finger(), dir = ([x, z]: P) => Math.atan2(x, z);
+  rod(g1, [0, 0], lead, 0.04, 0.03, bone);
+  rod(g1, lead, tip, 0.03, 0.012, bone);
+  rod(g2, [0, 0], f2, 0.035, 0.012, bone);
+  rod(g3, [0, 0], f3, 0.035, 0.014, bone);
+  const turns = FOLDED.map((to, i) => to - dir([tip, f2, f3][i]!)) as [number, number, number];
+  // The membranes, made once and reshaped as the hand opens and closes.
+  const sheet = (o: THREE.Object3D, n: number, mat: THREE.Material) => put(o, flatTris(Array.from({ length: n }, (): P => [0, 0])), mat, 0, 0, 0).geometry;
+  const outerRed = sheet(wrist, 15, top), outerPale = sheet(wrist, 30, pale), nearRed = sheet(m, 9, top);
+  const S3: P = [-0.66, 0.3], ROOT: P = [-0.6, 0.02];
+  let last = -1;
+  const fold = (k: number) => {
+    if (Math.abs(k - last) < 0.002) return;
+    last = k;
+    const [t1, t2, t3] = turns.map(t => t * k) as [number, number, number];
+    g1.rotation.y = t1; g2.rotation.y = t2; g3.rotation.y = t3;
+    const L = turned(lead, t1), T = turned(tip, t1), F2 = turned(f2, t2), F3 = turned(f3, t3), pull = 0.74 + 0.24 * k;
+    const S1 = toward([0, 0], toward(T, F2, 0.5), pull), S2 = toward([0, 0], toward(F2, F3, 0.5), pull);
+    const edge: P[] = [L, T, S1, F2, S2, F3], inner = edge.map((p, i) => toward([0, 0], p, i < 2 ? 0.92 : 0.55));
+    reshape(outerRed, fanTris([[0, 0], ...inner]));
+    reshape(outerPale, bandTris(inner, edge));
+    // Nearer the body: from the shoulder out to the wrist and the last fingertip, scalloped back in to the flank; closed,
+    // it's drawn in along the arm and that finger.
+    const F3m: P = [W[0] + F3[0], W[1] + F3[1]], along = toward([0, 0], F3m, 0.5);
+    reshape(nearRed, fanTris([[0, 0], W, F3m, toward(S3, toward(along, W, 0.25), k), toward(ROOT, toward([0, 0], W, 0.2), k)]));
+  };
+  fold(0);
+  return { shoulder, wrist, fold };
 }
+/** Where the three fingers point, closed (radians, the way rotation.y turns: -π/2 straight back, ±π back toward the shoulder). */
+const FOLDED = [-2.15, -2.25, -2.35];
 
 /**
  * A dragon facing +x, built like a great wyvern and shaped on Rathalos (seen from above, nose to tail is a little over
@@ -221,18 +249,21 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
     for (const dx of [-0.13, -0.24]) put(club, cone(0.03, len), horn, dx, a * 0.04, b * 0.1, dir, 0, 0);   // spikes all round it, longest to the sides
   }
   put(club, toBack(cone(0.04, 0.16)), horn, -0.33, 0, 0);
-  const wings = [] as unknown as [THREE.Group, THREE.Group], wrists = [] as unknown as [THREE.Group, THREE.Group];
+  const wings = [] as unknown as DragonView["wings"], wrists = [] as unknown as DragonView["wrists"], folds = [] as unknown as DragonView["folds"];
   for (const s of [1, -1] as const) {
     const w = wing(skin, horn, top, pale, s, young ? 0.62 : 1);
     w.shoulder.position.set(0.28, 1.0, s * 0.1);
     group.add(w.shoulder);
     wings.push(w.shoulder);
     wrists.push(w.wrist);
+    folds.push(w.fold);
   }
-  return { group, chest, legs, neck, head, jaw, mouth, tail, wings, wrists };
+  return { group, chest, legs, neck, head, jaw, mouth, tail, wings, wrists, folds };
 }
 
 const forward = new THREE.Vector3(), at = new THREE.Vector3();
+/** The folded wing at rest (radians): the arm down and forward from the shoulder to the ground, the hand tilted out. */
+const REST = { down: 1.2, forward: 0.5, tilt: 0.35 };
 const ease = (k: number) => k * k * (3 - 2 * k);
 
 export const dragon: EntityView<DragonView> = {
@@ -262,11 +293,13 @@ export const dragon: EntityView<DragonView> = {
       const wrist = v.wrists[i]!;
       if (flying) {                                          // spread wide on the downstroke; on the way up, half folded and swept back
         w.rotation.set(-s * beat * 0.85, -s * upstroke * 0.25, 0);
-        wrist.rotation.set(beat * 0.3, 0.04 - upstroke * 0.6, 0);
-      } else {                                               // at rest, folded and leant on in front; or raised wide, rising and falling slowly
-        const o = d.spread, up = 0.25 + Math.sin(t * 1.6) * 0.1;
-        w.rotation.set(s * (1.2 * (1 - o) - up * o + Math.sin(t * 1.1) * 0.02 * (1 - o)), s * (0.5 * (1 - o) - 0.13 * o), 0);
-        wrist.rotation.set(Math.sin(t * 1.6 + 0.6) * 0.08 * o, -1.3 * (1 - o), 0);
+        wrist.rotation.set(beat * 0.3, 0.04, 0);
+        v.folds[i]!(upstroke * 0.35);
+      } else {                                               // at rest, folded and leant on in front, the hand tilted out off her flank; or raised wide, rising and falling slowly
+        const o = d.spread, up = 0.25 + Math.sin(t * 1.6) * 0.1, shut = 1 - o;
+        w.rotation.set(s * (REST.down * shut - up * o + Math.sin(t * 1.1) * 0.02 * shut), s * (REST.forward * shut - 0.13 * o), 0);
+        wrist.rotation.set(Math.sin(t * 1.6 + 0.6) * 0.08 * o + REST.tilt * shut, 0, 0);
+        v.folds[i]!(shut);
       }
     });
     // The neck: out straight in flight, holding the head steady against the beat; at rest, from curled right down (her
