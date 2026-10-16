@@ -60,17 +60,25 @@ export const HUNTERS_LONGBOW: KitPiece = ["bow", "magic", { damage: 1 }, "Hunter
 /** As he picks it up. */
 export const HUT_FIND = "The hunter's longbow, left lying in his doorway. Still strung, after all this time.";
 
+/** What Cinder leaves (GEAR.md, the Cinderward): a blade, 2 damage. */
+export const CINDERS_BRAND: KitPiece = ["blade", "rare", { damage: 1 }, "Cinder's Brand"];
+
 /**
- * What a hero on the straight path has on reaching Rime (STORY.md and GEAR.md): about level 7, the Hunter's Longbow,
- * and a Rimewake piece or two. Worn when you go straight to her to playtest (src/debug.ts).
+ * What a hero on the straight path has on reaching Rime (GEAR.md, "Along the story path": about level 7, Cinder's
+ * Brand or the Hunter's Longbow, two or three Cinderward or Rimewake pieces). Rime is the bow's fight, so the
+ * longbow from the hut on the way down is in hand and Cinder's Brand in the bag; an Ember Cowl and Ashen Robe from
+ * the Ashwild's mages, Icewalk Boots off a Frost mage on the way in, and the King's signet still round his neck.
+ * Each piece's stats are its whole line in GEAR.md (the base's own stat plus its mods). Worn when you go straight
+ * to her to playtest (src/debug.ts).
  */
 export const RIME_READY = {
   level: 7,
   kit: [
-    HUNTERS_LONGBOW,
-    ["hood", "normal", {}, "Worn Hood"],
-    ["robe", "normal", {}, "Snowfall Robe"],
-    ["boots", "magic", { speed: 1, dash: 10 }, "Icewalk Boots"],
-    ["amulet", "magic", { life: 1 }, "Signet of Aurenmark"],
+    HUNTERS_LONGBOW,                                         // 2 damage, +1 on a full draw
+    ["hood", "magic", {}, "Ember Cowl"],                     // +1 life
+    ["robe", "magic", {}, "Ashen Robe"],                     // +2 life
+    ["boots", "magic", { speed: 1, dash: 10 }, "Icewalk Boots"],   // +6% speed, +10% faster dash recovery
+    ["amulet", "magic", { life: 1 }, "Signet of Aurenmark"], // +1 life
   ] satisfies readonly KitPiece[],
+  bag: [CINDERS_BRAND] satisfies readonly KitPiece[],
 } as const;

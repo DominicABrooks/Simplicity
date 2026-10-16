@@ -9,11 +9,13 @@ import type { Prop } from "../world/area.ts";
 import type { Point } from "../world/collision.ts";
 import type { Game } from "./game.ts";
 import { churchyardOf, ghostOut, hauntingOf, riseGhost } from "./ghost.ts";
+import { takeBow } from "./hunterhut.ts";
 
 export interface Lair {
   area: string;
   entry: string;
-  ready: { level: number; kit: readonly KitPiece[] };
+  /** The level; what he's wearing; and anything else he'd be carrying by then (besides the starter kit). */
+  ready: { level: number; kit: readonly KitPiece[]; bag?: readonly KitPiece[] };
   /** In the area, levelled and dressed: bring the boss out if need be; where the hero stands to face them (cell top-left). */
   stage(g: Game): Point;
 }
@@ -31,6 +33,7 @@ export const LAIRS = {
   rime: {
     area: "hollow", entry: "stone", ready: RIME_READY,
     stage(g) {
+      takeBow(g);                                             // he's carrying it: it isn't still lying in the hut
       const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "rime")!;
       return { x: at.x - HALF, y: at.y - HALF + 3 * T };     // onto her ring of runes: up she comes
     },

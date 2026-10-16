@@ -29,6 +29,13 @@ export function bowSpot(g: Game): { x: number; y: number } | null {
 /** Has the hero taken the hunter's longbow this run? */
 export const tookBow = (g: Game): boolean => hutOf(g).taken;
 
+/** He has it already (playtesting, straight to Rime: src/game/lairs.ts): it's no longer in the hut, nor will be this run. */
+export function takeBow(g: Game): void {
+  const h = hutOf(g);
+  if (h.bow !== null && g.world.isAlive(h.bow)) g.world.destroy(h.bow);
+  Object.assign(h, { taken: true, bow: null });
+}
+
 /** Every frame in the Hollow: the bow's in the hut until he picks it up; then it's taken for the run, and he knows whose it was. */
 export function hunterHutSystem(g: Game): void {
   if (g.area.def.id !== "hollow") return;

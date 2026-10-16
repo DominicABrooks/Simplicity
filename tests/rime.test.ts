@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
 import { RIME_AT } from "../src/areas/hollow.ts";
 import { SPELLS } from "../src/data/enemies.ts";
-import { HUNTERS_LONGBOW, RIME, RIME_CIRCLET, RIME_FALLS, RIME_FIGHT, RIME_LAST_WORDS } from "../src/data/hollow.ts";
+import { HUNTERS_LONGBOW, RIME, RIME_CIRCLET, RIME_FALLS, RIME_FIGHT, RIME_LAST_WORDS, RIME_READY } from "../src/data/hollow.ts";
+import type { KitPiece } from "../src/data/items.ts";
+import { LAIRS } from "../src/game/lairs.ts";
+import { makeItem } from "../src/items/items.ts";
 import { T, Tile } from "../src/data/world.ts";
 import { bossBar } from "../src/game/bossbar.ts";
 import { beaten, bossSystem, bossWaiting } from "../src/game/bosses.ts";
@@ -132,6 +135,32 @@ describe("Rime", () => {
     enterArea(g, await loadArea("hollow"), "stone");
     expect(standOff(g, 3)).toBeDefined();
     expect(g.map).toBe(g.area.layout.map);
+  });
+});
+
+describe("coming to Rime ready, to playtest (?boss=rime)", () => {
+  // Each piece as GEAR.md has it at Rime: about level 7, the bow in hand and Cinder's Brand in the bag, two or three
+  // Cinderward or Rimewake pieces, and the King's signet.
+  const total = (p: KitPiece) => { const it = makeItem(...p), s: Record<string, number> = {}; for (const st of [it.base, it.mods]) for (const [k, v] of Object.entries(st)) s[k] = (s[k] ?? 0) + v!; return { name: it.name, slot: it.slot, ...s }; };
+
+  it("is about level 7, in the pieces a player would have by then", () => {
+    expect(RIME_READY.level).toBe(7);
+    expect(RIME_READY.kit.map(total)).toEqual([
+      { name: "Hunter's Longbow", slot: "weapon", damage: 2 },
+      { name: "Ember Cowl", slot: "helm", life: 1 },
+      { name: "Ashen Robe", slot: "armor", life: 2 },
+      { name: "Icewalk Boots", slot: "boots", speed: 6, dash: 10 },
+      { name: "Signet of Aurenmark", slot: "amulet", life: 1 },
+    ]);
+    expect(RIME_READY.bag.map(total)).toEqual([{ name: "Cinder's Brand", slot: "weapon", damage: 2 }]);
+  });
+
+  it("doesn't leave a second longbow in the hut when he's carrying one", async () => {
+    const g = await inHollow();
+    LAIRS.rime.stage(g);
+    hunterHutSystem(g);
+    expect(tookBow(g)).toBe(true);
+    expect(g.world.query("pickup").some(([, { pickup }]) => pickup.kind === "loot" && pickup.item.name === HUNTERS_LONGBOW[3])).toBe(false);
   });
 });
 

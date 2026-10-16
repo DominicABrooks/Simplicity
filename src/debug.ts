@@ -3,7 +3,7 @@
 // and set a scene up. Never in the published game: main.ts only calls this behind those two flags.
 import { loadArea } from "./areas/index.ts";
 import { STARTER_KIT } from "./data/items.ts";
-import { LAIRS, type LairName } from "./game/lairs.ts";
+import { LAIRS, type Lair, type LairName } from "./game/lairs.ts";
 import { isFrozen, isGod, setFrozen, setGod } from "./game/cheats.ts";
 import { setState, type Game } from "./game/game.ts";
 import { hauntingOf } from "./game/ghost.ts";
@@ -15,7 +15,7 @@ import type { Renderer } from "./render/renderer.ts";
 
 export function exposeDebug(g: Game, view: Renderer): void {
   /** A fresh run, straight into a boss's lair and face to face with them, at the level and in the gear a player
-   *  would have by then (the rest of the starter kit in the bag). */
+   *  would have by then (the rest of the starter kit, and anything else they'd be carrying, in the bag). */
   async function boss(who: string = "cinder"): Promise<string> {
     const lair = Object.hasOwn(LAIRS, who) ? LAIRS[who as LairName] : null;
     if (!lair) return `No boss "${who}". Try: ${Object.keys(LAIRS).join(", ")}`;
@@ -25,8 +25,10 @@ export function exposeDebug(g: Game, view: Renderer): void {
     enterArea(g, def, lair.entry);
     Object.assign(g.world.need(g.player, "hero"), { level: lair.ready.level, xp: 0 });
     const kit = lair.ready.kit.map(([type, rarity, mods, name]) => makeItem(type, rarity, { ...mods }, name));
+    const ready: Lair["ready"] = lair.ready, bag = (ready.bag ?? []).map(([type, rarity, mods, name]) => makeItem(type, rarity, { ...mods }, name));
     g.inventory.reset(kit);                                  // worn, and the level's raw stats with it
-    for (const [type, name] of STARTER_KIT) if (!kit.some(k => k.type === type)) g.inventory.add(makeItem(type, "normal", {}, name));
+    for (const item of bag) g.inventory.add(item);
+    for (const [type, name] of STARTER_KIT) if (![...kit, ...bag].some(k => k.type === type)) g.inventory.add(makeItem(type, "normal", {}, name));
     const health = g.world.need(g.player, "health");
     health.hp = health.maxHp;
     Object.assign(g.world.need(g.player, "transform"), lair.stage(g));
