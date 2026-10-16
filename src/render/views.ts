@@ -132,10 +132,11 @@ const mage: EntityView<MageView> = {
       m.group.add(orb);
       return [k, orb];
     })) as Record<BoltKind, THREE.Group>;
-    // Frost Nova telegraph: the blast radius outlined on the ground, filling as the spell charges.
+    // Frost Nova telegraph: the blast radius outlined on the ground, filling as the spell charges. Deep indigo, like
+    // the other warnings on the ice (render/rime.ts), since it's cast on snow and ice where pale blue vanishes.
     const R = SPELLS.nova.radius! / PX_PER_TILE;
-    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.glow(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
-    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.glow(PAL.C, { transparent: true, opacity: 0.25, depthWrite: false, ...onGround(GROUND.marker) }));
+    const novaEdge = new THREE.Mesh(new THREE.RingGeometry(R - 0.12, R, 24).rotateX(-Math.PI / 2), ctx.basic("#3348c8", { transparent: true, opacity: 0.8, depthWrite: false, ...onGround(GROUND.marker) }));
+    const novaFill = new THREE.Mesh(new THREE.CircleGeometry(R, 24).rotateX(-Math.PI / 2), ctx.basic("#2a3590", { transparent: true, opacity: 0.3, depthWrite: false, ...onGround(GROUND.marker) }));
     novaEdge.position.y = novaFill.position.y = 0.03;
     m.group.add(novaEdge, novaFill);
     return { ...m, orbs, novaEdge, novaFill, yaw: null, wasMelee: false, robed: true };
