@@ -1,6 +1,6 @@
 // The title / death overlay, toasts and the hold-R reset bar.
 import { RESET_HOLD } from "../data/player.ts";
-import { TOAST_MS } from "../data/ui.ts";
+import { TOAST_MS, TOAST_READ_MS } from "../data/ui.ts";
 import type { Game } from "../game/game.ts";
 import { byId } from "./dom.ts";
 
@@ -13,16 +13,26 @@ export function bindOverlay(g: Game): void {
   });
 }
 
-/** Short messages across the top of the screen ("Level 3!", "Inventory full"). */
+/**
+ * Short messages across the top of the screen ("Level 3!", "Inventory full"). Several said at once (a story told in
+ * lines: the ring waking, the nest behind the sealed door) take turns, each up long enough to read, rather than each
+ * wiping out the last; the same line said again while it's up or waiting isn't said twice.
+ */
 export function bindToasts(g: Game): void {
-  const el = byId("toast");
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  g.events.on("toast", ({ text, good }) => {
-    el.textContent = text;
+  const el = byId("toast"), waiting: { text: string; good: boolean }[] = [];
+  let timer: ReturnType<typeof setTimeout> | undefined, showing: string | null = null;
+  const next = (): void => {
+    const t = waiting.shift();
+    if (!t) { el.hidden = true; showing = null; timer = undefined; return; }
+    el.textContent = showing = t.text;
     el.hidden = false;
-    el.classList.toggle("good", good);
-    clearTimeout(timer);
-    timer = setTimeout(() => { el.hidden = true; }, TOAST_MS);
+    el.classList.toggle("good", t.good);
+    timer = setTimeout(next, waiting.length || t.text.length > 40 ? Math.max(TOAST_MS, t.text.length * TOAST_READ_MS) : TOAST_MS);
+  };
+  g.events.on("toast", ({ text, good }) => {
+    if (text === showing || waiting.some(w => w.text === text)) return;
+    waiting.push({ text, good });
+    if (timer === undefined) next();
   });
 }
 

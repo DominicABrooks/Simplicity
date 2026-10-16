@@ -5,6 +5,7 @@
 import type { Prop } from "../world/area.ts";
 import { HALF, T } from "../data/world.ts";
 import { setState, toast, type Game } from "./game.ts";
+import { chargePendant } from "./pendant.ts";
 import { sound } from "./sfx.ts";
 
 type OldStone = Extract<Prop, { kind: "oldStone" }>;
@@ -35,15 +36,23 @@ export function stoneSystem(g: Game): void {
   const s = state(g);
   for (const prop of g.area.layout.props) {
     if (prop.kind !== "oldStone" || Math.hypot(p.x + HALF - prop.x, p.y + HALF - prop.y) > TOUCH_AT) continue;
-    if (s.stone?.area === g.area.def.id && s.stone.entry === prop.entry) return;
+    if (s.stone?.area === g.area.def.id && s.stone.entry === prop.entry) { chargePendant(g, s.stone); return; }   // it knows him already; the pendant may still drink
     touch(g, prop);
     return;
   }
 }
 
 function touch(g: Game, stone: OldStone): void {
-  state(g).stone = { area: g.area.def.id, entry: stone.entry, name: stone.name };
-  g.fx.push({ type: "burst", x: stone.x - HALF, y: stone.y - HALF, palette: "spark" });
+  const touched = { area: g.area.def.id, entry: stone.entry, name: stone.name };
+  touchStone(g, touched, stone.x - HALF, stone.y - HALF);
+  chargePendant(g, touched);                                 // and the Ringstone Pendant, worn, drinks from it
+}
+
+/** He touches a stone (at x, y: game px), an old stone or one that's become one (the Undercroft's woken ring): it knows him. Quietly, if it's just said so another way. */
+export function touchStone(g: Game, stone: Touched, x: number, y: number, quiet = false): void {
+  state(g).stone = { ...stone };
+  if (quiet) return;
+  g.fx.push({ type: "burst", x, y, palette: "spark" });
   sound(g, "pickup");
   toast(g, `${stone.name} glows under your hand`, true);
 }

@@ -117,7 +117,7 @@ export const CLIMB = {
 export const CLIMB_TALK = {
   ask: [
     "(Yssa is waiting at the foot of a frozen stream, as if she'd always been there.)",
-    "Up there is the Thunder Rift, and Calder. He was my best pupil once. I send nobody up to him who doesn't know what they're walking into.",
+    "Up there is the Thunder Rift, and Calder. He was my best pupil once. He held the great crack shut alone for forty years, and he went grey first, and deepest. I send nobody up to him who doesn't know what they're walking into.",
     "This was a river, before Rime sang it to sleep. It comes down out of the great crack, and runs all the way under the King's bridge. Write me its name, and I'll wake it.",
     "(She holds out a curl of birch bark and a stub of charcoal.)",
   ],

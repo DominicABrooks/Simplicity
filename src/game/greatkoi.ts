@@ -1,6 +1,6 @@
 // The Great Koi (STORY.md: "something big swims under the ice now and then; it's only a very large koi"). Fish through
-// the hole in the Frozen Hollow's ice while it's still down there and it's what takes the line: out it bursts through
-// the ice, and it's no fish to eat. It flops after the hero across the ice in great leaps, slamming down where it
+// the hole in the ice in the Koi Grotto, the ice cave under the Frozen Hollow's rim (src/areas/grotto.ts), while it's
+// still down there and it's what takes the line: out it bursts through the ice, and it's no fish to eat. It flops after the hero across the ice in great leaps, slamming down where it
 // lands, and spits fans of freezing water (the numbers are GREAT_KOI, in src/data/hollow.ts). While it's out, nothing
 // else comes near, nor after it's landed, until the hero leaves and comes back. Beaten, it stays beaten for the run (and the hole gives golden koi again), and it leaves the
 // legendary pole strung with its whisker.
@@ -39,7 +39,7 @@ export const greatKoiOut = (g: Game): Entity | null => g.world.query("koi").at(0
  * comes (true: there's no fish to land). Otherwise false, and it's an ordinary catch.
  */
 export function hookGreatKoi(g: Game, x: number, y: number): boolean {
-  if (g.area.def.id !== "hollow" || greatKoiBeaten(g) || greatKoiOut(g) !== null) return false;
+  if (g.area.def.id !== "grotto" || greatKoiBeaten(g) || greatKoiOut(g) !== null) return false;
   for (const [e, { enemy }] of g.world.query("enemy")) if (enemy.kind !== "dummy") {   // everything else scatters
     const at = g.world.get(e, "transform");
     if (at) g.fx.push({ type: "burst", x: at.x, y: at.y, palette: "arcane" });

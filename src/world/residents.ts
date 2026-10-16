@@ -438,7 +438,7 @@ export function departedOf(props: CityProps, living: readonly Resident[]): Depar
   for (const r of living) mk.used.add(r.name);
   for (const d of NOTABLE_DEAD) mk.used.add(d.name);
   const surnames = [...new Set(living.filter(r => !r.family).map(r => r.name.split(" ").pop()!).filter(n => /^[A-Z][a-z]+$/.test(n) && !/^(Younger|Elder|Third|Fourth|Fifth)$/.test(n)))];
-  const graves = (["capital", "castle"] as const).flatMap(area => props[area].flatMap(p => (p.kind === "graves" ? gravePlan(p.rect).map((g, i) => ({ area, g, i })) : [])));
+  const graves = (["capital", "castle"] as const).flatMap(area => props[area].flatMap(p => (p.kind === "graves" ? gravePlan(p).map((g, i) => ({ area, g, i })) : [])));
   const notable = [...NOTABLE_DEAD];
   const take = (test: (n: Notable) => boolean) => { const i = notable.findIndex(test); return i < 0 ? undefined : notable.splice(i, 1)[0]; };
   for (const { area, g, i } of graves) {
