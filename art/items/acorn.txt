@@ -1,0 +1,11 @@
+# The fair folk's acorn: 1x1 inventory cell. A little cap of green, a warm gold nut, and a glint of moonlight on it.
+
+@idle 1000
+...vn...
+..GGGv..
+.GvGvGv.
+..YYYO..
+..YWYO..
+..YYYO..
+...YO...
+........

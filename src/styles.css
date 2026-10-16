@@ -266,6 +266,18 @@ body.in-cutscene #menuBar,
 body.in-cutscene #hudCanvas { opacity: 0; transition: opacity 0.4s; }
 
 /* Asleep: black all round the bed (see src/ui/sleepShade.ts). Over the world and its labels, under the HUD and toasts. */
+/* What the fair folk say, deep in their ring (src/ui/feySayings.ts). */
+#feySaying {
+  position: fixed; z-index: 46; pointer-events: none; opacity: 0; transform: translate(-50%, -50%);
+  max-width: min(calc(var(--u) * 150), 44vw); text-align: center; font-size: 18px; line-height: 26px;
+  color: #f4ecff; text-shadow: 2px 2px 0 #2a1840, 0 0 10px rgb(200 160 255 / 0.9), 0 0 22px rgb(150 255 210 / 0.55);
+}
+/* A gilded oak whispering what its acorn held (src/ui/oakWhisper.ts), over the tree. */
+#oakWhisper {
+  position: fixed; z-index: 12; pointer-events: none; opacity: 0; transform: translate(-50%, -100%);
+  max-width: min(calc(var(--u) * 120), 60vw); text-align: center; font-size: 12px; line-height: 18px;
+  color: #fff4c8; text-shadow: 2px 2px 0 #2a1d08, 0 0 8px rgb(240 200 90 / 0.9);
+}
 #sleepShade { position: fixed; inset: 0; z-index: 13; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
 #sleepShade.on { opacity: 1; }
 body.asleep #hudCanvas { z-index: 14; }   /* the clock running on, and the Zs, show over it */

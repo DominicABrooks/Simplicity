@@ -93,7 +93,7 @@ export const ICON_SWAPS: Record<ItemType, Partial<Record<string, keyof TierColor
   bread:  {},
   stone:  {},
   // Curiosities keep their own colours.
-  runestone: {}, key: {}, eye: {}, bottle: {}, bell: {},
+  runestone: {}, key: {}, eye: {}, bottle: {}, bell: {}, acorn: {},
 };
 
 /** Rarity colours for ground loot, labels and tooltips. */

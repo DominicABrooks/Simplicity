@@ -19,6 +19,8 @@ export interface Item {
   curio?: CurioId;
   /** A line of its own for the tooltip, in place of its base type's. */
   note?: string;
+  /** A Fey Acorn: the last thing the fair folk said, which it holds (src/game/fairyring.ts, src/game/oaks.ts). */
+  heard?: string;
 }
 
 let nextId = 1;

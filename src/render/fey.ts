@@ -11,6 +11,13 @@ import type { PropOf } from "./town.ts";
 
 /** How many lights drift round a fairy ring. */
 const MOTES = 7;
+/**
+ * The layer a fairy ring is drawn on as well as the usual one: deep in its spell (src/game/fairyring.ts) the renderer
+ * draws its magic over everything, then the ring again on top (see src/render/trance.ts).
+ */
+export const FEY_LAYER = 1;
+/** ...and its grass, on a layer of its own: see-through, it's only drawn again once nothing else shows under it. */
+export const FEY_GROUND = 2;
 
 /** A fairy ring: a circle of mushrooms `radius` tiles out round (x, y), and the lights that dance in it after dark. */
 export function buildFairyRing(ctx: RenderContext, parent: THREE.Group, p: PropOf<"fairyRing">): PropView {
@@ -18,8 +25,10 @@ export function buildFairyRing(ctx: RenderContext, parent: THREE.Group, p: PropO
   g.position.set(p.x / T, 0, p.y / T);
   const decal = (opacity: number) => ({ transparent: true, opacity, depthWrite: false, ...onGround(GROUND.stain) });
   // The band of lush grass the ring stands on, and the paler grass inside it.
-  put(g, new THREE.RingGeometry(R - 0.32, R + 0.3, 40).rotateX(-Math.PI / 2), basic("#2f6e22", decal(0.7)), 0, 0.016, 0);
-  put(g, new THREE.CircleGeometry(R - 0.32, 32).rotateX(-Math.PI / 2), basic("#c8d890", decal(0.16)), 0, 0.015, 0);
+  const grass = [
+    put(g, new THREE.RingGeometry(R - 0.32, R + 0.3, 40).rotateX(-Math.PI / 2), basic("#2f6e22", decal(0.7)), 0, 0.016, 0),
+    put(g, new THREE.CircleGeometry(R - 0.32, 32).rotateX(-Math.PI / 2), basic("#c8d890", decal(0.16)), 0, 0.015, 0),
+  ];
 
   // The mushrooms: one every so far round, a little in or out of true, big and small; the odd pair.
   const stem = lambert("#efe6d2"), cap = lambert("#e8d8b8"), spot = lambert("#fff8ea");
@@ -50,6 +59,8 @@ export function buildFairyRing(ctx: RenderContext, parent: THREE.Group, p: PropO
     return { m, a: hash(p.x, i, 511) * Math.PI * 2, r: R * (0.55 + hash(p.y, i, 512) * 0.4), y: 0.35 + hash(i, p.x, 513) * 0.4,
       speed: (0.15 + hash(i, p.y, 514) * 0.2) * (i % 2 ? 1 : -1), bob: hash(i, i, 515) * 6 };
   });
+  g.traverse(o => o.layers.enable(FEY_LAYER));
+  for (const m of grass) { m.layers.disable(FEY_LAYER); m.layers.enable(FEY_GROUND); }
   parent.add(g);
   return {
     update: (t: number) => {

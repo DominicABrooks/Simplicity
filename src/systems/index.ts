@@ -21,6 +21,8 @@ import { undercroftSystem } from "../game/undercroft.ts";
 import { wardenSystem } from "../game/watchword.ts";
 import { yssaSystem } from "../game/yssa.ts";
 import { stoneSystem } from "../game/stones.ts";
+import { fairyRingSystem } from "../game/fairyring.ts";
+import { oakSystem } from "../game/oaks.ts";
 import { rimeFightSystem } from "../game/rimefight.ts";
 import { calderFightSystem } from "../game/calderfight.ts";
 import { hunterHutSystem } from "../game/hunterhut.ts";
@@ -53,7 +55,7 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [arrowSystem, enemyPhysicsSystem, hauntSystem, eerieSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, calderFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, hunterHutSystem, petSystem, undercroftSystem, quaySystem],
+  [arrowSystem, enemyPhysicsSystem, hauntSystem, eerieSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, calderFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, fairyRingSystem, oakSystem, hunterHutSystem, petSystem, undercroftSystem, quaySystem],
   [boltSystem, strikeSystem, riftSystem],
 ];
 

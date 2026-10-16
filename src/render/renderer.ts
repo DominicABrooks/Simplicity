@@ -20,6 +20,8 @@ import { createOcclusion } from "./occlusion.ts";
 import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
+import { createTrance } from "./trance.ts";
+import { createOakView } from "./oaks.ts";
 import { compactScenery, freezeScenery } from "./compact.ts";
 import { buildTerrain, groundUnderBridges } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
@@ -60,6 +62,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   sun.position.set(-3, 6, 2);                                // top-left of screen, as in ART_STYLE.md
   scene.add(sun);
   const daylight = createDaylight(sky, fill, sun);
+  const trance = createTrance([fill, sun]);
 
   const ctx = createContext(scene);
   const world = new THREE.Group();
@@ -74,6 +77,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   let animated: ((t: number, dt: number) => void)[] = [];
   const occlusion = createOcclusion(scene);
   const targetRing = createTargetRing(ctx);
+  const oaks = createOakView(ctx);                           // the gilded oaks he's planted (src/game/oaks.ts)
   const weather = createWeatherView(ctx, { sky, fog, fill, sun });
 
   // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
@@ -130,6 +134,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       camZoom = smooth(camZoom, shot?.zoom ?? 1, dt, shot ? 1.6 : 3);
       camera.position.copy(camTarget).addScaledVector(CAM_OFFSET, camZoom);
       camera.lookAt(camTarget);
+      trance.pose(g, camera, dt, t);                         // standing in a fairy ring after dark, the view swims
       if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));
       camera.updateMatrixWorld();                            // placed first: the entity views only pose what it can see
       renderEntities(g, { t, dt, hero: pos });
@@ -141,6 +146,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       koi.update(dt, t, px, pz, bobber, !greatKoiBeaten(g) && greatKoiOut(g) === null);   // the big one's under the ice till it's hooked
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
+      oaks.update(g, t);
       occlusion.update(px, pz, CAM_OFFSET, dt);
       targetRing.update(g, t);
 
@@ -166,6 +172,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       const hidden = asleep ? scene.children.filter(o => o.visible && o !== world && o !== hero.body.group && o !== hero.body.shadow && !(o instanceof THREE.Light)) : [];
       for (const o of hidden) o.visible = false;
       renderer.render(scene, camera);
+      trance.draw(renderer, scene, camera);
       for (const o of hidden) o.visible = true;
     },
 
