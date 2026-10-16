@@ -44,7 +44,7 @@ export const LAIRS = {
     area: "rift", entry: "stone", ready: CALDER_READY,
     stage(g) {
       const at = g.area.layout.props.find((p): p is Extract<Prop, { kind: "boss" }> => p.kind === "boss" && p.who === "calder")!;
-      return { x: at.x - HALF, y: at.y - HALF + 5 * T };     // a few steps south of him: the lightning shuts, and he turns
+      return { x: at.x - HALF, y: at.y - HALF + 4 * T };     // a few steps south of him, in the glade: the lightning shuts, and he turns
     },
   },
   /** The Grey Ringer, in St Mary's churchyard: made night, and up she comes, rumour or none (src/game/ghost.ts). */

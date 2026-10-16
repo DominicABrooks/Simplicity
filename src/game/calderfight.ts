@@ -1,20 +1,22 @@
 // Calder's fight, at the edge of the great crack in the Thunder Rift (the rules are CALDER_FIGHT, in src/data/rift.ts).
 // He isn't there until the hero comes up close to the crack: then lightning comes down all round the glade, Calder
 // turns from the edge, and nobody leaves until one of them falls. He's a Storm mage underneath (sparks, and three
-// lightning strikes at a time), and over it: a storm of marked circles coming down round the hero; a blink so fast
-// he seems to be in three places, landing close with two echoes of himself, and a moment after it to catch him with a
-// blade; static that turns any arrow short of a full draw; and the crack itself, opening wider every time the hero's
-// knocked back and closing a little every time he lands a hit, its cold dragging at him and its dark spreading across
-// the ground the wider it gets. When he falls, the crack groans shut for the rest of the run. Drawn by the tempest
-// view (src/render/tempest.ts), on an entity made for the fight at the ring's middle, and once he's fallen, on one
-// that keeps the crack shut.
+// lightning strikes at a time), and over it, all the shapes lightning makes, in three moods as he weakens: his sparks
+// forking as they fly, and strikes walking out at the hero in a line or bursting out from him in a star; then three
+// iron rods driven into the ground with lightning running round the triangle between them, and him blinking from rod
+// to rod, the air crackling behind him; then the eye of the storm, the whole triangle at once, the rods arcing to him,
+// and rings of strikes closing in on the hero. After every blink he stops to earth himself, the moment for a blade.
+// His static turns any arrow short of a full draw. And the crack opens wider every time the hero's knocked back and
+// closes a little every time he lands a hit, its cold dragging at him and its dark spreading across the ground the
+// wider it gets. When he falls, the crack groans shut for the rest of the run. Drawn by the tempest view
+// (src/render/tempest.ts), on an entity made for the fight at the glade's middle, and once he's fallen, on one that
+// keeps the crack shut.
 import type { Entity } from "../core/ecs.ts";
 import { CALDER_FIGHT as F } from "../data/rift.ts";
-import { MAGE, SPELLS } from "../data/enemies.ts";
+import { MAGE } from "../data/enemies.ts";
 import { COMBAT_COLORS } from "../data/ui.ts";
 import { HALF, T } from "../data/world.ts";
 import type { Prop } from "../world/area.ts";
-import { blocked } from "../world/collision.ts";
 import { greatCrackSpine } from "../world/greatcrack.ts";
 import { beaten, bossHere, bossWaiting, fellAt, summonBoss } from "./bosses.ts";
 import { isFrozen } from "./cheats.ts";
@@ -24,25 +26,34 @@ import { heroParts } from "./hero.ts";
 import { sound } from "./sfx.ts";
 import { spawnBolt, spawnStrike } from "./spawn.ts";
 
-/** One of the echoes his blink leaves round the hero: where it stands, and how long it's been there. */
-export interface Echo { x: number; y: number; t: number }
+interface Point { x: number; y: number }
+/** Lightning along a line from `a` to `b` (cell top-left): marked by a flicker (t < warn), then live (t < warn + live). */
+export interface Arc { a: Point; b: Point; t: number; warn: number; live: number; hit: boolean }
+/** His three moods: the storm walks, the rods, the eye of the storm. */
+export type Mood = 0 | 1 | 2;
 
 export interface CalderFight {
-  /** The ring's middle (cell top-left). */
-  x: number; y: number;
-  /** Seconds since the lightning shut the ring. */
+  /** The glade's middle (cell top-left), and how far the oval reaches across and up and down (px). */
+  x: number; y: number; rx: number; ry: number;
+  /** Seconds since the lightning shut the glade. */
   t: number;
-  angry: boolean;
+  mood: Mood;
   /** How open the great crack is: 0 shut, 1 as wide as it goes. */
   open: number;
-  nextStorm: number;
-  /** Catching his breath after a blink (seconds left), and the two echoes of him standing round the hero meanwhile. */
-  daze: number;
-  echoes: Echo[];
-  /** Which way the hero's been going lately (px/s, smoothed), for the storm to lead him. */
-  going: { x: number; y: number } | null;
+  /** Seconds to the next shape of strikes, and how many there've been (they take turns). */
+  nextShape: number; shapes: number;
+  /** The iron rods round the glade, once he's driven them in, and how long they've been going in (s). */
+  rods: Point[]; planted: number;
+  /** The lightning between the rods (and behind his blinks); seconds to the next, and which side of the triangle's next. */
+  arcs: Arc[]; nextArc: number; side: number;
+  /** Seconds to his next blink from rod to rod, and which rod he's at. */
+  nextBlink: number; rod: number;
+  /** Earthing himself after a blink (seconds left). */
+  earth: number;
+  /** His sparks still to fork: each one, and how long it's been flying. */
+  forks: Map<Entity, number>;
   /** Where he stood last frame, his health and melee damage taken then, and the hero's hurt (to see blinks, hits and knocks). */
-  last: { x: number; y: number; hp: number; melee: number; hurt: number; hx: number; hy: number };
+  last: { x: number; y: number; hp: number; melee: number; hurt: number };
   /** Seconds before the crack's cold pulls at him again, after it's bitten him. */
   letGo: number;
   /** Whether he's said yet that his static turns the arrows. */
@@ -56,7 +67,7 @@ const fights = new WeakMap<Game, CalderFight>();
 const scars = new WeakMap<Game, { e: Entity; in: Game["area"]; t: number; from: number }>();
 const listening = new WeakSet<Game>();
 
-/** The fight in progress, if the lightning's shut the ring. */
+/** The fight in progress, if the lightning's shut the glade. */
 export const calderFight = (g: Game): CalderFight | null => fights.get(g) ?? null;
 
 /**
@@ -81,7 +92,7 @@ export function crackSealed(g: Game): number {
 /** Seconds since Calder fell, on this arrival in the Rift (counted from the crack's having shut, on any later one); null if he hasn't. */
 export const calderGone = (g: Game): number | null => scars.get(g)?.t ?? null;
 
-/** Every frame in his lair: shut the ring when the hero comes close, run the storm and the crack, and once he's fallen, keep it shut. */
+/** Every frame in his lair: shut the glade when the hero comes close, run the storm and the crack, and once he's fallen, keep it shut. */
 export function calderFightSystem(g: Game, dt: number): void {
   if (!listening.has(g)) { listening.add(g); g.events.on("reset", () => { fights.delete(g); scars.delete(g); }); }
   if (g.area.def.id !== "rift") return;
@@ -99,7 +110,7 @@ export function calderFightSystem(g: Game, dt: number): void {
 }
 
 /** Where he stands, at the crack's edge (cell top-left), from the area's props. */
-function standOf(g: Game): { x: number; y: number } | null {
+function standOf(g: Game): Point | null {
   const p = g.area.layout.props.find((q): q is Extract<Prop, { kind: "boss" }> => q.kind === "boss" && q.who === "calder");
   return p ? { x: p.x - HALF, y: p.y - HALF } : null;
 }
@@ -111,13 +122,14 @@ const crackOf = (g: Game) => g.area.layout.props.find((p): p is Extract<Prop, { 
 function shut(g: Game): void {
   const stand = standOf(g), p = g.world.need(g.player, "transform");
   if (!stand || Math.hypot(p.x - stand.x, p.y - stand.y) > F.shutAt) return;
-  const mid = { ...stand };
+  const A = F.arena, mid = { x: stand.x, y: stand.y + A.below * T };
   const view = g.world.create({ transform: { ...mid }, renderable: { kind: "tempest" } });
   const e = summonBoss(g);
   const hp = e === null ? 0 : g.world.need(e, "health").hp;
   fights.set(g, {
-    ...mid, t: 0, angry: false, going: null, letGo: 0, open: F.crack.start, nextStorm: F.storm.first, daze: 0, echoes: [],
-    last: { ...stand, hp, melee: 0, hurt: heroParts(g).status.hurt, hx: p.x, hy: p.y }, toldStatic: false, view,
+    ...mid, rx: A.rx * T, ry: A.ry * T, t: 0, mood: 0, open: F.crack.start, nextShape: F.shapes.first, shapes: 0,
+    rods: [], planted: 0, arcs: [], nextArc: 0, side: 0, nextBlink: F.rods.blink, rod: 0, earth: 0, forks: new Map(),
+    last: { ...stand, hp, melee: 0, hurt: heroParts(g).status.hurt }, letGo: 0, toldStatic: false, view,
   });
   g.shake = Math.max(g.shake, 2.5);
   sound(g, "thunder", p);
@@ -142,25 +154,52 @@ function run(g: Game, f: CalderFight, calder: Entity, dt: number): void {
   const h = heroParts(g), hp = g.world.need(calder, "health"), enemy = g.world.need(calder, "enemy"), brain = g.world.need(calder, "mage");
   const him = g.world.need(calder, "transform");
   f.t += dt;
-  f.angry = hp.hp <= hp.maxHp * F.angry;
   keepIn(f, h.pos);
   keepIn(f, him);
-  if (dt > 0 && h.motion.dash <= 0 && h.status.hurt <= 0) {     // walking, not dashing or thrown
-    const vx = (h.pos.x - f.last.hx) / dt, vy = (h.pos.y - f.last.hy) / dt, k = Math.min(1, dt * 6), was = f.going ?? { x: 0, y: 0 };
-    f.going = { x: was.x + (vx - was.x) * k, y: was.y + (vy - was.y) * k };
-  }
 
-  // What happened since last frame: a blade caught him in his daze; a hit landed (the crack closes a little); the
-  // hero was knocked back (it opens wider).
+  // What happened since last frame: a blade caught him earthing himself; a hit landed (the crack closes a little);
+  // the hero was knocked back (it opens wider).
   const melee = enemy.melee ?? 0, cut = melee - f.last.melee;
-  if (cut > 0 && f.daze > 0) {
-    const more = Math.round(cut * (F.blink.cut - 1));
-    hp.hp -= more;
+  if (cut > 0 && f.earth > 0) {
+    hp.hp -= Math.round(cut * (F.cut - 1));
     combatText(g, him.x, him.y - 6, F.say.caught, COMBAT_COLORS.crit, true);
   }
   if (hp.hp < f.last.hp) f.open = Math.max(0, f.open - F.crack.hit);
   if (h.status.hurt > f.last.hurt + 0.01) widen(g, f);
-  // His static: anything short of a full draw is turned aside.
+  staticField(g, f, him);
+  const remember = () => { f.last = { x: him.x, y: him.y, hp: hp.hp, melee, hurt: h.status.hurt }; };
+  if (hp.hp <= 0 || isFrozen(g)) { remember(); return; }   // (playtesting: the storm holds still with him)
+
+  // His mood, as he weakens: at the rods' turn, in they go.
+  const share = hp.hp / hp.maxHp, mood: Mood = share <= F.phases[1] ? 2 : share <= F.phases[0] ? 1 : 0;
+  if (mood > f.mood) {
+    if (f.mood === 0) plantRods(g, f);
+    if (mood === 2) { toast(g, F.say.eye, true); g.shake = Math.max(g.shake, 2); sound(g, "thunder", him); f.nextShape = Math.min(f.nextShape, 1.5); }
+    f.mood = mood;
+  }
+
+  // A blink (his own, or to the next rod): then he stops to earth himself.
+  if (f.mood > 0) {
+    brain.blinkCD = Math.max(brain.blinkCD, 1);              // he goes rod to rod now, not where a mage would
+    if (f.planted >= F.rods.plant && f.earth <= 0 && (f.nextBlink -= dt) <= 0) blinkToRod(g, f, him);
+  }
+  if (Math.hypot(him.x - f.last.x, him.y - f.last.y) > F.jump && f.earth <= 0) f.earth = F.earth;
+  if (f.earth > 0) {
+    f.earth -= dt;
+    brain.held = f.earth > 0;
+    if (f.earth <= 0) brain.timer = Math.min(brain.timer, 0.3);
+  }
+
+  forkSparks(g, f, him, dt);
+  theCrack(g, f, brain, dt);
+  if (f.rods.length) theRods(g, f, him, dt);
+  arcs(g, f, dt);
+  if ((f.nextShape -= dt) <= 0) shape(g, f, him);
+  remember();
+}
+
+/** His static: anything short of a full draw is turned aside. */
+function staticField(g: Game, f: CalderFight, him: Point): void {
   for (const [e, { arrow, transform: a }] of g.world.query("arrow", "transform")) {
     if (arrow.power || arrow.dud || arrow.stuck > 0 || Math.hypot(a.x - him.x, a.y - him.y) > F.static) continue;
     g.fx.push({ type: "burst", x: a.x, y: a.y, palette: "spark" });
@@ -168,64 +207,52 @@ function run(g: Game, f: CalderFight, calder: Entity, dt: number): void {
     g.world.destroy(e);
     if (!f.toldStatic) { f.toldStatic = true; toast(g, F.say.static); }
   }
-  const remember = () => { f.last = { x: him.x, y: him.y, hp: hp.hp, melee, hurt: h.status.hurt, hx: h.pos.x, hy: h.pos.y }; };
-  if (hp.hp <= 0 || isFrozen(g)) { remember(); return; }   // (playtesting: the storm holds still with him)
+}
 
-  // A blink: he lands close by the hero instead, with an echo of himself either side of him round the hero.
-  if (Math.hypot(him.x - f.last.x, him.y - f.last.y) > F.blink.jump && f.daze <= 0) blinked(g, f, him);
-  if (f.daze > 0) {
-    f.daze -= dt;
-    brain.held = f.daze > 0;
-    if (f.daze <= 0) brain.timer = Math.min(brain.timer, 0.3);
+/** His sparks fork as they fly: each one he throws splits in three a moment out. */
+function forkSparks(g: Game, f: CalderFight, him: Point, dt: number): void {
+  const K = F.fork;
+  for (const [e, { bolt, transform: b }] of g.world.query("bolt", "transform")) {
+    if (bolt.kind !== "spark" || f.forks.has(e) || Math.hypot(b.x - him.x, b.y - him.y) > MAGE.boltOffset + 4) continue;
+    f.forks.set(e, 0);
   }
-  for (const echo of f.echoes) {
-    echo.t += dt;
-    if (echo.t < F.blink.daze) continue;
-    // Its spark, and it's gone.
-    const a = Math.atan2(h.pos.y - echo.y, h.pos.x - echo.x), v = SPELLS.spark.speed! * 0.8, o = MAGE.boltOffset;
-    spawnBolt(g, "spark", echo.x + Math.cos(a) * o, echo.y + Math.sin(a) * o, Math.cos(a) * v, Math.sin(a) * v);
-    g.fx.push({ type: "burst", x: echo.x, y: echo.y, palette: "spark" });
-    sound(g, "spell", echo);
+  for (const [e, t] of f.forks) {
+    const b = g.world.get(e, "transform"), bolt = g.world.get(e, "bolt");
+    if (!b || !bolt) { f.forks.delete(e); continue; }
+    if (t + dt < K.after) { f.forks.set(e, t + dt); continue; }
+    f.forks.delete(e);
+    const a = Math.atan2(bolt.vy, bolt.vx), v = Math.hypot(bolt.vx, bolt.vy);
+    g.world.destroy(e);
+    for (let i = 0; i < K.count; i++) {
+      const o = a + (i - (K.count - 1) / 2) * K.spread;
+      const spark = spawnBolt(g, "spark", b.x, b.y, Math.cos(o) * v, Math.sin(o) * v);
+      g.world.need(spark, "bolt").lost = true;               // the forks fly straight
+    }
+    g.fx.push({ type: "burst", x: b.x, y: b.y, palette: "spark" });
   }
-  f.echoes = f.echoes.filter(e => e.t < F.blink.daze);
+}
 
-  // The crack: the wider it is, the faster he goes, the harder it pulls, and the further its dark reaches.
-  const more = dt * f.open * F.crack.hurry;
+/** The crack: the wider it is, the faster he goes, the harder it pulls, and the further its dark reaches. */
+function theCrack(g: Game, f: CalderFight, brain: { timer: number; blinkCD: number; specialCD: number }, dt: number): void {
+  const h = heroParts(g), more = dt * f.open * F.crack.hurry;
   brain.timer -= more;
   brain.blinkCD = Math.max(0, brain.blinkCD - more);
   brain.specialCD = Math.max(0, brain.specialCD - more);
-  const safe = h.motion.dash > 0 || h.motion.jump > 0;
   const crack = crackOf(g);
-  if (crack) {
-    const near = nearestOnCrack(crack, h.pos, crackWidth(g));
-    const d = Math.hypot(near.x - h.pos.x, near.y - h.pos.y) || 1;
-    f.letGo = Math.max(0, f.letGo - dt);
-    if (!safe && h.status.hurt <= 0 && f.letGo <= 0) {
-      const pull = F.crack.pull * f.open * dt;
-      h.pos.x += ((near.x - h.pos.x) / d) * pull;
-      h.pos.y += ((near.y - h.pos.y) / d) * pull;
-    }
-    if (near.inside && !safe && h.status.hurt <= 0) {
-      damagePlayer(g, near.x, near.y - 2 * T, 1);          // thrown back out of the dark, away from the crack
-      f.letGo = F.crack.letGo;
-      toast(g, F.say.cold);
-    }
+  if (!crack) return;
+  const safe = h.motion.dash > 0 || h.motion.jump > 0;
+  const near = nearestOnCrack(crack, h.pos, crackWidth(g)), d = Math.hypot(near.x - h.pos.x, near.y - h.pos.y) || 1;
+  f.letGo = Math.max(0, f.letGo - dt);
+  if (!safe && h.status.hurt <= 0 && f.letGo <= 0) {
+    const pull = F.crack.pull * f.open * dt;
+    h.pos.x += ((near.x - h.pos.x) / d) * pull;
+    h.pos.y += ((near.y - h.pos.y) / d) * pull;
   }
-
-  // The storm: three circles marked, one on him, one where he's going, one near; and down it comes.
-  if ((f.nextStorm -= dt) <= 0) {
-    f.nextStorm = F.storm.every[f.angry ? 1 : 0];
-    const S = F.storm, a = g.rng.next() * Math.PI * 2, d = S.near[0] + g.rng.next() * (S.near[1] - S.near[0]);
-    const going = f.going && Math.hypot(f.going.x, f.going.y) > 8 ? f.going : null;
-    const spots = [
-      { x: h.pos.x, y: h.pos.y },
-      going ? { x: h.pos.x + going.x * S.lead, y: h.pos.y + going.y * S.lead } : { x: h.pos.x + Math.cos(a + 2) * d, y: h.pos.y + Math.sin(a + 2) * d },
-      { x: h.pos.x + Math.cos(a) * d, y: h.pos.y + Math.sin(a) * d },
-    ].slice(0, S.count);
-    for (const s of spots) { keepIn(f, s); spawnStrike(g, s.x, s.y, S.warn); }
-    sound(g, "cast", him);
+  if (near.inside && !safe && h.status.hurt <= 0) {
+    damagePlayer(g, near.x, near.y - 2 * T, 1);            // thrown back out of the dark, away from the crack
+    f.letGo = F.crack.letGo;
+    toast(g, F.say.cold);
   }
-  remember();
 }
 
 /** Knocked back: the crack opens wider. */
@@ -237,43 +264,129 @@ function widen(g: Game, f: CalderFight): void {
   else if (Math.floor(f.open * 3) > Math.floor(was * 3)) toast(g, F.say.wider);
 }
 
-/** He blinked: land him close by the hero, with an echo of himself either side round the hero, and let him catch his breath. */
-function blinked(g: Game, f: CalderFight, him: { x: number; y: number }): void {
-  const h = heroParts(g).pos, base = Math.atan2(him.y - h.y, him.x - h.x), B = F.blink;
-  const spots = [0, 1, 2].map(i => {
+/** In go the rods: three of them round the glade's middle, a triangle turned any which way. */
+function plantRods(g: Game, f: CalderFight): void {
+  const base = g.rng.next() * Math.PI * 2, out = F.rods.out;
+  f.rods = [0, 1, 2].map(i => {
     const a = base + (i * Math.PI * 2) / 3;
-    const s = { x: Math.round(h.x + Math.cos(a) * B.land), y: Math.round(h.y + Math.sin(a) * B.land) };
-    keepIn(f, s);
-    return s;
+    return { x: f.x + Math.cos(a) * f.rx * out, y: f.y + Math.sin(a) * f.ry * out };
   });
-  const open = spots.filter(s => !blocked(g.map, s.x, s.y, true));
-  const real = open[Math.floor(g.rng.next() * open.length)];
-  if (!real) return;                                        // nowhere near him to land: he stays where he blinked to
-  g.fx.push({ type: "burst", x: him.x, y: him.y, palette: "spark" });
-  him.x = real.x; him.y = real.y;
-  f.echoes = spots.filter(s => s !== real).map(s => ({ ...s, t: 0 }));
-  for (const s of spots) g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "arcane" });
-  f.daze = B.daze;
-  sound(g, "blink", him);
+  f.planted = 0;
+  f.nextArc = 0;                                            // (counted once they're in)
+  f.nextBlink = 1;
+  for (const r of f.rods) g.fx.push({ type: "burst", x: r.x, y: r.y, palette: "spark" });
+  g.shake = Math.max(g.shake, 2);
+  sound(g, "thunder", f);
+  toast(g, F.say.rods, true);
+}
+
+/** The lightning between the rods: a side of the triangle at a time, round and round; then (the eye) the whole of it,
+ *  or each rod arcing to where he stands, turn about. */
+function theRods(g: Game, f: CalderFight, him: Point, dt: number): void {
+  f.planted += dt;
+  if (f.planted < F.rods.plant || (f.nextArc -= dt) > 0) return;
+  const A = F.rods.arc, r = f.rods;
+  f.nextArc = F.rods.every[f.mood === 2 ? 1 : 0];
+  const arc = (a: Point, b: Point) => f.arcs.push({ a: { ...a }, b: { ...b }, t: 0, warn: A.warn, live: A.live, hit: false });
+  if (f.mood < 2) arc(r[f.side % 3]!, r[(f.side + 1) % 3]!);
+  else if (f.side % 2 === 0) for (let i = 0; i < 3; i++) arc(r[i]!, r[(i + 1) % 3]!);
+  else for (const rod of r) arc(rod, him);
+  f.side++;
+  sound(g, "cast", r[f.side % 3]!);
+}
+
+/** He blinks to the next rod round; the air he went through crackles behind him. */
+function blinkToRod(g: Game, f: CalderFight, him: Point): void {
+  f.nextBlink = F.rods.blink;
+  f.rod = (f.rod + 1) % 3;
+  const to = f.rods[f.rod]!, from = { x: him.x, y: him.y };
+  g.fx.push({ type: "burst", x: from.x, y: from.y, palette: "arcane" });
+  him.x = to.x; him.y = to.y;
+  g.fx.push({ type: "burst", x: to.x, y: to.y, palette: "spark" });
+  const R = F.rods.trail;
+  f.arcs.push({ a: from, b: { ...to }, t: 0, warn: R.warn, live: R.live, hit: false });
+  sound(g, "blink", to);
+}
+
+/** Lightning along the lines: anyone on one once it's live is struck, unless he's jumping or dashing over it. */
+function arcs(g: Game, f: CalderFight, dt: number): void {
+  const h = heroParts(g), safe = h.motion.dash > 0 || h.motion.jump > 0;
+  for (const a of f.arcs) {
+    const was = a.t;
+    a.t += dt;
+    if (was < a.warn && a.t >= a.warn) { sound(g, "thunder", a.a); g.shake = Math.max(g.shake, 0.6); }
+    if (a.t < a.warn || a.hit || safe || h.status.hurt > 0) continue;
+    const near = onSegment(h.pos, a.a, a.b);
+    if (Math.hypot(near.x - h.pos.x, near.y - h.pos.y) < F.rods.arc.width) {
+      damagePlayer(g, near.x, near.y, 1);
+      a.hit = true;
+    }
+  }
+  f.arcs = f.arcs.filter(a => a.t < a.warn + a.live);
+}
+
+/** The nearest point to `p` on the line from `a` to `b`. */
+export function onSegment(p: Point, a: Point, b: Point): Point {
+  const ex = b.x - a.x, ey = b.y - a.y, len2 = ex * ex + ey * ey || 1;
+  const k = Math.max(0, Math.min(1, ((p.x - a.x) * ex + (p.y - a.y) * ey) / len2));
+  return { x: a.x + ex * k, y: a.y + ey * k };
+}
+
+/** The next shape of strikes: a line walking at the hero, or a star from him (the storm walks, and the rods); a
+ *  bullseye round the hero, or a star (the eye). */
+export type Shape = "walk" | "star" | "bullseye";
+const SHAPES: Record<Mood, readonly Shape[]> = { 0: ["walk", "star"], 1: ["walk", "walk", "star"], 2: ["bullseye", "star", "bullseye", "walk"] };
+function shape(g: Game, f: CalderFight, him: Point): void {
+  const turn = SHAPES[f.mood], kind = turn[f.shapes % turn.length]!, h = heroParts(g).pos;
+  f.shapes++;
+  f.nextShape = F.shapes.every[f.mood];
+  const mark = (x: number, y: number, delay: number) => {
+    const at = { x, y };
+    if (!inside(f, at)) return;
+    spawnStrike(g, at.x, at.y, F.warn + delay);
+  };
+  if (kind === "walk") {
+    const W = F.walk, a = Math.atan2(h.y - him.y, h.x - him.x);
+    for (let i = 1; i <= W.count; i++) mark(him.x + Math.cos(a) * W.step * i, him.y + Math.sin(a) * W.step * i, (i - 1) * W.gap);
+  } else if (kind === "star") {
+    const S = F.star, base = g.rng.next() * Math.PI;
+    for (let arm = 0; arm < S.arms; arm++) {
+      const a = base + (arm / S.arms) * Math.PI * 2;
+      for (let i = 1; i <= S.count; i++) mark(him.x + Math.cos(a) * S.step * i, him.y + Math.sin(a) * S.step * i, (i - 1) * S.gap);
+    }
+  } else {
+    const B = F.bullseye, base = g.rng.next() * Math.PI, at = { x: h.x, y: h.y };
+    B.rings.forEach((ring, k) => {
+      for (let i = 0; i < ring.count; i++) {
+        const a = base + (i / ring.count) * Math.PI * 2;
+        mark(at.x + Math.cos(a) * ring.r, at.y + Math.sin(a) * ring.r, k * B.between);
+      }
+    });
+    mark(at.x, at.y, B.rings.length * B.between);
+  }
+  sound(g, "cast", him);
 }
 
 /** The nearest point on the great crack's spine to `p` (cell top-left px), and whether `p` is in its dark, drawn `wide` times its width. */
-export function nearestOnCrack(crack: Extract<Prop, { kind: "greatCrack" }>, p: { x: number; y: number }, wide: number): { x: number; y: number; inside: boolean } {
+export function nearestOnCrack(crack: Extract<Prop, { kind: "greatCrack" }>, p: Point, wide: number): { x: number; y: number; inside: boolean } {
   const spine = greatCrackSpine(crack), px = (p.x + HALF) / T, py = (p.y + HALF) / T;
   let best = { x: px, y: py, d: Infinity, half: 0 };
   for (let i = 1; i < spine.length; i++) {
-    const a = spine[i - 1]!, b = spine[i]!, ex = b.at.x - a.at.x, ez = b.at.z - a.at.z, len2 = ex * ex + ez * ez || 1;
-    const k = Math.max(0, Math.min(1, ((px - a.at.x) * ex + (py - a.at.z) * ez) / len2));
-    const x = a.at.x + ex * k, y = a.at.z + ez * k, d = Math.hypot(px - x, py - y);
-    if (d < best.d) best = { x, y, d, half: a.half + (b.half - a.half) * k };
+    const a = spine[i - 1]!, b = spine[i]!, q = onSegment({ x: px, y: py }, { x: a.at.x, y: a.at.z }, { x: b.at.x, y: b.at.z });
+    const len = Math.hypot(b.at.x - a.at.x, b.at.z - a.at.z) || 1, k = Math.hypot(q.x - a.at.x, q.y - a.at.z) / len;
+    const d = Math.hypot(px - q.x, py - q.y);
+    if (d < best.d) best = { ...q, d, half: a.half + (b.half - a.half) * k };
   }
   return { x: best.x * T - HALF, y: best.y * T - HALF, inside: wide > 1 && best.d < best.half * wide - 0.15 };
 }
 
-/** Nobody leaves the ring: kept within its lightning. */
-function keepIn(f: CalderFight, t: { x: number; y: number }): void {
-  const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy);
-  if (d <= F.keepIn) return;
-  t.x = f.x + (dx / d) * F.keepIn;
-  t.y = f.y + (dy / d) * F.keepIn;
+/** Whether `p` is inside the glade's oval. */
+const inside = (f: CalderFight, p: Point): boolean => ((p.x - f.x) / f.rx) ** 2 + ((p.y - f.y) / f.ry) ** 2 <= 1;
+
+/** Nobody leaves the glade: kept within its oval of lightning. */
+export function keepIn(f: Pick<CalderFight, "x" | "y" | "rx" | "ry">, t: Point): void {
+  const dx = (t.x - f.x) / f.rx, dy = (t.y - f.y) / f.ry, d = Math.hypot(dx, dy);
+  if (d <= 1) return;
+  t.x = f.x + (dx / d) * f.rx;
+  t.y = f.y + (dy / d) * f.ry;
 }

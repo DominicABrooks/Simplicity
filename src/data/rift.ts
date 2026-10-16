@@ -25,45 +25,62 @@ export const CALDER = {
 } as const;
 
 /**
- * Calder's fight, at the edge of the great crack (src/game/calderfight.ts). Come close and lightning comes down in a ring
- * round the glade's edge: nobody leaves until one of you falls. Then:
- * - the storm: every so often three circles are marked on the ground (one where the hero stands, one where he's going,
- *   one near), and lightning comes down in them a moment later. Only a dash gets you through (src/systems/hazards.ts).
- * - his blink, so fast he seems to be in three places: he lands close by the hero with two echoes of himself round him.
- *   The echoes throw a spark each and are gone; he stands a moment catching his breath (the one with a shadow), and a
- *   blade in that moment cuts twice as deep.
- * - his static, which turns aside any arrow that isn't a full draw.
- * - the crack: every time the hero's knocked back it opens wider, and every time he lands a hit it closes a little.
- *   The wider it is, the harder its cold pulls him toward it, the faster Calder casts and blinks, and the further its
- *   dark reaches across the ground (stepping into it hurts, and throws him back out: and that opens it wider still).
+ * Calder's fight, at the edge of the great crack (src/game/calderfight.ts). Come close and lightning comes down all round
+ * the glade (an oval: the whole glade below the crack): nobody leaves until one of you falls. It's all the shapes
+ * lightning makes. He goes through three moods as he weakens:
+ * - the storm walks (from full health): his sparks fork into three as they fly, and the lightning comes down in shapes
+ *   marked on the ground, a line of strikes walking out from him toward the hero, or a star of them bursting out from
+ *   him, each strike landing a moment after the last (only a dash gets you through one: src/systems/hazards.ts).
+ * - the rods (below `phases[0]` of his health): he drives three iron rods into the ground round the glade, and lightning
+ *   runs between them, one side of the triangle after another, round and round (each side marked by a flicker first;
+ *   jump or dash over it). He blinks from rod to rod, so fast he seems to be in three places, and the air he went
+ *   through crackles behind him.
+ * - the eye of the storm (below `phases[1]`): the whole triangle at once, or a rod at a time arcing to where he stands;
+ *   and the bullseye, rings of strikes round the hero closing in to where he stood.
+ * Whenever he blinks he stops a moment after to earth himself, and a blade in that moment cuts twice as deep. His
+ * static turns any arrow short of a full draw. And the crack: every time the hero's knocked back it opens wider, and
+ * every time he lands a hit it closes a little; the wider it is, the harder its cold pulls him toward it, the faster
+ * Calder goes, and the further its dark reaches across the ground (stepping into it hurts).
  */
 export const CALDER_FIGHT = {
-  /** How close to where he stands (px) the hero has to come for the lightning to shut him in; and how far from the
-   *  ring's middle (where he stands: its north side is the crack) it then keeps him. */
-  shutAt: 52, keepIn: 44,
-  /** Below this share of his health, he's angry. */
-  angry: 0.5,
-  storm: {
-    /** Seconds before the first round, and between rounds: calm, angry. Strikes a round, and seconds from mark to strike. */
-    first: 3, every: [4.2, 3], count: 3, warn: 1,
-    /** How far ahead of the hero the second lands (seconds of his walking), and how far off the third (px). */
-    lead: 0.6, near: [10, 22],
+  /** How close to where he stands (px) the hero has to come for the lightning to shut him in. The oval it then keeps
+   *  him in: its middle (tiles south of where he stands), and how far it reaches across and up and down (tiles). */
+  shutAt: 52, arena: { below: 2, rx: 13, ry: 4.8 },
+  /** Below these shares of his health: the rods, and then the eye of the storm. */
+  phases: [0.66, 0.33],
+  /** His sparks: how long after he throws one it forks (s), into how many, how far apart (radians). */
+  fork: { after: 0.32, count: 3, spread: 0.42 },
+  /** The strikes' shapes: how long each is marked before the first lands (s). */
+  warn: 0.9,
+  /** Seconds between shapes, in each mood (the first comes after `first`). */
+  shapes: { first: 2.5, every: [3.4, 5, 4.2] },
+  /** A line of strikes walking out from him toward the hero (and on past): how many, how far apart (px), how soon after one another (s). */
+  walk: { count: 10, step: 11, gap: 0.11 },
+  /** A star of them bursting out from him: how many arms, strikes an arm, how far apart, how soon after one another. */
+  star: { arms: 6, count: 5, step: 12, gap: 0.13 },
+  /** The bullseye: rings of strikes round where the hero stands, outer first, each `between` s after the last, and last
+   *  of all one where he stood. How far out each ring is (px), and how many strikes in it. */
+  bullseye: { rings: [{ r: 42, count: 14 }, { r: 18, count: 6 }], between: 0.55 },
+  rods: {
+    /** How far out round the glade's middle they stand (share of the oval), and how long they take to go in (s). */
+    out: 0.62, plant: 1.2,
+    /** Lightning between them: marked by a flicker (s), then live (s), how close to it hurts (px). */
+    arc: { warn: 0.85, live: 0.45, width: 5 },
+    /** Seconds between one side of the triangle and the next (the rods); between the whole triangle or the rods arcing to him (the eye). */
+    every: [1.5, 3.2],
+    /** Seconds between his blinks from rod to rod, and how soon the air he went through crackles live (s) and how long. */
+    blink: 4, trail: { warn: 0.2, live: 0.4 },
   },
-  blink: {
-    /** How far from the hero (px) he lands, and his echoes round him; how far he has to have moved in a frame to count as a blink. */
-    land: 24, jump: 20,
-    /** Seconds he stands catching his breath after (his echoes last as long, then throw their sparks and go). */
-    daze: 1.2,
-    /** A blade in that moment: damage times this. */
-    cut: 2,
-  },
+  /** After any blink, he stops this long to earth himself (s); a blade in that moment: damage times `cut`. How far he
+   *  has to have moved in a frame to count as a blink (px). */
+  earth: 0.9, cut: 2, jump: 20,
   /** His static: an arrow that isn't a full draw is turned aside this close to him (px). */
   static: 14,
   crack: {
     /** How open it is when the fight starts (0 shut, 1 as wide as it goes), how much each knock opens it, and each hit closes it. */
     start: 0.25, knock: 0.12, hit: 0.05,
     /** As wide as it goes: its width times this. */
-    widest: 2.1,
+    widest: 1.45,
     /** How hard its cold pulls the hero toward it at its widest (px/s), and for how long it lets go after biting him (s);
      *  and how much faster Calder gets at its widest. */
     pull: 10, letGo: 2, hurry: 0.8,
@@ -80,6 +97,8 @@ export const CALDER_FIGHT = {
     widest: "The great crack is wide open! Its cold drags at you.",
     cold: "The dark in the crack bites!",
     caught: "Caught!",
+    rods: "Calder drives three iron rods into the ground. Lightning runs between them!",
+    eye: "The sky over the glade goes white. Calder calls the whole storm down!",
     shutCrack: "The great crack groans, and grinds shut.",
   },
 } as const;
