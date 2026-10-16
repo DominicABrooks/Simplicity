@@ -22,9 +22,9 @@ export const ORB_COLORS: Record<BoltKind, [string, string]> = { fire: [PAL.Y, PA
 
 export function makeOrbMesh(ctx: RenderContext, kind: BoltKind = "fire"): THREE.Group {
   const g = new THREE.Group(), [core, shell] = ORB_COLORS[kind];
-  if (kind === "icicle") {                                    // not an orb: an icicle, point along +X, a cold glow round it
-    g.add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.42, 5).rotateZ(-Math.PI / 2), ctx.glow(core)));
-    g.add(new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.5, 5).rotateZ(-Math.PI / 2).translate(-0.03, 0, 0), ctx.glow(shell, { transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })));
+  if (kind === "icicle") {                                    // not an orb: an icicle, point along +X, a cold glow round it; big, to read at a glance
+    g.add(new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.75, 5).rotateZ(-Math.PI / 2), ctx.glow(core)));
+    g.add(new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.9, 5).rotateZ(-Math.PI / 2).translate(-0.05, 0, 0), ctx.glow(shell, { transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })));
     return g;
   }
   g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), ctx.glow(core)));
