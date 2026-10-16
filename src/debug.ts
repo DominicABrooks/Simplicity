@@ -2,13 +2,16 @@
 // and in the end-to-end build (`vite build --mode e2e`) for the Playwright specs in e2e/ to read the game
 // and set a scene up. Never in the published game: main.ts only calls this behind those two flags.
 import { AREA_IDS, loadArea } from "./areas/index.ts";
-import { STARTER_KIT } from "./data/items.ts";
+import { CURIOS, CURIO_IDS, STARTER_KIT, type CurioId } from "./data/items.ts";
+import { GIL } from "./data/quay.ts";
+import { churchyardOf } from "./game/ghost.ts";
+import { makeCurio } from "./items/items.ts";
 import { LAIRS, type Lair, type LairName } from "./game/lairs.ts";
 import { isFrozen, isGod, setFrozen, setGod } from "./game/cheats.ts";
 import { setState, type Game } from "./game/game.ts";
 import { HOMECOMING } from "./data/ending.ts";
 import { CALDER_FIGHT, CALDERS_HEAD } from "./data/rift.ts";
-import { T } from "./data/world.ts";
+import { HALF, T } from "./data/world.ts";
 import { bossSystem } from "./game/bosses.ts";
 import { calderFightSystem } from "./game/calderfight.ts";
 import { crowdOf } from "./game/crowd.ts";
@@ -155,6 +158,30 @@ export function exposeDebug(g: Game, view: Renderer): void {
     if (zone?.ready) kitOut(zone.ready);
     return `${def.name} (${at}): level ${g.world.need(g.player, "hero").level}, ${g.world.need(g.player, "health").maxHp} hearts`;
   }
+  /**
+   * Trying the curiosities (docs/CURIOSITIES.md): a fresh run with one in the bag, a few steps from where it belongs, at
+   * the hour it wants; what to do next is said back. Where each goes, and where to stand him (an entity's top-left, px).
+   */
+  const CURIO_TRIES: Record<CurioId, { area: string; hour?: number; at?: (g: Game) => { x: number; y: number } | null; next: string }> = {
+    bell: {
+      area: "capital", hour: 22, next: "It's night: walk north into St Mary's churchyard, and she'll rise for it.",
+      at: g => { const yard = churchyardOf(g); return yard ? { x: yard.x + yard.w / 2 - HALF, y: yard.y + yard.h + 3 * T } : null; },
+    },
+    // On the step outside the door (where he'd come up from below), clear of the graves.
+    key: { area: "capital", next: "Walk up into the low door at the foot of St Mary's tower.", at: g => { const out = g.area.layout.entries.undercroft; return out ? { ...out } : null; } },
+    stone: { area: "undercroft", next: "Walk up to the gap in the ring of stones at the north end." },
+    eye: { area: "kingsroad", next: "Talk to Old Gil, just north of you by his boat.", at: () => ({ x: GIL.x * T - HALF, y: (GIL.y + 2.8) * T - HALF }) },   // on the bank below him, clear of the bridge's lions
+    bottle: { area: "witchwood", next: "Open the bag (I) and right-click the bottle." },
+  };
+  async function curio(id: string = "bell"): Promise<string> {
+    if (!(CURIO_IDS as readonly string[]).includes(id)) return `No curiosity "${id}". Try: ${CURIO_IDS.join(", ")}`;
+    const t = CURIO_TRIES[id as CurioId], there = await area(t.area);
+    if (t.hour !== undefined) setHour(t.hour);
+    g.inventory.add(makeCurio(id as CurioId));
+    const at = t.at?.(g);
+    if (at) Object.assign(g.world.need(g.player, "transform"), at);
+    return `${there}. ${CURIOS[id as CurioId].name} in the bag. ${t.next}`;
+  }
   Object.assign(window, {
     simplicity: {
       game: g, view, world: g.world,
@@ -173,6 +200,9 @@ export function exposeDebug(g: Game, view: Renderer): void {
       area,
       /** The ending: ending("home") and so on (see above), or load the page with ?ending=home (&crowd=12, &full). */
       ending,
+      /** The curiosities: curio("key") starts a fresh run with it in the bag, by where it goes (or load the page with
+       *  ?curio=key); bell, key, stone, eye or bottle. */
+      curio,
       /** The time of day: hour(23) makes it 11 at night (or load the page with ?hour=23); with nothing, the hour it is now. */
       hour: (h?: number) => (h === undefined ? g.hour : setHour(h)),
       god: (on = !isGod(g)) => `god ${setGod(g, on) ? "on" : "off"}`,
@@ -184,7 +214,8 @@ export function exposeDebug(g: Game, view: Renderer): void {
   });
   // ?boss=cinder (with &god, &freeze): straight into the fight, after main.ts has put the title up. ?area=hollow (with
   // &entry=stone): straight there. ?hour=23 (0 to 24, fractions too): that time of day, there or wherever you start.
-  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour"), end = q.get("ending");
+  // ?curio=bell (key, stone, eye, bottle): a fresh run with it in the bag, a few steps from where it belongs.
+  const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour"), end = q.get("ending"), cur = q.get("curio");
   if (q.has("god")) setGod(g, true);
   if (q.has("freeze")) setFrozen(g, true);
   if (at !== null && Number.isFinite(Number(at))) setHour(Number(at));
@@ -192,4 +223,5 @@ export function exposeDebug(g: Game, view: Renderer): void {
   if (end !== null) void ending(end || "stone", Number(q.get("crowd") ?? 8), q.has("full"), q.get("shot") ?? undefined).then(said => console.info(said));
   else if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
+  else if (cur !== null) void curio(cur || "bell").then(said => console.info(said));
 }
