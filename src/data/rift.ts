@@ -26,7 +26,7 @@ export const CALDER = {
 
 /**
  * Calder's fight, at the edge of the great crack (src/game/calderfight.ts). Come close and lightning comes down all round
- * the glade (an oval: the whole glade below the crack): nobody leaves until one of you falls. It's all the shapes
+ * the glade in a great ring (the whole glade below the crack): nobody leaves until one of you falls. It's all the shapes
  * lightning makes. He goes through three moods as he weakens:
  * - the storm walks (from full health): his sparks fork into three as they fly, and the lightning comes down in shapes
  *   marked on the ground, a line of strikes walking out from him toward the hero, or a star of them bursting out from
@@ -43,9 +43,9 @@ export const CALDER = {
  * Calder goes, and the further its dark reaches across the ground (stepping into it hurts).
  */
 export const CALDER_FIGHT = {
-  /** How close to where he stands (px) the hero has to come for the lightning to shut him in. The oval it then keeps
-   *  him in: its middle (tiles south of where he stands), and how far it reaches across and up and down (tiles). */
-  shutAt: 52, arena: { below: 2, rx: 13, ry: 4.8 },
+  /** How close to where he stands (px) the hero has to come for the lightning to shut him in. The ring it then keeps
+   *  him in: its middle (tiles south of where he stands, its north side the crack), and how far out it is (tiles). */
+  shutAt: 52, arena: { below: 4, r: 7.5 },
   /** Below these shares of his health: the rods, and then the eye of the storm. */
   phases: [0.66, 0.33],
   /** His sparks: how long after he throws one it forks (s), into how many, how far apart (radians). */
@@ -62,7 +62,7 @@ export const CALDER_FIGHT = {
    *  of all one where he stood. How far out each ring is (px), and how many strikes in it. */
   bullseye: { rings: [{ r: 42, count: 14 }, { r: 18, count: 6 }], between: 0.55 },
   rods: {
-    /** How far out round the glade's middle they stand (share of the oval), and how long they take to go in (s). */
+    /** How far out round the glade's middle they stand (share of the ring), and how long they take to go in (s). */
     out: 0.62, plant: 1.2,
     /** Lightning between them: marked by a flicker (s), then live (s), how close to it hurts (px). */
     arc: { warn: 0.85, live: 0.45, width: 5 },

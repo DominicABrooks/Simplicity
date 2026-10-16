@@ -1,5 +1,5 @@
 // The storm of Calder's fight (src/game/calderfight.ts), drawn on the entity made for it at the glade's middle:
-// lightning standing all round the glade's oval while it's on, flickering; the three iron rods he drives into the
+// lightning standing all round the glade in a great ring while it's on, flickering; the three iron rods he drives into the
 // ground, going in and then humming with their tips lit; the lightning along the lines between them (and behind his
 // blinks), a faint crawling flicker on the ground where it's going to be, then a white-hot jagged bolt along it; and
 // the great crack itself (src/render/wild.ts), drawn as wide as the fight has it. Once he's fallen, on the entity that
@@ -13,7 +13,7 @@ import { GREAT_CRACK_NAME } from "./wild.ts";
 import type { EntityView } from "./views.ts";
 
 const BOLT = "#fff6c8", TRIM = "#8f9dff", IRON = "#3a3d4a";
-/** Bolts standing round the oval, and how many points up each. */
+/** Bolts standing round the ring, and how many points up each. */
 const PILLARS = 22, STEPS = 6;
 /** Points along an arc's jagged strands, and how many strands. */
 const ARC_STEPS = 10, STRANDS = 2;
@@ -32,8 +32,8 @@ export interface TempestView {
   /** The lightning round the glade, while the fight's on. */
   ring: THREE.Group | null;
   pillars: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> | null;
-  /** How far the oval reaches, across and up and down (world units: tiles). */
-  rx: number; rz: number;
+  /** How far out the ring is (world units: tiles). */
+  r: number;
   rods: RodMesh[];
   arcs: ArcMesh[];
   /** His spark, going home. */
@@ -48,7 +48,7 @@ export const tempest: EntityView<TempestView> = {
     const spark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 1), additive(ctx, BOLT, 0.95));
     spark.visible = false;
     group.add(spark);
-    const v: TempestView = { group, ring: null, pillars: null, rx: F.arena.rx, rz: F.arena.ry, rods: [], arcs: [], spark };
+    const v: TempestView = { group, ring: null, pillars: null, r: F.arena.r, rods: [], arcs: [], spark };
     if (calderFight(g)?.view === e) makeRing(ctx, v);
     return v;
   },
@@ -85,7 +85,7 @@ export const tempest: EntityView<TempestView> = {
   },
   remove(ctx, v) {
     if (v.ring) for (let i = 0; i < 48; i++) {                // the lightning round the glade bursts into sparks
-      const a = (i / 48) * Math.PI * 2, x = Math.cos(a) * v.rx, z = Math.sin(a) * v.rz;
+      const a = (i / 48) * Math.PI * 2, x = Math.cos(a) * v.r, z = Math.sin(a) * v.r;
       ctx.particles.spawn(i % 2 ? "spark" : "sparkLight", v.group.position.x + x, 0.2 + Math.random() * 1.4, v.group.position.z + z,
         Math.cos(a) * (0.4 + Math.random()), 0.6 + Math.random(), Math.sin(a) * (0.4 + Math.random()), 0.7);
     }
@@ -94,12 +94,12 @@ export const tempest: EntityView<TempestView> = {
   },
 };
 
-/** The lightning round the glade: a glowing band on the ground all round the oval, and bolts standing up out of it. */
+/** The lightning round the glade: a glowing band on the ground all round the ring, and bolts standing up out of it. */
 function makeRing(ctx: RenderContext, v: TempestView): void {
   const ring = new THREE.Group();
   const band = new THREE.Mesh(new THREE.RingGeometry(0.97, 1.03, 72).rotateX(-Math.PI / 2), additive(ctx, TRIM, 0.45, true));
   band.position.y = 0.03;
-  band.scale.set(v.rx, 1, v.rz);
+  band.scale.set(v.r, 1, v.r);
   ring.add(band);
   const pillars = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: BOLT, transparent: true, opacity: 0.9 }));
   pillars.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(PILLARS * STEPS * 6), 3));
@@ -109,12 +109,12 @@ function makeRing(ctx: RenderContext, v: TempestView): void {
   v.pillars = pillars;
 }
 
-/** Redraw the bolts round the oval, a few lit at a time, each a jagged line from the ground up into the sky. */
+/** Redraw the bolts round the ring, a few lit at a time, each a jagged line from the ground up into the sky. */
 function flickerPillars(v: TempestView, t: number): void {
   const pos = v.pillars!.geometry.getAttribute("position") as THREE.BufferAttribute;
   for (let p = 0; p < PILLARS; p++) {
     const lit = Math.sin(t * (13 + p) + p * 7) > 0.3, a = (p / PILLARS) * Math.PI * 2 + Math.sin(t * 0.3 + p) * 0.05;
-    const bx = Math.cos(a) * v.rx, bz = Math.sin(a) * v.rz;
+    const bx = Math.cos(a) * v.r, bz = Math.sin(a) * v.r;
     let from = { x: bx, y: 0, z: bz };
     for (let i = 1; i <= STEPS; i++) {
       const n = (p * STEPS + i - 1) * 2, j = 0.25;

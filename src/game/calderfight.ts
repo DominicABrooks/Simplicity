@@ -33,8 +33,8 @@ export interface Arc { a: Point; b: Point; t: number; warn: number; live: number
 export type Mood = 0 | 1 | 2;
 
 export interface CalderFight {
-  /** The glade's middle (cell top-left), and how far the oval reaches across and up and down (px). */
-  x: number; y: number; rx: number; ry: number;
+  /** The ring's middle (cell top-left), and how far out it is (px). */
+  x: number; y: number; r: number;
   /** Seconds since the lightning shut the glade. */
   t: number;
   mood: Mood;
@@ -127,7 +127,7 @@ function shut(g: Game): void {
   const e = summonBoss(g);
   const hp = e === null ? 0 : g.world.need(e, "health").hp;
   fights.set(g, {
-    ...mid, rx: A.rx * T, ry: A.ry * T, t: 0, mood: 0, open: F.crack.start, nextShape: F.shapes.first, shapes: 0,
+    ...mid, r: A.r * T, t: 0, mood: 0, open: F.crack.start, nextShape: F.shapes.first, shapes: 0,
     rods: [], planted: 0, arcs: [], nextArc: 0, side: 0, nextBlink: F.rods.blink, rod: 0, earth: 0, forks: new Map(),
     last: { ...stand, hp, melee: 0, hurt: heroParts(g).status.hurt }, letGo: 0, toldStatic: false, view,
   });
@@ -269,7 +269,7 @@ function plantRods(g: Game, f: CalderFight): void {
   const base = g.rng.next() * Math.PI * 2, out = F.rods.out;
   f.rods = [0, 1, 2].map(i => {
     const a = base + (i * Math.PI * 2) / 3;
-    return { x: f.x + Math.cos(a) * f.rx * out, y: f.y + Math.sin(a) * f.ry * out };
+    return { x: f.x + Math.cos(a) * f.r * out, y: f.y + Math.sin(a) * f.r * out };
   });
   f.planted = 0;
   f.nextArc = 0;                                            // (counted once they're in)
@@ -380,13 +380,13 @@ export function nearestOnCrack(crack: Extract<Prop, { kind: "greatCrack" }>, p: 
   return { x: best.x * T - HALF, y: best.y * T - HALF, inside: wide > 1 && best.d < best.half * wide - 0.15 };
 }
 
-/** Whether `p` is inside the glade's oval. */
-const inside = (f: CalderFight, p: Point): boolean => ((p.x - f.x) / f.rx) ** 2 + ((p.y - f.y) / f.ry) ** 2 <= 1;
+/** Whether `p` is inside the ring. */
+const inside = (f: CalderFight, p: Point): boolean => Math.hypot(p.x - f.x, p.y - f.y) <= f.r;
 
-/** Nobody leaves the glade: kept within its oval of lightning. */
-export function keepIn(f: Pick<CalderFight, "x" | "y" | "rx" | "ry">, t: Point): void {
-  const dx = (t.x - f.x) / f.rx, dy = (t.y - f.y) / f.ry, d = Math.hypot(dx, dy);
-  if (d <= 1) return;
-  t.x = f.x + (dx / d) * f.rx;
-  t.y = f.y + (dy / d) * f.ry;
+/** Nobody leaves the glade: kept within its ring of lightning. */
+function keepIn(f: CalderFight, t: Point): void {
+  const dx = t.x - f.x, dy = t.y - f.y, d = Math.hypot(dx, dy);
+  if (d <= f.r) return;
+  t.x = f.x + (dx / d) * f.r;
+  t.y = f.y + (dy / d) * f.r;
 }

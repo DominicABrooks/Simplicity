@@ -16,18 +16,18 @@ const W = 48, H = 64, SEED = 59;
 const trailX = (y: number) => 23 + Math.round(5 * Math.sin(y * 0.11 + 0.6) + 3 * Math.sin(y * 0.27 + 2));
 /** The glades the trail climbs through, south to north; the last is the crack's edge. */
 const GLADES = [
-  { x: trailX(50) - 7, y: 50, rx: 7, ry: 5 },
-  { x: trailX(37) + 7, y: 37, rx: 7.5, ry: 5.5 },
-  { x: trailX(27) - 6, y: 27, rx: 7, ry: 5 },
-  { x: 24, y: 12, rx: 16, ry: 8.5 },                          // the great crack's edge, where Calder stands: room to fight him in
+  { x: trailX(55) - 7, y: 55, rx: 7, ry: 4.5 },
+  { x: trailX(44) + 7, y: 44, rx: 7.5, ry: 5 },
+  { x: trailX(34) - 6, y: 34, rx: 7, ry: 4.5 },
+  { x: 24, y: 15, rx: 15, ry: 11 },                           // the great crack's edge, where Calder stands: room to fight him in
 ] as const;
 const EDGE = GLADES[3];
 /** The great crack, across the top of the last glade (tiles): its middle, how long, how wide at its widest. */
-export const GREAT_CRACK = { x: EDGE.x, y: EDGE.y - 6, len: 22, wide: 2.6 } as const;
+export const GREAT_CRACK = { x: EDGE.x, y: EDGE.y - 9, len: 22, wide: 2.6 } as const;
 /** Where Calder will stand: the middle of the crack's edge, a few steps south of it (tile). */
 export const CALDER_STAND = { x: EDGE.x, y: GREAT_CRACK.y + 4 } as const;
 /** The rift stone's row, on the trail just below the last glade. */
-const RIFT_STONE_Y = 23;
+const RIFT_STONE_Y = 29;
 
 function build(): AreaLayout {
   const rng = new Rng(SEED), town = new Town(W, H, Tile.Tree);

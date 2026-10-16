@@ -74,20 +74,19 @@ describe("Calder", () => {
     const f = calderFight(g)!, me = g.world.need(g.player, "transform");
     Object.assign(me, { x: f.x, y: f.y + 12 * T });          // off back down the trail
     calderFightSystem(g, DT);
-    expect(Math.hypot((me.x - f.x) / f.rx, (me.y - f.y) / f.ry)).toBeCloseTo(1, 1);   // (the crack's cold drawing him back in a touch)
+    expect(Math.hypot(me.x - f.x, me.y - f.y) / f.r).toBeCloseTo(1, 1);   // (the crack's cold drawing him back in a touch)
   });
 
-  it("fights him in the whole glade below the crack: a wide oval of open ground", async () => {
+  it("fights him in the whole glade below the crack: a great ring of open ground", async () => {
     const { g, f } = await fighting();
-    expect(f.rx).toBe(F.arena.rx * T);
-    expect(f.rx).toBeGreaterThan(2 * f.ry);
-    expect(f.ry).toBeGreaterThan(4 * T);
-    // Everything well inside the oval is open ground, and its north side comes up to the crack.
+    expect(f.r).toBe(F.arena.r * T);
+    expect(f.r).toBeGreaterThan(7 * T);
+    // Everything well inside the ring is open ground, and its north side comes up to the crack.
     for (let y = 0; y < g.map.height; y++) for (let x = 0; x < g.map.width; x++) {
-      if (Math.hypot((x * T - f.x) / (f.rx * 0.9), (y * T - f.y) / (f.ry * 0.9)) > 1) continue;
+      if (Math.hypot(x * T - f.x, y * T - f.y) > f.r * 0.9) continue;
       expect([Tile.Tree, Tile.Wall]).not.toContain(g.map.tiles[y]![x]);
     }
-    expect(f.y - f.ry).toBeLessThan((GREAT_CRACK.y + GREAT_CRACK.wide) * T);
+    expect(f.y - f.r).toBeLessThan((GREAT_CRACK.y + GREAT_CRACK.wide) * T);
   });
 
   it("has the glade to himself: everything else scatters, and nothing comes while he stands", async () => {
@@ -134,7 +133,7 @@ describe("Calder's fight", () => {
   it("marks his lightning on the ground in shapes: a line walking out at the hero, then a star bursting from him", async () => {
     const { g, e, f } = await fighting();
     const him = g.world.need(e, "transform"), me = g.world.need(g.player, "transform");
-    Object.assign(him, { x: f.x - 60, y: f.y });
+    Object.assign(him, { x: f.x - 20, y: f.y });
     Object.assign(me, { x: f.x + 40, y: f.y + 10 });
     clear(g);
     f.nextShape = 0;
@@ -151,7 +150,7 @@ describe("Calder's fight", () => {
     const star = strikes(g), arms = new Set(star.map(s => Math.round(Math.atan2(s.y - him.y, s.x - him.x) * 100)));
     expect(star.length).toBeGreaterThan(F.star.arms * 2);
     expect(arms.size).toBeLessThanOrEqual(F.star.arms);
-    for (const s of star) expect(Math.hypot((s.x - f.x) / f.rx, (s.y - f.y) / f.ry)).toBeLessThanOrEqual(1.0001);
+    for (const s of star) expect(Math.hypot(s.x - f.x, s.y - f.y)).toBeLessThanOrEqual(f.r + 0.001);
   });
 
   it("drives three rods in as he weakens, and lightning runs round the triangle between them: jump it, or be struck", async () => {
@@ -161,7 +160,7 @@ describe("Calder's fight", () => {
     expect(f.mood).toBe(1);
     expect(toasts).toContain(F.say.rods);
     expect(f.rods).toHaveLength(3);
-    for (const r of f.rods) expect(Math.hypot((r.x - f.x) / f.rx, (r.y - f.y) / f.ry)).toBeCloseTo(F.rods.out);
+    for (const r of f.rods) expect(Math.hypot(r.x - f.x, r.y - f.y) / f.r).toBeCloseTo(F.rods.out);
     f.nextBlink = 99;
     f.nextShape = 99;
     for (let t = 0; t < F.rods.plant + 0.05; t += DT) calderFightSystem(g, DT);
