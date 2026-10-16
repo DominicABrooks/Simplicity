@@ -1,5 +1,5 @@
-// The Koi Grotto (src/areas/grotto.ts), dressed: its walls blue-grey rock, frost on top of it, sheathed in clear ice
-// wherever it faces the cave floor, icicles hanging from the lip of the high rock and snow drifted against its foot,
+// The Koi Grotto (src/areas/grotto.ts), dressed: its walls blue-grey rock in broad terraces, snow lying over the top of
+// it, glazed with ice wherever it faces the cave floor, icicles hanging from the lip of the high rock and snow drifted against its foot,
 // with clusters of ice crystals giving off a cold light. Tall at the back of the cave, low along the front, so the
 // camera (looking north) sees over them to the floor. The floor's ice clouded deeper blue here and there, cracked and
 // bloomed with frost; pale shafts of daylight come down through cracks in the roof; frost hangs in the air, drifting.
@@ -41,35 +41,45 @@ export function buildIceWalls(ctx: RenderContext, parent: THREE.Group, p: PropOf
     }
   }
 
-  const rock = [lambert("#2f3a46"), lambert("#3a4652"), lambert("#28323d")], frost = lambert("#dbe9f1"), sheath = lambert("#a9d8ee", { transparent: true, opacity: 0.7 });
+  // One rock, so the cells run together into a wall rather than a checkerboard; snow lying over the top of all of it, and
+  // the faces toward the floor glazed with ice.
+  const rock = lambert("#5a6d7d"), boulder = lambert("#4a5866"), frost = lambert("#dbe9f1"), cap = lambert("#e4f0f6"), ledge = lambert("#9fb6c6"), glaze = lambert("#9cc8dd");
   const crystal = lambert("#cdf1ff", { transparent: true, opacity: 0.88 }), heart = glow("#8fdcff", { transparent: true, opacity: 0.7 });
   const snow = lambert("#e9f4fa");
-  ctx.glowAtNight(sheath, crystal);
+  ctx.glowAtNight(glaze, crystal);
   const lit: { x: number; z: number }[] = [];
+  // The rock: one low ledge along the front, so he's never lost behind it; at the back and sides a wall the height of
+  // the cave's side, and behind that the higher rock of the roof's edge: two tiers, every cell of each the same height,
+  // so they read as one wall and not a staircase of blocks.
+  const heightAt = (x: number, y: number) => {
+    const k = y * 1000 + x;
+    return !wall(x, y) ? 0 : floorNorth.has(k) ? 0.55 : (depth.get(k) ?? 9) === 1 ? 1.6 : 2.6;
+  };
   for (const c of p.cells) {
-    const k = c.y * 1000 + c.x, front = floorNorth.has(k), d = depth.get(k) ?? 9, n = hash(c.x, c.y, 501);
-    // The rock: low along the front, so he's never lost behind it; at the back and sides rising the further it is from the floor.
-    const h = front ? 0.3 + Math.min(d - 1, 2) * 0.12 + n * 0.12 : Math.min(3.2, 1.3 + (d - 1) * 0.45 + n * 0.5);
-    // A block of it, broken up on top by a boulder or two; frost lying in patches on it (more on the low rock at the front, so it reads).
-    const stone = rock[Math.floor(hash(c.x, c.y, 502) * rock.length)]!;
-    put(g, new THREE.BoxGeometry(1.02, h, 1.02), stone, c.x + 0.5, h / 2, c.y + 0.5);
-    for (let i = 0; i < (front ? 1 : 2); i++) {
-      const r = (front ? 0.32 : 0.45) + hash(c.x, c.y, 504 + i) * 0.2, ox = (hash(c.x, i, 505) - 0.5) * 0.5, oz = (hash(c.y, i, 506) - 0.5) * 0.5;
-      const top = hash(c.x + i, c.y, 507) < (front ? 0.6 : 0.45) ? frost : rock[Math.floor(hash(c.x, c.y + i, 508) * rock.length)]!;
-      put(g, new THREE.DodecahedronGeometry(r, 0), top, c.x + 0.5 + ox, h + r * 0.15, c.y + 0.5 + oz, hash(i, c.x, 509) * 3, hash(i, c.y, 509) * 3, 0).scale.y = 0.65;
+    const k = c.y * 1000 + c.x, front = floorNorth.has(k), n = hash(c.x, c.y, 501), h = heightAt(c.x, c.y);
+    put(g, new THREE.BoxGeometry(1.001, h, 1.001), rock, c.x + 0.5, h / 2, c.y + 0.5);
+    put(g, new THREE.BoxGeometry(1.001, 0.06, 1.001), front ? ledge : cap, c.x + 0.5, h + 0.03, c.y + 0.5);   // snow over the top (crusted grey on the ledge, so it stands out from the floor)
+    // Now and then a drift heaped on the snow, or a frost-tipped boulder breaking through it near the edge.
+    if (n < 0.22) {
+      const r = 0.3 + hash(c.x, c.y, 504) * 0.2, ox = (hash(c.x, 1, 505) - 0.5) * 0.4, oz = (hash(c.y, 1, 506) - 0.5) * 0.4;
+      put(g, new THREE.DodecahedronGeometry(r, 0), snow, c.x + 0.5 + ox, h + 0.05, c.y + 0.5 + oz, 0, n * 20, 0).scale.set(1.5, 0.35, 1.2);
+    } else if (c.open && !front && n > 0.8) {
+      const r = 0.24 + hash(c.x, c.y, 507) * 0.14, ox = (hash(c.x, 2, 505) - 0.5) * 0.4, oz = (hash(c.y, 2, 506) - 0.5) * 0.4;
+      put(g, new THREE.DodecahedronGeometry(r, 0), hash(c.x, c.y, 508) < 0.5 ? frost : boulder, c.x + 0.5 + ox, h + r * 0.25, c.y + 0.5 + oz, n * 3, n * 7, 0).scale.y = 0.7;
     }
-    if (!c.open) continue;
-    // Ice down the faces toward the floor, icicles off the lip of the high rock, snow drifted at its foot, and now and
-    // then a cluster of crystals there, some of them lit.
+    // Ice down every face that stands clear (to the floor, or down to lower rock), and icicles off the lip of the high
+    // rock; toward the floor, snow drifted at its foot, and now and then a cluster of crystals there, some of them lit.
     for (const [bit, dx, dy] of SIDES) {
-      if (!(c.open & bit)) continue;
-      const fh = h * (0.75 + hash(c.x, c.y, 503 + bit) * 0.25), ox = c.x + 0.5 + dx * 0.53, oz = c.y + 0.5 + dy * 0.53;
-      put(g, new THREE.BoxGeometry(dx ? 0.06 : 1.0, fh, dy ? 0.06 : 1.0), sheath, ox, fh / 2, oz);
-      if (!front && h > 1.1) for (let i = 0; i < 4; i++) {   // a fringe of icicles, the longest in the middle
+      const below = heightAt(c.x + dx, c.y + dy), toFloor = !!(c.open & bit);
+      if (!toFloor && (below >= h || !wall(c.x + dx, c.y + dy))) continue;
+      const ox = c.x + 0.5 + dx * 0.5, oz = c.y + 0.5 + dy * 0.5, fh = h - 0.04 - below;
+      put(g, new THREE.BoxGeometry(dx ? 0.05 : 1.001, fh, dy ? 0.05 : 1.001), glaze, ox + dx * 0.02, below + fh / 2, oz + dy * 0.02);
+      if (h - below > 0.6) for (let i = 0; i < 4; i++) {             // a fringe of icicles, the longest in the middle
         const along = (i + 0.5) / 4 - 0.5 + (hash(c.x, c.y, 520 + i) - 0.5) * 0.12, len = 0.18 + hash(c.y, c.x, 521 + i) * 0.45 * (1 - Math.abs(along) * 1.2);
         put(g, new THREE.ConeGeometry(0.05 + len * 0.08, len, 4).rotateX(Math.PI), crystal,
-          ox + dx * 0.04 + (dy ? along : 0), h - len / 2 - 0.02, oz + dy * 0.04 + (dx ? along : 0));
+          ox + dx * 0.06 + (dy ? along : 0), h - len / 2 - 0.02, oz + dy * 0.06 + (dx ? along : 0));
       }
+      if (!toFloor) continue;
       for (let i = 0; i < 2; i++) {                          // snow, heaped against the foot
         if (hash(c.x + i, c.y, 530 + bit) > 0.75) continue;
         const along = (hash(c.x, c.y + i, 531 + bit) - 0.5) * 0.8, r = 0.22 + hash(i, c.x + c.y, 532) * 0.18;
@@ -180,14 +190,14 @@ function dressFloor(ctx: RenderContext, g: THREE.Group, p: PropOf<"iceWalls">, w
   }
 
   // Shafts of daylight through cracks in the roof, slanting down onto the floor, a pale pool where each lands.
-  const shaftMat = glow("#eaf7ff", { transparent: true, opacity: 0.07, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, map: beamFade() });
+  const shaftMat = glow("#eaf7ff", { transparent: true, opacity: 0.04, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, map: beamFade() });
   const poolMat = basic("#f4fbff", decal(GROUND.marker, { map: softDisc(), opacity: 0.3 }));
   const away = floor.filter(f => !hole || Math.hypot(f.x - hole.x, f.y - hole.y) > 4).sort((a, b) => hash(a.x, a.y, 570) - hash(b.x, b.y, 570));
   const shafts: { x: number; z: number }[] = [];
   for (const f of away) if (shafts.length < SHAFTS && shafts.every(s => Math.hypot(s.x - f.x, s.z - f.y) > 5)) shafts.push({ x: f.x + 0.5, z: f.y + 0.5 });
   for (const s of shafts) {
     // Leaning back from the camera (north) and a little east, as the sun stands outside: never across his view.
-    put(g, new THREE.CylinderGeometry(0.3, 0.55, 5.5, 6, 1, true).translate(0, 2.75, 0), shaftMat, s.x, 0, s.z, -0.3, 0, -0.15);
+    put(g, new THREE.CylinderGeometry(0.18, 0.35, 5.5, 6, 1, true).translate(0, 2.75, 0), shaftMat, s.x, 0, s.z, -0.3, 0, -0.15);
     put(g, flat, poolMat, s.x, 0.014, s.z).scale.set(0.9, 1, 0.75);
   }
 
@@ -205,7 +215,7 @@ function dressFloor(ctx: RenderContext, g: THREE.Group, p: PropOf<"iceWalls">, w
       d.m.position.x = d.x + Math.sin(t * 0.4 + d.k) * 0.35;
       d.m.position.z = d.z + Math.cos(t * 0.33 + d.k) * 0.25;
     }
-    shaftMat.opacity = 0.065 + Math.sin(t * 0.25) * 0.015;
+    shaftMat.opacity = 0.035 + Math.sin(t * 0.25) * 0.01;
     if (well) {
       const b = Math.sin(t * 0.9) * 0.5 + Math.sin(t * 2.3) * 0.2;
       well.glow.opacity = 0.38 + b * 0.12;
