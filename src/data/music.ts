@@ -47,6 +47,12 @@ export interface Theme {
   sky?: boolean;
   /** A theme of its own after dark (a THEMES id), that this one gives way to as night comes on and back at dawn. */
   night?: string;
+  /** Each phrase (four bars) opens with a trumpet fanfare up the chord, in a dotted rhythm, instead of the tune. */
+  fanfare?: boolean;
+  /** Kettle drums: on the beat that starts each bar (and the half bar, every other), and a roll into each new phrase. */
+  timpani?: boolean;
+  /** The tune walks: only on the beat, and in long, held, dotted notes, as in a procession. */
+  stately?: boolean;
 }
 
 const HARMONIC_MINOR = [0, 2, 3, 5, 7, 8, 11], IONIAN = [0, 2, 4, 5, 7, 9, 11], DORIAN = [0, 2, 3, 5, 7, 9, 10], AEOLIAN = [0, 2, 3, 5, 7, 8, 10];
@@ -95,12 +101,13 @@ export const THEMES = {
   watchers: { root: 38, mode: [0, 1, 6, 7], chords: [0, 1, 0, 2, 0, 3, 1, 0], bpm: 40, pad: "sawtooth", lead: "triangle", density: 0.16, bright: 1300, sky: false,
     drone: true, detune: 20, wobble: 40, wobbleRate: 0.7, warp: 16, sag: 0.3, swell: true, distort: 0.45, gain: 0.8 },
   /**
-   * The Throne Room, its own, whatever the hour: a stately processional before the King. Slow and grand, an organ of
-   * a chord (each note doubled a little apart, so it swells and beats like pipes) under a brass tune that steps out
-   * and lands on the beat, rising through the old cadence home: I, V, vi, IV, and back.
+   * The Throne Room, its own, whatever the hour: a royal procession before the King. Every phrase opens with the
+   * trumpets' fanfare up the chord, kettle drums under it, rolling into each new phrase; an organ of a chord (each note
+   * doubled a little apart, so it swells and beats like pipes); and a brass tune that walks on the beat in long, dotted
+   * notes, through I, IV, V and home, with a turn to the sixth halfway.
    */
-  throneroom: { root: 55, mode: IONIAN, chords: [0, 4, 5, 3, 0, 3, 4, 0], bpm: 62, pad: "sawtooth", lead: "square", density: 0.38, bright: 2300, sky: false,
-    detune: 9, gain: 1.05 },
+  throneroom: { root: 58, mode: IONIAN, chords: [0, 3, 4, 0, 5, 3, 4, 0], bpm: 76, pad: "sawtooth", lead: "sawtooth", density: 0.55, bright: 2800, sky: false,
+    detune: 9, fanfare: true, timpani: true, stately: true, gain: 1.1 },
   /** Inside someone's house: by the fire. */
   hearth: { root: 53, mode: IONIAN, chords: [0, 3, 0, 4], bpm: 72, pad: "triangle", lead: "triangle", density: 0.35, bright: 1600, sky: false },
 } satisfies Record<string, Theme>;

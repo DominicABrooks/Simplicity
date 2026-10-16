@@ -95,6 +95,23 @@ export function createMusicPlayer(): MusicPlayer {
     o.stop(start + dur + 0.05);
   }
 
+  /** A kettle drum struck: a thump that drops onto its note (`midi`) and rings away. */
+  function drum(midi: number, start: number, peak: number): void {
+    const c = ctx!;
+    for (const [wave, mul, ring, gain] of [["sine", 1, 1.1, 1], ["triangle", 1.5, 0.25, 0.35]] as const) {
+      const o = c.createOscillator(), env = c.createGain();
+      o.type = wave;
+      o.frequency.setValueAtTime(hz(midi) * mul * 1.5, start);
+      o.frequency.exponentialRampToValueAtTime(hz(midi) * mul, start + 0.05);
+      env.gain.setValueAtTime(0, start);
+      env.gain.linearRampToValueAtTime(peak * gain, start + 0.006);
+      env.gain.exponentialRampToValueAtTime(0.0001, start + ring);
+      o.connect(env).connect(out!);
+      o.start(start);
+      o.stop(start + ring + 0.05);
+    }
+  }
+
   /** Lay down one half-beat of the theme, at `t`. */
   function playStep(theme: Theme, p: Playing, t: number, half: number): void {
     // Each note as the theme has it: in a warped theme, a little out of tune and sagging.
@@ -118,13 +135,32 @@ export function createMusicPlayer(): MusicPlayer {
       if (p.rain > 0.05) note(theme.root - 24, "sine", t, half * STEPS * 1.2, 0.12 * p.rain * g, half * 4);
     }
     if (step === 0 || step === 4) note(at(chord, -12), "triangle", t, half * 3.5, 0.16 * g, 0.02);
+    // A royal theme: the fanfare opening each phrase, and the kettle drums.
+    const phrase = bar % 4, fanfaring = theme.fanfare && phrase === 0;
+    if (fanfaring && step === 0) {
+      // Da, da-da, da, DAAA: up the chord to its octave, the trumpets an octave over the tune and a fourth voice under.
+      for (const [d, at0, len] of [[0, 0, 1.5], [0, 1.5, 0.5], [2, 2, 1], [4, 3, 1], [up, 4, 4]] as const) {
+        const m = at(chord + d, 12 - p.lower);
+        note(m, "sawtooth", t + at0 * half, len * half * 1.15, 0.12 * g * 0.4, 0.025);
+        note(m - 12, "square", t + at0 * half, len * half * 1.15, 0.07 * g * 0.4, 0.025);
+      }
+    }
+    if (theme.timpani) {
+      const low = at(chord, -12);
+      if (step === 0) drum(low, t, 0.3 * g);
+      if (step === 4 && bar % 2 === 1) drum(at(chord + 4, -12), t, 0.22 * g);
+      if (phrase === 3 && step >= 4) for (const k of [0, 0.5]) drum(at(4, -12), t + k * half, (0.08 + 0.05 * (step - 4 + k)) * g);   // the roll, swelling into the next phrase
+    }
     if (theme.arp) note(at([chord, chord + 2, chord + 4, chord + up][step % 4]!, 12 - p.lower), "sine", t, half * 1.6, 0.05 * g, 0.01);
     // The tune: a step or two along the scale, or a leap back toward the chord if it strays; on the beat, a chord note.
-    if (Math.random() < p.density * (step % 2 === 0 ? 1.2 : 0.6)) {
+    // (A stately one only on the beat; and not over a fanfare.)
+    const offBeat = step % 2 === 1;
+    if (!fanfaring && !(theme.stately && offBeat) && Math.random() < p.density * (offBeat ? 0.6 : 1.2)) {
       tune += [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)]!;
       if (Math.abs(tune - (chord + up)) > 5) tune = chord + up + (Math.random() < 0.5 ? 0 : 2);
       if (step % 2 === 0 && Math.random() < 0.6) tune = chord + up + [0, 2, 4][Math.floor(Math.random() * 3)]!;
-      const len = (Math.random() < 0.3 ? 3 : Math.random() < 0.5 ? 2 : 1) * (theme.wobble ? 2 : 1), m = at(tune, -p.lower);
+      const len = theme.stately ? [2, 3, 4][Math.floor(Math.random() * 3)]! : (Math.random() < 0.3 ? 3 : Math.random() < 0.5 ? 2 : 1) * (theme.wobble ? 2 : 1);
+      const m = at(tune, -p.lower);
       note(m, theme.lead, t, half * len * 1.4, 0.11 * g * soft(theme.lead), theme.wobble ? half * 0.8 : 0.015,
         theme.wobble ? { wobble: theme.wobble, from: lastLead } : {});
       lastLead = m;
