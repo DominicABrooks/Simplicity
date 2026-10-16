@@ -23,6 +23,7 @@ import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { animateCinder, makeCinder, type CinderParts } from "./models/cinder.ts";
 import { RIME_SCALE, animateRime, makeRime, type RimeParts } from "./models/rime.ts";
 import { rimefrost } from "./rime.ts";
+import { makeKoiMesh, type KoiMesh } from "./koi.ts";
 import { rimeFight } from "../game/rimefight.ts";
 import { RIME_FIGHT } from "../data/hollow.ts";
 import { blaze } from "./blaze.ts";
@@ -223,6 +224,54 @@ const rime: EntityView<RimeView> = {
   remove: removeBody,
 };
 
+// ---------- The Great Koi ----------
+// A koi, but huge and gold, flopped on its side on the ice: thrashing where it lies, leaping at you in an arc, its
+// whiskers trailing, and a glow of freezing water gathering at its mouth before it spits.
+const KOI_SIZE = 6.5;
+interface GreatKoiView extends Simple { body: THREE.Group; fish: KoiMesh; orb: THREE.Mesh; yaw: number | null }
+const greatkoi: EntityView<GreatKoiView> = {
+  create(ctx) {
+    const group = new THREE.Group(), body = new THREE.Group(), fish = makeKoiMesh(ctx, PAL.Y, PAL.O, 0.35);
+    fish.scale.setScalar(KOI_SIZE);
+    body.add(fish);
+    const whisker = ctx.lambert(PAL.O);
+    for (const s of [-1, 1]) {                                // two long barbels trailing back from its lip
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.012, 0.75, 4).rotateZ(Math.PI / 2).translate(-0.37, 0, 0), whisker);
+      w.position.set(1.15, -0.1, s * 0.2);
+      w.rotation.set(s * 0.35, s * 0.5, -0.25);
+      body.add(w);
+    }
+    const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), ctx.glow(PAL.C, { transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }));
+    orb.position.set(1.4, 0, 0);
+    orb.visible = false;
+    body.add(orb);
+    group.add(body);
+    const shadow = addShadow(ctx, 2.6);
+    ctx.scene.add(group);
+    return { group, shadow, body, fish, orb, yaw: null };
+  },
+  update(ctx, v, e, g, f) {
+    const o = g.world.need(e, "transform"), koi = g.world.need(e, "koi"), enemy = g.world.need(e, "enemy"), { t, dt } = f;
+    const [x, z] = toWorld(o.x, o.y);
+    const air = koi.hop > 0 ? 1 - koi.hop / koi.hopTime : -1;
+    const look = air >= 0 ? -Math.atan2(koi.dy, koi.dx) : facing(o, f.hero);
+    v.yaw = v.yaw === null ? look : turn(v.yaw, look, dt, air >= 0 ? 14 : 4);
+    v.group.position.set(x, air >= 0 ? Math.sin(air * Math.PI) * 1.1 : 0, z);
+    v.group.rotation.y = v.yaw;
+    v.group.visible = !(enemy.flash > 0 && Math.floor(t * 30) % 2);
+    // On its side and thrashing on the ice; upright and arched in a leap.
+    if (air >= 0) { v.body.rotation.set(0.3, 0, Math.cos(air * Math.PI) * 0.45); v.body.position.y = 0.55; }
+    else { v.body.rotation.set(1.25 + Math.sin(t * 9) * 0.22, 0, Math.sin(t * 4.5) * 0.12); v.body.position.y = 0.42; }
+    v.fish.userData.tail.rotation.y = Math.sin(t * (air >= 0 ? 10 : 16)) * 0.7;
+    v.orb.visible = koi.wind > 0;
+    if (koi.wind > 0) v.orb.scale.setScalar(0.4 + (1 - koi.wind / 0.6) * 1.2 + Math.sin(t * 30) * 0.08);
+    v.shadow.position.set(x, SHADOW_Y, z);
+    v.shadow.scale.setScalar(2.6 * (air >= 0 ? 1 - Math.sin(air * Math.PI) * 0.35 : 1));
+    if (Math.random() < dt * 6) ctx.particles.spawn("water", x + (Math.random() - 0.5) * 1.2, 0.3, z + (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.6, 1 + Math.random(), (Math.random() - 0.5) * 0.6, 0.5);
+  },
+  remove: removeSimple,
+};
+
 // ---------- Potion ----------
 const potion: EntityView<Simple> = {
   create(ctx) {
@@ -257,7 +306,7 @@ const loot: EntityView<LootView> = {
     gem.position.y = 0.3;
     group.add(gem);
     if (rarity !== "normal") {                               // light beam: short for magic, tall for rare
-      const hgt = rarity === "rare" ? 3 : 1.2;
+      const hgt = rarity === "legendary" ? 4.5 : rarity === "rare" ? 3 : 1.2;
       group.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.12, hgt, 5, 1, true).translate(0, hgt / 2, 0),
         ctx.glow(c, { transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending })));
     }
@@ -740,4 +789,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, cinder, blaze, rime, rimefrost, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, rime, rimefrost, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa } satisfies { [K in ViewKind]: EntityView<object> };

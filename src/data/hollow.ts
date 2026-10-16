@@ -98,6 +98,35 @@ export const RIME_LAST_WORDS = [
 /** ...and then, across the top. */
 export const RIME_FALLS = ["The Hollow goes quiet. The Frost mages stop humming."] as const;
 
+/**
+ * The Great Koi: the very large koi under the Hollow's ice. Hook it through the hole and out it comes, and it's no
+ * fish to eat: it flops after you across the ice in great leaps (`hop` seconds in the air, at `speed` px/s), slamming
+ * down on landing (anyone within `slam` px is hurt), and spits fans of freezing water. Angry below half health: it
+ * leaps sooner and spits wider.
+ */
+export const GREAT_KOI = {
+  name: "The Great Koi",
+  title: "It's only a very large koi",
+  hp: 55, xp: 250,
+  /** As a target. */
+  radius: 9, height: 1.1,
+  hop: 0.55, speed: 62, every: [1.3, 0.85], slam: 15, damage: 1,
+  /** Spitting: every this often (calm, angry), a beat to wind up, then a fan of `fan` frost bolts `spread` radians apart. */
+  spit: { every: [4.5, 3.2], wind: 0.6, fan: [5, 7], spread: 0.28 },
+  /** What it leaves: potions round it. */
+  potions: 3,
+  say: {
+    bite: "Something massive takes the line!",
+    out: "The ice bursts. It's only a very large koi... and it's angry.",
+    landed: "The Great Koi lies still at last. Caught in its whiskers: a fishing pole.",
+  },
+} as const;
+
+/** What the Great Koi leaves: the legendary pole, its line made from the koi's own whisker. */
+export const WHISKER_ROD: KitPiece = ["rod", "legendary", {}, "Greatwhisker"];
+/** Its line in the tooltip. */
+export const WHISKER_NOTE = "Strung with the Great Koi's whisker. Golden koi 30%, silver 40%, and they bite twice as quick";
+
 /** The bow in the hunter's hut on the Hollow's rim (GEAR.md): the first bow worth using. */
 export const HUNTERS_LONGBOW: KitPiece = ["bow", "magic", { damage: 1 }, "Hunter's Longbow"];
 /** As he picks it up. */

@@ -50,7 +50,7 @@ interface Koi {
 export interface KoiPond {
   setMap(map: TileMap, props: readonly Prop[]): void;
   /** bobber: a line in the water (world X/Z) that draws the fish in. */
-  update(dt: number, t: number, heroX: number, heroZ: number, bobber: { x: number; z: number } | null): void;
+  update(dt: number, t: number, heroX: number, heroZ: number, bobber: { x: number; z: number } | null, bigOne?: boolean): void;
 }
 
 /** The big one under the ice: how big, how fast it glides, and how long between its passes and each pass (s). */
@@ -117,8 +117,9 @@ export function createKoiPond(ctx: RenderContext): KoiPond {
         }
       }
     },
-    update(dt, t, px, pz, bobber) {
-      if (big) {                                              // the big one: a slow pass now and then, fading in and out
+    update(dt, t, px, pz, bobber, bigOne = true) {
+      if (big) big.group.visible = bigOne;
+      if (big && bigOne) {                                              // the big one: a slow pass now and then, fading in and out
         const into = t % BIG.every, shown = into < BIG.pass;
         big.mat.opacity = shown ? BIG.opacity * Math.min(1, into / 2, (BIG.pass - into) / 2) : 0;
         big.group.visible = shown;

@@ -37,6 +37,13 @@ export const TIERS: Record<TierName, TierColors> = {
     boot: "#5a2f86", bootDark: "#3d1f5c", glow: 0.6,
     fishMain: PAL.Y, fishAccent: PAL.O,
   },
+  legendary: {
+    cloth: "#c8641e", dark: "#7a3410", light: "#f0a050", trim: PAL.Y, accent: PAL.W,
+    metal: PAL.Y, metalDark: PAL.O, gem: "#ff8a3a",
+    blade: PAL.W, bladeDark: PAL.w, guard: "#ff8a3a", guardDark: PAL.r,
+    boot: "#7a3410", bootDark: "#4a1f0a", glow: 0.8,
+    fishMain: PAL.Y, fishAccent: "#ff8a3a",
+  },
   // Enemy-only tier: the Ember Mage's red robes.
   ember: {
     cloth: PAL.R, dark: PAL.r, light: "#e0705f", trim: PAL.O, accent: PAL.Y,
@@ -90,4 +97,4 @@ export const ICON_SWAPS: Record<ItemType, Partial<Record<string, keyof TierColor
 };
 
 /** Rarity colours for ground loot, labels and tooltips. */
-export const RARITY_COLOR: Record<Rarity, string> = { normal: PAL.w, magic: "#7fa6ff", rare: PAL.Y };
+export const RARITY_COLOR: Record<Rarity, string> = { normal: PAL.w, magic: "#7fa6ff", rare: PAL.Y, legendary: "#ff8a3a" };

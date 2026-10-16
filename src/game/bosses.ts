@@ -72,6 +72,11 @@ export const bossHere = (g: Game): Entity | null => state.get(g)?.here?.e ?? nul
 /** Is it quiet here: a boss fell on this visit? Then nothing turns up until the hero leaves and comes back. */
 export const quietAfterBoss = (g: Game): boolean => state.get(g)?.quietIn === g.area;
 
+/** A boss fell here (one that isn't a lieutenant: the Great Koi): quiet until the hero leaves and comes back. */
+export function quietHere(g: Game): void {
+  bossesOf(g).quietIn = g.area;
+}
+
 /** Who the boss in this area is, if there's one still standing. */
 export const bossWho = (g: Game): Who | null => state.get(g)?.here?.who ?? null;
 

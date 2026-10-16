@@ -14,6 +14,7 @@ import { createFishingView } from "./fishing.ts";
 import { createFxView } from "./fx.ts";
 import { createHeroView } from "./hero.ts";
 import { createKoiPond } from "./koi.ts";
+import { greatKoiBeaten, greatKoiOut } from "../game/greatkoi.ts";
 import type { Projector } from "./projector.ts";
 import { createOcclusion } from "./occlusion.ts";
 import { buildProp } from "./props.ts";
@@ -122,7 +123,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       ctx.particles.update(dt);
       hero.updateTrail(g, dt);
       const bobber = fishing.update(hero.body, pos, g.world.need(g.player, "actions"), t);
-      koi.update(dt, t, px, pz, bobber);
+      koi.update(dt, t, px, pz, bobber, !greatKoiBeaten(g) && greatKoiOut(g) === null);   // the big one's under the ice till it's hooked
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
       occlusion.update(px, pz, CAM_OFFSET, dt);

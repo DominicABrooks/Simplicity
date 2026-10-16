@@ -121,7 +121,7 @@ export interface Actions {
   catchAnim: CatchAnim | null;
 }
 
-export type EnemyKind = "slime" | "mage" | "dummy" | "ghost";
+export type EnemyKind = "slime" | "mage" | "dummy" | "ghost" | "koi";
 
 export interface Enemy {
   kind: EnemyKind;
@@ -135,6 +135,14 @@ export interface Enemy {
   /** One last stand in it (Rime): the first blow that would finish it doesn't ("ready" -> "taken"), and its fight
    *  answers (src/game/rimefight.ts) until it's "spent"; then the next one does. */
   lastStand?: "ready" | "taken" | "spent";
+}
+
+/** The Great Koi (src/game/greatkoi.ts): flopping after the hero in leaps, slamming down, spitting freezing water. */
+export interface KoiBrain {
+  /** Seconds to its next leap; seconds left in this one (and how long it lasts); which way it's going. */
+  timer: number; hop: number; hopTime: number; dx: number; dy: number;
+  /** Seconds to its next spit, and the wind-up before it (> 0 while it's drawing breath). */
+  spit: number; wind: number;
 }
 
 export interface SlimeBrain {
@@ -404,7 +412,7 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa";
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -421,6 +429,7 @@ export interface Components {
   actions: Actions;
   enemy: Enemy;
   slime: SlimeBrain;
+  koi: KoiBrain;
   mage: MageBrain;
   ghost: GhostBrain;
   pickup: Pickup;

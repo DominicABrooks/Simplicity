@@ -47,6 +47,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 .item.rarity-normal { background: rgb(184 173 156 / 0.10); }
 .item.rarity-magic { background: rgb(63 111 208 / 0.25); }
 .item.rarity-rare { background: rgb(245 213 98 / 0.16); }
+.item.rarity-legendary { background: rgb(255 138 58 / 0.22); }
 .preview { position: absolute; pointer-events: none; background: rgb(95 176 74 / 0.25); outline: 1px solid var(--moss); outline-offset: -1px; }
 .preview.bad { background: rgb(200 66 58 / 0.25); outline-color: var(--ember); }
 #held { position: fixed; z-index: 30; pointer-events: none; opacity: 0.9; }
@@ -66,6 +67,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 .tip-name.rarity-normal, .label.rarity-normal { color: var(--bone); }
 .tip-name.rarity-magic, .label.rarity-magic { color: var(--magic); }
 .tip-name.rarity-rare, .label.rarity-rare { color: var(--glow); }
+.tip-name.rarity-legendary, .label.rarity-legendary { color: #ff8a3a; }
 #labels { position: fixed; inset: 0; pointer-events: none; z-index: 10; overflow: hidden; }
 .label { position: absolute; left: 0; top: 0; padding: 1px 7px; white-space: nowrap; font-size: 12px; line-height: 18px; background: rgb(14 11 22 / 0.78); border: 1px solid rgb(139 90 52 / 0.7); }
 #toast.good { color: var(--glow); }

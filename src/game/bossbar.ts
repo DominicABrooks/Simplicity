@@ -6,6 +6,8 @@ import type { Entity } from "../core/ecs.ts";
 import { LIEUTENANTS, bossHere, bossWho } from "./bosses.ts";
 import type { Game } from "./game.ts";
 import { ghostOut } from "./ghost.ts";
+import { greatKoiOut } from "./greatkoi.ts";
+import { GREAT_KOI } from "../data/hollow.ts";
 
 export interface BossBar {
   name: string;
@@ -25,6 +27,8 @@ export function bossBar(g: Game): BossBar | null {
   if (boss !== null && who) return engaged(g, boss) ? { name: LIEUTENANTS[who].name, title: LIEUTENANTS[who].title, ...hpOf(g, boss), angry: false } : null;
   const ghost = ghostOut(g), brain = ghost === null ? null : g.world.get(ghost, "ghost");
   if (ghost !== null && brain && !brain.calm && engaged(g, ghost)) return { name: GHOST_NAME, title: GHOST_TITLE, ...hpOf(g, ghost), angry: brain.angry };
+  const koi = greatKoiOut(g);
+  if (koi !== null && engaged(g, koi)) { const hp = hpOf(g, koi); return { name: GREAT_KOI.name, title: GREAT_KOI.title, ...hp, angry: hp.hp <= hp.maxHp / 2 }; }
   return null;
 }
 

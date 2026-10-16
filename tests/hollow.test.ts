@@ -8,6 +8,7 @@ import { HALF, T, Tile } from "../src/data/world.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
+import { landGreatKoi } from "../src/game/greatkoi.ts";
 import { lastStone, stoneSystem, wakeOnStone } from "../src/game/stones.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
@@ -82,8 +83,9 @@ describe("the hole in the ice", () => {
     expect(waterAt(g, ICE_HOLE.x * T, ICE_HOLE.y * T)).toBe("hole");
   });
 
-  it("gives up a golden koi every time, never anything else", async () => {
+  it("once the Great Koi's landed, gives up a golden koi every time, never anything else", async () => {
     const g = await inHollow();
+    landGreatKoi(g, 0, 0);                                    // the big one's out of there (see tests/greatkoi.test.ts)
     g.inventory.reset([makeItem("rod")]);
     Object.assign(g.world.need(g.player, "transform"), { x: (ICE_HOLE.x - 2) * T, y: ICE_HOLE.y * T });
     const a = g.world.need(g.player, "actions");

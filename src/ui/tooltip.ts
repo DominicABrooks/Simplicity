@@ -32,7 +32,7 @@ export function createTooltip(): Tooltip {
       if (item.rarity !== "normal" && !curio) lines.push(line("tip-base", BASES[item.type].name));
       lines.push(line("tip-slot", item.slot ? SLOTS[item.slot].label : item.heal ? "Food" : curio ? "Curiosity" : "Keepsake"));
       if (item.heal) lines.push(line("tip-stat", `Restores ${item.heal} Life`), line("tip-note", "Right-click to eat"));
-      const note = curio ? curio.note : BASES[item.type].note;
+      const note = curio ? curio.note : item.note ?? BASES[item.type].note;
       if (note) lines.push(line("tip-note", note));
       if (item.curio === "bottle") lines.push(line("tip-note", "Right-click to open it"));
       for (const [k, v] of Object.entries(item.base) as [StatKey, number][]) {
