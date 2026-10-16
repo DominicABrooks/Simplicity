@@ -7,6 +7,7 @@ import { FEET, randomGroundSpot } from "../world/collision.ts";
 import { layoutOf } from "../world/layouts.ts";
 import { doorStep } from "../world/townkit.ts";
 import { awaitBoss, leaveBosses } from "./bosses.ts";
+import { layHead, leaveHead } from "./head.ts";
 import { spawnBed, spawnTent } from "./sleeping.ts";
 import { lockedOut } from "./undercroft.ts";
 import { passedBarricade, wardenStops, wardenSystem } from "./watchword.ts";
@@ -19,6 +20,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
   const layout = layoutOf(def), at = layout.entries[entry] ?? doorStep(layout, entry);   // or out of a house's door
   if (!at) throw new Error(`Area "${def.id}" has no entry "${entry}"`);
   leaveBosses(g);                                            // the last area's boss goes with it, not beaten
+  leaveHead(g);                                              // Calder's head, if it's lying here, waits for him
   for (const e of g.world.entities()) if (e !== g.player) g.world.destroy(e);
   g.area = { def, layout };
   g.map = layout.map;
@@ -44,6 +46,7 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
     if (prop.kind === "king") spawnKing(g, prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
     if (prop.kind === "dummy" || prop.kind === "target") spawnTraining(g, prop.kind === "dummy" ? "dummy" : "butt", prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
   }
+  layHead(g);
   wardenSystem(g, Infinity);                                 // the woodwardens in their gate, or aside if he's through
   const life = def.life;
   if (life?.enemies) for (let i = 0; i < SPAWNING.startSlimes; i++) spawnEnemy(g, 80);

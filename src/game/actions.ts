@@ -3,12 +3,13 @@ import { COMBAT_COLORS } from "../data/ui.ts";
 import type { Item } from "../items/items.ts";
 import { combatText } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
+import { keepIfHead } from "./head.ts";
 import { dropLoot } from "./spawn.ts";
 
 /** Drop an item at the hero's feet. It waits for them to step off before it can be picked up again. */
 export function dropItem(g: Game, item: Item): void {
   const p = g.world.need(g.player, "transform");
-  dropLoot(g, p.x, p.y, item, true);
+  keepIfHead(g, dropLoot(g, p.x, p.y, item, true), item);   // there's only the one
 }
 
 /** Eat a fish from the bag. False (and the fish is kept) at full health. */
