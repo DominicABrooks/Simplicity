@@ -14,9 +14,10 @@ import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, AreaLayout } from "../world/area.ts";
 import { reachableFrom } from "../world/map.ts";
 import { Town, px } from "../world/townkit.ts";
-import { AREA_IDS } from "./index.ts";
 
 const W = 48, H = 40, SEED = 47;
+/** Is there a Thunder Rift to climb up to yet (src/areas/rift.ts)? Asked of the folder, not the area registry, which loads this module. */
+const RIFT = Object.keys(import.meta.glob("./rift.ts")).length > 0;
 /** The row the track comes in along, from the east edge (from the Ashwild). */
 const TRACK = 17;
 /** The valley's bowl, and the lake at the bottom of it (tiles). */
@@ -83,7 +84,7 @@ function build(): AreaLayout {
     [
       { rect: { x: W * T - 6, y: TRACK * T, w: 6, h: T }, to: { area: "ashwild", entry: "hollow" } },
       // Up the climb to the Thunder Rift, once there is one (src/areas/rift.ts); until then it ends at the trees.
-      ...(AREA_IDS.includes("rift") ? [{ rect: { x: CLIMB.x * T, y: 0, w: T, h: 6 }, to: { area: "rift", entry: "hollow" } }] : []),
+      ...(RIFT ? [{ rect: { x: CLIMB.x * T, y: 0, w: T, h: 6 }, to: { area: "rift", entry: "hollow" } }] : []),
     ],
   );
   return { ...layout, map: { ...layout.map, look: "snow" } };
