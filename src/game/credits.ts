@@ -1,15 +1,13 @@
 // The credits (STORY.md, "0:55"; src/ui/credits.ts draws the caption and The End over them). After the King's had his
 // say, they don't play back what he's just been through: they show what came of it, a short shot at a time, in the
-// game's own world. The Greyed losing their grey, the slimes gone still, the King reading the true chronicle at the
-// cross, the Vael coming over the bridge for their eggs and the Old Mother flying in over it for them, and the eggs
-// hatching beside her under the Greyspines (her and her hatchlings drawn in src/render/dragons.ts); and, as this run
-// went, the lake in the Hollow open water if he beat Rime, St Mary's churchyard quiet if he laid the Grey Ringer to
-// rest, Yssa at the fountain if he met her; and last his own ending, asleep in the Fells' house with a lantern of his
-// own in the window, the Ranger home by the fire with Meg. Some of what's said changes with what else he did. Each shot
-// loads its area, clears off anything that'd wander in, stands the people in it, and moves the camera itself (in, out,
-// round), the clock running on so everything breathes and flickers; a shot with a long line under it holds long enough
-// to read. A little tune plays under them all, coming round a little different each time. After, he's put back where he
-// was.
+// game's own world, building to the dragons. The Greyed losing their grey, the slimes gone still, the King reading the
+// true chronicle at the cross; the Vael coming over the bridge for their eggs and the Old Mother flying in over it for
+// them, and the eggs hatching beside her under the Greyspines (her and her hatchlings drawn in src/render/dragons.ts);
+// and last his own ending, asleep in the Fells' house with a lantern of his own in the window, the Ranger home by the
+// fire with Meg. Some of what's said changes with what else he did. Each shot loads its area, clears off anything
+// that'd wander in, stands the people in it, and moves the camera itself (in, out, round), the clock running on so
+// everything breathes and flickers; a shot with a long line under it holds long enough to read. A little tune plays
+// under them all, coming round a little different each time. After, he's put back where he was.
 import { loadArea } from "../areas/index.ts";
 import type { Entity } from "../core/ecs.ts";
 import { CREDITS_TIME, CROWD_OF, RUN_SUMS, SHOT_SAYS, SHOT_SAYS_TOO, type ShotId } from "../data/ending.ts";
@@ -29,9 +27,6 @@ import { beaten, type Who } from "./bosses.ts";
 import { crowdOf } from "./crowd.ts";
 import { curioFound } from "./curios.ts";
 import type { Game } from "./game.ts";
-import { churchyardOf, hauntingOf } from "./ghost.ts";
-import { greatKoiBeaten } from "./greatkoi.ts";
-import { rimeFightSystem } from "./rimefight.ts";
 import type { Bed, Dragon, Egg } from "./components.ts";
 import { sound } from "./sfx.ts";
 import { spawnKing } from "./spawn.ts";
@@ -39,14 +34,12 @@ import { loadCensus } from "./townsfolk.ts";
 import { standIn as standInside } from "./interiors.ts";
 import { endTalk } from "./talk.ts";
 import { enterArea } from "./travel.ts";
-import { passedYssa } from "./yssa.ts";
 
 /** Where the camera looks (px, centres), how far out (1 the usual), and how far round (radians, from the usual). */
 export interface Cam { x: number; y: number; zoom: number; yaw: number }
 
 /** How the run went, read at the start of the credits. */
 interface Run {
-  yssa: boolean; ringer: boolean; koi: boolean;
   level: number; kills: number; curios: number; beat: Set<Who>;
   /** How many followed him up the hill with the head. */
   followed: number;
@@ -119,7 +112,7 @@ export function runSum(g: Game): string {
 function readRun(g: Game): Run {
   const beat = new Set<Who>((["cinder", "rime", "calder"] as const).filter(w => beaten(g, w)));
   return {
-    yssa: passedYssa(g), ringer: hauntingOf(g).night === "laid", koi: greatKoiBeaten(g), level: g.world.need(g.player, "hero").level, kills: g.kills,
+    level: g.world.need(g.player, "hero").level, kills: g.kills,
     curios: CURIO_IDS.filter(id => curioFound(g, id)).length, beat, followed: crowdOf(g).following.length,
   };
 }
@@ -502,44 +495,6 @@ const SHOTS: readonly Shot[] = [
           settle(g, dt);
         },
       };
-    },
-  },
-  {
-    // The lake in the Hollow, if he beat Rime: open water under a spring sky, the ice gone for good. The camera drifts
-    // across it.
-    id: "rime", area: "hollow", hour: 11, had: run => run.beat.has("rime"),
-    stage(g, run) {
-      rimeFightSystem(g, 0);                                 // the thaw, as it stays for the run
-      const lair = propOf(g, "boss")!;
-      heroAt(g, lair.x, lair.y + 4 * T, lair.x, lair.y);
-      return {
-        from: cam(lair.x - 2 * T, lair.y, 1.2, 0.45), to: cam(lair.x + 2 * T, lair.y, 0.9, -0.35),
-        says: `${SHOT_SAYS.rime}${run.koi ? ` ${SHOT_SAYS_TOO.koi}` : ""}`,
-      };
-    },
-  },
-  {
-    // St Mary's churchyard on a bright morning, if he laid the Grey Ringer to rest: nothing there but the graves.
-    id: "ringer", area: "capital", hour: 10, had: run => run.ringer,
-    stage(g) {
-      const yard = churchyardOf(g)!, x = yard.x + yard.w / 2, y = yard.y + yard.h / 2;
-      heroAt(g, x + 3 * T, y + 3 * T, x, y);
-      return { from: cam(x, y, 1.1, -0.3), to: cam(x, y, 0.75, 0.25), says: SHOT_SAYS.ringer };
-    },
-  },
-  {
-    // Yssa, the frost gone out of her, at the foot of the fountain in the square.
-    id: "milk", area: "capital", hour: 7, had: run => run.yssa,
-    stage(g) {
-      const f = propOf(g, "fountain")!, x = f.x, y = f.y + (f.radius + 1) * T;
-      g.world.create({
-        transform: { x: x - HALF, y: y - HALF },
-        targetable: { hostile: false, name: "Yssa", radius: 5, height: 1.7 },
-        sentry: { post: -Math.PI / 2, look: -Math.PI / 2, want: -Math.PI / 2, next: 2 },
-        renderable: { kind: "yssa" },
-      });
-      heroAt(g, x + 2 * T, y + 2 * T, x, y);
-      return { from: cam(x, y, 0.6, -0.3), to: cam(x, y - HALF, 1.2, 0.35), says: SHOT_SAYS.milk };
     },
   },
   // ---------- His own ending ----------
