@@ -17,8 +17,14 @@ export const HOMECOMING = {
 export const CROWD = {
   stare: 64, join: 0.75, most: 15,
   back: 12, row: 8, side: 7, perRow: 3,
-  /** Their pace (px/s): keeping up, and catching up when they've fallen behind. */
-  pace: 40, hurry: 60,
+  /** Their pace (px/s): keeping up, and catching up when they've fallen behind. Each walks a little faster or slower than `pace` (by up to `spread` of it either way). */
+  pace: 40, hurry: 60, spread: 0.1,
+  /**
+   * How far behind their place they let it get (px) before they set off after it, and how close they come before they
+   * stop: so they walk steadily on while he does, rather than stopping and starting every step. A place that's ended
+   * up close behind them (`waitBehind` px) they wait for, rather than stepping backwards to it.
+   */
+  setOff: 3, stop: 0.6, waitBehind: 10,
   remark: 2.2,
   /** How busy the streets get while he carries it through them, however early it is (a share of the busiest). */
   waking: 0.75,
