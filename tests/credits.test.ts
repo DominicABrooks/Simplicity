@@ -123,8 +123,10 @@ describe("the credits", () => {
     expect(g.weather).toMatchObject({ kind: "clear", rain: 0, fog: 0 });
     toTheKing(g);
     Object.assign(g.weather, { kind: "fog", rain: 0, fog: 1 });                  // however it got there
+    g.hitstop = 0.4;                                                             // and a freeze-frame left over (a boss just fallen)
     await rollCredits(g);
     expect(g.weather).toMatchObject({ kind: "clear", rain: 0, fog: 0 });
+    expect(g.hitstop).toBe(0);                                                   // or nothing in them would move, or turn
   });
 
   it("stand the King clear of the market stalls at the cross, reading the chronicle, everyone looking at him", async () => {

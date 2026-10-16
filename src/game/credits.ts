@@ -136,6 +136,7 @@ export async function rollCredits(g: Game): Promise<void> {
   startAt.delete(g);
   Object.assign(g.weather, { kind: "clear", fog: 0, rain: 0 });   // every shot under a clear sky
   endCelebration(g);                                          // and nothing over them
+  g.hitstop = 0;                                              // nor a freeze-frame left over: it only runs down in play, so it'd hold everything still
   const reel: Reel = {
     shots, run, defs: new Map(), ready: false, at: -1, t: 0, staged: null, length: CREDITS_TIME.shot, cam: null,
     back: { area: g.area.def, x: p.x, y: p.y, hour: g.hour }, turn: 0, music: CREDITS_AIR.every,
