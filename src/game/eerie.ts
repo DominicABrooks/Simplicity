@@ -27,6 +27,7 @@ import { sleeping } from "./sleeping.ts";
 import { talking } from "./talk.ts";
 import { scareFolk } from "./townsfolk.ts";
 import { rememberFright, tickFrights } from "./frights.ts";
+import { sawDimMan } from "./dimman.ts";
 
 type Spot = { x: number; y: number };
 type Front = Spot & { facing: "north" | "south" | "east" | "west" };
@@ -228,6 +229,7 @@ export function startEerie(g: Game, id: EerieId): boolean {
       const at = watcherSpot(g)!;
       const e = g.world.create({ transform: { x: at.x - HALF, y: at.y - HALF }, watcher: { shown: 0, going: false }, renderable: { kind: "watcher" } });
       s.now = { id, t: 0, e };
+      sawDimMan(g);                                           // and the city has a name for him
       return true;
     }
     case "lamp": {

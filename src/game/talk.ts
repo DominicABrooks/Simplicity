@@ -16,6 +16,7 @@ import type { Resident } from "../world/residents.ts";
 import { makeGift } from "../items/items.ts";
 import { folkLines, guardLines, voiceOf, type CanGive } from "./conversation.ts";
 import { frightLines } from "./frights.ts";
+import { dimManLines } from "./dimman.ts";
 
 export { jobLine } from "./conversation.ts";
 import { residentById } from "./townsfolk.ts";
@@ -69,6 +70,9 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   // And if something after dark frightened them lately (src/game/frights.ts), that comes first, after their greeting.
   const fright = resident ? frightLines(g, resident, voiceOf(resident)) : [];
   if (fright.length) lines.splice(Math.min(1, lines.length), 0, ...fright);
+  // Or, now and then, the Dim Man (src/game/dimman.ts): a word about him, or the next of his story, before they go.
+  const dim = resident && !fright.length ? dimManLines(g, resident, voiceOf(resident)) : [];
+  if (dim.length) lines.splice(Math.max(1, lines.length - 1), 0, ...dim);
   g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0, ...(asking ? { then: "paper" as const } : {}) });
   said(g);
   return true;

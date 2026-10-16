@@ -60,8 +60,9 @@ export function whenOf(g: Game, f: Fright): When | null {
   return days === 0 ? "tonight" : days === 1 ? "lastNight" : "before";
 }
 
-/** How they take it, by where they stand on the Edict. */
+/** How they take it, by where they stand on the Edict (and the Dim Man too: src/game/dimman.ts). */
 const TAKE: Record<Stance, Take> = { denies: "deny", loyal: "deny", quiet: "shaken", whispering: "hushed", defiant: "defiant", informer: "informer" };
+export const takeOf = (stance: Stance): Take => TAKE[stance];
 
 const pick = <T>(rng: Rng, list: readonly T[]): T => list[Math.floor(rng.next() * list.length)]!;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
