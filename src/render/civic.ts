@@ -101,8 +101,8 @@ export function buildChurch(ctx: RenderContext, parent: THREE.Group, p: PropOf<"
   east.rotation.y = Math.PI / 2;
   body.add(east);
   // The south porch.
-  const px = c.naveX0 + naveL * 0.35;
-  put(body, tiledBox(1.8, 2.2, 1.4, 0.6), stone, px, 1.1, c.naveD / 2 + 0.7);
+  const px = c.porch.x;
+  put(body, tiledBox(c.porch.w, 2.2, c.porch.d, 0.6), stone, px, 1.1, c.naveD / 2 + c.porch.d / 2);
   put(body, roofGeometry(1.5, 2.1, 0.9), lead, px, 2.2, c.naveD / 2 + 0.75, 0, Math.PI / 2, 0);
   const porchDoor = portal(ctx, 0.8, 1.6);
   porchDoor.position.set(px, 0, c.naveD / 2 + 1.4);

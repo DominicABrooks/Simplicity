@@ -38,16 +38,17 @@ export function buildCryptDoor(ctx: RenderContext, parent: THREE.Group, p: PropO
     put(g, box(0.2, 0.17, 0.2), stone, x, y, 0.05, 0, 0, s * th);
   }
   put(g, box(0.17, 0.22, 0.2), stone, 0, apex + 0.02, 0.05);       // the keystone
-  // The door: planks side by side, a little back in the arch, each cut to the curve of it over its head.
+  // The door: planks side by side, a little back in the arch, each cut to the curve of it over its head; thick, and
+  // sunk well into the wall behind, so their faces stand clear of the wall's (or the wall flickers through them).
   for (let i = 0; i < 6; i++) {
     const x = -0.31 + i * 0.124, edge = Math.abs(x) + 0.062, top = spring + Math.sqrt(Math.max(0, r * r - (edge + w) * (edge + w))) - 0.08;
-    put(g, box(0.124, top, 0.05), i % 2 ? plank : wood, x, top / 2, 0);
+    put(g, box(0.124, top, 0.16), i % 2 ? plank : wood, x, top / 2, 0);
   }
   // Strap hinges, the ring and the lock plate, standing off the planks.
-  for (const y of [0.28, 0.78]) put(g, box(0.5, 0.05, 0.025), iron, -0.12, y, 0.04);
-  put(g, new THREE.TorusGeometry(0.06, 0.012, 4, 10), iron, 0.18, 0.5, 0.05);
-  put(g, box(0.12, 0.16, 0.03), iron, 0.2, 0.68, 0.04);
-  put(g, box(0.025, 0.06, 0.01), ctx.basic("#0a0808"), 0.2, 0.66, 0.06);
+  for (const y of [0.28, 0.78]) put(g, box(0.5, 0.05, 0.03), iron, -0.12, y, 0.1);
+  put(g, new THREE.TorusGeometry(0.06, 0.012, 4, 10), iron, 0.18, 0.5, 0.12);
+  put(g, box(0.12, 0.16, 0.03), iron, 0.2, 0.68, 0.1);
+  put(g, box(0.025, 0.06, 0.01), ctx.basic("#0a0808"), 0.2, 0.66, 0.12);
   // The step, worn hollow in the middle, and a little moss at its corner.
   put(g, box(1.2, 0.08, 0.38), stone, 0, 0.04, 0.27);
   put(g, new THREE.DodecahedronGeometry(0.07, 0).scale(1.6, 0.5, 1.2), lambert("#4f6a35"), -0.48, 0.09, 0.36);
@@ -364,7 +365,7 @@ function sealFrame(ctx: RenderContext): THREE.Group {
   for (const s of [-1, 1]) put(g, box(0.24, 1.0, 0.24), rough, s * 0.46, 0.5, 0.1, 0, s * 0.08, -s * 0.03);
   put(g, box(1.26, 0.24, 0.28), rough, 0, 1.1, 0.1, 0, 0, 0.02);
   put(g, box(1.1, 0.07, 0.36), rough, 0, 0.035, 0.18);
-  put(g, box(0.66, 0.94, 0.04), ctx.basic("#050404"), -0.02, 0.5, 0.02);   // the dark, behind the slab
+  put(g, box(0.66, 0.94, 0.08), ctx.basic("#050404"), -0.02, 0.5, 0);   // the dark, behind the slab (sunk into the wall, its face clear of the wall's)
   for (let i = 0; i < 6; i++) put(g, new THREE.DodecahedronGeometry(0.025 + (i % 3) * 0.008, 0), rough, -0.2 + i * 0.09, 0.09, 0.3 + (i % 2) * 0.06);
   return g;
 }

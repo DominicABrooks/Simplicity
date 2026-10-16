@@ -57,6 +57,7 @@ export function propSolids(p: Prop): Shape[] {
         ...(c.towerS ? [box(c.x + c.west + c.towerS / 2, c.z, c.towerS, c.towerS)] : []),
         box(c.x + (c.naveX0 + c.chancelX0) / 2, c.z, c.chancelX0 - c.naveX0, c.naveD),
         box(c.x + (c.chancelX0 + c.W / 2) / 2, c.z, c.W / 2 - c.chancelX0, c.chancelD),
+        box(c.x + c.porch.x, c.z + c.naveD / 2 + c.porch.d / 2, c.porch.w, c.porch.d),   // the south porch
       ];
     }
     case "cathedral": {
