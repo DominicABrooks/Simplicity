@@ -2,6 +2,7 @@
 // gone ash-grey, cold cracks run through the ground, the Ember mages hunt, and Cinder waits at the Greyed's
 // camp. Here: the woodwardens and what they say, and Cinder.
 
+import type { ItemType, Rarity, Stats } from "./items.ts";
 import { WATCHWORD } from "./king.ts";
 
 /** The King's woodwardens at the barricade across the trail south: friendly, firm. */
@@ -44,6 +45,25 @@ export const CINDER = {
   hurry: 2.2,
   /** Experience for beating him (a mage is worth 50). */
   xp: 200,
+} as const;
+
+/** A piece of gear to hand the hero: its type, rarity, affixes and name. */
+export type KitPiece = readonly [type: ItemType, rarity: Rarity, mods: Stats, name: string];
+
+/**
+ * What a hero on the straight path has on reaching Cinder (the tables in STORY.md and GEAR.md): about level 5,
+ * the King's Errand pieces (Hammond Steel, the Signet of Aurenmark) and a Cinderward piece or two. Worn when
+ * you go straight to him to playtest (src/debug.ts), so the fight is the one a player will have.
+ */
+export const CINDER_READY = {
+  level: 5,
+  kit: [
+    ["blade", "magic", { damage: 1 }, "Hammond Steel"],
+    ["hood", "normal", {}, "Worn Hood"],
+    ["robe", "magic", { life: 1 }, "Sturdy Robe"],
+    ["boots", "magic", { speed: 6 }, "Boots of Haste"],
+    ["amulet", "magic", { life: 1 }, "Signet of Aurenmark"],
+  ] satisfies readonly KitPiece[],
 } as const;
 
 /** When Cinder falls. */

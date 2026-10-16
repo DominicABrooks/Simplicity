@@ -2,6 +2,7 @@
 // and in the end-to-end build (`vite build --mode e2e`) for the Playwright specs in e2e/ to read the game
 // and set a scene up. Never in the published game: main.ts only calls this behind those two flags.
 import { loadArea } from "./areas/index.ts";
+import { STARTER_KIT } from "./data/items.ts";
 import { HALF, T } from "./data/world.ts";
 import { LAIRS, type Who } from "./game/bosses.ts";
 import { isFrozen, isGod, setFrozen, setGod } from "./game/cheats.ts";
@@ -9,11 +10,13 @@ import { setState, type Game } from "./game/game.ts";
 import { hauntingOf } from "./game/ghost.ts";
 import { isDoor, whoIsHome } from "./game/townsfolk.ts";
 import { resetGame } from "./game/reset.ts";
+import { makeItem } from "./items/items.ts";
 import { enterArea } from "./game/travel.ts";
 import type { Renderer } from "./render/renderer.ts";
 
 export function exposeDebug(g: Game, view: Renderer): void {
-  /** A fresh run, straight into a boss's lair, standing a few steps south of them. */
+  /** A fresh run, straight into a boss's lair, standing a few steps south of them, at the level and in the gear a
+   *  player would have by then (the rest of the starter kit in the bag). */
   async function boss(who: Who = "cinder"): Promise<string> {
     const lair = LAIRS[who];
     if (!lair) return `No boss "${who}". Try: ${Object.keys(LAIRS).join(", ")}`;
@@ -21,9 +24,15 @@ export function exposeDebug(g: Game, view: Renderer): void {
     resetGame(g);
     setState(g, "play");
     enterArea(g, def, lair.entry);
+    Object.assign(g.world.need(g.player, "hero"), { level: lair.ready.level, xp: 0 });
+    const kit = lair.ready.kit.map(([type, rarity, mods, name]) => makeItem(type, rarity, { ...mods }, name));
+    g.inventory.reset(kit);                                  // worn, and the level's raw stats with it
+    for (const [type, name] of STARTER_KIT) if (!kit.some(k => k.type === type)) g.inventory.add(makeItem(type, "normal", {}, name));
+    const health = g.world.need(g.player, "health");
+    health.hp = health.maxHp;
     const at = g.area.layout.props.find(p => p.kind === "boss" && p.who === who);
     if (at && at.kind === "boss") Object.assign(g.world.need(g.player, "transform"), { x: at.x - HALF, y: at.y - HALF + 5 * T });
-    return `${who}: god ${isGod(g) ? "on" : "off"}, freeze ${isFrozen(g) ? "on" : "off"}`;
+    return `${who}: level ${lair.ready.level}, ${health.maxHp} hearts; god ${isGod(g) ? "on" : "off"}, freeze ${isFrozen(g) ? "on" : "off"}`;
   }
   Object.assign(window, {
     simplicity: {
