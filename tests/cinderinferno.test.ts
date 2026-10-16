@@ -70,7 +70,7 @@ describe("Cinder's inferno", () => {
     expect(hp.hp).toBeLessThan(hp.maxHp);                        // stood in it
   });
 
-  it("turns back fair: slows to a stop, stands still while one more spoke smoulders up away from him, then speeds up the other way", async () => {
+  it("turns back fair: slows to a stop, stands still while the bar smoulders out into a cross, then speeds up the other way", async () => {
     const g = await inFight();
     toAQuarter(g);
     const f = cinderFight(g)!, B = F.inferno.wheel.turnBack, angle = () => f.inferno!.wheel;
@@ -84,10 +84,13 @@ describe("Cinder's inferno", () => {
     run(g, B.slow / 2 + 0.1);                                                   // stood still now
     expect(wheelStill(f)).toBe(true);
     const spokes = spokesOf(f);
-    expect(spokes).toHaveLength(F.inferno.wheel.spokes + 1);
-    spokes.slice(0, -1).forEach((s, i) => expect(s.a).toBeCloseTo(before[i]!, 1));   // the others didn't move
-    expect(spokes.at(-1)!.live).toBe(false);                                    // the new one smoulders first
-    const facing = Math.atan2(hero(g).y - f.y, hero(g).x - f.x), off = spokes.at(-1)!.a - facing;
+    const W = F.inferno.wheel, added = spokes.slice(W.spokes);
+    expect(spokes).toHaveLength(W.spokes + W.adds);                             // a cross of four
+    spokes.slice(0, W.spokes).forEach((s, i) => expect(s.a).toBeCloseTo(before[i]!, 1));   // the others didn't move
+    for (const s of added) expect(s.live).toBe(false);                          // the new ones smoulder first
+    const sorted = spokes.map(s => ((s.a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)).sort((a, b) => a - b);
+    sorted.forEach((a, i) => expect(((sorted[(i + 1) % 4]! - a + Math.PI * 2) % (Math.PI * 2))).toBeCloseTo(Math.PI / 2, 5));   // evenly
+    const facing = Math.atan2(hero(g).y - f.y, hero(g).x - f.x), off = added[0]!.a - facing;
     expect(Math.abs(Math.atan2(Math.sin(off), Math.cos(off)))).toBeGreaterThan(Math.PI / 2);   // on the far side from him
     const a2 = angle(); run(g, 0.5); expect(angle()).toBeCloseTo(a2, 5);         // and the wheel holds still
     run(g, B.hold);

@@ -79,9 +79,9 @@ export const CINDER_FIGHT = {
    * He paces round outside it (`orbit` px out past the fire, `pace` radians a second). `spokes` spokes of fire flare up
    * from the middle (`warn` seconds smouldering first, harmless) and turn like a wheel (`turn` radians a second); they're
    * `width` px thick and hurt `damage`, and a jump or a dash clears them. Then the wheel turns back (`turnBack`), never
-   * all at once: `at` seconds in it slows to a stop over `slow` s, stands still for `hold` s, flickering, while one more
-   * spoke smoulders up in the widest gap (on the side away from the hero; the others don't move), and he holds his fire;
-   * then it gathers speed the other way over `rise` s.
+   * all at once: `at` seconds in it slows to a stop over `slow` s, stands still for `hold` s, flickering, while `adds`
+   * more spokes smoulder up in its widest gaps (the first on the side away from the hero; the others don't move), so the
+   * bar becomes a cross, and he holds his fire; then it gathers speed the other way over `rise` s.
    *
    * And the embers, in two acts, always in the same order and rhythm, so they can be learned. Before the wheel turns
    * back: `rings`, a ring of `count` embers pulsing out from the middle every `every` s (from `first` s in) at `speed`
@@ -95,7 +95,7 @@ export const CINDER_FIGHT = {
    */
   inferno: {
     at: 0.25, last: 16, warded: "Out of reach!", orbit: 10, pace: 0.35,
-    wheel: { spokes: 2, warn: 1.4, turn: 0.75, width: 3.5, damage: 1, turnBack: { at: 7, slow: 1.2, hold: 1.8, rise: 1.2 } },
+    wheel: { spokes: 2, adds: 2, warn: 1.4, turn: 0.75, width: 3.5, damage: 1, turnBack: { at: 7, slow: 1.2, hold: 1.8, rise: 1.2 } },
     rings: { first: 2.2, every: 1.2, count: 20, gap: 4, speed: 26 },
     fan: { first: 3.4, every: 2.4, windup: 0.6, count: 3, spread: 0.35, speed: 40, life: 5 },
     arms: { every: 0.16, speed: 30 },

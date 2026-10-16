@@ -223,7 +223,7 @@ function wheelSpeed(inf: Inferno): number {
   return -v;
 }
 
-/** One more spoke, as the wheel stands still: in its widest gap, on the side away from the hero; the others stay put. */
+/** One more spoke, as the wheel stands still: in its widest gap (the far one from the hero, of two as wide); the others stay put. */
 function addSpoke(f: CinderFight, inf: Inferno, hero: { x: number; y: number }): void {
   const offs = inf.spokes.map(s => s.off).sort((a, b) => a - b), gaps = offs.map((o, i) => {
     const next = i + 1 < offs.length ? offs[i + 1]! : offs[0]! + Math.PI * 2;
@@ -249,14 +249,18 @@ function inferno(g: Game, f: CinderFight, cinder: Entity, dt: number, safe: bool
   inf.at += I.pace * dt;
   standOutside(f, him);
   g.world.need(cinder, "mage").held = true;
-  // The wheel: smouldering first, then turning; then slowing to a stop, standing still while one more spoke smoulders
+  // The wheel: smouldering first, then turning; then slowing to a stop, standing still while more spokes smoulder
   // up, and gathering speed back the other way. Only a spoke that's done smouldering burns.
   const T = turnBack();
   for (const s of inf.spokes) s.t += dt;
   inf.wheel += wheelSpeed(inf) * dt;
   if (was < W.warn && inf.t >= W.warn) sound(g, "nova", h.pos);
   if (was < T.slowing && inf.t >= T.slowing) sound(g, "spell", him);                       // it's slowing: something's coming
-  if (was < T.still && inf.t >= T.still) { addSpoke(f, inf, h.pos); sound(g, "cast", him); g.shake = Math.max(g.shake, 1.5); }
+  if (was < T.still && inf.t >= T.still) {                                                 // the bar becomes a cross
+    for (let i = 0; i < W.adds; i++) addSpoke(f, inf, h.pos);
+    sound(g, "cast", him);
+    g.shake = Math.max(g.shake, 1.5);
+  }
   if (was < T.again && inf.t >= T.again) sound(g, "nova", h.pos);                          // and off it goes, the other way
   if (!safe && spokesOf(f).some(s => s.live && fromSpoke(f, s.a, h.pos) < W.width)) damagePlayer(g, f.x, f.y, W.damage);
   embers(g, f, inf, him, dt, T);
