@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import { T } from "../data/world.ts";
 import { arenaPlan } from "../world/arena.ts";
+import { greatCrackSpine } from "../world/greatcrack.ts";
 import { softDisc } from "./camp.ts";
 import type { RenderContext } from "./context.ts";
 import { GROUND, onGround } from "./context.ts";
@@ -151,6 +152,61 @@ export function buildArena(ctx: RenderContext, parent: THREE.Group, p: PropOf<"a
       for (const top of tops) if (Math.random() < dt * 2.5) {
         particles.spawn(Math.random() < 0.5 ? "fire" : "ember", top.x + (Math.random() - 0.5) * 0.15, top.y, top.z + (Math.random() - 0.5) * 0.15,
           (Math.random() - 0.5) * 0.4, 1.4 + Math.random(), (Math.random() - 0.5) * 0.4, 0.7);
+      }
+    },
+  };
+}
+
+/** What the great crack's drawing is called in the scene (src/render/tempest.ts finds it by it). */
+export const GREAT_CRACK_NAME = "greatCrack";
+/** The grey stone it seals over with, and its edges. */
+const SEALED = "#4b5263", SEALED_EDGE = "#3a4050";
+
+/**
+ * The great crack in the Thunder Rift: a jagged chasm across the ground, black all the way down, a cold indigo light
+ * breathing deep in it and along its lips, and sparks drifting up out of the dark (its shape: src/world/greatcrack.ts).
+ */
+export function buildGreatCrack(ctx: RenderContext, parent: THREE.Group, p: PropOf<"greatCrack">): PropView {
+  const { basic, glow, particles } = ctx, g = new THREE.Group(), spine = greatCrackSpine(p);
+  /** A strip along the spine, `k` of the way out to each lip, at height `y`. */
+  const strip = (k: number, y: number) => {
+    const pos: number[] = [];
+    const edge = (i: number, side: 1 | -1) => {
+      const a = spine[Math.max(0, i - 1)]!.at, b = spine[Math.min(spine.length - 1, i + 1)]!.at, len = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const nx = -(b.z - a.z) / len, nz = (b.x - a.x) / len, { at, half } = spine[i]!;
+      return [at.x + nx * half * k * side, y, at.z + nz * half * k * side];
+    };
+    for (let i = 0; i < spine.length - 1; i++) {
+      const l0 = edge(i, 1), r0 = edge(i, -1), l1 = edge(i + 1, 1), r1 = edge(i + 1, -1);
+      pos.push(...l0, ...r0, ...l1, ...r0, ...r1, ...l1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    return geo;
+  };
+  const side = { side: THREE.DoubleSide };
+  const lip = glow("#8f9dff", { transparent: true, opacity: 0.55, depthWrite: false, ...side, ...onGround(GROUND.stain) });
+  const dark = basic("#04030a", { ...side, ...onGround(GROUND.marker) });
+  const deep = glow("#5a46e0", { transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending, ...side, ...onGround(GROUND.marker) });
+  g.add(new THREE.Mesh(strip(1.25, 0.012), lip), new THREE.Mesh(strip(1, 0.02), dark), new THREE.Mesh(strip(0.35, 0.026), deep));
+  // Calder's fight opens it wider and closes it, and when he falls it seals over with grey stone (src/render/tempest.ts
+  // scales it across about `mid`, and sets `sealed`, 0..1).
+  g.name = GREAT_CRACK_NAME;
+  g.userData.mid = p.y / T;
+  g.userData.sealed = 0;
+  const open = new THREE.Color("#04030a"), shut = new THREE.Color(SEALED), glowing = new THREE.Color("#8f9dff"), edge = new THREE.Color(SEALED_EDGE);
+  parent.add(g);
+  return {
+    update(t, dt) {
+      const sealed = g.userData.sealed as number, wide = g.scale.z;
+      lip.opacity = 0.45 + Math.sin(t * 0.9) * 0.15 * (1 - sealed) + sealed * 0.5;   // its lips sealing to stone too
+      lip.color.copy(glowing).lerp(edge, sealed);
+      deep.opacity = (0.3 + Math.sin(t * 1.7) * 0.15 + Math.sin(t * 4.3) * 0.05) * (1 - sealed);
+      dark.color.copy(open).lerp(shut, sealed);
+      if (sealed < 0.5 && Math.random() < dt * 6 * wide) {    // sparks up out of the dark (none once it's shut)
+        const { at, half } = spine[1 + Math.floor(Math.random() * (spine.length - 2))]!, z = g.position.z + at.z * wide;
+        particles.spawn(Math.random() < 0.6 ? "arcane" : "arcaneLight", at.x + (Math.random() - 0.5) * half, 0.05, z + (Math.random() - 0.5) * half * wide,
+          (Math.random() - 0.5) * 0.2, 0.8 + Math.random() * 0.8, (Math.random() - 0.5) * 0.2, 1.6);
       }
     },
   };

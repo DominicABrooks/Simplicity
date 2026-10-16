@@ -13,13 +13,13 @@ import type { Shape } from "../world/shapes.ts";
 import { combatText } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
 import { speak } from "./talk.ts";
-import { readName } from "./yssa.ts";
+import { readWord, type YssaAsks } from "./yssa.ts";
 
 /** At most this many letters fit on the scrap. */
 export const PAPER_LENGTH = 24;
 
-/** What the paper's for: the King's watchword for a warden, or Yssa's name for her (src/game/yssa.ts). */
-export type Asks = "watchword" | "name";
+/** What the paper's for: the King's watchword for a warden, or for Yssa her name or the river's (src/game/yssa.ts). */
+export type Asks = "watchword" | YssaAsks;
 
 interface Barricade { passed: boolean; writing: Entity | null; asks: Asks }
 const barricades = new WeakMap<Game, Barricade>();
@@ -35,6 +35,9 @@ function barricade(g: Game): Barricade {
 
 /** Have the wardens read the right watchword from him this run? Then the gate's open to him. */
 export const passedBarricade = (g: Game): boolean => barricade(g).passed;
+
+/** The wardens have read it off him already (getting about quickly in development: src/game/zones.ts). */
+export function passBarricade(g: Game): void { barricade(g).passed = true; }
 
 /** The warden waiting for the paper back, while he writes; null otherwise (or once they're gone, or he's walked off). */
 export function writingFor(g: Game): Entity | null {
@@ -65,7 +68,7 @@ export function handBack(g: Game, text: string | null): void {
   b.writing = null;
   if (warden === null) return;
   const written = (text ?? "").trim().slice(0, PAPER_LENGTH);
-  if (b.asks === "name") { readName(g, warden, text === null ? null : written); return; }
+  if (b.asks !== "watchword") { readWord(g, warden, text === null ? null : written); return; }
   const right = read(written) === read(WATCHWORD);
   if (right) b.passed = true;
   const lines = text === null ? WARDEN_TALK.kept

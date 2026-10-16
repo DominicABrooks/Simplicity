@@ -4,7 +4,7 @@
 export type Rarity = "normal" | "magic" | "rare" | "legendary";
 export type Slot = "helm" | "amulet" | "weapon" | "armor" | "ring" | "boots";
 export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone"
-  | "runestone" | "key" | "eye" | "bottle" | "bell";
+  | "runestone" | "key" | "eye" | "bottle" | "bell" | "acorn";
 export type StatKey = "damage" | "life" | "speed" | "dash";
 export type Stats = Partial<Record<StatKey, number>>;
 
@@ -41,6 +41,8 @@ export const BASES: Record<ItemType, ItemBase> = {
   eye:       { name: "Glass Eye", slot: null, w: 1, h: 1, base: {}, noLoot: true },
   bottle:    { name: "Bottle", slot: null, w: 1, h: 1, base: {}, noLoot: true },
   bell:      { name: "Handbell", slot: null, w: 1, h: 1, base: {}, noLoot: true },
+  // Left by the fair folk when he comes out of their ring (src/game/fairyring.ts).
+  acorn:     { name: "Acorn", slot: null, w: 1, h: 1, base: {}, noLoot: true },
 };
 
 /** Catches: rarity decides the koi and how much eating it heals. */

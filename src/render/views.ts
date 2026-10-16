@@ -23,10 +23,14 @@ import { makeMageBody, makeSlimeModel } from "./models/enemies.ts";
 import { animateCinder, makeCinder, type CinderParts } from "./models/cinder.ts";
 import { RIME_SCALE, animateRime, makeRime, type RimeParts } from "./models/rime.ts";
 import { rimefrost } from "./rime.ts";
+import { animateCalder, makeCalder, type CalderParts } from "./models/calder.ts";
+import { tempest } from "./tempest.ts";
 import { makeKoiMesh, type KoiMesh } from "./koi.ts";
 import { rimeFight } from "../game/rimefight.ts";
 import { RIME_FIGHT } from "../data/hollow.ts";
 import { blaze } from "./blaze.ts";
+import { spirit } from "./spirit.ts";
+import { watcher } from "./watcher.ts";
 import { makeGhostModel, type GhostModel } from "./models/ghost.ts";
 import { GHOST } from "../data/ghost.ts";
 import { makePetModel, posePet, type PetModel } from "./models/pets.ts";
@@ -38,6 +42,7 @@ import { loadOf } from "../world/workplaces.ts";
 import { ringstone } from "./undercroft.ts";
 import { boatman } from "./quay.ts";
 import { yssa } from "./yssa.ts";
+import { head, homestone } from "./homecoming.ts";
 
 export interface Frame {
   /** Game clock, for animation. */
@@ -228,6 +233,30 @@ const rime: EntityView<RimeView> = {
       const [x, z] = toWorld(o.x, o.y);
       ctx.particles.spawn(Math.random() < 0.5 ? "snow" : "ice", x + (Math.random() - 0.5) * 0.7, 0.3 + Math.random() * 1.1, z + (Math.random() - 0.5) * 0.7,
         (Math.random() - 0.5) * 0.2, 0.3 + Math.random() * 0.4, (Math.random() - 0.5) * 0.2, 1.1);
+    }
+  },
+  remove: removeBody,
+};
+
+// ---------- Calder ----------
+// The Storm captain: a mage's brain and moves, in his own stormy, cloud-crowned body (see models/calder.ts), the
+// lightning always crawling over him, and while he's catching his breath after a blink, no orb, just sparks.
+interface CalderView extends MageView { calder: CalderParts }
+const calder: EntityView<CalderView> = {
+  create(ctx, e, g) {
+    const v = mage.create(ctx, e, g);
+    v.robed = false;
+    dressBody(ctx, v, mageOutfit(g.world.need(e, "mage"), false));
+    return { ...v, calder: makeCalder(ctx, v) };
+  },
+  update(ctx, v, e, g, f) {
+    mage.update(ctx, v, e, g, f);
+    const b = g.world.need(e, "mage"), o = g.world.need(e, "transform");
+    animateCalder(v.calder, f.t, b.casting ? b.castK : 0);
+    if (Math.random() < f.dt * (b.held ? 30 : 8)) {          // sparks always crackling off him (a shower of them while he's dazed)
+      const [x, z] = toWorld(o.x, o.y);
+      ctx.particles.spawn(Math.random() < 0.5 ? "spark" : "sparkLight", x + (Math.random() - 0.5) * 0.7, 0.3 + Math.random() * 1.3, z + (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 0.8, 0.4 + Math.random() * 0.8, (Math.random() - 0.5) * 0.8, 0.5);
     }
   },
   remove: removeBody,
@@ -799,4 +828,4 @@ const ghost: EntityView<GhostView> = {
 export type ViewKind = Exclude<RenderKind, "hero">;
 
 /** Every kind of entity view, in the order they update. (The hero has its own view: see hero.ts.) */
-export const VIEWS = { mage, cinder, blaze, rime, rimefrost, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa } satisfies { [K in ViewKind]: EntityView<object> };
+export const VIEWS = { mage, cinder, blaze, rime, rimefrost, calder, tempest, greatkoi, ghost, bolt, strike, slime, potion, arrow, loot, guard, king, dummy, townsfolk, pet, ringstone, boatman, yssa, spirit, watcher, homestone, head } satisfies { [K in ViewKind]: EntityView<object> };

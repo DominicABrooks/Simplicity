@@ -1,9 +1,13 @@
 // Cutscenes: short scenes the game plays for you, control taken away and the screen letterboxed, the camera
 // moving on its own. Each is a list of beats, played in order (see src/game/cutscene.ts). Escape skips.
+import { KING_HOMECOMING } from "./ending.ts";
 import { KING_AUDIENCE, KINGS_TASK } from "./king.ts";
 
 /** What the camera looks at: the hero, the speaker, or between the two. */
 export type Look = "hero" | "speaker" | "both";
+
+/** Something that happens at a point in a scene, beyond walking and talking (the game says what: see onCue). */
+export type Cue = "layHead" | "credits";
 
 export interface Beat {
   /** Where the camera looks, and how close (1 is the usual distance; less is closer, more is wider). */
@@ -15,12 +19,16 @@ export interface Beat {
   say?: readonly string[];
   /** Seconds the beat holds once any walking's done (and before any lines). */
   hold?: number;
+  /** What happens as the beat starts (once any walking's done). */
+  cue?: Cue;
 }
 
 export interface Scene {
   id: string;
   /** Plays the first time (each run) the hero arrives in this area... */
   area: string;
+  /** ...or, if this is set, once he comes this near (px) to whoever speaks; and only when the game says it can (see onlyIf). */
+  near?: number;
   /** ...where this is who speaks: the render kind of the one to find there. */
   speaker: "king";
   /** Their conversation key (as talk.ts keeps them): the scene counts as the first talk with them. */
@@ -28,6 +36,8 @@ export interface Scene {
   beats: readonly Beat[];
   /** Shown as the scene ends (or is skipped). */
   after?: string;
+  /** What happens as it ends (or is skipped). */
+  then?: Cue;
   /** How fast the hero walks in a scene: a stately pace, px per second. */
   pace: number;
 }
@@ -45,5 +55,22 @@ export const SCENES: readonly Scene[] = [
       { look: "hero", zoom: 0.9, hold: 0.8 },
     ],
     after: KINGS_TASK,
+  },
+  {
+    // The homecoming (src/game/ending.ts): the King, out on the keep steps to see what the noise is; the hero carries
+    // the head up to him through the crowd and sets it at his feet; the King looks at it, and at the crowd, and has his
+    // say. Then the credits.
+    id: "homecoming", area: "castle", near: 72, speaker: "king", key: "king", pace: 30,
+    beats: [
+      { look: "speaker", zoom: 0.8, hold: 1.4 },
+      { look: "both", zoom: 0.9, approach: 20 },
+      { look: "both", zoom: 0.6, hold: 1.2, cue: "layHead" },
+      { look: "speaker", zoom: 0.5, hold: 2.2 },
+      { look: "both", zoom: 0.62, say: KING_HOMECOMING.slice(0, 3) },
+      { look: "hero", zoom: 1.5, hold: 1.4 },
+      { look: "both", zoom: 0.75, say: KING_HOMECOMING.slice(3) },
+      { look: "both", zoom: 0.75, hold: 1 },
+    ],
+    then: "credits",
   },
 ];

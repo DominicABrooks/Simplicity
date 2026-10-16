@@ -14,6 +14,7 @@ import type { Entity } from "../core/ecs.ts";
 import { Rng } from "../core/rng.ts";
 import { loadArea } from "../areas/index.ts";
 import { CRAFTS } from "../data/crafts.ts";
+import { CROWD, STARE_SAYS, STARE_SAYS_CHILD } from "../data/ending.ts";
 import { GHOST, GHOST_SAYS } from "../data/ghost.ts";
 import { TOWNSFOLK } from "../data/townsfolk.ts";
 import { HALF, T } from "../data/world.ts";
@@ -27,6 +28,7 @@ import { ANVIL_WORK, BROOM_WORK, FISH_WORK, HAWK_WORK, HOME_TRADES, LAMP_HELP, L
 import { doorOf, findPath, nearestWalkable, walkable, walkwaysOf, type TileXY, type Walkways } from "../world/walkways.ts";
 import type { Errand, Task, Walker } from "./components.ts";
 import { combatText } from "./combat.ts";
+import { crowdOf, fallIn, mayRemark, placeInCrowd, processionOn, updateCrowd } from "./crowd.ts";
 import { toast, type Game } from "./game.ts";
 import { goInside } from "./interiors.ts";
 import { lampsDue, lampsHere, lightLamp, setLamps, updateLamps } from "./lamps.ts";
@@ -199,6 +201,8 @@ export function enterTownsfolk(g: Game): void {
 
 /** How many should be out in the area now, by the hour. */
 const capOf = (s: Streets, hour: number) => Math.round((TOWNSFOLK.out[s.area] ?? 0) * TOWNSFOLK.busy[Math.floor(hour) % 24]!);
+/** While the hero carries Calder's head through the streets, word gets about, and people come out to see (src/game/crowd.ts). */
+const waking = (g: Game, s: Streets) => (processionOn(g) ? Math.round((TOWNSFOLK.out[s.area] ?? 0) * CROWD.waking) + crowdOf(g).following.length : 0);
 
 /** Set up the area's streets and put people out on them, already partway along their ways. */
 export function populate(g: Game, people: readonly Resident[]): void {
@@ -216,10 +220,18 @@ export function populate(g: Game, people: readonly Resident[]): void {
     .sort((a, b) => Number(LAMP_WORK.test(b.job)) - Number(LAMP_WORK.test(a.job)) || a.id - b.id).slice(0, CRAFTS.lamps.crew).map(r => r.id));
   s.workers = queue.filter(r => r.age >= 14 && workOf(s, r, null) !== null);
   // Those at work are at their posts already; everyone else is somewhere along their way.
-  const cap = capOf(s, hourOf(g));
+  const cap = Math.max(capOf(s, hourOf(g)), waking(g, s));
   for (let tries = 0; s.out.size < cap && tries < cap * 3; tries++) comeOut(g, s, 0.15 + rng.next() * 0.7);
   hangDoors(g, s, people);
   lastTalk = undefined;
+  // Anyone following the hero up with Calder's head comes along with him, out of the last street and into this one.
+  const hero = g.world.need(g.player, "transform"), hx = (hero.x + HALF) / T - 0.5, hy = (hero.y + HALF) / T - 0.5;
+  crowdOf(g).following.forEach((id, slot) => {
+    const r = byId.get(id), at = r && !s.out.has(id) && nearestWalkable(ways, hx + (slot % 3) - 1, hy + Math.floor(slot / 3) * 0.7, 4);
+    if (!r || !at) return;
+    const e = spawn(g, s, r, centre(at)), w = g.world.need(e, "walker");
+    Object.assign(w, { crowd: { mode: "follow", slot, was: false }, plan: "errand", path: [] });
+  });
 }
 
 // ---------- Where people go ----------
@@ -819,16 +831,17 @@ function play(g: Game, s: Streets, e: Entity, t: { x: number; y: number }, dt: n
 
 export function updateTownsfolk(g: Game, dt: number): void {
   const s = here;
-  if (!s || s.area !== g.area.def.id || g.state !== "play") return;
+  if (!s || s.area !== g.area.def.id || (g.state !== "play" && g.state !== "credits")) return;   // the credits show the streets too
   updateLamps(g);
   const lighting = lampsDue();
   if (!lighting) lastLit.clear();                           // the round's done: tomorrow's starts from their doors again
   const hero = g.world.need(g.player, "transform"), conversation = g.world.get(g.player, "conversation"), talkingTo = conversation?.with;
   if (talkingTo !== lastTalk) { lastTalk = talkingTo; if (talkingTo !== undefined) talkStarted(g, s, talkingTo); }
-  const cap = capOf(s, hourOf(g)), crowded = s.out.size > cap * 1.15;
+  const cap = Math.max(capOf(s, hourOf(g)), waking(g, s)), crowded = s.out.size > cap * 1.15;
   s.teller = tellerOf(g, s);
   answerDoors(g, s, dt);
   const ghost = g.world.query("ghost", "transform")[0]?.[1].transform;
+  updateCrowd(g, dt, (id, line) => { const t = g.world.get(s.out.get(id) ?? -1, "transform"); if (t) combatText(g, t.x, t.y - 4, line, "#e8dcc4", false, 2); });
   for (const [id, e] of [...s.out]) {
     const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
     if (!w || !t) { s.out.delete(id); release(s, e); tunes.delete(e); continue; }
@@ -846,6 +859,7 @@ export function updateTownsfolk(g: Game, dt: number): void {
       if (talkingTo !== w.holdFor || !them) w.holdFor = null;
       else { w.facing = Math.atan2(them.y - t.y, them.x - t.x); continue; }
     }
+    if (!w.follow && !w.fleeing && homecoming(g, s, e, w, t, dt, hero)) continue;
     if (w.follow) { keepUp(g, s, e, w, t, dt); continue; }
     if (w.plan === "answer") {                               // in the doorway: facing the hero, then back in and the door shut
       const hd = Math.hypot(hero.x - t.x, hero.y - t.y), at = answering.get(e);
@@ -903,23 +917,41 @@ function walk(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: numb
 }
 
 /**
- * The ghost is out: drop everything, shout, and run for home (or out of the quarter, for those who live elsewhere).
- * A child runs with whoever they're with, and takes them along.
+ * Something's frightened them (the ghost, or the city after dark, src/game/eerie.ts): drop everything, shout, and
+ * run for home (or out of the quarter, for those who live elsewhere). A child runs with whoever they're with, and
+ * takes them along.
  */
-function flee(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: number }): void {
+function flee(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: number }, shouts: readonly string[] = GHOST_SAYS.scream, run: number = GHOST.run): void {
   w.fleeing = true;
   if (g.world.get(g.player, "conversation")?.with === e) g.world.remove(g.player, "conversation");
   answering.delete(e);
-  combatText(g, t.x, t.y - 4, GHOST_SAYS.scream[s.rng.int(0, GHOST_SAYS.scream.length - 1)]!, "#e8dcc4");
-  w.speed *= GHOST.run;
+  combatText(g, t.x, t.y - 4, shouts[s.rng.int(0, shouts.length - 1)]!, "#e8dcc4");
+  w.speed *= run;
   Object.assign(w, { holdFor: null, leaving: 0, task: null, playAt: null, runTo: null });
   if (w.follow) {
     const lw = g.world.get(w.follow.leader, "walker"), lt = g.world.get(w.follow.leader, "transform");
-    if (lw && lt && !lw.fleeing) flee(g, s, w.follow.leader, lw, lt);
+    if (lw && lt && !lw.fleeing) flee(g, s, w.follow.leader, lw, lt, shouts, run);
     return;
   }
   const r = byId.get(w.id), at = nearestWalkable(s.ways, (t.x + HALF) / T - 0.5, (t.y + HALF) / T - 0.5, 2);
   if (!r || !at || !setOff(s, e, w, r, "home", at)) goIn(g, s, e, w);
+}
+
+/**
+ * Something uncanny just happened at (x, y) (px): everyone out within `radius` of it shouts one of `shouts` and runs
+ * for home, `run` times their walking pace. Who took fright (their census ids).
+ */
+export function scareFolk(g: Game, at: { x: number; y: number }, radius: number, shouts: readonly string[], run: number): number[] {
+  const s = here;
+  if (!s || s.area !== g.area.def.id) return [];
+  const ran: number[] = [];
+  for (const e of [...s.out.values()]) {
+    const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
+    if (!w || !t || w.fleeing || Math.hypot(t.x + HALF - at.x, t.y + HALF - at.y) > radius) continue;
+    flee(g, s, e, w, t, shouts, run);
+    ran.push(w.id);
+  }
+  return ran;
 }
 
 /** Done here: what next, and off they go (or, if there's nowhere to get to from here, they stay a while longer). */
@@ -981,6 +1013,58 @@ function keepUp(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: nu
     w.moving = false;
     if (!lw.moving) w.facing = lw.face ?? lw.facing;       // looking where their parent looks: at the stall, the fountain
   }
+}
+
+// ---------- The homecoming ----------
+/**
+ * The hero going by with Calder's head (src/game/crowd.ts): they stop and stare, facing him, and once he's past, a
+ * grown-up may fall in behind him; in the crowd, they keep their place in it. Once he's put it down they stand and
+ * watch, and after, go back to their day. True while that's what they're doing, instead of their own business.
+ */
+function homecoming(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: number }, dt: number, hero: { x: number; y: number }): boolean {
+  const mode = w.crowd?.mode, on = processionOn(g), gathered = crowdOf(g).gathered;
+  if (mode === "follow") {
+    if (on) { keepInCrowd(g, s, w, t, dt, hero); return true; }
+    if (gathered) { w.moving = false; w.facing = Math.atan2(gathered.y - t.y - HALF, gathered.x - t.x - HALF); return true; }
+    Object.assign(w, { crowd: { mode: "seen", slot: 0, was: false }, moving: false, path: [], goIn: false, task: null, face: null, wait: between(s.rng, [0.5, 4]) });
+    return true;
+  }
+  if (!on || mode === "seen") return false;
+  const near = Math.hypot(hero.x - t.x, hero.y - t.y) < CROWD.stare, r = byId.get(w.id);
+  if (near) {
+    if (mode !== "stare") {
+      w.crowd = { mode: "stare", slot: 0, was: w.moving };
+      const says = r && r.age < 14 ? STARE_SAYS_CHILD : STARE_SAYS;
+      if (mayRemark(g, 0.6)) combatText(g, t.x, t.y - 4, says[s.rng.int(0, says.length - 1)]!, "#e8dcc4", false, 2);
+    }
+    w.moving = false;
+    w.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
+    return true;
+  }
+  if (mode !== "stare") return false;
+  // He's gone by: after him, or back to what they were doing.
+  const slot = r && r.age >= 14 && s.rng.next() < CROWD.join ? fallIn(g, w.id) : null;
+  if (slot === null) { w.moving = w.crowd!.was; w.crowd = { mode: "seen", slot: 0, was: false }; return false; }
+  release(s, e);
+  Object.assign(w, { crowd: { mode: "follow", slot, was: false }, path: [], task: null, playAt: null, runTo: null, goIn: false });
+  return true;
+}
+
+/** In the crowd behind him: to their place in it, hurrying if they've fallen behind; there, watching him. */
+function keepInCrowd(g: Game, s: Streets, w: Walker, t: { x: number; y: number }, dt: number, hero: { x: number; y: number }): void {
+  const [tx, ty] = placeInCrowd(g, w.crowd!.slot), cx = t.x + HALF, cy = t.y + HALF, dx = tx - cx, dy = ty - cy, d = Math.hypot(dx, dy);
+  if (d > 32 || w.catchingUp) catchUp(g, s, w, t, tx, ty, CROWD.hurry / TOWNSFOLK.party.run, dt);
+  else if (d > 1.2) {
+    const step = Math.min(d, (d > 10 ? CROWD.hurry : CROWD.pace) * dt);
+    moveBy(g.map, t, (dx / d) * step, (dy / d) * step, true);
+    w.moving = true;
+    w.facing = Math.atan2(dy, dx);
+  } else {
+    w.moving = false;
+    w.facing = Math.atan2(hero.y - t.y, hero.x - t.x);
+  }
+  const last = w.trail[w.trail.length - 1];                  // breadcrumbs, for any children with them
+  if (!last || Math.hypot(last[0] - t.x - HALF, last[1] - t.y - HALF) >= 3) { w.trail.push([t.x + HALF, t.y + HALF]); if (w.trail.length > 40) w.trail.shift(); }
 }
 
 /** Children at play: running about near where they play, now here, now there. */

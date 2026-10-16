@@ -34,7 +34,8 @@ export function compactScenery(root: THREE.Object3D, units: readonly THREE.Objec
     if (o instanceof THREE.Mesh && !(o instanceof THREE.InstancedMesh) && !Array.isArray(o.material) && o.visible) {
       let byLook = groups.get(u);
       if (!byLook) groups.set(u, (byLook = new Map()));
-      const material = o.material as THREE.Material, key = (!l && !changed.has(material) && lookOf(material)) || material;
+      // Anything drawn on another layer too (a fairy ring) merges only with what shares its material, and keeps its layers.
+      const material = o.material as THREE.Material, key = (!l && o.layers.mask === 1 && !changed.has(material) && lookOf(material)) || material;
       const list = byLook.get(key);
       if (list) list.push(o); else byLook.set(key, [o]);
     }
@@ -56,6 +57,7 @@ export function compactScenery(root: THREE.Object3D, units: readonly THREE.Objec
       });
       const merged = new THREE.Mesh(mergeParts(parts), material);
       merged.renderOrder = meshes[0]!.renderOrder;
+      merged.layers.mask = meshes[0]!.layers.mask;
       merged.matrixAutoUpdate = false;                       // where its unit is: it never moves of itself
       unit.add(merged);
       for (const g of parts) g.dispose();

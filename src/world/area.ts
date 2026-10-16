@@ -150,10 +150,15 @@ export type Prop =
   | { kind: "tomb"; x: number; y: number; facing: Facing; effigy: boolean }
   /** A ring of `stones` old grey standing stones, `radius` tiles out, the `gap`th (from the north, clockwise) missing. */
   | { kind: "stoneRing"; x: number; y: number; radius: number; stones: number; gap: number }
+  /** A fairy ring (src/render/fey.ts): pale mushrooms in a circle `radius` tiles out, lights drifting round it after dark. Not solid.
+   * Its spell takes anyone standing in it at night (src/game/fairyring.ts), unless it's `quiet` (the fair folk's own, under the hill). */
+  | { kind: "fairyRing"; x: number; y: number; radius: number; quiet?: boolean }
   /** A barricade of sharpened stakes across a trail, open only at its gate: `gate` tiles from its west end, `gateW` wide. */
   | { kind: "barricade"; rect: Rect; gate: number; gateW: number }
   /** A cold crack in the ground, `len` tiles long, turned `angle` (a game angle): where the dark gets in. Not solid. */
   | { kind: "crack"; x: number; y: number; len: number; angle: number }
+  /** The great crack in the Thunder Rift (src/render/wild.ts): a chasm `len` tiles long and `wide` across at its widest, centred on (x, y), turned to `angle`. Nothing crosses it. */
+  | { kind: "greatCrack"; x: number; y: number; len: number; wide: number; angle: number }
   /** A boss's arena (see src/world/arena.ts): a scorched ritual circle `radius` tiles across, ringed by `pillars` burnt standing stones, the `gap`th (from the north, clockwise) left out for the way in. */
   | { kind: "arena"; x: number; y: number; radius: number; pillars: number; gap: number }
   /** One of Ael's old stones (see src/game/stones.ts): grey, flat and faintly warm, set in the ground. Touch it and, if he
@@ -163,7 +168,7 @@ export type Prop =
    * ice `radius` tiles out, the `gap`th (from the north, clockwise) left out for the way in. The pillars are solid. */
   | { kind: "rimeStage"; x: number; y: number; radius: number; pillars: number; gap: number }
   /** Where a named enemy waits (see src/game/bosses.ts), until the hero has beaten them this run. */
-  | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" }
+  | { kind: "boss"; x: number; y: number; who: "cinder" | "rime" | "calder" }
   /** A guard at their post, keeping watch toward `facing`, with a name if they're more than a guard. A game entity (a friendly target), not scenery. */
   | { kind: "guard"; x: number; y: number; facing: Facing; name?: string }
   /** A fire bowl on a tripod. */

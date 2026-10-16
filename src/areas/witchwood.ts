@@ -46,6 +46,8 @@ const CAVE_X = (CAVE_TX + 1) * T;
  */
 const TRAIL_TOP = OY + 18, trailX = (y: number) => OX + 27 + Math.round(2 * Math.sin((y - TRAIL_TOP) * 0.3)) + Math.floor((y - TRAIL_TOP) / 7);
 const BAR_Y = H - 7;
+/** The glade deep in the north-west woods (tiles), where the fair folk have left a ring. */
+const GLADE = { x: 11, y: 8 } as const;
 
 /**
  * One big forest clearing with an organic outline: a wobbly ellipse whose radius swells and pinches
@@ -81,12 +83,11 @@ export function buildMap(): TileMap {
 
   // A glade deep in the north-west woods, thick with flowers, and a deer trail winding out to it from
   // the clearing. The trail steps one axis at a time so it never joins up only at a corner.
-  const glade = { x: 11, y: 8 };
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const dx = (x + 0.5 - glade.x) / 4.4, dy = (y + 0.5 - glade.y) / 3.2, a = Math.atan2(dy, dx);
+    const dx = (x + 0.5 - GLADE.x) / 4.4, dy = (y + 0.5 - GLADE.y) / 3.2, a = Math.atan2(dy, dx);
     if (Math.hypot(dx, dy) < 1 + 0.12 * Math.sin(5 * a + 1.1)) set(x, y, rng.next() < 0.3 ? Tile.Flower : Tile.Grass);
   }
-  for (let x = glade.x + 2, y = glade.y + 1, i = 0; x !== 16 || y !== 13; i++) {
+  for (let x = GLADE.x + 2, y = GLADE.y + 1, i = 0; x !== 16 || y !== 13; i++) {
     set(x, y, Tile.Path);
     if (x !== 16 && (y === 13 || (i + Math.floor(i / 3)) % 2 === 0)) x += Math.sign(16 - x); else y += Math.sign(13 - y);
   }
@@ -131,6 +132,8 @@ export function buildMap(): TileMap {
 const PROPS: Prop[] = [
   { kind: "camp", ...CAMP },
   { kind: "cave", x: CAVE_X, y: 0, facing: "south" },
+  // A fairy ring in the flowered glade at the end of the deer trail.
+  { kind: "fairyRing", x: GLADE.x * T, y: GLADE.y * T, radius: 1.6 },
   // The Ranger's stone, the oldest in the valley, where he wakes at the start of a run (src/game/stones.ts).
   { kind: "oldStone", x: SPAWN.x + HALF, y: SPAWN.y + HALF, name: "The Ranger's stone", entry: "start" },
   // The King's woodwardens' barricade across the trail, two wardens standing in its gate until he's written them the
@@ -151,6 +154,8 @@ function build(): AreaLayout {
       start: SPAWN,
       // Coming back down through the cave: a couple of steps south of its mouth.
       cave: { x: CAVE_X - HALF, y: 2 * T },
+      // Back from under the hill (src/game/underhill.ts): beside the fairy ring, just out of it.
+      ring: { x: GLADE.x * T - HALF, y: (GLADE.y + 2.6) * T - HALF },
       // Coming back up the trail out of the Ashwild, past the barricade.
       ashwild: { x: (trailX(H - 3) + 0.5) * T, y: (H - 3) * T },
     },

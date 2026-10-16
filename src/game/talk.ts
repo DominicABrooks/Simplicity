@@ -7,14 +7,17 @@
 import type { Entity } from "../core/ecs.ts";
 import { TALK } from "../data/dialogue.ts";
 import { WARDEN_TALK, WOODWARDEN } from "../data/ashwild.ts";
-import { KING_AGAIN, KING_AUDIENCE, KINGS_TASK } from "../data/king.ts";
+import { KING_AGAIN, KING_AUDIENCE, KING_WATCHWORD_AGAIN, KINGS_TASK } from "../data/king.ts";
+import { KING_AFTER, KING_NO_PROOF, KING_STEPS } from "../data/ending.ts";
 import { isGhostRumour } from "../data/ghost.ts";
 import type { GiftKind } from "../data/items.ts";
 import { GIFT_OF } from "../data/voices.ts";
 import { T } from "../data/world.ts";
 import type { Resident } from "../world/residents.ts";
 import { makeGift } from "../items/items.ts";
-import { folkLines, guardLines, type CanGive } from "./conversation.ts";
+import { folkLines, guardLines, voiceOf, type CanGive } from "./conversation.ts";
+import { frightLines } from "./frights.ts";
+import { dimManLines } from "./dimman.ts";
 
 export { jobLine } from "./conversation.ts";
 import { residentById } from "./townsfolk.ts";
@@ -23,7 +26,11 @@ import { handPaper, passedBarricade } from "./watchword.ts";
 import { heardRumour } from "./ghost.ts";
 import { curioClue } from "./clues.ts";
 import { gilLines, isGil } from "./quay.ts";
-import { isYssa, passedYssa, yssaLines } from "./yssa.ts";
+import { isYssa, yssaAsking, yssaAsks, yssaLines } from "./yssa.ts";
+import { spiritLines } from "./spirits.ts";
+import { beaten } from "./bosses.ts";
+import { endingTalk, headLaid } from "./ending.ts";
+import { carryingHead } from "./head.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -52,20 +59,37 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   // They only offer something if they haven't given the hero anything yet and it'll fit in the bag.
   const gives: CanGive = kind => !giftsFrom(g).has(key) && g.inventory.freeSpot(makeGift(kind)) !== null;
   // The King gives you your task the first time, and reminds you of it after.
-  if (isKing && visits === 0) toast(g, KINGS_TASK, true);
+  if (isKing && visits === 0 && !beaten(g, "calder")) toast(g, KINGS_TASK, true);
   // The woodwardens at the barricade ask for the King's watchword, and hand him paper to write it on; once he's through, he's through.
-  const warden = name === WOODWARDEN.name, yssa = isYssa(g, e), asking = (warden && !passedBarricade(g)) || (yssa && !passedYssa(g));
-  const lines = isKing ? (visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!])
+  const warden = name === WOODWARDEN.name, yssa = isYssa(g, e), asking = (warden && !passedBarricade(g)) || (yssa && yssaAsking(g));
+  // At the end, the townsfolk and the guards have only one thing to talk about (src/game/ending.ts).
+  const ending = !isKing && (resident || g.world.has(e, "sentry")) && !warden && !yssa && !isGil(g, e) && !g.world.has(e, "spirit")
+    ? endingTalk(g, key, resident, who?.crowd?.mode === "follow") : null;
+  const lines = ending ? ending : isKing ? kingLines(g, visits)
     : warden ? [...(asking ? WARDEN_TALK.ask : WARDEN_TALK.through)]
     : yssa ? yssaLines(g)
+    : g.world.has(e, "spirit") ? spiritLines(g, e)
     : isGil(g, e) ? gilLines(g)
     : resident ? folkLines(g.rng, resident, housematesOf(resident), visits, gives) : guardLines(g.rng, g.area.def.id, visits, gives);
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
-  const clue = resident ? curioClue(g) : null;
+  const clue = resident && !ending ? curioClue(g) : null;
   if (clue) lines.splice(Math.min(1, lines.length), 0, clue);
+  // And if something after dark frightened them lately (src/game/frights.ts), that comes first, after their greeting.
+  const fright = resident && !ending ? frightLines(g, resident, voiceOf(resident)) : [];
+  if (fright.length) lines.splice(Math.min(1, lines.length), 0, ...fright);
+  // Or, now and then, the Dim Man (src/game/dimman.ts): a word about him, or the next of his story, before they go.
+  const dim = resident && !ending && !fright.length ? dimManLines(g, resident, voiceOf(resident)) : [];
+  if (dim.length) lines.splice(Math.max(1, lines.length - 1), 0, ...dim);
   g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0, ...(asking ? { then: "paper" as const } : {}) });
   said(g);
   return true;
+}
+
+/** What the King says: his task the first time, and reminders after; once Calder's gone, he wants the proof, and once he's had it, thanks. */
+function kingLines(g: Game, visits: number): string[] {
+  if (headLaid(g)) return [KING_AFTER[Math.max(0, visits - 1) % KING_AFTER.length]!];
+  if (beaten(g, "calder")) return [...(carryingHead(g) ? KING_STEPS : KING_NO_PROOF)];
+  return visits === 0 ? [...KING_AUDIENCE] : [KING_AGAIN[(visits - 1) % KING_AGAIN.length]!, KING_WATCHWORD_AGAIN];
 }
 
 /** Everyone who has given the hero something this run, by their key: nobody gives twice. */
@@ -133,7 +157,7 @@ export function advanceTalk(g: Game): void {
   if (shown < c.lines[c.line]!.length) { c.t = c.lines[c.line]!.length / TALK.charsPerSecond; return; }
   if (++c.line < c.lines.length) { c.t = 0; said(g); return; }
   endTalk(g);
-  if (c.then === "paper") handPaper(g, c.with, isYssa(g, c.with) ? "name" : "watchword");   // heard out: now he writes
+  if (c.then === "paper") handPaper(g, c.with, isYssa(g, c.with) ? yssaAsks(g) : "watchword");   // heard out: now he writes
 }
 
 export function endTalk(g: Game): void {

@@ -8,7 +8,9 @@ import { deathSystem, enemyPhysicsSystem, slimeSystem, spawnerSystem } from "./e
 import { fishingSystem, rodSystem } from "./fishing.ts";
 import { ghostSystem } from "./ghost.ts";
 import { hauntSystem } from "../game/ghost.ts";
+import { eerieSystem } from "../game/eerie.ts";
 import { boltSystem, strikeSystem } from "./hazards.ts";
+import { riftSystem } from "../game/rift.ts";
 import { clearPressesSystem, heroMoveSystem, heroStatusSystem, resetHoldSystem } from "./hero.ts";
 import { mageSystem } from "./mage.ts";
 import { petSystem } from "../game/pets.ts";
@@ -19,8 +21,13 @@ import { undercroftSystem } from "../game/undercroft.ts";
 import { wardenSystem } from "../game/watchword.ts";
 import { yssaSystem } from "../game/yssa.ts";
 import { stoneSystem } from "../game/stones.ts";
+import { fairyRingSystem } from "../game/fairyring.ts";
+import { underhillSystem } from "../game/underhill.ts";
 import { rimeFightSystem } from "../game/rimefight.ts";
+import { calderFightSystem } from "../game/calderfight.ts";
+import { homeStoneSystem } from "../game/ending.ts";
 import { hunterHutSystem } from "../game/hunterhut.ts";
+import { spiritSystem } from "../game/spirits.ts";
 import { greatKoiSystem } from "../game/greatkoi.ts";
 import { quaySystem } from "../game/quay.ts";
 import { despawnSystem, pickupSystem } from "./pickups.ts";
@@ -49,8 +56,8 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [arrowSystem, enemyPhysicsSystem, hauntSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, stoneSystem, hunterHutSystem, petSystem, undercroftSystem, quaySystem],
-  [boltSystem, strikeSystem],
+  [arrowSystem, enemyPhysicsSystem, hauntSystem, eerieSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, calderFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, fairyRingSystem, underhillSystem, hunterHutSystem, petSystem, undercroftSystem, quaySystem],
+  [boltSystem, strikeSystem, riftSystem, homeStoneSystem],
 ];
 
 /** Combat numbers drift up and fade. */

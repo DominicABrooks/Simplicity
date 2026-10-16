@@ -130,8 +130,9 @@ export interface Enemy {
   face: number;
   /** Melee damage taken lately, wearing off (Rime watches it: src/game/rimefight.ts). */
   melee?: number;
-  /** Nothing hurts it (Rime in her ice block). */
+  /** Nothing hurts it (Rime in her ice block, Calder in his cage of lightning), and what it says when a blow glances off. */
   warded?: boolean;
+  wardSay?: string;
   /** One last stand in it (Rime): the first blow that would finish it doesn't ("ready" -> "taken"), and its fight
    *  answers (src/game/rimefight.ts) until it's "spent"; then the next one does. */
   lastStand?: "ready" | "taken" | "spent";
@@ -327,6 +328,11 @@ export interface Walker {
   catchingUp: boolean;
   /** Running from the ghost: home, or out of the area, as fast as they can go. */
   fleeing?: boolean;
+  /**
+   * The hero home with Calder's head (src/game/crowd.ts): stopped to stare as he goes by (and whether they were walking
+   * before), following him in the crowd (their place in it), or done with all that and back to their day.
+   */
+  crowd?: { mode: "stare" | "follow" | "seen"; slot: number; was: boolean };
 }
 
 /** How a dog or cat is holding itself: up on its feet, nose down sniffing, sitting, or lying down. */
@@ -415,7 +421,13 @@ export interface Conversation {
   then?: "paper";
 }
 
-export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa";
+export type RenderKind = "hero" | "slime" | "mage" | "cinder" | "blaze" | "rime" | "rimefrost" | "calder" | "tempest" | "greatkoi" | "potion" | "loot" | "arrow" | "bolt" | "strike" | "guard" | "king" | "dummy" | "townsfolk" | "pet" | "ghost" | "ringstone" | "boatman" | "yssa" | "spirit" | "watcher" | "homestone" | "head";
+
+/** A beaten lieutenant's spirit, in the middle of their arena (src/game/spirits.ts): whose. */
+export interface Spirit { who: "cinder" | "rime" }
+
+/** The figure at the end of the street after dark (src/game/eerie.ts): how far it's faded in (0-1), and whether it's going. */
+export interface Watcher { shown: number; going: boolean }
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {
@@ -451,4 +463,6 @@ export interface Components {
   cutscene: Cutscene;
   walker: Walker;
   pet: Pet;
+  spirit: Spirit;
+  watcher: Watcher;
 }

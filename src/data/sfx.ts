@@ -52,6 +52,12 @@ export const SFX = {
   blink: { tones: [{ wave: "sine", from: 1200, to: 300, dur: 0.15, gain: 0.1 }, { wave: "sine", from: 300, to: 1200, dur: 0.15, gain: 0.1, delay: 0.08 }] },
   toll: { tones: [{ wave: "sine", from: 196, dur: 1.6, gain: 0.3 }, { wave: "sine", from: 466, dur: 1.2, gain: 0.12 }, { wave: "sine", from: 784, dur: 0.8, gain: 0.06 }] },
 
+  // The city after dark (src/game/eerie.ts)
+  shutter: { tones: [{ wave: "noise", from: 260, to: 120, dur: 0.16, gain: 0.45, q: 1.4 }, { wave: "square", from: 90, to: 50, dur: 0.1, gain: 0.12 }, { wave: "noise", from: 300, to: 140, dur: 0.1, gain: 0.2, q: 1.4, delay: 0.14 }], jitter: 0.1 },
+  footstep: { tones: [{ wave: "noise", from: 380, to: 180, dur: 0.07, gain: 0.3, q: 2.2 }], jitter: 0.12 },
+  whisper: { tones: [{ wave: "noise", from: 3200, to: 2400, dur: 0.7, gain: 0.07, q: 6 }, { wave: "noise", from: 2000, to: 2800, dur: 0.5, gain: 0.05, q: 6, delay: 0.25 }], jitter: 0.2 },
+  handbell: { tones: [{ wave: "sine", from: 1318, dur: 0.9, gain: 0.12 }, { wave: "sine", from: 3150, dur: 0.4, gain: 0.04 }] },
+
   // Pickups and fishing
   pickup: { tones: [{ wave: "square", from: 660, dur: 0.06, gain: 0.08 }, { wave: "square", from: 990, dur: 0.08, gain: 0.08, delay: 0.06 }] },
   drink: { tones: [0, 0.07, 0.14].map(delay => ({ wave: "sine" as const, from: 400, to: 700, dur: 0.07, gain: 0.15, delay })), jitter: 0.05 },

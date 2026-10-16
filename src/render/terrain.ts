@@ -51,10 +51,15 @@ export function groundUnderBridges(map: TileMap, props: readonly Prop[]): TileMa
 }
 
 /** The scenery for a map whose top-left tile is at `origin` (tiles) in the world. */
-/** A texture with its colour drained to a warm grey (the same pattern): grass and leaves in the ash woods. One copy each. */
-const ashCopies = new Map<THREE.Texture, THREE.CanvasTexture>();
-function ashen(t: THREE.CanvasTexture): THREE.CanvasTexture {
-  const done = ashCopies.get(t);
+/** Grass and leaves recoloured, the same pattern: drained to a warm grey in the ash woods, slate-blue in the Thunder Rift. One copy each. */
+const ashCopies = new Map<THREE.Texture, THREE.CanvasTexture>(), stormCopies = new Map<THREE.Texture, THREE.CanvasTexture>();
+/** The ash woods' grass and leaves: gone grey. */
+const ashen = (t: THREE.CanvasTexture) => recoloured(t, ashCopies, v => [v * 1.12 + 8, v * 1.06 + 6, v * 1.0 + 6]);
+/** The Thunder Rift's: dark, cold and slate-blue, as if under storm cloud. */
+const stormy = (t: THREE.CanvasTexture) => recoloured(t, stormCopies, v => [v * 0.62 + 6, v * 0.74 + 10, v * 0.92 + 22]);
+/** A copy of `t` with each pixel's brightness put through `colour` (once per texture: kept in `copies`). */
+function recoloured(t: THREE.CanvasTexture, copies: Map<THREE.Texture, THREE.CanvasTexture>, colour: (v: number) => [number, number, number]): THREE.CanvasTexture {
+  const done = copies.get(t);
   if (done) return done;
   const src = t.image as HTMLCanvasElement, c = document.createElement("canvas");
   c.width = src.width; c.height = src.height;
@@ -63,12 +68,13 @@ function ashen(t: THREE.CanvasTexture): THREE.CanvasTexture {
   const px = g.getImageData(0, 0, c.width, c.height), d = px.data;
   for (let i = 0; i < d.length; i += 4) {
     const v = d[i]! * 0.3 + d[i + 1]! * 0.55 + d[i + 2]! * 0.15;
-    d[i] = Math.min(255, v * 1.12 + 8); d[i + 1] = Math.min(255, v * 1.06 + 6); d[i + 2] = Math.min(255, v * 1.0 + 6);
+    const [r, gr, b] = colour(v);
+    d[i] = Math.min(255, r); d[i + 1] = Math.min(255, gr); d[i + 2] = Math.min(255, b);
   }
   g.putImageData(px, 0, 0);
   const out = new THREE.CanvasTexture(c);
   out.magFilter = t.magFilter; out.minFilter = t.minFilter; out.wrapS = t.wrapS; out.wrapT = t.wrapT; out.colorSpace = t.colorSpace;
-  ashCopies.set(t, out);
+  copies.set(t, out);
   return out;
 }
 
@@ -101,9 +107,11 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     }
   }
   const side = { side: THREE.DoubleSide };
-  // Grass, or where the dark gets in (an ash look), grass gone grey; or (a snow look) grass under snow, frost on the leaves.
-  const ash = map.look === "ash", snow = map.look === "snow";
-  const grass = ash ? ashen(tex.grass) : snow ? snowy(tex.grass) : tex.grass, leaves = ash ? ashen(tex.leaf) : snow ? frosted(tex.leaf) : tex.leaf;
+  // Grass, or where the dark gets in (an ash look), grass gone grey; or (a snow look) grass under snow, frost on the leaves;
+  // or (a storm look) everything dark and slate-blue.
+  const ash = map.look === "ash", snow = map.look === "snow", storm = map.look === "storm";
+  const grass = ash ? ashen(tex.grass) : snow ? snowy(tex.grass) : storm ? stormy(tex.grass) : tex.grass;
+  const leaves = ash ? ashen(tex.leaf) : snow ? frosted(tex.leaf) : storm ? stormy(tex.leaf) : tex.leaf;
   world.add(new THREE.Mesh(quadGeometry(ground), lambert("#ffffff", { map: grass, ...side })));
   if (iced.length) world.add(new THREE.Mesh(quadGeometry(iced), lambert("#ffffff", { map: iceTexture(), ...side })));
   // Paving (under buildings too) and dirt paths, their edges blending into the grass.
@@ -141,6 +149,12 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     const facetColor = (hAvg: number, x: number, z: number) => {
       const n = hash(x, z, 41);
       if (snow) return snowFacet(c, hAvg, n);
+      if (storm) {                                           // round the Thunder Rift: dark slate rock, pale grey peaks
+        if (hAvg < 0.7) return c.set("#3e4a52").multiplyScalar(0.85 + n * 0.2);
+        if (hAvg < 2.2) return c.set(n < 0.5 ? "#36404a" : "#2f3842");
+        if (hAvg < 8.5) return c.set(["#2a313a", "#353d48", "#252b33", "#414a56"][Math.floor(n * 4)]!);
+        return c.set(n < 0.6 ? "#9aa3ad" : "#828b96");
+      }
       if (ash) {
         if (hAvg < 0.7) return c.set("#77736b").multiplyScalar(0.85 + n * 0.2);
         if (hAvg < 2.2) return c.set(n < 0.5 ? "#5a5650" : "#4d4945");
@@ -183,9 +197,11 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
     for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (walkable(x + i, y + j)) return true;
     return false;
   };
+  // In the Thunder Rift they're the oldest in the valley, and the tallest: a little less so right by the paths.
+  const age = (x: number, z: number) => (storm ? (openNear(x - 0.5, z - 0.5, 1) ? 1.15 : 1.4) : 1);
   for (const [x, z] of treeTiles) {
     const fir = hash(x, z, 20) < (openNear(x - 0.5, z - 0.5, 2) ? 0.2 : 0.55);
-    placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, 0.8 + hash(x, z, 3) * 0.45, 0, fir]);
+    placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, (0.8 + hash(x, z, 3) * 0.45) * age(x, z), 0, fir]);
   }
   if (!indoors) for (let y = -4; y < H + 4; y++) for (let x = -4; x < W + 4; x++) {
     if (x >= 0 && y >= 0 && x < W && y < H) continue;

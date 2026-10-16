@@ -1,12 +1,13 @@
 // The scrap of paper a woodwarden hands the hero at the barricade, with a stub of crayon: the player writes the
-// King's watchword on it (or, for Yssa on the track west of the Ashwild, her name) and hands it back (src/game/watchword.ts). Enter, or the button, hands it back; Escape
+// King's watchword on it (or, for Yssa, her name on the track west of the Ashwild, or the river's at the foot of the Hollow's climb) and hands it back (src/game/watchword.ts). Enter, or the button, hands it back; Escape
 // keeps it, unwritten. While it's out, keys go to the paper, not the hero.
 import type { Game } from "../game/game.ts";
 import { YSSA } from "../data/ashwild.ts";
+import { CLIMB } from "../data/hollow.ts";
 import { handBack, PAPER_LENGTH, paperAsks, writingFor } from "../game/watchword.ts";
 
 /** What's asked for at the top of the scrap, and what the line's for. */
-const ASKS = { watchword: ["Write the watchword", "The watchword"], name: [YSSA.hint, "Her name"] } as const;
+const ASKS = { watchword: ["Write the watchword", "The watchword"], name: [YSSA.hint, "Her name"], river: [CLIMB.hint, "The river's name"] } as const;
 
 export function createPaper(g: Game): { draw(): void } {
   const el = document.createElement("div"), sheet = document.createElement("form"), hint = document.createElement("p");

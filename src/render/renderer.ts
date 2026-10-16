@@ -20,10 +20,13 @@ import { createOcclusion } from "./occlusion.ts";
 import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
+import { createTrance } from "./trance.ts";
+import { createErlKingView, erlKingFocus } from "./erlking.ts";
 import { compactScenery, freezeScenery } from "./compact.ts";
 import { buildTerrain, groundUnderBridges } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
 import { shift } from "../world/townkit.ts";
+import { creditsCamera } from "../game/credits.ts";
 
 export interface Renderer extends Projector {
   /** Match the window: render at 1/pixelSize resolution. */
@@ -37,7 +40,11 @@ export interface Renderer extends Projector {
 
 /** The light inside a house: no sky, a dim warm fill and a low sun for shading (the hearth brings its own fire). */
 const INDOORS = { sky: "#120d10", fill: 0xffd8b0, fillI: 0.85, sun: 0xffc890, sunI: 0.55 } as const;
+/** ...and under the hill (src/areas/underhill.ts): a violet dusk that isn't a sky, a soft green light off the grass. */
+const UNDER_HILL = { sky: "#1a0f2e", fill: 0xc0a8ff, fillI: 1.1, sun: 0xb8ffd8, sunI: 0.6 } as const;
 const CAM_OFFSET = new THREE.Vector3(0, 11.5, 8.5);
+/** The camera's offset turned round for a credits shot, and the axis it turns about. */
+const reelOffset = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
 
 export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
@@ -60,6 +67,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   sun.position.set(-3, 6, 2);                                // top-left of screen, as in ART_STYLE.md
   scene.add(sun);
   const daylight = createDaylight(sky, fill, sun);
+  const trance = createTrance([fill, sun]);
 
   const ctx = createContext(scene);
   const world = new THREE.Group();
@@ -74,6 +82,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   let animated: ((t: number, dt: number) => void)[] = [];
   const occlusion = createOcclusion(scene);
   const targetRing = createTargetRing(ctx);
+  const erlKing = createErlKingView(ctx);                    // under the hill, his throne, and him (src/game/underhill.ts)
   const weather = createWeatherView(ctx, { sky, fog, fill, sun });
 
   // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
@@ -123,13 +132,18 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     render(g, dt) {
       const t = g.clock, pos = g.world.need(g.player, "transform");
       const [px, pz] = hero.update(g, t, dt);
-      // The camera follows the hero, or in a cutscene looks where the scene says, easing slowly from shot to shot.
-      const shot = g.world.get(g.player, "cutscene")?.cam, ease = shot ? 2.2 : 8;
-      const lookX = shot ? shot.x / PX_PER_TILE : px, lookZ = shot ? shot.y / PX_PER_TILE : pz;
+      // The camera follows the hero, or in a cutscene looks where the scene says, easing slowly from shot to shot; in
+      // the credits, it goes exactly where the reel moves it, round as well as in and out (src/game/credits.ts).
+      const reel = creditsCamera(g), shot = g.world.get(g.player, "cutscene")?.cam, ease = shot ? 2.2 : 8;
+      const focus = shot ? null : erlKingFocus(g, px, pz);     // under the hill, the Erl-King and him both
+      const lookX = shot ? shot.x / PX_PER_TILE : focus ? focus.x : px, lookZ = shot ? shot.y / PX_PER_TILE : focus ? focus.z : pz;
       camTarget.set(smooth(camTarget.x, lookX, dt, ease), 0, smooth(camTarget.z, lookZ, dt, ease));
-      camZoom = smooth(camZoom, shot?.zoom ?? 1, dt, shot ? 1.6 : 3);
-      camera.position.copy(camTarget).addScaledVector(CAM_OFFSET, camZoom);
+      camZoom = smooth(camZoom, shot?.zoom ?? focus?.zoom ?? 1, dt, shot ? 1.6 : 3);
+      if (reel) { camTarget.set(reel.x / PX_PER_TILE, 0, reel.y / PX_PER_TILE); camZoom = reel.zoom; }
+      const toCamera = reel ? reelOffset.copy(CAM_OFFSET).applyAxisAngle(UP, reel.yaw) : CAM_OFFSET;
+      camera.position.copy(camTarget).addScaledVector(toCamera, camZoom);
       camera.lookAt(camTarget);
+      trance.pose(g, camera, dt, t);                         // standing in a fairy ring after dark, the view swims
       if (g.shake > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * g.shake * 0.35, 0, (Math.random() - 0.5) * g.shake * 0.35));
       camera.updateMatrixWorld();                            // placed first: the entity views only pose what it can see
       renderEntities(g, { t, dt, hero: pos });
@@ -141,7 +155,8 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       koi.update(dt, t, px, pz, bobber, !greatKoiBeaten(g) && greatKoiOut(g) === null);   // the big one's under the ice till it's hooked
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
-      occlusion.update(px, pz, CAM_OFFSET, dt);
+      erlKing.update(g, t);
+      occlusion.update(reel ? camTarget.x : px, reel ? camTarget.z : pz, toCamera, dt);
       targetRing.update(g, t);
 
       // World animation, light and camera.
@@ -152,6 +167,13 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
         sun.color.set(INDOORS.sun);
         sun.intensity = INDOORS.sunI;
       } else daylight.update(g.hour);
+      if (g.area.def.id === "underhill") {                     // under the hill, its own light
+        sky.set(UNDER_HILL.sky);
+        fill.color.set(UNDER_HILL.fill);
+        fill.intensity = UNDER_HILL.fillI;
+        sun.color.set(UNDER_HILL.sun);
+        sun.intensity = UNDER_HILL.sunI;
+      }
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
       // No rain indoors; where it's always winter, it's always snowing, and the rain comes down as more snow.
       const winter = g.map.look === "snow";
@@ -166,6 +188,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       const hidden = asleep ? scene.children.filter(o => o.visible && o !== world && o !== hero.body.group && o !== hero.body.shadow && !(o instanceof THREE.Light)) : [];
       for (const o of hidden) o.visible = false;
       renderer.render(scene, camera);
+      trance.draw(renderer, scene, camera);
       for (const o of hidden) o.visible = true;
     },
 
