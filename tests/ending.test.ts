@@ -196,7 +196,8 @@ describe("the end of the story path", () => {
     skipCutscene(g);
     expect(g.state).toBe("credits");
     const was = { x: hero.x, y: hero.y };
-    // This run: woke, never saw the King, beat only Calder. Its shots, in order, each with its line.
+    // This run: woke, never saw the King, beat only Calder. Its shots, in order, each with its line; then what it meant
+    // (no Yssa at the fountain: he never met her).
     await new Promise(r => setTimeout(r, 0));
     await rollCredits(g);
     const seen: string[] = [], said: string[] = [];
@@ -204,7 +205,7 @@ describe("the end of the story path", () => {
       const shot = creditsShot(g), cam = creditsCamera(g);
       if (shot && seen[seen.length - 1] !== g.area.def.id + shot.says) { seen.push(g.area.def.id + shot.says); said.push(shot.says); expect(cam).not.toBeNull(); }
     }
-    expect(said).toEqual([SHOT_SAYS.woke, SHOT_SAYS.calder, SHOT_SAYS.home, SHOT_SAYS.steps]);
+    expect(said).toEqual([SHOT_SAYS.woke, SHOT_SAYS.calder, SHOT_SAYS.home, SHOT_SAYS.steps, SHOT_SAYS.greyed, SHOT_SAYS.slimes, SHOT_SAYS.chronicle]);
     expect(runSum(g)).toContain("Level");
     endCredits(g);
     expect(g.area.def.id).toBe("castle");

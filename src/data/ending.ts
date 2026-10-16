@@ -79,7 +79,8 @@ export const KING_NO_PROOF: readonly string[] = [
  * The credits: short shots of this run, in the places it happened (src/game/credits.ts), each with a line under it.
  * A shot only plays if the run got there; some lines change with what else it did.
  */
-export type ShotId = "woke" | "king" | "barricade" | "yssa" | "cinder" | "rime" | "ringer" | "calder" | "home" | "steps";
+export type ShotId = "woke" | "king" | "barricade" | "yssa" | "cinder" | "rime" | "ringer" | "calder" | "home" | "steps"
+  | "greyed" | "slimes" | "chronicle" | "milk";
 export const SHOT_SAYS: Record<ShotId, string> = {
   woke: "You woke on a stone by the Ranger's fire, with nothing but a note in your hand.",
   king: "King Osric read the Ranger's note, went very red, and sent you deep into the Witchwood after Calder.",
@@ -91,6 +92,11 @@ export const SHOT_SAYS: Record<ShotId, string> = {
   calder: "At the edge of the great crack Calder looked at you and said, \"Oh. He sent you. Good.\" Then the crack ground shut.",
   home: "You came home at dawn with his head, and half the city followed you up the hill.",
   steps: "You set it at the King's feet. \"...You did it.\" And then he told them the rest.",
+  // And what it meant (HERO.md, "The end"): the aftermath, after his own story's told.
+  greyed: "With Calder gone, the Greyed had no one left to follow. One by one the grey went out of them and their sparks went home, and in time the cracks under the Witchwood closed.",
+  slimes: "The slimes stopped bouncing. With the valley whole, the Frost order could unscramble them at last, and within the year they were the people of the Deep Hall again.",
+  chronicle: "Next morning the King stood at the market cross and read the city the true chronicle, the Founder's letter and all. He went very red. The Edict was torn up.",
+  milk: "Yssa let the frost go at last. She walked over the King's Bridge, set a bowl of milk at the foot of the fountain, and stayed.",
 };
 /** Said instead, or after, when the run went that way. */
 export const SHOT_SAYS_TOO = {
