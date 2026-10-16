@@ -18,7 +18,8 @@ import { SPAWN } from "../areas/witchwood.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, Prop } from "../world/area.ts";
 import { solidAt } from "../world/collision.ts";
-import { layoutOf } from "../world/layouts.ts";
+import { forgetLayout, layoutOf } from "../world/layouts.ts";
+import { propSolids } from "../world/solids.ts";
 import { interiorOf, type Spot } from "../world/interiors.ts";
 import type { Resident } from "../world/residents.ts";
 import { registerArea } from "../areas/index.ts";
@@ -63,7 +64,12 @@ interface Staged {
  * Each shot: whether this run had it, where it's set (or how to make the place, if it isn't one of the areas: null if
  * it can't be), the hour there, and how to stage it once there.
  */
-interface Shot { id: ShotId; area: string; load?(): Promise<AreaDef | null>; hour: number; had(run: Run): boolean; stage(g: Game, run: Run): Staged }
+/**
+ * A shot: where (`area`, or a place made for it by `load`), at what hour, whether this run had it, and how it's staged.
+ * `alters`: its place is the real area made over for it (the same id, so its townsfolk come out), so the real one's
+ * layout is set aside before the shot and again after (see setAside).
+ */
+interface Shot { id: ShotId; area: string; load?(): Promise<AreaDef | null>; alters?: boolean; hour: number; had(run: Run): boolean; stage(g: Game, run: Run): Staged }
 
 interface Reel {
   shots: Shot[];
@@ -189,6 +195,7 @@ export function endReel(g: Game): void {
   if (!r) return;
   reels.delete(g);
   g.hour = r.back.hour;
+  setAside(r);
   enterArea(g, r.back.area, firstEntry(r.back.area));
   Object.assign(g.world.need(g.player, "transform"), { x: r.back.x, y: r.back.y });
 }
@@ -203,6 +210,7 @@ function nextShot(g: Game, r: Reel): boolean {
   crowdOf(g).gathered = null;
   g.hour = shot.hour;
   const def = r.defs.get(shot.id)!;
+  setAside(r);
   enterArea(g, def, firstEntry(def));
   // Nothing wanders in, nobody's talking, and he's whole and standing.
   for (const [e] of g.world.query("enemy")) if (!g.world.has(e, "dummy")) g.world.destroy(e);
@@ -216,6 +224,33 @@ function nextShot(g: Game, r: Reel): boolean {
   r.staged.play?.(0, 0);
   aim(g, r, 0);
   return false;
+}
+
+/** Set aside the layouts of the places made over for shots (built afresh as the shot, and as themselves again after). */
+function setAside(r: Reel): void {
+  for (const s of r.shots) if (s.alters) forgetLayout(r.defs.get(s.id)?.id ?? s.area);
+}
+
+/** The Market Quarter cleared for the King's reading: its stalls taken down (and nothing standing where they stood). */
+async function marketCleared(): Promise<AreaDef> {
+  const def = await loadArea("capital");
+  return {
+    ...def,
+    build() {
+      const layout = def.build(), stalls = layout.props.filter(p => p.kind === "stall");
+      const gone = new Set(stalls.flatMap(propSolids).map(s => JSON.stringify(s)));
+      return {
+        ...layout,
+        props: layout.props.filter(p => p.kind !== "stall"),
+        map: { ...layout.map, solids: layout.map.solids.filter(s => !gone.has(JSON.stringify(s))) },
+      };
+    },
+  };
+}
+
+/** The King's Bridge kept clear for the Vael: a place of its own for the shot, so none of the townsfolk come out onto it. */
+async function bridgeCleared(): Promise<AreaDef> {
+  return { ...(await loadArea("kingsroad")), id: "kingsroad:the-vael" };
 }
 
 /** Any way into an area: each shot puts him where it wants him after. */
@@ -381,10 +416,10 @@ const SHOTS: readonly Shot[] = [
   },
   {
     // The market cross the next morning: the King on its steps reading the true chronicle, the city gathered round.
-    id: "chronicle", area: "capital", hour: 9.5, had: () => true,
+    id: "chronicle", area: "capital", load: marketCleared, alters: true, hour: 9.5, had: () => true,
     stage(g, run) {
-      // At the cross: on its steps in front of it if there's room there, or else beside it along the aisle, out past
-      // the stalls (the market's rows of them run close in front of it, and would hide him).
+      // On the cross's steps in front of it (the stalls are down for it: see marketCleared), or, if anything's in the
+      // way after all, beside it along the aisle, wherever he stands clear in the shot.
       const cross = propOf(g, "cross")!, along = [2.4, -2.4, 4.6, -4.6, 6.6, -6.6].map(k => [cross.x + k * T, cross.y + 0.4 * T] as const);
       const [x, ky] = clearOf(g, [[cross.x, cross.y + 2.2 * T], ...along]);
       spawnKing(g, x - HALF, ky - HALF, Math.PI / 2);
@@ -402,7 +437,7 @@ const SHOTS: readonly Shot[] = [
     // gold leaf they've worn six hundred years as "altar stones". It flakes off them in showers of sparks, one after
     // another, and each glows its own colour; and then the Old Mother comes up the river behind the Vael, low enough to
     // shake the bridge, her shadow going over the whole of it, and roars as she goes over her eggs and on over the city.
-    id: "eggs", area: "kingsroad", hour: 8, had: () => true,
+    id: "eggs", area: "kingsroad", load: bridgeCleared, hour: 8, had: () => true,
     stage(g) {
       const deck = propOf(g, "stoneBridge")!.rect, x = deck.x + deck.w / 2, top = deck.y + 2 * T, foot = deck.y + deck.h - 4 * T;
       spawnKing(g, x - HALF, top - HALF, Math.PI / 2);

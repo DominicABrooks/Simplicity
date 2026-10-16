@@ -29,7 +29,7 @@ import { atPeace, spared } from "../src/game/peace.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { endTalk, updateTalk } from "../src/game/talk.ts";
-import { loadCensus, residentById, setCensus } from "../src/game/townsfolk.ts";
+import { enterTownsfolk, loadCensus, residentById, setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
 import { deathSystem, slimeSystem } from "../src/systems/enemies.ts";
@@ -140,6 +140,30 @@ describe("the credits", () => {
       checked = true;
     }
     expect(checked).toBe(true);
+  });
+
+  it("take the stalls down for the King's reading, keep the townsfolk off the bridge for the Vael, and put it all back after", async () => {
+    const g = await atTheCastle();
+    g.events.on("area", () => enterTownsfolk(g));                                // the townsfolk come out, as in the game
+    toTheKing(g);
+    await rollCredits(g);
+    let market = false, bridge = false;
+    for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60); i++) {
+      const says = creditsShot(g)?.says ?? "";
+      if (says.startsWith(SHOT_SAYS.chronicle)) {
+        expect(g.area.layout.props.some(p => p.kind === "stall")).toBe(false);
+        expect(g.world.query("walker").length).toBeGreaterThan(0);                // the city's still there to hear him
+        market = true;
+      }
+      if (says === SHOT_SAYS.eggs) {
+        expect(g.world.query("walker")).toHaveLength(0);
+        bridge = true;
+      }
+    }
+    expect([market, bridge]).toEqual([true, true]);
+    endCredits(g);
+    enterArea(g, await loadArea("capital"), "stone");
+    expect(g.area.layout.props.some(p => p.kind === "stall")).toBe(true);        // the market as it was
   });
 
   it("keep what it all meant short, and let the pictures carry it", () => {
