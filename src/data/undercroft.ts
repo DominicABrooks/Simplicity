@@ -5,7 +5,7 @@
 // was standing there to make its footings. All but one ring of stones, which the sexton's grandfather's
 // grandfather locked away under the church, so nobody would ask what it was. One stone was gone even then. It
 // turned up in the river, the way things do in this city, on the end of a little stone child's fishing line.
-import type { ItemType, Stats } from "./items.ts";
+import type { ItemType, Rarity, Stats } from "./items.ts";
 
 export const UNDERCROFT = {
   /** How near the socket (px) he must bring the stone for it to go home, and when he first feels it warm. */
@@ -16,8 +16,12 @@ export const UNDERCROFT = {
   stone: { name: "The ring under St Mary's", touch: 20 },
   /** The ring's waking, as a ring of light going out over the room (px). */
   wake: 60,
-  /** What it leaves him: a pendant with a chip of the ring in it, warm to the touch. */
-  reward: { type: "amulet" as ItemType, name: "Ringstone Pendant", mods: { life: 2, damage: 1, speed: 8 } satisfies Stats },
+  /** What it leaves him: a pendant with a chip of the ring in it, warm to the touch. Legendary: worn, it holds him up
+   *  once when he'd fall, and an old stone warms it again (src/game/pendant.ts). Its note says as much, quietly. */
+  reward: {
+    type: "amulet" as ItemType, rarity: "legendary" as Rarity, name: "Ringstone Pendant", mods: { life: 3, damage: 2, speed: 10 } satisfies Stats,
+    note: "A chip of the ring under St Mary's, warm against your chest. It held the crack shut; it won't let you fall. Not twice, till an old stone warms it.",
+  },
 } as const;
 
 export const UNDERCROFT_SAYS = {
@@ -35,6 +39,9 @@ export const UNDERCROFT_SAYS = {
   ],
   /** The sealed door, once the ring's whole again: said with the first of `seal` if he's not been up to it yet. */
   sealCalm: "The three fires on the little door burn steady now the ring is whole, and no cold comes under it.",
+  /** The pendant, worn: holding him up when he'd fall, and warm again at an old stone. */
+  catch: "The Ringstone Pendant flares hot against your chest. You don't fall.",
+  rewarm: "The Ringstone Pendant is warm again.",
   /** Setting it back: what the ring was (HISTORY.md, "The Seal" and "88 AF"), and what it is to him now. */
   wake: [
     "The stone slides home into the socket, as if it had never left.",

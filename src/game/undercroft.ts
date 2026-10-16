@@ -12,6 +12,7 @@ import { ringPlan } from "../world/stonering.ts";
 import { carryingCurio, spendCurio, spentCurios } from "./curios.ts";
 import { toast, type Game } from "./game.ts";
 import { sound } from "./sfx.ts";
+import { warmPendant } from "./pendant.ts";
 import { lastStone, touchStone } from "./stones.ts";
 import { dropLoot } from "./spawn.ts";
 
@@ -99,7 +100,10 @@ export function undercroftSystem(g: Game): void {
   if (set && !ringstoneHere(g)) setStone(g, socket);
   if (set) {
     const ring = ringStone(g);
-    if (Math.hypot(me.x - socket.x, me.y - socket.y) < UNDERCROFT.stone.touch && !sameStone(lastStone(g), ring)) touchStone(g, ring, socket.x, socket.y);
+    if (Math.hypot(me.x - socket.x, me.y - socket.y) < UNDERCROFT.stone.touch) {
+      if (sameStone(lastStone(g), ring)) warmPendant(g);
+      else touchStone(g, ring, socket.x, socket.y);
+    }
     return;
   }
   if (!carryingCurio(g, "stone")) return;
@@ -117,7 +121,7 @@ export function undercroftSystem(g: Game): void {
   sound(g, "toll", socket);
   for (const line of UNDERCROFT_SAYS.wake) toast(g, line, true);
   const r = UNDERCROFT.reward;
-  const pendant = dropLoot(g, socket.x, socket.y + 12, makeItem(r.type, "rare", { ...r.mods }, r.name));
+  const pendant = dropLoot(g, socket.x, socket.y + 12, { ...makeItem(r.type, r.rarity, { ...r.mods }, r.name), note: r.note });
   g.world.remove(pendant, "despawn");                        // it'll wait for him, if his bag's full
   const health = g.world.need(g.player, "health");
   health.hp = health.maxHp;                                  // the warmth goes right through him

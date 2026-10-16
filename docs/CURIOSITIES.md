@@ -12,7 +12,7 @@ having.
 |---|---|---|---|---|
 | **Little Handbell** | St Mary's churchyard, after dark | Ismay Tollen rises for it, calm, rumour or none (and an already-angry Grey Ringer stops to listen). She takes it back, rings the curfew one last time and rests for good. | Her grave goods (two rare items, two potions), the ghost's XP, no fight | **Built** |
 | **Rusted Key** | The low locked door at the foot of St Mary's tower | It turns and stays in the lock: **the Undercroft** is open for the rest of the run. Without it: "locked fast". | The way down to the tombs and the stone ring | **Built** |
-| **Mysterious Stone** | The empty socket in the Undercroft's ring | Walk it up to the socket: it slides home, stands glowing, and the ring wakes. It's still there every time you come back. | Healed to full, and the **Ringstone Pendant** (rare amulet: +2 life, +1 damage, +8% speed) | **Built** |
+| **Mysterious Stone** | The empty socket in the Undercroft's ring | Walk it up to the socket: it slides home, stands glowing, and the ring wakes. It's still there every time you come back. | Healed to full, the ring an old stone to wake at, and the **Ringstone Pendant** (legendary amulet: +3 life, +2 damage, +10% speed; once, holds him up when he would fall, till an old stone warms it again) | **Built** |
 | **Glass Eye** | Old Gil, the one-eyed boatman by his boat at the foot of the King's Bridge | Talk to him with it in the bag: he takes it back (his patch comes off) and tells what the river showed it. | **Ael's Thorn** (rare blade: +2 damage, +1 life, +6% speed) on the bed of the Clearing's lake | **Built** |
 | **Sealed Bottle** | Right-click it in the bag | The bag closes and a letter in the hero's own hand is read, from a run he doesn't remember. | A hint for every curiosity still to take home this run, and one true thing about the ending | **Built** |
 
@@ -47,7 +47,10 @@ The door, tombs and ring are drawn in `src/render/undercroft.ts`; what's said, i
 The Mysterious Stone is the missing piece ("Maybe someone is interested in this..."). Carry it near the ring and
 it's warm in the bag; walk it up to the socket and it slides home (`src/game/undercroft.ts`). It stands there
 glowing blue-green and slowly turning, rings of light go out over the room, the warmth goes right through the
-hero (healed to full), and a chip of the ring is left at its foot: the **Ringstone Pendant**. Come back and
+hero (healed to full), and a chip of the ring is left at its foot: the **Ringstone Pendant**, legendary
+(`src/game/pendant.ts`): worn, it holds him up once when a blow would fell him, leaving him a heart, and goes
+cold till he touches an old stone; its note hints as much ("it won't let you fall. Not twice, till an old stone
+warms it"). Come back and
 it's still standing there.
 
 As it wakes, the ring tells him what it is (`UNDERCROFT_SAYS.wake`): the Vael's temple floor, where the Old Mother

@@ -6,6 +6,7 @@ import { XP, xpToNext } from "../data/progression.ts";
 import { COMBAT_COLORS } from "../data/ui.ts";
 import { SPELLS } from "../data/enemies.ts";
 import { isGod } from "./cheats.ts";
+import { pendantCatches } from "./pendant.ts";
 import type { Actions } from "./components.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { sound } from "./sfx.ts";
@@ -77,6 +78,7 @@ export function damagePlayer(g: Game, sx: number, sy: number, amount = 1): void 
   const d = Math.hypot(p.x - sx, p.y - sy) || 1;
   kb.vx = ((p.x - sx) / d) * HURT.knock;
   kb.vy = ((p.y - sy) / d) * HURT.knock;
+  if (health.hp <= 0) pendantCatches(g);                     // the Ringstone Pendant, worn and warm, holds him up
   sound(g, health.hp <= 0 ? "death" : "hurt");
   if (health.hp <= 0) setState(g, "dead");
 }

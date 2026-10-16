@@ -12,6 +12,8 @@ import { resetGame } from "../src/game/reset.ts";
 import { setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { lastStone, touchStone, wakeOnStone } from "../src/game/stones.ts";
+import { pendantWarm } from "../src/game/pendant.ts";
+import { damagePlayer } from "../src/game/combat.ts";
 import { sealOf, socketOf } from "../src/game/undercroft.ts";
 import { CLUES } from "../src/data/clues.ts";
 import { makeCurio } from "../src/items/items.ts";
@@ -181,5 +183,64 @@ describe("the ring, woken", () => {
 describe("the stone's clues", () => {
   it("one of them points to St Mary's, where it belongs", () => {
     expect(CLUES.stone.some(l => l.includes("St Mary's"))).toBe(true);
+  });
+});
+
+describe("the Ringstone Pendant", () => {
+  /** He's woken the ring, picked the pendant up and put it on. */
+  async function wearing() {
+    const r = await at("undercroft", "steps", ["stone"]), s = socketOf(r.g)!;
+    Object.assign(hero(r.g), { x: s.x, y: s.y + 4 });
+    step(r.g, DT);
+    const [e, c] = r.g.world.query("pickup").find(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === UNDERCROFT.reward.name)!;
+    if (c.pickup.kind !== "loot") throw new Error("no pendant");
+    r.g.inventory.equip.amulet = c.pickup.item;
+    r.g.world.destroy(e);
+    return r;
+  }
+
+  it("is legendary, and its note hints at what it does", async () => {
+    const { g } = await wearing();
+    const pendant = g.inventory.equip.amulet!;
+    expect(pendant.rarity).toBe("legendary");
+    expect(pendant.note).toMatch(/won't let you fall/);
+    expect(pendant.note).toMatch(/old stone/);
+  });
+
+  it("holds him up once when he'd fall, and an old stone warms it again", async () => {
+    const { g, toasts } = await wearing();
+    const health = g.world.need(g.player, "health");
+    health.hp = 1;
+    damagePlayer(g, 0, 0, 3);
+    expect(health.hp).toBe(1);
+    expect(g.state).toBe("play");
+    expect(toasts).toContain(UNDERCROFT_SAYS.catch);
+    expect(pendantWarm(g)).toBe(false);
+    // The ring's an old stone, but standing at it when it caught him doesn't warm it; away and back again does.
+    const s = socketOf(g)!;
+    Object.assign(hero(g), { x: s.x, y: s.y + 4 });
+    step(g, DT);
+    expect(pendantWarm(g)).toBe(false);
+    Object.assign(hero(g), { x: s.x, y: s.y + 60 });
+    step(g, DT);
+    Object.assign(hero(g), { x: s.x, y: s.y + 4 });
+    step(g, DT);
+    expect(pendantWarm(g)).toBe(true);
+    expect(toasts).toContain(UNDERCROFT_SAYS.rewarm);
+  });
+
+  it("doesn't hold him twice before then", async () => {
+    const { g } = await wearing();
+    const health = g.world.need(g.player, "health");
+    health.hp = 1; damagePlayer(g, 0, 0, 3);
+    health.hp = 1; damagePlayer(g, 0, 0, 3);
+    expect(g.state).toBe("dead");
+  });
+
+  it("does nothing in the bag", async () => {
+    const { g } = await at("undercroft", "steps");
+    const health = g.world.need(g.player, "health");
+    health.hp = 1; damagePlayer(g, 0, 0, 3);
+    expect(g.state).toBe("dead");
   });
 });
