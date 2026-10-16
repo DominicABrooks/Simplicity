@@ -444,8 +444,12 @@ export interface Dragon {
   pose: "fly" | "sit";
   flap: number; neck: number; spread: number; fire: number; grow: number;
 }
-/** One of the three eggs: its order, how much of the King's gilding is still on it (0 to 1), how bright it glows, how near hatching (0 to 1), and whether it's open. */
-export interface Egg { school: "ember" | "frost" | "storm"; gilt: number; glow: number; crack: number; open: boolean }
+/**
+ * One of the three eggs: its order, how much of the King's gilding is still on it (0 to 1), how bright it glows, how
+ * near hatching (0 to 1: rocking, the crack showing), whether it's broken open, and how far (0 to 1) its top has gone:
+ * pushed up from inside, tipped back, and off into the grass.
+ */
+export interface Egg { school: "ember" | "frost" | "storm"; gilt: number; glow: number; crack: number; open: boolean; hatch: number }
 
 /** Drawn by the view registered for this kind. */
 export interface Renderable {

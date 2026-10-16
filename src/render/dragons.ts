@@ -8,8 +8,9 @@
 // belly; a hatchling is its own order's colour, marked darker, with a big head on a short neck, small wings and stubby
 // horns. Each breathes its order's breath (fire, frost, or sparks) out of its mouth, lighting what's round it. All of
 // it is a few low-poly shapes, flat-shaded, the way everything else is. The eggs are smooth and turned, under the
-// King's gold leaf till it flakes off in a shower of sparks, then glowing their own colour, rocking as they crack,
-// light showing through the crack round the middle, and at the last lying open, the top half tipped off into the grass.
+// King's gold leaf till it flakes off in a shower of sparks, then glowing their own colour, rocking in fits and starts
+// as they crack, light showing through the crack round the middle; then the top's pushed up from inside on a hinge,
+// tipped back and off into the grass, a few chips of shell flying, and the bottom half's left.
 import * as THREE from "three";
 import type { SparkColor } from "./particles.ts";
 import { put } from "./castle.ts";
@@ -232,6 +233,7 @@ function makeDragon(ctx: RenderContext, hide: Dragon["hide"]): Omit<DragonView, 
 }
 
 const forward = new THREE.Vector3(), at = new THREE.Vector3();
+const ease = (k: number) => k * k * (3 - 2 * k);
 
 export const dragon: EntityView<DragonView> = {
   create(ctx, e, g) {
@@ -313,9 +315,11 @@ const GOLD = new THREE.Color("#e2b33c"), SHELLS: Record<Egg["school"], string> =
 const SEAMS: Record<Egg["school"], string> = { ember: "#ffd27a", frost: "#6fcaff", storm: "#d0c0ff" };
 const BURST: Record<Egg["school"], [SparkColor, SparkColor]> = { ember: ["fire", "ember"], frost: ["ice", "snow"], storm: ["arcane", "arcaneLight"] };
 
+/** A chip of shell, flying off as it opens: where it is and how fast it's going (world units, the egg's own frame). */
+interface Chip { mesh: THREE.Mesh; v: THREE.Vector3; spin: THREE.Vector3 }
 interface EggView {
-  group: THREE.Group; shadow: THREE.Mesh; top: THREE.Mesh; shell: THREE.MeshLambertMaterial; pool: THREE.MeshBasicMaterial; seam: THREE.MeshBasicMaterial;
-  light: THREE.PointLight; hue: THREE.Color; gilt: number; crack: number; open: boolean; k: number;
+  group: THREE.Group; shadow: THREE.Mesh; lid: THREE.Group; shell: THREE.MeshLambertMaterial; pool: THREE.MeshBasicMaterial; seam: THREE.MeshBasicMaterial;
+  light: THREE.PointLight; hue: THREE.Color; gilt: number; open: boolean; chips: Chip[]; k: number;
 }
 
 export const egg: EntityView<EggView> = {
@@ -327,8 +331,12 @@ export const egg: EntityView<EggView> = {
     egg.scale.setScalar(1.35);
     group.add(egg);
     egg.add(ctx.lathe(EGG, shell));
-    const top = ctx.lathe(EGG_TOP, shell);
-    egg.add(top);
+    // The top, on a hinge at the back of the crack, so it can be pushed up from inside and tipped off.
+    const lid = new THREE.Group();
+    lid.position.set(0, 0.22, -0.18);
+    egg.add(lid);
+    lid.add(ctx.lathe(EGG_TOP, shell));
+    lid.children[0]!.position.set(0, -0.22, 0.18);
     // The crack, round its middle where it'll split: a zigzag that glows through as it comes.
     const seam = ctx.glow(SEAMS[s.school], { transparent: true, opacity: 0, depthWrite: false }), up = new THREE.Vector3(0, 0, 1), N = 14;
     const ring = Array.from({ length: N + 1 }, (_, i) => {
@@ -349,7 +357,14 @@ export const egg: EntityView<EggView> = {
     group.position.set(x, 0, z);
     shadow.position.set(x, SHADOW_Y, z);
     ctx.scene.add(group, shadow);
-    return { group, shadow, top, shell, pool, seam, light, hue, gilt: s.gilt, crack: 0, open: false, k: (e * 0.77) % 10 };
+    // Chips of shell, hidden till it breaks.
+    const chips = Array.from({ length: 6 }, () => {
+      const mesh = new THREE.Mesh(new THREE.TetrahedronGeometry(0.045, 0).scale(1, 0.35, 1), shell);
+      mesh.visible = false;
+      group.add(mesh);
+      return { mesh, v: new THREE.Vector3(), spin: new THREE.Vector3() };
+    });
+    return { group, shadow, lid, shell, pool, seam, light, hue, gilt: s.gilt, open: false, chips, k: (e * 0.77) % 10 };
   },
   update(ctx, v, e, g, f) {
     const s = g.world.need(e, "egg"), p = v.group.position, t = f.t + v.k, [a, b] = BURST[s.school];
@@ -365,19 +380,35 @@ export const egg: EntityView<EggView> = {
     const pale = s.school === "frost" ? 0.4 : 1;              // white glows white-hot: less of it
     v.pool.opacity = s.glow * pale * (0.7 + Math.sin(t * 3) * 0.15);
     v.light.intensity = s.glow * pale * 2.5;
-    // Near hatching: it rocks, harder the nearer, and now and then a chip of its colour flies off.
-    const rock = s.open ? 0 : s.crack * (0.12 + 0.1 * Math.sin(t * 7));
-    v.seam.opacity = s.open ? 0 : Math.max(0, (s.crack - 0.2) / 0.8) * (0.75 + Math.sin(t * 9) * 0.25);
-    v.group.rotation.set(Math.sin(t * 23) * rock, 0, Math.cos(t * 19) * rock);
-    if (!s.open && s.crack > 0.3 && Math.random() < f.dt * s.crack * 14) ctx.particles.spawn(a, p.x, 0.35, p.z, (Math.random() - 0.5) * 1.5, 1.4, (Math.random() - 0.5) * 1.5, 0.5);
-    // Open: a burst of its colour, and the top half tipped off into the grass beside it.
+    // Near hatching: it rocks in fits and starts (a bout of little wobbles, then still), more and harder the nearer, the
+    // crack glowing brighter with each bout.
+    const bout = Math.pow(Math.max(0, Math.sin(t * (1.6 + s.crack * 1.6))), 6), rock = s.open ? 0 : s.crack * (0.03 + 0.2 * bout);
+    v.seam.opacity = s.hatch > 0.3 ? 0 : Math.max(0, (s.crack - 0.2) / 0.8) * (0.55 + 0.45 * bout);
+    v.group.rotation.set(Math.sin(t * 21) * rock, 0, Math.cos(t * 17) * rock);
+    // Breaking open: the top pushed up from inside and tipped back on its hinge; then off it goes, tumbling down into
+    // the grass behind; a few chips of shell fly and land, and a little puff of its colour.
+    const up = Math.min(1, s.hatch / 0.35), off = ease(Math.max(0, (s.hatch - 0.35) / 0.65));
+    v.lid.position.set(0.04 * off, 0.22 + 0.04 * up - 0.42 * off * off, -0.18 - 0.22 * off);
+    v.lid.rotation.set(-0.75 * up - 1.9 * off, 0, 0.5 * off);
     if (s.open && !v.open) {
-      for (let i = 0; i < 70; i++) {
-        const ang = Math.random() * Math.PI * 2, sp = 0.8 + Math.random() * 2.4;
-        ctx.particles.spawn(i % 2 ? a : b, p.x, 0.4, p.z, Math.cos(ang) * sp, 1 + Math.random() * 2.5, Math.sin(ang) * sp, 0.8 + Math.random() * 0.5);
+      for (const c of v.chips) {
+        const ang = Math.random() * Math.PI * 2, sp = 0.5 + Math.random() * 0.9;
+        c.mesh.visible = true;
+        c.mesh.position.set(Math.cos(ang) * 0.15, 0.38, Math.sin(ang) * 0.15);
+        c.v.set(Math.cos(ang) * sp, 1.2 + Math.random() * 1.2, Math.sin(ang) * sp);
+        c.spin.set(Math.random() * 12, Math.random() * 12, Math.random() * 12);
       }
-      v.top.position.set(0.24, -0.2, 0.08);
-      v.top.rotation.set(0.3, 0, 2.0);
+      for (let i = 0; i < 14; i++) {
+        const ang = Math.random() * Math.PI * 2, sp = 0.3 + Math.random() * 0.8;
+        ctx.particles.spawn(i % 2 ? a : b, p.x, 0.4, p.z, Math.cos(ang) * sp, 0.6 + Math.random(), Math.sin(ang) * sp, 0.5 + Math.random() * 0.4);
+      }
+    }
+    for (const c of v.chips) {                               // falling, and lying where they land
+      if (!c.mesh.visible || c.mesh.position.y <= 0.012) continue;
+      c.v.y -= 7 * f.dt;
+      c.mesh.position.addScaledVector(c.v, f.dt);
+      c.mesh.rotation.x += c.spin.x * f.dt; c.mesh.rotation.y += c.spin.y * f.dt; c.mesh.rotation.z += c.spin.z * f.dt;
+      if (c.mesh.position.y <= 0.012) { c.mesh.position.y = 0.012; c.mesh.rotation.set(0, c.mesh.rotation.y, 0); }
     }
     v.open = s.open;
   },

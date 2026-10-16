@@ -306,7 +306,7 @@ function dragonAt(g: Game, d: Partial<Dragon> & Pick<Dragon, "x" | "y" | "size" 
 }
 /** One of the three eggs, standing (cell top-left). */
 const eggAt = (g: Game, school: Egg["school"], x: number, y: number, gilt: number, glow = 0): Entity =>
-  g.world.create({ transform: { x, y }, egg: { school, gilt, glow, crack: 0, open: false }, renderable: { kind: "egg" } });
+  g.world.create({ transform: { x, y }, egg: { school, gilt, glow, crack: 0, open: false, hatch: 0 }, renderable: { kind: "egg" } });
 /** The wingbeats of a dragon in flight, run on by dt: a great whump at the bottom of each, and the ground shaking a little. */
 function beat(g: Game, d: Dragon, dt: number, pace: number): void {
   const before = Math.floor(d.flap / (2 * Math.PI));
@@ -420,11 +420,13 @@ const SHOTS: readonly Shot[] = [
     },
   },
   {
-    // Under the Greyspines, the eggs home beside their mother: she lies curled at the head of a high meadow, the
-    // mountains close behind her, her head low over the three of them, glowing. One after another they rock, crack and
-    // burst open in their own colours, red, white and indigo, and out tumbles a hatchling, a little too big for a
-    // moment, hopping. Then she rears up, wings wide, and roars fire at the sky; they look up at her and each breathes
-    // its first small breath; and their song with hers seals the valley whole.
+    // Under the Greyspines, the eggs home beside their mother: she stands at the head of a high meadow, the mountains
+    // close behind her, her face right down over the three of them, glowing. One after another they rock in fits and
+    // starts and the crack shows; then a snout pushes the top up from inside, a small head in its order's colour (red,
+    // white, indigo) pokes out and peers about, the top tips off into the grass, and the hatchling clambers out over the
+    // rim, damp and small, unfurls, stretches its wings, and toddles off to a spot of its own. She lifts her head to
+    // look at each. Then she rears up, wings wide, and roars fire at the sky; they look up at her and each breathes its
+    // first small breath; and their song with hers seals the valley whole.
     id: "hatch", area: "greyspines", load: async () => greyspines(), hour: 17.5, had: () => true,
     stage(g) {
       const mx = (g.map.width * T) / 2, my = 6 * T, ey = my + 3.3 * T;   // right under her face, head down
@@ -441,30 +443,38 @@ const SHOTS: readonly Shot[] = [
         from: shots(0), to: shots(1), camAt: shots, says: SHOT_SAYS.hatch, hold: 19,
         play: (k, dt) => {
           eggs.forEach((e, i) => {
-            const a = 0.06 + i * 0.12, egg = g.world.need(e, "egg"), at = g.world.need(e, "transform");
-            egg.crack = ramp(k, a, a + 0.1);
-            egg.glow = 0.8 * (1 - ramp(k, a + 0.1, a + 0.25));
-            if (!egg.open && k >= a + 0.1) {
+            const a = 0.05 + i * 0.12, h = a + 0.07, egg = g.world.need(e, "egg"), at = g.world.need(e, "transform");
+            egg.crack = ramp(k, a, h);
+            egg.hatch = ramp(k, h, h + 0.05);
+            egg.glow = 0.8 * (1 - ramp(k, h, h + 0.12));
+            if (!egg.open && k >= h) {                       // inside it, curled up, head up, about to push
               egg.open = true;
               sound(g, "hatch");
-              young[i] = dragonAt(g, { x: at.x, y: at.y + 0.4 * T, size: 0.6, hide: egg.school, pose: "sit", grow: 0, facing: Math.PI / 2 + (i - 1) * 0.6 });
+              young[i] = dragonAt(g, { x: at.x, y: at.y - 0.1 * T, height: -0.12, size: 0.3, hide: egg.school, pose: "sit", neck: 1, facing: Math.PI / 2 + (i - 1) * 0.5 });
             }
           });
           young.forEach((y, i) => {
             if (y === null) return;
-            const d = g.world.need(y, "dragon"), born = 0.16 + i * 0.12, look = ramp(k, 0.55, 0.62), puff = 0.8 + i * 0.045;
-            const egg = g.world.need(eggs[i]!, "transform"), out = ease(ramp(k, born + 0.02, born + 0.14));   // hopping out to a spot of its own
-            d.x = egg.x + (i - 1) * 0.9 * T * out;
-            d.y = egg.y + (0.4 + 1.1 * out) * T;
-            d.grow = ramp(k, born, born + 0.05);
-            d.height = Math.abs(Math.sin((k - born) * 50)) * 0.22 * (1 - ramp(k, born + 0.05, born + 0.16));   // a few little hops
-            d.facing = lerp(Math.PI / 2 + (i - 1) * 0.6, -Math.PI / 2 + (i - 1) * 0.5, look);                  // round to look up at her
-            d.neck = 0.25 + 0.65 * look;
+            const d = g.world.need(y, "dragon"), h = 0.12 + i * 0.12, look = ramp(k, 0.55, 0.62), puff = 0.8 + i * 0.045;
+            const egg = g.world.need(eggs[i]!, "transform");
+            const poke = ramp(k, h, h + 0.03), climb = ease(ramp(k, h + 0.05, h + 0.1)), out = ease(ramp(k, h + 0.11, h + 0.21));
+            // From inside the shell, over the rim to just in front of it, then off to a spot of its own.
+            const inside = { x: egg.x, y: egg.y - 0.1 * T }, rim = { x: egg.x + (i - 1) * 0.15 * T, y: egg.y + 0.6 * T };
+            const spot = { x: egg.x + (i - 1) * 0.9 * T, y: egg.y + 1.5 * T };
+            d.x = lerp(lerp(inside.x, rim.x, climb), spot.x, out);
+            d.y = lerp(lerp(inside.y, rim.y, climb), spot.y, out);
+            // Head up out of the top, peering; up and over the rim; then toddling, a little bob in each step.
+            d.height = -0.12 + 0.2 * poke - 0.08 * climb + Math.sin(Math.PI * climb) * 0.16 + Math.abs(Math.sin((k - h) * 90)) * 0.04 * (out > 0 && out < 1 ? 1 : 0);
+            d.size = 0.3 + 0.28 * ease(ramp(k, h + 0.06, h + 0.2));   // damp and small, unfurling as it goes
+            d.spread = ramp(k, h + 0.12, h + 0.14) * (1 - ramp(k, h + 0.16, h + 0.19));   // a stretch of its new wings
+            const settle = lerp(1, 0.35, ramp(k, h + 0.08, h + 0.12));
+            d.neck = lerp(settle, 0.9, look);
+            d.facing = lerp(Math.PI / 2 + (i - 1) * 0.5 + Math.sin((k - h) * 60) * 0.3 * (1 - ramp(k, h + 0.03, h + 0.06)), -Math.PI / 2 + (i - 1) * 0.5, look);   // looking about, then up at her
             d.fire = k > puff && k < puff + 0.04 ? 1 : 0;
           });
           const d = g.world.need(her, "dragon");
           // Face down over them; as each one opens she lifts her head a little to look, and settles again; then up she rears.
-          const looks = Math.max(0, ...eggs.map((_, i) => { const a = 0.16 + i * 0.12; return ramp(k, a, a + 0.025) * (1 - ramp(k, a + 0.05, a + 0.09)); }));
+          const looks = Math.max(0, ...eggs.map((_, i) => { const a = 0.12 + i * 0.12; return ramp(k, a, a + 0.025) * (1 - ramp(k, a + 0.07, a + 0.11)); }));
           d.neck = Math.max(looks * 0.22, ramp(k, 0.5, 0.6)) - 0.55 * ramp(k, 0.84, 0.95);
           d.spread = ramp(k, 0.52, 0.6) * (1 - ramp(k, 0.86, 0.96));
           d.fire = ramp(k, 0.6, 0.63) * (1 - ramp(k, 0.75, 0.79));
