@@ -32,10 +32,14 @@ export function onlyIf(scene: string, can: (g: Game) => boolean): void { conditi
 const cue = (g: Game, c: Cue | undefined) => { if (c) cues.get(c)?.(g); };
 const canPlay = (g: Game, scene: Scene) => !playedIn(g).has(scene.id) && (conditions.get(scene.id)?.(g) ?? true);
 
-/** Play an area's scene the first time the hero arrives there. Call once, at start-up. */
+/** Has this scene played, this run? */
+export const scenePlayed = (g: Game, id: string): boolean => playedIn(g).has(id);
+
+/** Play an area's scene the first time the hero arrives there (not while the credits are passing through). Call once, at start-up. */
 export function watchCutscenes(g: Game): void {
   playedIn(g);
   g.events.on("area", ({ def }) => {
+    if (g.state === "credits") return;
     const scene = SCENES.find(s => s.area === def.id && s.near === undefined && canPlay(g, s));
     if (scene && speakerOf(g, scene)) startCutscene(g, scene.id);
   });

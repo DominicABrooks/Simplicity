@@ -75,19 +75,34 @@ export const KING_NO_PROOF: readonly string[] = [
   "I said bring me proof. Bring me proof.",
 ];
 
-/** The credits: still pictures of how it all ends (HERO.md, "Where everyone ends up"), each with a line under it. */
-export type Still = "chronicle" | "ranger" | "eggs" | "cards" | "turnip" | "lantern";
-export const CREDITS: readonly { still: Still; says: string }[] = [
-  { still: "chronicle", says: "King Osric reads the true chronicle at the cross, the Founder's letter and all. He goes very red." },
-  { still: "ranger", says: "The Ranger walks home, to the house with the grey cloak at the window." },
-  { still: "eggs", says: "The Vael come over the King's Bridge, openly and politely, and take their eggs home." },
-  { still: "cards", says: "Yssa plays cards with Widow Crane every Thursday. Widow Crane cheats. Yssa lets her." },
-  { still: "turnip", says: "Tam Appleby is not a sheep any more, and has been eating turnips ever since." },
-  { still: "lantern", says: "And the Foreigner sleeps in the top room of the Fells' house, with a lantern of his own in the window." },
-];
+/**
+ * The credits: short shots of this run, in the places it happened (src/game/credits.ts), each with a line under it.
+ * A shot only plays if the run got there; some lines change with what else it did.
+ */
+export type ShotId = "woke" | "king" | "barricade" | "yssa" | "cinder" | "rime" | "ringer" | "calder" | "home" | "steps";
+export const SHOT_SAYS: Record<ShotId, string> = {
+  woke: "You woke on a stone by the Ranger's fire, with nothing but a note in your hand.",
+  king: "King Osric read the Ranger's note, went very red, and sent you deep into the Witchwood after Calder.",
+  barricade: "The woodwardens read the watchword off your scrap of paper, and stepped aside.",
+  yssa: "Yssa wouldn't let anyone by who didn't know her name. You wrote it down.",
+  cinder: "Cinder fell in the Ashwild. At the last the grey went out of him, and he said he was sorry.",
+  rime: "Out on the frozen lake, Rime sang a line about the river Aurel as she fell, and the ice let go.",
+  ringer: "One night in St Mary's churchyard, you laid the Grey Ringer to rest.",
+  calder: "At the edge of the great crack Calder looked at you and said, \"Oh. He sent you. Good.\" Then the crack ground shut.",
+  home: "You came home at dawn with his head, and half the city followed you up the hill.",
+  steps: "You set it at the King's feet. \"...You did it.\" And then he told them the rest.",
+};
+/** Said instead, or after, when the run went that way. */
+export const SHOT_SAYS_TOO = {
+  bow: "You kept your distance with the hunter's bow. Rime sang a line about the river Aurel as she fell, and the ice let go.",
+  koi: "And down under the ice, you landed the Great Koi.",
+} as const;
 
-/** How the credits run (s): the fade to black before them, each picture's fade in and out, how long it's held. */
-export const CREDITS_TIME = { dark: 1.6, fade: 1.2, hold: 5.5, end: 3 } as const;
+/** How the credits run (s): the dark before them, each shot's fade in and out, how long each is, and The End held before the card. */
+export const CREDITS_TIME = { dark: 1.4, fade: 0.9, shot: 7.5, end: 3 } as const;
+
+/** Under The End: how this run went. */
+export const RUN_SUMS = { level: "Level {n}", kills: "{n} foes beaten", curios: "{n} curiosities found", curio: "1 curiosity found" } as const;
 
 /**
  * After "The End": who made it, a word from him, a way to chip in, and a box for feedback, sent to his Discord through

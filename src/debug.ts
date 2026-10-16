@@ -16,7 +16,16 @@ import { skipCutscene, startCutscene } from "./game/cutscene.ts";
 import { endTalk } from "./game/talk.ts";
 import { isCommoner, loadCensus, walkersOf } from "./game/townsfolk.ts";
 import { deathSystem } from "./systems/enemies.ts";
+import { cinderFightSystem } from "./game/cinderfight.ts";
+import { rimeFightSystem } from "./game/rimefight.ts";
+import { laidToRest } from "./game/ghost.ts";
+import { landGreatKoi } from "./game/greatkoi.ts";
+import { takeBow } from "./game/hunterhut.ts";
+import { passBarricade } from "./game/watchword.ts";
+import { passYssa } from "./game/yssa.ts";
 import { showEndCard } from "./ui/credits.ts";
+import { creditsFrom } from "./game/credits.ts";
+import type { ShotId } from "./data/ending.ts";
 import { hauntingOf } from "./game/ghost.ts";
 import { startEerie } from "./game/eerie.ts";
 import type { EerieId } from "./data/eerie.ts";
@@ -61,12 +70,39 @@ export function exposeDebug(g: Game, view: Renderer): void {
    * (his fight started, his health at nothing, the crack shut), his head in the bag, and then on to the stage asked for:
    * "stone" (by the glowing rift stone), "home" (at the fountain stone at dawn), "castle" (in at the castle gate, a
    * crowd behind him), "king" (a few steps from the King on the keep steps: the scene starts), "credits", or "card"
-   * (after The End). `crowd` is how many follow him (castle and on).
+   * (after The End). `crowd` is how many follow him (castle and on). `full`: the rest of the run done too, for the
+   * credits to show it all: Cinder and Rime beaten for real, the barricade and both of Yssa's words passed, the King's
+   * audience heard, the hunter's bow taken, the Great Koi landed and the Grey Ringer laid to rest. `shot`: the credits
+   * start from that shot (woke, king, barricade, yssa, cinder, rime, ringer, calder, home, steps).
    */
-  async function ending(stage: string = "stone", crowd = 8): Promise<string> {
+  async function ending(stage: string = "stone", crowd = 8, full = false, shot?: string): Promise<string> {
     const STAGES = ["stone", "home", "castle", "king", "credits", "card"];
     if (!STAGES.includes(stage)) return `No stage "${stage}". Try: ${STAGES.join(", ")}`;
     await boss("calder");
+    if (full) {
+      g.state = "travel";                                    // held still meanwhile: no fight gets going behind his back
+
+      passBarricade(g); passYssa(g, "name"); passYssa(g, "river"); takeBow(g); laidToRest(g); landGreatKoi(g, 0, 0);
+      for (const who of ["cinder", "rime"] as const) {
+        const lair = LAIRS[who];
+        enterArea(g, await loadArea(lair.area), lair.entry);
+        Object.assign(g.world.need(g.player, "transform"), lair.stage(g));
+        (who === "cinder" ? cinderFightSystem : rimeFightSystem)(g, 1 / 60);
+        const them = g.world.query("renderable", "health").find(([, c]) => c.renderable.kind === who);
+        if (!them) return `${who} didn't come`;
+        them[1].health.hp = 0;
+        bossSystem(g, 1 / 60);
+        deathSystem(g);
+        endTalk(g);
+      }
+      enterArea(g, await loadArea("throneroom"), "door");      // his audience, heard
+      skipCutscene(g);
+      endTalk(g);
+      const lair = LAIRS.calder;
+      enterArea(g, await loadArea(lair.area), lair.entry);
+      Object.assign(g.world.need(g.player, "transform"), lair.stage(g));
+      g.state = "play";
+    }
     const dt = 1 / 60;
     calderFightSystem(g, dt);                                // he's close enough: the fight starts
     const calder = g.world.query("renderable", "health").find(([, c]) => c.renderable.kind === "calder");
@@ -94,6 +130,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
     const king = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")![1].transform;
     Object.assign(hero, { x: king.x, y: king.y + 8 * T });   // near enough that the scene starts
     if (stage === "king") return "A few steps from the King";
+    if (shot) creditsFrom(g, shot as ShotId);               // the credits from that shot on
     startCutscene(g, "homecoming");
     skipCutscene(g);                                         // the head laid down, and the credits begin
     if (stage === "card") showEndCard();
@@ -134,7 +171,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
       /** Getting about: area("hollow") or area("capital", "castle") starts a fresh run there (or load the page with ?area=hollow,
        *  and &entry=stone for another way in; &god and &freeze work here too). */
       area,
-      /** The ending: ending("home") and so on (see above), or load the page with ?ending=home (&crowd=12). */
+      /** The ending: ending("home") and so on (see above), or load the page with ?ending=home (&crowd=12, &full). */
       ending,
       /** The time of day: hour(23) makes it 11 at night (or load the page with ?hour=23); with nothing, the hour it is now. */
       hour: (h?: number) => (h === undefined ? g.hour : setHour(h)),
@@ -152,7 +189,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
   if (q.has("freeze")) setFrozen(g, true);
   if (at !== null && Number.isFinite(Number(at))) setHour(Number(at));
   // A lair can set its own hour (the Ringer comes at night): the asked-for one wins.
-  if (end !== null) void ending(end || "stone", Number(q.get("crowd") ?? 8)).then(said => console.info(said));
+  if (end !== null) void ending(end || "stone", Number(q.get("crowd") ?? 8), q.has("full"), q.get("shot") ?? undefined).then(said => console.info(said));
   else if (who) void boss(who).then(() => { if (at !== null && Number.isFinite(Number(at))) setHour(Number(at)); });
   else if (where) void area(where, q.get("entry") ?? undefined).then(said => console.info(said));
 }

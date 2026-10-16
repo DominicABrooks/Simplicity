@@ -9,7 +9,7 @@ import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { CALDER_STAND } from "../src/areas/rift.ts";
 import { SCENES } from "../src/data/cutscenes.ts";
-import { CROWD, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF } from "../src/data/ending.ts";
+import { CROWD, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF, SHOT_SAYS } from "../src/data/ending.ts";
 import { AFTER, AFTER_GUARD, HEAD, HEAD_GUARD } from "../src/data/endtalk.ts";
 import { CALDER_FIGHT as F, CALDERS_HEAD } from "../src/data/rift.ts";
 import { HALF, T } from "../src/data/world.ts";
@@ -20,6 +20,7 @@ import { cutscene, holdInput, skipCutscene, updateCutscene, watchCutscenes } fro
 import { endCredits, headLaid, homeStoneSystem, watchEnding, wayHomeOpen } from "../src/game/ending.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { carryingHead, giveUpHead } from "../src/game/head.ts";
+import { creditsCamera, creditsShot, rollCredits, runSum, updateCredits } from "../src/game/credits.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "../src/game/talk.ts";
 import { populate, residentById, setCensus, updateTownsfolk } from "../src/game/townsfolk.ts";
@@ -172,13 +173,44 @@ describe("the end of the story path", () => {
     expect(carryingHead(g)).toBe(false);
     expect(g.world.query("renderable").some(([, c]) => c.renderable.kind === "head")).toBe(true);
     expect(g.state).toBe("credits");
+    const was = { x: hero.x, y: hero.y };
     endCredits(g);
     expect(g.state).toBe("play");
-    // Talking to him afterwards: thanks, not the task.
+    expect(g.area.def.id).toBe("castle");                    // back in the ward, where he stood
+    expect({ x: hero.x, y: hero.y }).toEqual(was);
+    // Talking to him afterwards, back on his throne: thanks, not the task.
+    enterArea(g, await loadArea("throneroom"), "door");
     endTalk(g);
-    Object.assign(hero, { x: at.x, y: at.y + 10 });
-    startTalk(g, king![0]);
+    const [throned, { transform: seat }] = kingOf(g)!;
+    Object.assign(hero, { x: seat.x, y: seat.y + 10 });
+    startTalk(g, throned);
     expect(KING_AFTER).toContain(talking(g)!.lines[0]);
+  });
+
+  it("the credits play this run back, shot by shot in the places it happened, and then put him back", async () => {
+    const g = await home();
+    enterArea(g, await loadArea("castle"), "town");
+    const at = kingOf(g)![1].transform, hero = g.world.need(g.player, "transform");
+    Object.assign(hero, { x: at.x, y: at.y + 40 });
+    frame(g);
+    skipCutscene(g);
+    expect(g.state).toBe("credits");
+    const was = { x: hero.x, y: hero.y };
+    // This run: woke, never saw the King, beat only Calder. Its shots, in order, each with its line.
+    await new Promise(r => setTimeout(r, 0));
+    await rollCredits(g);
+    const seen: string[] = [], said: string[] = [];
+    for (let i = 0; i < 60 * 120 && !updateCredits(g, 1 / 60); i++) {
+      const shot = creditsShot(g), cam = creditsCamera(g);
+      if (shot && seen[seen.length - 1] !== g.area.def.id + shot.says) { seen.push(g.area.def.id + shot.says); said.push(shot.says); expect(cam).not.toBeNull(); }
+    }
+    expect(said).toEqual([SHOT_SAYS.woke, SHOT_SAYS.calder, SHOT_SAYS.home, SHOT_SAYS.steps]);
+    expect(runSum(g)).toContain("Level");
+    endCredits(g);
+    expect(g.area.def.id).toBe("castle");
+    expect({ x: hero.x, y: hero.y }).toEqual(was);
+    expect(carryingHead(g)).toBe(false);                     // the head on screen was only for the pictures
+    expect(creditsCamera(g)).toBeNull();
   });
 
   it("skipping the scene still sets the head down and rolls the credits", async () => {
@@ -243,7 +275,8 @@ describe("the end of the story path", () => {
     frame(g);
     skipCutscene(g);
     endCredits(g);
-    expect(AFTER_GUARD).toContain(hear(guard)[0]);
-    expect(AFTER_GUARD).not.toContain(hear(guard)[0]);
+    const after = g.world.query("sentry", "renderable").find(([, c]) => c.renderable.kind === "guard")![0];
+    expect(AFTER_GUARD).toContain(hear(after)[0]);
+    expect(AFTER_GUARD).not.toContain(hear(after)[0]);
   });
 });

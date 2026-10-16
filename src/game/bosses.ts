@@ -111,9 +111,21 @@ export const bossWaiting = (g: Game): Who | null => state.get(g)?.lair?.who ?? n
 export function summonBoss(g: Game): Entity | null {
   const s = bossesOf(g), lair = s.lair;
   if (!lair) return null;
-  const { who, x, y } = lair, L = LIEUTENANTS[who];
+  const { who, x, y } = lair;
   s.lair = null;
-  const e = g.world.create({
+  const e = bodyOf(g, who, x, y);
+  s.here = { e, who, x, y };
+  clearTheField(g, e);
+  g.fx.push({ type: "burst", x, y, palette: LIEUTENANTS[who].palette });
+  return e;
+}
+
+/** A boss in the flesh at (x, y) (cell top-left): just their body, standing, nobody's fight (the credits: src/game/credits.ts). */
+export const standIn = (g: Game, who: Who, x: number, y: number): Entity => bodyOf(g, who, x, y);
+
+function bodyOf(g: Game, who: Who, x: number, y: number): Entity {
+  const L = LIEUTENANTS[who];
+  return g.world.create({
     transform: { x, y },
     knockback: { vx: 0, vy: 0 },
     health: { hp: L.hp, maxHp: L.hp },
@@ -126,10 +138,6 @@ export function summonBoss(g: Game): Entity | null {
     targetable: { ...MAGE_TARGET, name: L.name, hostile: true, radius: L.radius, height: L.height },
     renderable: { kind: L.look },                           // their own look: see src/render/models/
   });
-  s.here = { e, who, x, y };
-  clearTheField(g, e);
-  g.fx.push({ type: "burst", x, y, palette: L.palette });
-  return e;
 }
 
 /** A boss fight's just them and the hero: the slimes and mages about scatter (and none come while it's on: see spawnerSystem). */

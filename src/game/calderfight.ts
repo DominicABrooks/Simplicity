@@ -101,6 +101,12 @@ export function crackSealed(g: Game): number {
   return 1 - (1 - k) * (1 - k);
 }
 
+/** The crack open again and groaning shut from the start, on this arrival (the credits show it: src/game/credits.ts). */
+export function reopenCrack(g: Game): void {
+  const s = scars.get(g);
+  if (s?.in === g.area) Object.assign(s, { t: 0, from: 1 });
+}
+
 /** Seconds since Calder fell, on this arrival in the Rift (counted from the crack's having shut, on any later one); null if he hasn't. */
 export const calderGone = (g: Game): number | null => scars.get(g)?.t ?? null;
 

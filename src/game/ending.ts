@@ -15,6 +15,7 @@ import { calderGone } from "./calderfight.ts";
 import { onCue, onlyIf } from "./cutscene.ts";
 import type { Resident } from "../world/residents.ts";
 import { voiceOf } from "./conversation.ts";
+import { endReel, rollCredits } from "./credits.ts";
 import { disperseCrowd, gatherCrowd, processionOn } from "./crowd.ts";
 import { setState, toast, type Game } from "./game.ts";
 import { carryingHead, giveUpHead } from "./head.ts";
@@ -115,7 +116,11 @@ export function watchEnding(g: Game): void {
   endingOf(g);
   onlyIf("homecoming", g => beaten(g, "calder") && carryingHead(g) && !headLaid(g));
   onCue("layHead", layHead);
-  onCue("credits", g => { if (!endingOf(g).over) setState(g, "credits"); });
+  onCue("credits", g => {
+    if (endingOf(g).over) return;
+    setState(g, "credits");
+    void rollCredits(g);                                     // the run played back (src/game/credits.ts)
+  });
   g.events.on("area", ({ def, layout }) => {
     if (def.id !== "castle" || !beaten(g, "calder") || !carryingHead(g) || headLaid(g)) return;
     // Down at the foot of the keep's stairs, where he'd come out of its door (the way back out of the Throne Room).
@@ -128,6 +133,7 @@ export function watchEnding(g: Game): void {
 export function endCredits(g: Game): void {
   endingOf(g).over = true;
   disperseCrowd(g);
+  endReel(g);                                                // back in the castle ward, as he was
   if (g.state === "credits") setState(g, "play");
 }
 

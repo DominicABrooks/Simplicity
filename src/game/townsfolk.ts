@@ -831,7 +831,7 @@ function play(g: Game, s: Streets, e: Entity, t: { x: number; y: number }, dt: n
 
 export function updateTownsfolk(g: Game, dt: number): void {
   const s = here;
-  if (!s || s.area !== g.area.def.id || g.state !== "play") return;
+  if (!s || s.area !== g.area.def.id || (g.state !== "play" && g.state !== "credits")) return;   // the credits show the streets too
   updateLamps(g);
   const lighting = lampsDue();
   if (!lighting) lastLit.clear();                           // the round's done: tomorrow's starts from their doors again
