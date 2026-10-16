@@ -26,6 +26,7 @@ import { sound } from "./sfx.ts";
 import { sleeping } from "./sleeping.ts";
 import { talking } from "./talk.ts";
 import { scareFolk } from "./townsfolk.ts";
+import { rememberFright, tickFrights } from "./frights.ts";
 
 type Spot = { x: number; y: number };
 type Front = Spot & { facing: "north" | "south" | "east" | "west" };
@@ -194,6 +195,7 @@ export function pickEerie(g: Game, last: EerieId | null = null): EerieId | null 
  * (if the hero's free for it). By day, indoors, or anywhere else, nothing does, and anything going on stops.
  */
 export function eerieSystem(g: Game, dt: number): void {
+  tickFrights(g, dt);
   const s = uneaseOf(g);
   if (s.area !== g.area.def.id) { stop(g, s); s.area = g.area.def.id; s.wait = EERIE.settle; }
   if (isDay(g.hour)) { s.tonight = 0; s.rung = false; }
@@ -332,7 +334,8 @@ function fright(g: Game, h: Happening): void {
     case "well": at = h.at; break;
     default: at = heroAt(g);
   }
-  scareFolk(g, at, FRIGHT.radius, FRIGHT.shouts, FRIGHT.run);
+  const ran = scareFolk(g, at, FRIGHT.radius, FRIGHT.shouts, FRIGHT.run);
+  if (ran.length) rememberFright(g, ran, h.id, at);           // and they'll want to tell the hero about it
 }
 
 /** Day's come, or he's gone in or away: whatever was going on stops, and leaves nothing behind. */

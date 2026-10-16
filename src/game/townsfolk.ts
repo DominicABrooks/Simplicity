@@ -925,19 +925,19 @@ function flee(g: Game, s: Streets, e: Entity, w: Walker, t: { x: number; y: numb
 
 /**
  * Something uncanny just happened at (x, y) (px): everyone out within `radius` of it shouts one of `shouts` and runs
- * for home, `run` times their walking pace. How many took fright.
+ * for home, `run` times their walking pace. Who took fright (their census ids).
  */
-export function scareFolk(g: Game, at: { x: number; y: number }, radius: number, shouts: readonly string[], run: number): number {
+export function scareFolk(g: Game, at: { x: number; y: number }, radius: number, shouts: readonly string[], run: number): number[] {
   const s = here;
-  if (!s || s.area !== g.area.def.id) return 0;
-  let n = 0;
+  if (!s || s.area !== g.area.def.id) return [];
+  const ran: number[] = [];
   for (const e of [...s.out.values()]) {
     const w = g.world.get(e, "walker"), t = g.world.get(e, "transform");
     if (!w || !t || w.fleeing || Math.hypot(t.x + HALF - at.x, t.y + HALF - at.y) > radius) continue;
     flee(g, s, e, w, t, shouts, run);
-    n++;
+    ran.push(w.id);
   }
-  return n;
+  return ran;
 }
 
 /** Done here: what next, and off they go (or, if there's nowhere to get to from here, they stay a while longer). */

@@ -14,7 +14,8 @@ import { GIFT_OF } from "../data/voices.ts";
 import { T } from "../data/world.ts";
 import type { Resident } from "../world/residents.ts";
 import { makeGift } from "../items/items.ts";
-import { folkLines, guardLines, type CanGive } from "./conversation.ts";
+import { folkLines, guardLines, voiceOf, type CanGive } from "./conversation.ts";
+import { frightLines } from "./frights.ts";
 
 export { jobLine } from "./conversation.ts";
 import { residentById } from "./townsfolk.ts";
@@ -65,6 +66,9 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   // Now and then they notice a curiosity he's carrying, and have something to say about it, after their greeting.
   const clue = resident ? curioClue(g) : null;
   if (clue) lines.splice(Math.min(1, lines.length), 0, clue);
+  // And if something after dark frightened them lately (src/game/frights.ts), that comes first, after their greeting.
+  const fright = resident ? frightLines(g, resident, voiceOf(resident)) : [];
+  if (fright.length) lines.splice(Math.min(1, lines.length), 0, ...fright);
   g.world.add(g.player, "conversation", { with: e, name, key, lines, line: 0, t: 0, ...(asking ? { then: "paper" as const } : {}) });
   said(g);
   return true;
