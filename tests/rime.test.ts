@@ -264,6 +264,66 @@ describe("Rime's icicles and her ice block", () => {
   });
 });
 
+describe("Rime's last stand", () => {
+  it("won't fall to the first blow that should finish her: keeps her health, blinks to the middle and seals herself in", async () => {
+    const g = await inHollow(), [e, { health, transform }] = standOff(g, 3)!, f = rimeFight(g)!, enemy = g.world.need(e, "enemy");
+    g.rng.next = () => 0.5;                                   // no crits
+    Object.assign(transform, { x: f.x + 20, y: f.y - 10 });
+    health.hp = 3;
+    expect(hitEnemy(g, e, 5)).toBe(0);
+    expect(health.hp).toBe(3);
+    bossSystem(g, DT);
+    deathSystem(g);
+    rimeFightSystem(g, DT);
+    expect(g.world.isAlive(e)).toBe(true);
+    expect(beaten(g, "rime")).toBe(false);
+    expect(f.stand).not.toBeNull();
+    expect({ x: transform.x, y: transform.y }).toEqual({ x: f.x, y: f.y });
+    expect(enemy.warded).toBe(true);
+    expect(hitEnemy(g, e, 5)).toBe(0);                       // nothing gets through the ice
+    expect(health.hp).toBe(3);
+  });
+
+  it("pours icicles out for 15 seconds, a spiral and rings through it, and no frost creeping", async () => {
+    const g = await inHollow(), [e, { health }] = standOff(g, 3)!, f = rimeFight(g)!, S = RIME_FIGHT.lastStand;
+    g.rng.next = () => 0.5;
+    health.hp = 1;
+    hitEnemy(g, e, 5);
+    rimeFightSystem(g, DT);
+    let fired = 0;
+    const seen = new Set<number>();
+    for (let t = 0; t < S.hold - 0.5; t += 0.05) {
+      rimeFightSystem(g, 0.05);
+      for (const [b, { bolt }] of g.world.query("bolt")) if (bolt.kind === "icicle" && !seen.has(b)) { seen.add(b); fired++; }
+      for (const [b] of g.world.query("bolt")) g.world.destroy(b);   // out of the way, counted
+    }
+    const spiral = Math.floor((S.hold - 1.5) / S.spiral.gap) * S.spiral.arms, rings = Math.floor((S.hold - 2.5) / S.rings.every) * S.rings.count;
+    expect(fired).toBeGreaterThanOrEqual(spiral + rings - 20);
+    expect(f.patches).toHaveLength(0);
+    expect(f.falls.length).toBeGreaterThan(0);
+    expect(f.stand).not.toBeNull();
+  });
+
+  it("comes out after it, spent, still with the health she had; and the next blow that should finish her does", async () => {
+    const g = await inHollow(), [e, { health }] = standOff(g, 3)!, f = rimeFight(g)!, enemy = g.world.need(e, "enemy");
+    g.rng.next = () => 0.5;
+    health.hp = 2;
+    hitEnemy(g, e, 5);
+    rimeFightSystem(g, DT);
+    rimeFightSystem(g, RIME_FIGHT.lastStand.hold);
+    expect(f.stand).toBeNull();
+    expect(enemy.lastStand).toBe("spent");
+    expect(enemy.warded).toBe(false);
+    expect(g.world.need(e, "mage").held).toBe(false);
+    expect(health.hp).toBe(2);
+    hitEnemy(g, e, 5);
+    expect(health.hp).toBeLessThanOrEqual(0);
+    bossSystem(g, DT);
+    deathSystem(g);
+    expect(beaten(g, "rime")).toBe(true);
+  });
+});
+
 describe("coming to Rime ready, to playtest (?boss=rime)", () => {
   // Each piece as GEAR.md has it at Rime: about level 7, the bow in hand and Cinder's Brand in the bag, two or three
   // Cinderward or Rimewake pieces, and the King's signet.

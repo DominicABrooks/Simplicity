@@ -23,6 +23,8 @@ export type Who = "cinder" | "rime";
 interface Lieutenant {
   name: string; title: string; hp: number; radius: number; height: number; hurry: number; xp: number;
   school: School; look: RenderKind; boost?: MageBrain["boost"]; palette: "fire" | "frost";
+  /** Won't fall to the first blow that would finish them (see Enemy.lastStand). */
+  lastStand?: boolean;
   drop(rng: Rng): Item;
   falls: readonly string[]; lastWords: readonly string[];
 }
@@ -36,7 +38,7 @@ export const LIEUTENANTS: Record<Who, Lieutenant> = {
     },
   },
   rime: {
-    ...RIME, school: "frost", look: "rime", palette: "frost", boost: { nova: RIME.nova, bolt: RIME.bolt }, falls: RIME_FALLS, lastWords: RIME_LAST_WORDS,
+    ...RIME, school: "frost", look: "rime", palette: "frost", boost: { nova: RIME.nova, bolt: RIME.bolt }, lastStand: true, falls: RIME_FALLS, lastWords: RIME_LAST_WORDS,
     drop: () => makeItem(...RIME_CIRCLET),
   },
 };
@@ -96,7 +98,7 @@ export function summonBoss(g: Game): Entity | null {
     transform: { x, y },
     knockback: { vx: 0, vy: 0 },
     health: { hp: L.hp, maxHp: L.hp },
-    enemy: { kind: "mage", flash: 0, face: 1 },
+    enemy: { kind: "mage", flash: 0, face: 1, ...(L.lastStand ? { lastStand: "ready" as const } : {}) },
     mage: {
       school: L.school, timer: 2, casting: false, castT: 0, castK: 0, spell: null, strafe: 1, strafeT: 0, stuckT: 0,
       blinkCD: 1, specialCD: 2, moving: false, melee: false, swing: null, swingCD: 0, swingSide: 0, swingK: 0, swingRel: 0,

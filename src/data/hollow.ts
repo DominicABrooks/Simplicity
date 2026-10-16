@@ -59,9 +59,24 @@ export const RIME_FIGHT = {
     falls: { every: 0.45, count: 3, warn: 1, radius: 7, damage: 1, shatter: 0.5 },
     burst: { radius: 34, freeze: 1.5 },
   },
+  /**
+   * Her last stand: the first blow that would finish her doesn't. She keeps her health, blinks to the middle of the
+   * ring and seals herself in ice for `hold` seconds, and the arena fills with icicles: a spiral of `arms` streams
+   * turning as they fire (and turning back the other way every `flip` seconds), a ring of `rings.count` every
+   * `rings.every` seconds through it, and icicles falling on the ice now and then. Then she bursts out, and the next
+   * blow that would finish her does.
+   */
+  lastStand: {
+    hold: 15, speed: 40,
+    spiral: { arms: 4, gap: 0.18, turn: 0.2, flip: 4 },
+    rings: { every: 1.8, count: 14 },
+    falls: { every: 1.4, count: 2 },
+  },
   /** When she falls, the lake thaws in a ring round where she stood: from this far out to this far (tiles). */
   thaw: { inner: 2, outer: 3.6 },
   say: {
+    stand: "Rime won't fall! She blinks to the middle and seals herself in ice. Survive!",
+    standOut: "The ice cracks open. Rime staggers out, spent. Finish it!",
     block: "Rime seals herself in ice! The cold comes down all round you.",
     burst: "The ice block bursts!",
     warded: "Ice!",

@@ -42,6 +42,8 @@ export interface RimeFight {
   nextPattern: Volley["pattern"];
   /** Sealed in ice (seconds in), if she is; and seconds before she can be again. */
   block: { t: number } | null;
+  /** Her last stand (seconds in, the spiral's angle and when the next round and ring go), while it lasts. */
+  stand: { t: number; angle: number; next: number; nextRing: number } | null;
   blockCD: number;
   falls: Fall[];
   nextFalls: number;
@@ -86,7 +88,7 @@ function rise(g: Game): void {
   const view = g.world.create({ transform: { ...at }, renderable: { kind: "rimefrost" } });
   fights.set(g, {
     ...at, t: 0, angry: false, patches: [], nextPatches: 2, view,
-    volley: null, nextVolley: F.volley.first, nextPattern: "rings", block: null, blockCD: 0, falls: [], nextFalls: 0,
+    volley: null, nextVolley: F.volley.first, nextPattern: "rings", block: null, blockCD: 0, stand: null, falls: [], nextFalls: 0,
   });
   g.shake = Math.max(g.shake, 2);
   sound(g, "nova", at);
@@ -120,6 +122,16 @@ function run(g: Game, f: RimeFight, rime: Entity, dt: number): void {
   if (isFrozen(g)) return;                                  // playtesting: the frost holds still with her
   const safe = h.motion.dash > 0 || h.motion.jump > 0;      // a dash or a jump gets him clear
 
+  // The blow that should have finished her: her last stand.
+  if (enemy.lastStand === "taken" && !f.stand) lastStand(g, f, rime);
+  if (f.stand) {
+    standPhase(g, f, rime, dt, safe);
+    brain.held = true;
+    enemy.warded = !!f.stand;
+    if (!f.stand) brain.held = false;
+    fallsAndPatches(g, f, dt, safe, false);
+    return;
+  }
   // Melee wears off; too much of it, and into the ice she goes.
   const B = F.block;
   f.blockCD = Math.max(0, f.blockCD - dt);
@@ -129,10 +141,16 @@ function run(g: Game, f: RimeFight, rime: Entity, dt: number): void {
   else volleys(g, f, rime, dt);
   brain.held = !!f.block || !!f.volley;
   enemy.warded = !!f.block;
+  fallsAndPatches(g, f, dt, safe, true);
+}
+
+/** The frost patches (when `creeping`: not in her last stand, where it's all icicles) and the falling icicles. */
+function fallsAndPatches(g: Game, f: RimeFight, dt: number, safe: boolean, creeping: boolean): void {
+  const h = heroParts(g), B = F.block;
 
   // Frost creeps out over the ice: one patch right under the hero, the rest round about him (faster, and all over, in the block).
   const P = F.patch;
-  if ((f.nextPatches -= dt) <= 0) {
+  if (creeping && (f.nextPatches -= dt) <= 0) {
     f.nextPatches = f.block ? B.patches.every : P.every[f.angry ? 1 : 0];
     const n = f.block ? B.patches.count : P.count[f.angry ? 1 : 0];
     for (let i = 0; i < n; i++) {
@@ -198,6 +216,68 @@ function volleys(g: Game, f: RimeFight, rime: Entity, dt: number): void {
   v.fired++;
   v.next = v.pattern === "rings" ? V.rings.gap : V.spiral.gap;
   if (v.fired >= v.rounds) { f.volley = null; f.nextVolley = V.every[f.angry ? 1 : 0]; }
+}
+
+/** The blow that should have finished her didn't: she blinks to the middle and seals herself in, and the icicles come. */
+function lastStand(g: Game, f: RimeFight, rime: Entity): void {
+  const at = g.world.need(rime, "transform"), brain = g.world.need(rime, "mage");
+  g.fx.push({ type: "burst", x: at.x, y: at.y, palette: "arcane" });
+  at.x = f.x; at.y = f.y;                                   // to the middle of the ring
+  g.fx.push({ type: "burst", x: at.x, y: at.y, palette: "frost" });
+  f.stand = { t: 0, angle: g.rng.next() * Math.PI * 2, next: 1, nextRing: 2 };
+  f.block = null; f.volley = null; f.patches = []; f.nextFalls = 1.5;
+  for (const [e, { bolt }] of g.world.query("bolt")) if (bolt.kind === "icicle") g.world.destroy(e);
+  Object.assign(brain, { casting: false, castK: 0, spell: null, melee: false, swing: null });
+  g.shake = Math.max(g.shake, 2.5);
+  sound(g, "blink", at);
+  sound(g, "nova", at);
+  toast(g, F.say.stand, true);
+}
+
+/** Her last stand: held in her block in the middle, icicles pouring out of it, until it's done and out she staggers. */
+function standPhase(g: Game, f: RimeFight, rime: Entity, dt: number, safe: boolean): void {
+  const S = F.lastStand, s = f.stand!, at = g.world.need(rime, "transform"), h = heroParts(g), o = MAGE.boltOffset;
+  at.x = f.x; at.y = f.y;
+  s.t += dt;
+  const fire = (a: number) => spawnBolt(g, "icicle", at.x + Math.cos(a) * o, at.y + Math.sin(a) * o, Math.cos(a) * S.speed, Math.sin(a) * S.speed);
+  // The spiral, turning one way and then back the other.
+  if ((s.next -= dt) <= 0) {
+    s.next = S.spiral.gap;
+    s.angle += S.spiral.turn * (Math.floor(s.t / S.spiral.flip) % 2 ? -1 : 1);
+    for (let i = 0; i < S.spiral.arms; i++) fire(s.angle + (i / S.spiral.arms) * Math.PI * 2);
+    sound(g, "cast", at);
+  }
+  // Rings through it.
+  if ((s.nextRing -= dt) <= 0) {
+    s.nextRing = S.rings.every;
+    const base = g.rng.next() * Math.PI * 2;
+    for (let i = 0; i < S.rings.count; i++) fire(base + (i / S.rings.count) * Math.PI * 2);
+  }
+  // Now and then an icicle drops out of the cold, one of them on him.
+  if ((f.nextFalls -= dt) <= 0) {
+    f.nextFalls = S.falls.every;
+    for (let i = 0; i < S.falls.count; i++) {
+      const a = g.rng.next() * Math.PI * 2, d = Math.sqrt(g.rng.next()) * (F.keepIn - 4);
+      f.falls.push(i === 0 ? { x: h.pos.x, y: h.pos.y, t: 0, hit: false } : { x: f.x + Math.cos(a) * d, y: f.y + Math.sin(a) * d, t: 0, hit: false });
+    }
+  }
+  if (s.t < S.hold) return;
+  // Out she staggers, spent: the next blow that should finish her will.
+  f.stand = null;
+  const enemy = g.world.need(rime, "enemy");
+  enemy.lastStand = "spent";
+  enemy.warded = false;
+  enemy.melee = 0;
+  f.blockCD = F.block.cooldown;
+  f.nextVolley = Math.max(f.nextVolley, 3);
+  g.fx.push({ type: "nova", x: at.x, y: at.y, radius: F.block.burst.radius });
+  g.shake = Math.max(g.shake, 2);
+  sound(g, "nova", at);
+  toast(g, F.say.standOut, true);
+  if (!safe && Math.hypot(h.pos.x - at.x, h.pos.y - at.y) < F.block.burst.radius) {
+    h.status.frozen = F.block.burst.freeze;
+    cancelActions(h.actions);
+  }
 }
 
 /** Too much carved off her up close: into a block of ice she goes. */

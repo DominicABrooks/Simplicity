@@ -211,7 +211,8 @@ const rime: EntityView<RimeView> = {
     v.novaFill.scale.multiplyScalar(v.novaK);
     // Drawing the cold in for a volley; or sealed in her block of ice.
     const fight = rimeFight(g), vol = fight?.volley, wind = vol ? (vol.wind > 0 ? 1 - vol.wind / RIME_FIGHT.volley.wind : 1) : 0;
-    const sealed = fight?.block ? Math.min(1, fight.block.t / 0.25, (RIME_FIGHT.block.hold - fight.block.t) / 0.15) : 0;
+    const sealedFor = (t: number, hold: number) => Math.max(0, Math.min(1, t / 0.25, (hold - t) / 0.15));
+    const sealed = fight?.stand ? sealedFor(fight.stand.t, RIME_FIGHT.lastStand.hold) : fight?.block ? sealedFor(fight.block.t, RIME_FIGHT.block.hold) : 0;
     animateRime(v.rime, f.t, b.casting ? b.castK : wind, sealed);
     if (Math.random() < f.dt * 6) {                          // frost always drifting off her
       const [x, z] = toWorld(o.x, o.y);

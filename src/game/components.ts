@@ -132,6 +132,9 @@ export interface Enemy {
   melee?: number;
   /** Nothing hurts it (Rime in her ice block). */
   warded?: boolean;
+  /** One last stand in it (Rime): the first blow that would finish it doesn't ("ready" -> "taken"), and its fight
+   *  answers (src/game/rimefight.ts) until it's "spent"; then the next one does. */
+  lastStand?: "ready" | "taken" | "spent";
 }
 
 export interface SlimeBrain {

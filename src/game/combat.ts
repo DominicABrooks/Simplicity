@@ -25,6 +25,13 @@ export function hitEnemy(g: Game, e: Entity, damage: number, melee = true): numb
   }
   const crit = g.rng.next() < CRIT.chance;
   const dealt = crit ? damage * CRIT.multiplier : damage;
+  if (enemy.lastStand === "ready" && health.hp - dealt <= 0) {   // it won't fall yet: the blow's turned, its health kept
+    enemy.lastStand = "taken";
+    enemy.warded = true;
+    sound(g, "dud", at);
+    combatText(g, at.x, at.y, "Not yet!", COMBAT_COLORS.crit, true);
+    return 0;
+  }
   health.hp -= dealt;
   if (melee) enemy.melee = (enemy.melee ?? 0) + dealt;
   enemy.flash = crit ? 0.22 : 0.15;
