@@ -215,6 +215,26 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; i
 #credits h1, #credits small { position: absolute; margin: 0; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
 #credits h1 { font-size: 48px; line-height: 60px; color: var(--glow); text-shadow: 3px 3px 0 #2a1840; }
 #credits small { top: calc(50% + 56px); font-size: 14px; color: var(--stone); }
+#credits .card { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(560px, 90vw); text-align: center; }
+#credits .card[hidden], #credits .still[hidden] { display: none; }
+#credits:has(.card:not([hidden])) { overflow-y: auto; justify-content: safe center; padding: 24px 0; box-sizing: border-box; }
+#credits .card .by { margin: 0; font-size: 32px; line-height: 40px; color: var(--glow); text-shadow: 3px 3px 0 #2a1840; }
+#credits .card p { min-height: 0; font-size: 16px; line-height: 24px; }
+#credits .card .help { margin-top: -6px; color: var(--stone); }
+#credits .card .note:first-of-type, #credits .card .ask { margin-top: 10px; }
+#credits .card a.donate { color: var(--glow); font-size: 16px; }
+#credits .card textarea {
+  width: 100%; box-sizing: border-box; resize: none; padding: 8px; font-size: 16px; line-height: 22px;
+  background: #14101e; color: var(--bone); border: 2px solid #4a3a5a; outline: none;
+}
+#credits .card textarea:focus { border-color: var(--glow); }
+#credits .card .row { display: flex; align-items: center; gap: 12px; align-self: stretch; }
+#credits .card .said { color: var(--stone); font-size: 14px; }
+#credits .card button {
+  padding: 6px 14px; font-size: 16px; cursor: pointer; color: var(--ink); background: var(--glow); border: none; box-shadow: 3px 3px 0 #2a1840;
+}
+#credits .card button:disabled { opacity: 0.5; cursor: default; }
+#credits .card button.home { margin-top: 14px; background: var(--bone); }
 
 /* ---------- Dialogue (see src/ui/dialogue.ts) ---------- */
 #dialogue {

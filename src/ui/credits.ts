@@ -1,8 +1,9 @@
 // The credits (STORY.md, "0:55"): after the King's had his say on the keep steps, the screen goes dark and a few still
 // pictures come up one after another, each with a line under it, showing how it all ends (src/data/ending.ts,
-// CREDITS); then "The End". Escape skips to the end; once it's up, a click or a key goes back to the game.
+// CREDITS); then "The End". Escape skips to the end; once it's up, a click or a key brings up who made the game, a word
+// from him, a way to donate and a box to send him feedback (END_CARD), and from there a button goes back to the game.
 // The pictures are painted here, small and blocky like everything else, and scaled up.
-import { CREDITS, CREDITS_TIME as TIME, type Still } from "../data/ending.ts";
+import { CREDITS, CREDITS_TIME as TIME, END_CARD, type Still } from "../data/ending.ts";
 import { endCredits } from "../game/ending.ts";
 import type { Game } from "../game/game.ts";
 
@@ -19,11 +20,13 @@ export function createCredits(g: Game): { draw(dt: number): void } {
   end.textContent = "The End";
   more.textContent = "click to go on";
   frame.append(canvas, caption);
-  root.append(frame, end, more);
+  const card = makeCard(() => finish());
+  root.append(frame, end, more, card.el);
   document.body.append(root);
   const paint = canvas.getContext("2d")!;
 
-  // Where the credits are: seconds since they began, and which picture is up (-1 the dark before; CREDITS.length the end).
+  // Where the credits are: seconds since they began, and which picture is up (-1 the dark before; CREDITS.length the end;
+  // past that, the card).
   let t = 0, at = -1;
   const show = (i: number) => {
     at = i;
@@ -31,15 +34,18 @@ export function createCredits(g: Game): { draw(dt: number): void } {
     const still = CREDITS[i];
     if (still) { STILLS[still.still](paint); caption.textContent = still.says; }
   };
-  const finish = () => { root.hidden = true; root.classList.remove("on"); endCredits(g); };
+  const finish = () => { root.hidden = true; root.classList.remove("on"); card.el.hidden = true; frame.hidden = false; endCredits(g); };
   const toEnd = () => { show(CREDITS.length); t = TIME.fade; };
+  const toCard = () => { at = CREDITS.length + 1; end.style.opacity = more.style.opacity = "0"; frame.hidden = true; card.el.hidden = false; };
+  const endUp = () => at === CREDITS.length && t >= TIME.fade + TIME.end;
   addEventListener("keydown", e => {
     if (root.hidden) return;
+    if (!card.el.hidden) { e.stopPropagation(); return; }   // typing feedback: the keys are the box's, not the game's
     e.preventDefault();
     if (at < CREDITS.length) { if (e.key === "Escape") toEnd(); }
-    else if (t >= TIME.fade + TIME.end) finish();
+    else if (endUp()) toCard();
   }, true);
-  root.addEventListener("click", () => { if (at >= CREDITS.length && t >= TIME.fade + TIME.end) finish(); });
+  root.addEventListener("click", () => { if (endUp()) toCard(); });
   g.events.on("state", ({ state }) => {
     if (state !== "credits" || !root.hidden) return;
     root.hidden = false;
@@ -59,11 +65,64 @@ export function createCredits(g: Game): { draw(dt: number): void } {
         if (t >= last) show(at + 1);
         return;
       }
+      if (at > CREDITS.length) return;                       // the card's up
       frame.style.opacity = "0";
       end.style.opacity = `${Math.min(1, t / TIME.fade)}`;
       more.style.opacity = t >= TIME.fade + TIME.end ? "0.7" : "0";
     },
   };
+}
+
+// ---------- After The End ----------
+/** Who made it, a word from him, the donation link, the feedback box, and the way back to the game. */
+function makeCard(back: () => void): { el: HTMLElement } {
+  const C = END_CARD, el = document.createElement("div"), make = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = "") => {
+    const e = document.createElement(tag);
+    e.className = cls;
+    e.textContent = text;
+    return e;
+  };
+  el.className = "card";
+  el.hidden = true;
+  const donate = make("a", "donate", C.donateLabel);
+  Object.assign(donate, { href: C.donateUrl, target: "_blank", rel: "noopener" });
+  const box = make("textarea", "feedback");
+  Object.assign(box, { maxLength: C.longest, rows: 4, placeholder: "What did you think?" });
+  const send = make("button", "send", "Send"), said = make("span", "said"), home = make("button", "home", "Back to the game");
+  send.type = home.type = "button";
+  const row = make("div", "row");
+  row.append(send, said);
+  el.append(make("h2", "by", C.by), make("p", "help", C.help), ...C.note.map(n => make("p", "note", n)),
+    make("p", "ask", C.donate), donate, make("p", "ask", C.ask), box, row, home);
+  let sent = 0;
+  send.addEventListener("click", () => {
+    const text = box.value.trim().slice(0, C.longest);
+    if (!text || send.disabled) return;
+    if (sent >= C.most) { said.textContent = "That's plenty, thank you!"; return; }
+    send.disabled = true;
+    said.textContent = "Sending...";
+    void sendFeedback(text).then(ok => {
+      send.disabled = false;
+      if (ok) { sent++; box.value = ""; }
+      said.textContent = ok ? "Sent. Thank you!" : "Couldn't send that. Try again in a bit?";
+    });
+  });
+  home.addEventListener("click", back);
+  return { el };
+}
+
+/** Feedback to Dominic's Discord, by its webhook: just the words, pinging nobody. Whether it got there. */
+async function sendFeedback(text: string): Promise<boolean> {
+  try {
+    const res = await fetch(END_CARD.webhook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "Simplicity feedback", content: text, allowed_mentions: { parse: [] } }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 // ---------- The pictures ----------

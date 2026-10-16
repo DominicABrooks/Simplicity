@@ -88,3 +88,24 @@ export const CREDITS: readonly { still: Still; says: string }[] = [
 
 /** How the credits run (s): the fade to black before them, each picture's fade in and out, how long it's held. */
 export const CREDITS_TIME = { dark: 1.6, fade: 1.2, hold: 5.5, end: 3 } as const;
+
+/**
+ * After "The End": who made it, a word from him, a way to chip in, and a box for feedback, sent to his Discord through
+ * a webhook (src/ui/credits.ts). The webhook's URL is in the published page for anyone to read, so what's sent can't
+ * ping anyone, is cut short, and each player can only send a few.
+ */
+export const END_CARD = {
+  by: "Dominic Brooks",
+  help: "with help from AI",
+  note: [
+    "I have no plans to ever monetize this game. It's a passion project.",
+    "I've wanted to build something like this since I was a kid, and I still find it super cool that I finally have the resources to make it.",
+  ],
+  donate: "If you'd like to donate, 100% of anything you give goes back into improving the game.",
+  donateUrl: "https://buymeacoffee.com/domab",
+  donateLabel: "buymeacoffee.com/domab",
+  ask: "Got feedback? I'd love to hear it.",
+  webhook: "https://discord.com/api/webhooks/1560559001291464735/OIDDAJ4Z7aU-QJIDK-vXtZ3T_IVmGNyFAGX8v8b4S1ek2bZjXMkv-g0vT5-PdSHRpQIr",
+  /** The most one message can say, and how many one player can send. */
+  longest: 1500, most: 3,
+} as const;
