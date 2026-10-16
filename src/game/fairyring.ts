@@ -37,7 +37,7 @@ const lifeOf = (s: Saying) => F.line.in + s.hold + F.line.out;
 
 /** The fairy ring in the area he's in, if there is one. */
 export const ringHere = (g: Game): FairyRing | undefined =>
-  g.area.layout.props.find((p): p is FairyRing => p.kind === "fairyRing");
+  g.area.layout.props.find((p): p is FairyRing => p.kind === "fairyRing" && !p.quiet);
 
 /** Every frame: is he in the ring after dark, and has he moved? */
 export function fairyRingSystem(g: Game, dt: number): void {
@@ -57,7 +57,6 @@ function leave(g: Game, s: Trance, x: number, y: number): void {
   if (!s.last) return;
   const acorn = makeItem("acorn", "rare", {}, FEY_GIFT.name);
   acorn.note = FEY_GIFT.note(s.last);
-  acorn.heard = s.last;
   dropLoot(g, x, y, acorn);
   toast(g, FEY_GIFT.says, true);
   s.last = null;

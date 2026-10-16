@@ -35,7 +35,7 @@ export function createTooltip(): Tooltip {
       const note = curio ? curio.note : item.note ?? BASES[item.type].note;
       if (note) lines.push(line("tip-note", note));
       if (item.curio === "bottle") lines.push(line("tip-note", "Right-click to open it"));
-      if (item.type === "acorn") lines.push(line("tip-note", "Right-click to plant it in open grass"));
+      if (item.type === "acorn") lines.push(line("tip-note", "Right-click to follow where it hums"));
       for (const [k, v] of Object.entries(item.base) as [StatKey, number][]) {
         const text = BASE_TEXT[k];
         if (text) lines.push(line("tip-stat", text(v)));

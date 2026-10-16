@@ -24,6 +24,8 @@ export const ZONES: Record<string, Zone> = {
   castle: { entry: "town" },
   throneroom: { entry: "door" },
   undercroft: { entry: "steps" },
+  /** Under the hill, where a Fey Acorn takes him (src/game/underhill.ts): straight in, without the journey (so it doesn't count as a visit). */
+  underhill: { entry: "arrive" },
   /** Through the barricade, kitted as he'd be on the way to Cinder. */
   ashwild: { entry: "witchwood", ready: CINDER_READY, passed: passBarricade },
   /** Down Yssa's track, with Cinder's Brand in hand and Rime's gear on; the hunter's longbow is still in his hut. */

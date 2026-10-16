@@ -21,7 +21,7 @@ import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
 import { createTrance } from "./trance.ts";
-import { createOakView } from "./oaks.ts";
+import { createErlKingView, erlKingFocus } from "./erlking.ts";
 import { compactScenery, freezeScenery } from "./compact.ts";
 import { buildTerrain, groundUnderBridges } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
@@ -39,6 +39,8 @@ export interface Renderer extends Projector {
 
 /** The light inside a house: no sky, a dim warm fill and a low sun for shading (the hearth brings its own fire). */
 const INDOORS = { sky: "#120d10", fill: 0xffd8b0, fillI: 0.85, sun: 0xffc890, sunI: 0.55 } as const;
+/** ...and under the hill (src/areas/underhill.ts): a violet dusk that isn't a sky, a soft green light off the grass. */
+const UNDER_HILL = { sky: "#1a0f2e", fill: 0xc0a8ff, fillI: 1.1, sun: 0xb8ffd8, sunI: 0.6 } as const;
 const CAM_OFFSET = new THREE.Vector3(0, 11.5, 8.5);
 
 export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
@@ -77,7 +79,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   let animated: ((t: number, dt: number) => void)[] = [];
   const occlusion = createOcclusion(scene);
   const targetRing = createTargetRing(ctx);
-  const oaks = createOakView(ctx);                           // the gilded oaks he's planted (src/game/oaks.ts)
+  const erlKing = createErlKingView(ctx);                    // under the hill, his throne, and him (src/game/underhill.ts)
   const weather = createWeatherView(ctx, { sky, fog, fill, sun });
 
   // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
@@ -129,9 +131,10 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       const [px, pz] = hero.update(g, t, dt);
       // The camera follows the hero, or in a cutscene looks where the scene says, easing slowly from shot to shot.
       const shot = g.world.get(g.player, "cutscene")?.cam, ease = shot ? 2.2 : 8;
-      const lookX = shot ? shot.x / PX_PER_TILE : px, lookZ = shot ? shot.y / PX_PER_TILE : pz;
+      const focus = shot ? null : erlKingFocus(g, px, pz);     // under the hill, the Erl-King and him both
+      const lookX = shot ? shot.x / PX_PER_TILE : focus ? focus.x : px, lookZ = shot ? shot.y / PX_PER_TILE : focus ? focus.z : pz;
       camTarget.set(smooth(camTarget.x, lookX, dt, ease), 0, smooth(camTarget.z, lookZ, dt, ease));
-      camZoom = smooth(camZoom, shot?.zoom ?? 1, dt, shot ? 1.6 : 3);
+      camZoom = smooth(camZoom, shot?.zoom ?? focus?.zoom ?? 1, dt, shot ? 1.6 : 3);
       camera.position.copy(camTarget).addScaledVector(CAM_OFFSET, camZoom);
       camera.lookAt(camTarget);
       trance.pose(g, camera, dt, t);                         // standing in a fairy ring after dark, the view swims
@@ -146,7 +149,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       koi.update(dt, t, px, pz, bobber, !greatKoiBeaten(g) && greatKoiOut(g) === null);   // the big one's under the ice till it's hooked
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
-      oaks.update(g, t);
+      erlKing.update(g, t);
       occlusion.update(px, pz, CAM_OFFSET, dt);
       targetRing.update(g, t);
 
@@ -158,6 +161,13 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
         sun.color.set(INDOORS.sun);
         sun.intensity = INDOORS.sunI;
       } else daylight.update(g.hour);
+      if (g.area.def.id === "underhill") {                     // under the hill, its own light
+        sky.set(UNDER_HILL.sky);
+        fill.color.set(UNDER_HILL.fill);
+        fill.intensity = UNDER_HILL.fillI;
+        sun.color.set(UNDER_HILL.sun);
+        sun.intensity = UNDER_HILL.sunI;
+      }
       ctx.tex.water.offset.set((t * 0.06) % 1, (t * 0.03) % 1);
       // No rain indoors; where it's always winter, it's always snowing, and the rain comes down as more snow.
       const winter = g.map.look === "snow";

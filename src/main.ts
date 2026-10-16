@@ -36,18 +36,18 @@ import { watchEnding } from "./game/ending.ts";
 import { createSleepShade } from "./ui/sleepShade.ts";
 import { createFeyFade } from "./ui/feyFade.ts";
 import { createFeySayings } from "./ui/feySayings.ts";
-import { createOakWhisper } from "./ui/oakWhisper.ts";
+import { createErlSpeech } from "./ui/erlSpeech.ts";
 import { enterPets } from "./game/pets.ts";
 import { createAudioPlayer } from "./audio/player.ts";
 import { exposeDebug } from "./debug.ts";
 import { useCurio } from "./game/quay.ts";
-import { plantAcorn } from "./game/oaks.ts";
+import { followAcorn, holdForFey } from "./game/underhill.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
 const inventory = createInventoryView(g.inventory, bakeItemIcons(), {
   onDrop: item => dropItem(g, item),
-  onUse: item => (item.curio ? (inventory.close(), useCurio(g, item)) : item.type === "acorn" ? plantAcorn(g, item) : eatItem(g, item)),   // a letter is read with the bag shut
+  onUse: item => (item.curio ? (inventory.close(), useCurio(g, item)) : item.type === "acorn" ? (inventory.close(), followAcorn(g, item)) : eatItem(g, item)),   // a letter is read with the bag shut
 });
 const hud = createHud(g, view);
 const labels = createLabels(g, view);
@@ -58,7 +58,7 @@ const letterbox = createLetterbox(g);
 const sleepShade = createSleepShade(g, view);
 const feyFade = createFeyFade(g);
 const feySayings = createFeySayings(g);
-const oakWhisper = createOakWhisper(g, view);
+const erlSpeech = createErlSpeech(g, view);
 watchCutscenes(g);
 watchEnding(g);
 const credits = createCredits(g);
@@ -151,6 +151,7 @@ function frame(now: number): void {
   holdInput(g);                                            // in a cutscene, nothing the player does moves the hero
   updateResting(g, dt);                                    // before the hero moves: anything he does gets him up
   updateSleeping(g, dt);                                   // and asleep, nothing held moves him
+  holdForFey(g);                                           // nor while the fair folk have him (src/game/underhill.ts)
   step(g, dt);
   updateCutscene(g, dt);                                   // after: the scene walks him, and says where to look
   updateTalk(g, dt);
@@ -174,7 +175,7 @@ function frame(now: number): void {
   credits.draw(dt);
   feyFade.draw(dt);                                        // deep in a fairy ring, the screen's own furniture fades
   feySayings.draw();                                       // and the fair folk talk to him
-  oakWhisper.draw();                                       // and the oaks he's grown from their acorns whisper
+  erlSpeech.draw();                                        // and under the hill, their king
   requestAnimationFrame(frame);
 }
 

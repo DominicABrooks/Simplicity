@@ -3,9 +3,10 @@
 // the ring and motes of fairy light twinkling everywhere, the whole of it turning slowly round the ring. Deep enough in, it covers everything,
 // and only the ring itself (drawn again on top, on its own layer) is left to see.
 import * as THREE from "three";
-import { T } from "../data/world.ts";
+import { HALF, T } from "../data/world.ts";
 import { smooth } from "../core/math.ts";
 import { ringHere, tranceOf } from "../game/fairyring.ts";
+import { journeyMagic } from "../game/underhill.ts";
 import type { Game } from "../game/game.ts";
 import { FEY_GROUND, FEY_LAYER } from "./fey.ts";
 
@@ -85,10 +86,14 @@ export function createTrance(lights: readonly THREE.Light[]): TranceView {
 
   return {
     pose(g, camera, dt, t) {
-      shown = smooth(shown, tranceOf(g), dt, 3);
+      // The ring's spell, or the acorn taking him under the hill (src/game/underhill.ts), whichever is the deeper.
+      const inRing = tranceOf(g), going = journeyMagic(g);
+      shown = smooth(shown, Math.max(inRing, going), dt, 3);
       if (!fov) fov = camera.fov;
-      const ring = ringHere(g);
-      if (shown < 0.002 || !ring) {
+      // Turning round the ring he's in, or round him.
+      const ring = ringHere(g), hero = g.world.get(g.player, "transform");
+      const at = ring && inRing >= going ? { x: ring.x, y: ring.y } : hero ? { x: hero.x + HALF, y: hero.y + HALF } : null;
+      if (shown < 0.002 || !at) {
         if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
         return;
       }
@@ -96,7 +101,7 @@ export function createTrance(lights: readonly THREE.Light[]): TranceView {
       camera.updateProjectionMatrix();
       camera.rotateZ(Math.sin(t * 0.7) * 0.07 * shown);
       camera.updateMatrixWorld();
-      centre.set(ring.x / T, 0, ring.y / T).project(camera);
+      centre.set(at.x / T, 0, at.y / T).project(camera);
       uniforms.uCentre.value.set((centre.x + 1) / 2, (centre.y + 1) / 2);
       uniforms.uAspect.value = camera.aspect;
       uniforms.uTime.value = t;

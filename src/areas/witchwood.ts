@@ -154,6 +154,8 @@ function build(): AreaLayout {
       start: SPAWN,
       // Coming back down through the cave: a couple of steps south of its mouth.
       cave: { x: CAVE_X - HALF, y: 2 * T },
+      // Back from under the hill (src/game/underhill.ts): beside the fairy ring, just out of it.
+      ring: { x: GLADE.x * T - HALF, y: (GLADE.y + 2.6) * T - HALF },
       // Coming back up the trail out of the Ashwild, past the barricade.
       ashwild: { x: (trailX(H - 3) + 0.5) * T, y: (H - 3) * T },
     },

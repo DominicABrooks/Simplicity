@@ -26,25 +26,3 @@ export const FEY_GIFT = {
   /** Said as it drops into his hand. */
   says: "Something small and warm drops into your hand.",
 } as const;
-
-/**
- * A Fey Acorn planted in open grass (src/game/oaks.ts): a shoot at first, and at the next nightfall a young gilded oak
- * that, after dark, whispers what its acorn held to anyone who comes near. Oaks stay where they're planted, run after run.
- */
-export const GILDED_OAK = {
-  /** How close to another oak (tiles) one can't be planted, and how far out from the fairy ring's edge it won't take. */
-  spacing: 1.2,
-  ringMargin: 0.5,
-  /** How near (tiles) he has to come for one to whisper, and how long (s) before the same one whispers again. */
-  near: 1.6,
-  again: 40,
-  says: {
-    planted: "You press the acorn into the soft ground. Something under the grass hums back.",
-    notHere: "It won't take root here. It wants open grass.",
-    tooNear: "Too close to another. Give it room to grow.",
-    inRing: "The fair folk won't have it in their ring.",
-    indoors: "It wants the sky over it.",
-    grown: "Somewhere, an acorn has become a little gilded oak.",
-  },
-} as const;
-
