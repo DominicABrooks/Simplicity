@@ -6,30 +6,12 @@
 
 ![Fighting Cinder, the Ember Lieutenant, in his ring of fire](docs/manual/cinder.gif)
 
----
-
-## Instruction manual
-
-1. [About the jam](#about-the-jam)
-2. [Getting started](#1-getting-started)
-3. [Controls](#2-controls)
-4. [The story so far](#3-the-story-so-far)
-5. [The lands of the kingdom](#4-the-lands-of-the-kingdom)
-6. [Fighting](#5-fighting)
-7. [The Greyed](#6-the-greyed)
-8. [Your gear](#7-your-gear)
-9. [The map](#8-the-map)
-10. [Talking to people](#9-talking-to-people)
-11. [Night, weather and music](#10-night-weather-and-music)
-12. [Fishing](#11-fishing)
-13. [Bosses](#12-bosses)
-14. [Secrets](#13-secrets)
-15. [Falling, and the old stones](#14-falling-and-the-old-stones)
-16. [Skipping ahead](#15-skipping-ahead)
-17. [Running it yourself](#16-running-it-yourself)
-18. [How it's built](#17-how-its-built)
-
----
+| At a glance | |
+| --- | --- |
+| **What** | An action RPG: an hour of story, sword and bow fights, five bosses, and a city full of people to wander |
+| **Where** | Any desktop browser, with a keyboard and a mouse. Nothing to install |
+| **Made** | Solo, in a self-imposed 72-hour game jam with no theme |
+| **How** | TypeScript and three.js. Every sprite, model, sound and tune comes out of the game's own code: no asset packs |
 
 ## About the jam
 
@@ -43,11 +25,33 @@ What got made in the 72 hours:
 - **Twelve areas** across the woods, the capital and what's under it, with interiors you can walk into.
 - **Five bosses**, each with its own fight.
 - **Real-time combat** with sword and bow against slimes and three schools of mage, with loot, levels and gear that shows on your character.
-- **A living capital**: townsfolk with homes, jobs and gossip, doors to knock on, a day and night cycle and weather.
-- **Music made up as it plays**, which follows the hour and the weather.
+- **A living capital**: townsfolk with homes, jobs and gossip, doors to knock on, dogs and cats to pet, a day and night cycle and weather.
+- **Music made up as it plays**, which follows the hour and the weather, and sound effects synthesized on the fly.
 - **No asset packs**: every sprite, palette and the pixel font are text files in this repo, built by the project's own tools, and every 3D model is built in code.
 
 It was built fast and it shows in places. Rough edges are part of the jam.
+
+---
+
+## Instruction manual
+
+1. [Getting started](#1-getting-started)
+2. [Controls](#2-controls)
+3. [The story so far](#3-the-story-so-far)
+4. [The lands of the kingdom](#4-the-lands-of-the-kingdom)
+5. [Fighting](#5-fighting)
+6. [The Greyed](#6-the-greyed)
+7. [Your gear](#7-your-gear)
+8. [The map](#8-the-map)
+9. [Talking to people](#9-talking-to-people)
+10. [Night, weather and music](#10-night-weather-and-music)
+11. [Fishing](#11-fishing)
+12. [Bosses](#12-bosses)
+13. [Secrets](#13-secrets)
+14. [Resting, falling and the old stones](#14-resting-falling-and-the-old-stones)
+15. [Skipping ahead](#15-skipping-ahead)
+16. [Running it yourself](#16-running-it-yourself)
+17. [How it's built](#17-how-its-built)
 
 ---
 
@@ -74,11 +78,11 @@ Along the screen's edges:
 | Control | Action |
 | --- | --- |
 | **W A S D** or **arrow keys** | Move |
-| Double-tap a direction | Dash (you can't be hurt mid-dash) |
+| Double-tap a direction | Dash (nothing touches you mid-dash) |
 | **Mouse** | Aim |
 | **Left click** or **J** | Attack where you aim. With a bow, hold to draw and release to shoot. With a fishing pole, hold to wind up a cast |
 | **Space** | Jump |
-| **E** (or click them) | Talk to someone, knock on a door, rest, pet an animal |
+| **E** (or click them) | Talk to someone, knock on a door, sit by a fire, sleep in a bed or a tent, pet a dog or a cat |
 | **Enter**, **Space** or **E** | Next line, in a conversation |
 | **I** or **Tab** | Inventory |
 | **M** | Map |
@@ -94,7 +98,14 @@ You're a stranger in the kingdom, and you can't speak. The way deeper into the W
 
 So you go north, through the cave, over the King's Bridge and into the capital, and up to the castle to stand before **King Osric**. He reads the Ranger's note you carry, works out what you are, and asks you for the one thing his frightened kingdom needs: go deep into the Witchwood and kill **Calder**, leader of the Greyed, the mages haunting it.
 
-Listen to what the King tells you. The woodwardens will ask you for the watchword, and you'll have to write it down for them yourself; nothing in the game will write it for you.
+<table>
+<tr>
+<td width="50%"><img src="docs/manual/king.png" alt="King Osric in the Throne Room, at the start of the audience"><br><b>The King's audience.</b> Listen to what he tells you.</td>
+<td width="50%"><img src="docs/manual/paper.png" alt="The woodwardens' scrap of paper, with 'open sesame?' written on it in crayon"><br><b>The woodwardens' paper.</b> You can't speak, so they hand you paper and a crayon, and you write the watchword yourself. Nothing in the game writes it for you. (It isn't "open sesame".)</td>
+</tr>
+</table>
+
+Past the barricade the forest goes more and more wrong the further in you go, and not everyone you meet in there is a mage. One of them won't let you by without a word of her own.
 
 ## 4. The lands of the kingdom
 
@@ -108,12 +119,12 @@ Listen to what the King tells you. The woodwardens will ask you for the watchwor
 <td><img src="docs/manual/throne.png" alt="The Throne Room"><br><b>The Throne Room.</b> Up the keep's stairs: the King on his dais, the Royal Guard along the carpet.</td>
 </tr>
 <tr>
-<td><img src="docs/manual/ashwild.png" alt="The Ashwild"><br><b>The Ashwild.</b> Past the barricade, where the trees go ash-grey and cold cracks run across the ground. Ember mages hunt here.</td>
-<td><img src="docs/manual/hollow.png" alt="The Frozen Hollow"><br><b>The Frozen Hollow.</b> A sunken valley where it's always winter, around a frozen lake. Frost mages patrol the ice.</td>
+<td><img src="docs/manual/ashwild.png" alt="The woodcutters' huts in the Ashwild"><br><b>The Ashwild.</b> Past the barricade, the trees go ash-grey and cold cracks run across the ground. The woodcutters left their huts in a hurry. Ember mages hunt here.</td>
+<td><img src="docs/manual/hollow.png" alt="Pillars of ice on the frozen lake in the Frozen Hollow"><br><b>The Frozen Hollow.</b> A sunken valley where it's always winter, around a frozen lake with pillars of ice at its middle. A hunter's longbow lies in a doorway on the rim. Frost mages patrol the ice.</td>
 </tr>
 <tr>
-<td><img src="docs/manual/grotto.png" alt="The Koi Grotto"><br><b>The Koi Grotto.</b> An ice cave under the Hollow's rim, with a hole cut in the ice. Something very large swims down there.</td>
-<td><img src="docs/manual/rift.png" alt="The Thunder Rift"><br><b>The Thunder Rift.</b> The oldest trees in the valley, a storm that never stops, and the great crack. Storm mages hold the paths up to it.</td>
+<td><img src="docs/manual/grotto.png" alt="Winding up a cast by the hole in the ice in the Koi Grotto"><br><b>The Koi Grotto.</b> An ice cave under the Hollow's rim, where someone has cut a hole in the ice. Something very large swims down there.</td>
+<td><img src="docs/manual/rift.png" alt="The great crack across the top of the Thunder Rift"><br><b>The Thunder Rift.</b> The oldest trees in the valley, a storm that never stops, and the great crack, cold and humming. Storm mages hold the paths up to it.</td>
 </tr>
 </table>
 
@@ -123,11 +134,11 @@ Your gear and level travel with you; each area keeps its own creatures.
 
 ## 5. Fighting
 
-![The sword: swipes, crits, experience and loot](docs/manual/sword.gif)
+![The sword: swipes, crits, a level up and loot](docs/manual/sword.gif)
 
 **The sword.** Every attack is a wide swipe that alternates direction and steps you forward. Press again mid-swipe to queue the next one, so mashing chains smoothly. Swipes and dashes feed each other: a dash cancels a swipe at any point, and every swipe resets your dash. Weave them: swipe, dash, swipe, dash.
 
-**The bow.** Hold to draw (you can still walk, at half speed) and release to shoot at the cursor. Only a full draw (0.6 seconds) hits hard: a power shot with a glowing arrowhead. A short draw does at most half your damage, and early on it just flops out onto the grass.
+**The bow.** You start with an Old Short Bow in your bag. Hold to draw (you can still walk, at half speed) and release to shoot at the cursor. Only a full draw (0.6 seconds) hits hard: a power shot with a glowing arrowhead. A short draw does at most half your damage, and early on it just flops out onto the grass.
 
 **Critical hits.** Every hit has a 10% chance to crit for double damage, shown as a big gold number with a "!". Some weapons, rings and amulets raise the chance.
 
@@ -135,18 +146,23 @@ Your gear and level travel with you; each area keeps its own creatures.
 
 **Experience and levels.** Kills give experience (10 for a slime, 50 for a mage). Level up and you're healed fully and grow a little faster and tougher: more life every two levels, more damage every four. The cap is level 20.
 
-**Potions** restore two hearts.
+**Potions** restore two hearts. Slimes drop one now and then, and mages half the time.
 
 ## 6. The Greyed
 
-![A Frost mage's nova: get out of the ring before it goes off](docs/manual/frost.gif)
+<table>
+<tr>
+<td width="50%"><img src="docs/manual/frost.gif" alt="A Frost mage's nova freezing the hero"><br><b>Frost Nova.</b> Get out of the ring before it goes off, or be frozen solid.</td>
+<td width="50%"><img src="docs/manual/sheep.png" alt="The hero turned into a sheep"><br><b>Polymorph.</b> An Ember mage's purple orb makes you a sheep for five seconds. A sheep can only walk, and any hit turns you back.</td>
+</tr>
+</table>
 
 Once you've killed a few slimes, mages start to turn up: robed figures that keep their distance and telegraph every spell with a charge-up in their hands. In the deep woods they're everywhere. There are three schools:
 
 | School | Robes | Watch out for |
 | --- | --- | --- |
-| **Ember** | Red | Fireballs, and a purple orb that turns you into a sheep for 5 seconds (any damage breaks it) |
-| **Frost** | Icy white | Frostbolts that slow you, and **Frost Nova** up close: a ring grows on the ground, and if you're still in it when it goes off, you're frozen solid |
+| **Ember** | Red | Fireballs, and the purple orb that turns you into a sheep |
+| **Frost** | Icy white | Frostbolts that slow you, and **Frost Nova** up close |
 | **Storm** | Indigo and gold | Fast sparks, and **Lightning Strike**: three circles on and around you, lightning a moment later. Keep moving |
 
 Dash or jump through bolts and the nova; only a dash beats lightning. Get close and a mage blinks away. Catch one while its blink is cooling down and it draws a sword and comes for you. Mages grow tougher and more common as you level, and they always drop a magic item or better.
@@ -173,7 +189,12 @@ Press **M** for a parchment map of the area you're in, with an arrow for where y
 
 ## 9. Talking to people
 
-![Talking to one of the townsfolk in the market square](docs/manual/talk.png)
+<table>
+<tr>
+<td width="50%"><img src="docs/manual/talk.png" alt="Talking to Old Gil by his boat at the foot of the King's Bridge"><br><b>Old Gil</b>, the boatman at the foot of the King's Bridge, has seen a thing or two in the river.</td>
+<td width="50%"><img src="docs/manual/pet.png" alt="Petting a dog in a lane of the Market Quarter, a heart floating up"><br><b>The city's dogs and cats</b> each have a name. Walk up and pet them.</td>
+</tr>
+</table>
 
 Walk up to someone and press **E**, or click them. Press Enter, Space or E for the next line.
 
@@ -183,9 +204,9 @@ Nothing hostile lives in the city by day.
 
 ## 10. Night, weather and music
 
-![The market square at night, in the rain](docs/manual/night.png)
+![A lane in the Market Quarter at night, in the rain, under the lamps](docs/manual/night.png)
 
-A whole day passes every ten minutes. The light changes through the day, the townsfolk go home at night, and the city after dark isn't quite the same city. Rain and fog roll in and out.
+A whole day passes every ten minutes. The light changes through the day, the lamplighter goes round the streets at dusk lighting the lamps one by one, the townsfolk go home at night, and the city after dark isn't quite the same city. Rain and fog roll in and out.
 
 Every area has its own music, made up as it plays, and it follows the hour and the weather: slower, lower and darker by night, a drone under the rain, thin and echoing in fog. Press **N** to turn it off or on.
 
@@ -215,7 +236,7 @@ Each of the Greyed's lieutenants waits at the end of their part of the wood, and
 </tr>
 <tr>
 <td><img src="docs/manual/ringer.gif" alt="The Grey Ringer"><br><b>The Grey Ringer</b> (St Mary's churchyard, after dark). Only if you've heard the rumours. She drifts through walls and gravestones, tolls her bell in a ring you must dash or jump through, and wails wisps after you.</td>
-<td>Cinder, Rime and Calder are the story. The Great Koi and the Grey Ringer are optional, and worth it.</td>
+<td>Cinder, Rime and Calder are the story. The Great Koi and the Grey Ringer are optional, and worth it.<br><br>A dash or a jump gets you clear of most of what a boss throws at you.</td>
 </tr>
 </table>
 
@@ -274,7 +295,9 @@ The credits aren't a list of names. They're the story of what happened after, sh
 
 </details>
 
-## 14. Falling, and the old stones
+## 14. Resting, falling and the old stones
+
+Hurt? Sit by a campfire (press **E** by it, or click it) and you get a heart back every few seconds until you're whole. Sleep in a tent or a bed and the hours run by, a heart back for each one. Any key wakes you.
 
 Old, flat, faintly warm stones stand along the way: by the camp, at the fountain, and at the entrance of each part of the deep woods. Touch one and it glows. If you fall, you wake on the last stone you touched with your gear and level kept, though you might lose your potions.
 
@@ -310,6 +333,7 @@ Then open http://localhost:8123/Simplicity/. The dev server reloads as you edit.
 | --- | --- |
 | `npm run dev` | Dev server with hot reload |
 | `npm run build` | Type-check, then build the site into `dist/` |
+| `npm run build:itch` | Build the game with relative paths and zip it to `dist-itch.zip`, ready to upload to itch.io as an HTML game |
 | `npm run preview` | Serve the built `dist/` locally |
 | `npm test` | Run the tests (Vitest) |
 | `npm run e2e` | Play the story's big beats in headless Chromium (Playwright); the first time, `npx playwright install chromium` |
@@ -326,7 +350,7 @@ TypeScript with an entity-component-system design, rendered with [three.js](http
 
 - `src/main.ts`: wires everything together and runs the loop
 - `src/core/`: the ECS (`World`), a typed event bus, the seeded RNG and math helpers
-- `src/data/`: tuning and content as typed tables: player, enemies and spells, items, dialogue, the story's beats
+- `src/data/`: tuning and content as typed tables: player, enemies and spells, items, dialogue, the story's beats, and every sound effect as a synth recipe
 - `src/areas/`: the areas, one module each (the world map is the links between them)
 - `src/world/`: tile maps, collision and the city's layouts and residents
 - `src/items/`: items, loot rolls and the inventory model
@@ -337,7 +361,7 @@ TypeScript with an entity-component-system design, rendered with [three.js](http
 - `src/ui/`: HUD, inventory, map, dialogue, tooltips and credits
 - `tests/`: Vitest specs
 - `e2e/`: Playwright specs that play the real game in a browser: the road to the King, his audience, the ghost fight, knocking at doors
-- `tools/`: asset builders (`build-sprites.ts`, `build-font.ts`), run with `npm run assets`, and the townsfolk outfit lineup (`/Simplicity/lineup.html` on the dev server)
+- `tools/`: asset builders (`build-sprites.ts`, `build-font.ts`), run with `npm run assets`, the itch.io zipper, and the townsfolk outfit lineup (`/Simplicity/lineup.html` on the dev server)
 - `art/`, `palette/`, `font/`: sprite, palette and font sources as text
 - `docs/manual/`: the screenshots and clips in this manual
 - `docs/contact-sheet.png`: every sprite, built from `art/`
