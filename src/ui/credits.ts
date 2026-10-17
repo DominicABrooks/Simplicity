@@ -1,6 +1,6 @@
 // The credits (STORY.md, "0:55"): after the King's had his say on the keep steps, the run plays back a shot at a time in
 // the game's own world (src/game/credits.ts), the screen letterboxed, a line under each shot and a fade between them;
-// then "The End", how this run went in a line under it, and how long it took (the speedrun timer). Escape skips to The End; once it's up, a click or a key
+// then "The End", how this run went in a line under it, and how long it took (the speedrun timer). Q (or Escape) skips to The End; once it's up, a click or a key
 // brings up who made the game, a word from him, a way to donate and a box to send him feedback (END_CARD), and from
 // there a button restarts: a new run, from the stone by the Ranger's fire.
 import { CREDITS_TIME as TIME, END_CARD, RUN_TIME } from "../data/ending.ts";
@@ -8,6 +8,7 @@ import { creditsShot, runSum, skipShots, updateCredits } from "../game/credits.t
 import { endCredits } from "../game/ending.ts";
 import { resetGame } from "../game/reset.ts";
 import { formatRunTime, type Game } from "../game/game.ts";
+import { isSkip } from "../input/input.ts";
 
 /** Straight to the card after The End, if the credits are up (getting about quickly in development: src/debug.ts). */
 let skipToCard: (() => void) | null = null;
@@ -51,7 +52,7 @@ export function createCredits(g: Game): { draw(dt: number): void } {
     if (root.hidden) return;
     if (!card.el.hidden) { e.stopPropagation(); return; }   // typing feedback: the keys are the box's, not the game's
     e.preventDefault();
-    if (phase === "reel") { if (e.key === "Escape") toEnd(); }
+    if (phase === "reel") { if (isSkip(e.key.toLowerCase())) toEnd(); }
     else if (endUp()) toCard();
   }, true);
   root.addEventListener("click", () => { if (endUp()) toCard(); });

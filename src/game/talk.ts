@@ -1,7 +1,7 @@
 // Talking to people. Clicking someone friendly who can talk (a guard, or one of the townsfolk), or pressing E while they're
 // your target, starts a conversation instead of an attack: their lines come one at a time in a box at the
 // bottom of the screen. A click, Enter, Space or E shows the rest of a line or goes on to the next;
-// Escape, or walking away, ends it. It lives on the hero (see Conversation), so it's gone with the area.
+// Q (or Escape), or walking away, ends it. It lives on the hero (see Conversation), so it's gone with the area.
 // Some lines hand the hero something (the gift lines in src/data/voices.ts): it lands in the bag as the
 // line is said. Each person gives at most once a run, and only offers if it'll fit in the bag.
 import type { Entity } from "../core/ecs.ts";

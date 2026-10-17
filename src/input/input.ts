@@ -12,7 +12,7 @@ export interface InputHooks {
   closePanels(): void;
   /** A click in the world at a screen point: true if it was for talking (to someone, or on through what they're saying), not an attack. */
   talkClick(at: { x: number; y: number }): boolean;
-  /** A key while playing: true if talking took it (E to talk, or Enter, Space, E or Escape in a conversation). */
+  /** A key while playing: true if talking took it (E to talk, or Enter, Space or E in a conversation, or Q or Escape to skip). */
   talkKey(k: string): boolean;
 }
 
@@ -22,6 +22,14 @@ const DIRS: Record<string, [number, number]> = {
   w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1],
 };
 const NO_SCROLL = [" ", "arrowup", "arrowdown", "arrowleft", "arrowright"];
+
+/**
+ * The key that skips (a cutscene, the Erl-King's speech, the credits' reel) and ends a conversation: Q, as the hints say.
+ * Escape does too, where the page gets it; but in fullscreen (on itch.io, say) the browser keeps Escape for itself.
+ */
+export const SKIP_KEY = "Q";
+/** Is this key (lower case, as KeyboardEvent.key) a skip? */
+export const isSkip = (k: string): boolean => k === SKIP_KEY.toLowerCase() || k === "escape";
 
 /** Listen for input. Returns the cursor's screen position (null until the mouse moves, or after it leaves). */
 export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y: number } | null; overUi(): boolean } {

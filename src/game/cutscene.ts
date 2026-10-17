@@ -1,7 +1,7 @@
 // Cutscenes (src/data/cutscenes.ts): the first time the hero arrives somewhere with a scene to play, control is
 // taken away and the scene plays out beat by beat: the hero walks himself where he's to go, the camera looks
-// where the beat says, and the speaker has their say in the dialogue box (a click goes on, as ever). Escape
-// skips to the end, with everything the scene would have given already given. It lives on the hero (see
+// where the beat says, and the speaker has their say in the dialogue box (a click goes on, as ever). Q (or
+// Escape) skips to the end, with everything the scene would have given already given. It lives on the hero (see
 // Cutscene), so it's gone with the area; each scene plays once a run.
 import type { Entity } from "../core/ecs.ts";
 import { SCENES, type Beat, type Cue, type Scene } from "../data/cutscenes.ts";

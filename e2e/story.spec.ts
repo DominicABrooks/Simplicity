@@ -41,7 +41,7 @@ test.describe("the King's audience", () => {
 
     // The letterbox slides in, and nothing the player presses moves the hero while the scene holds at the door.
     await expect(inCutscene(page)).toBeVisible();
-    await expect(page.locator(".letterbox.bottom.on .skip")).toHaveText("esc: skip");
+    await expect(page.locator(".letterbox.bottom.on .skip")).toHaveText("q: skip");
     const atDoor = await page.evaluate(() => ({ ...window.simplicity.hero() }));
     await hold(page, "a", 0.5);
     const held = await page.evaluate(() => ({ ...window.simplicity.hero() }));
@@ -61,11 +61,11 @@ test.describe("the King's audience", () => {
     expect(Math.hypot(free.x - hero.x, free.y - hero.y)).toBeGreaterThan(3);
   });
 
-  test("Escape skips it, and still sets the task", async ({ page }) => {
+  test("Q skips it (and so does Escape, outside fullscreen), and still sets the task", async ({ page }) => {
     await startGame(page);
     await journey(page, ...ROAD_TO_THE_KING);
     await expect(inCutscene(page)).toBeVisible();
-    await page.keyboard.press("Escape");
+    await page.keyboard.press("q");
     await expect(inCutscene(page)).toHaveCount(0);
     await expect(page.locator("#dialogue")).toBeHidden();
     await expectToast(page, KINGS_TASK);
