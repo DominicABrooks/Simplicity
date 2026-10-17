@@ -268,7 +268,7 @@ What's behind it is for you to find out.
 
 The credits aren't a list of names. They're the story of what happened after, shot by shot, and which shots you get depends on what you did in your run.
 
-![The Vael's eggs carried back over the King's Bridge](docs/manual/eggs.png)
+![Their mother over the three eggs, just before they hatch](docs/manual/eggs.png)
 
 ![Three small dragons hatch under the Greyspines](docs/manual/hatch.gif)
 
