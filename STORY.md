@@ -279,7 +279,7 @@ On the keep steps, he sets Calder's head at the King's feet. The King looks at i
 > *"And I suppose I'd better tell them the rest."*
 
 **Credits roll**, over a few still pictures showing how it all ends (the full ending is in
-[HERO.md](HERO.md#the-end)): the King reading the true chronicle at the cross and going very red; the Ranger
+[HERO.md](HERO.md#the-end)): the Greyed losing their grey; the Ranger
 walking home to the house with the grey cloak; the Vael coming over the King's Bridge to take their eggs
 home; Yssa playing cards with Widow Crane; Tam Appleby eating a turnip; the Foreigner asleep in the top room
 of the Fells' house, with a lantern of his own in the window. **The End.**

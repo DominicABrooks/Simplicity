@@ -96,7 +96,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
    * (after The End). `crowd` is how many follow him (castle and on). `full`: the rest of the run done too, for the
    * credits to show it all: Cinder and Rime beaten for real, the barricade and both of Yssa's words passed, the King's
    * audience heard, the hunter's bow taken, the Great Koi landed and the Grey Ringer laid to rest. `shot`: the credits
-   * start from that shot (greyed, slimes, chronicle, eggs, hatch, fells), and `at`, from that moment in it (its name:
+   * start from that shot (greyed, eggs, hatch, fells), and `at`, from that moment in it (its name:
    * see SHOT_MOMENTS; or a number of seconds in).
    */
   async function ending(stage: string = "stone", crowd = 8, full = false, shot?: string, at?: string): Promise<string> {

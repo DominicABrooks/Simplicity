@@ -87,33 +87,19 @@ export const KING_NO_PROOF: readonly string[] = [
  * The credits: short shots of what came of this run (src/game/credits.ts), each with a line under it. Not what he did,
  * which he's played, but what it changed, building to the dragons; some lines change with what else it did.
  */
-export type ShotId = "greyed" | "slimes" | "chronicle" | "eggs" | "hatch" | "fells";
+export type ShotId = "greyed" | "eggs" | "hatch" | "fells";
 export const SHOT_SAYS: Record<ShotId, string> = {
   greyed: "With no one left to follow, the grey went out of the Greyed, one by one.",
-  slimes: "The slimes sat still at last. Within the year they were the people of the Deep Hall again.",
-  chronicle: "Next morning the King read the true chronicle at the market cross, went very red, and tore up the Edict.",
   eggs: "The Vael came north over the King's Bridge for their eggs, openly, for the first time in six hundred years. This time the King gave them back.",
   hatch: "Under the Greyspines, beside their mother, three small dragons hatched. Their song with hers sealed the valley whole again.",
   // And last, his own ending: what the King's "anything Aurenmark can give" came to.
   fells: "You never asked the King for a thing. The Ranger came home, Meg took his cloak in, and one lantern in the window was yours.",
 };
-/** Said after, when the run went that way. */
-export const SHOT_SAYS_TOO = {
-  /** After the chronicle, by how many followed him up the hill with the head: nobody, a few, or a crowd. */
-  followed: {
-    none: "",
-    few: "The few who'd followed you had the best places.",
-    crowd: "Half the city had followed you up. The rest came to hear.",
-  },
-} as const;
-
 /**
  * How the credits run (s): the dark before them, each shot's fade in and out, how long each shot is at the least, how
  * many words a second its line can be read at (a long line holds its shot longer), and The End held before the card.
  */
 export const CREDITS_TIME = { dark: 1.4, fade: 0.9, shot: 7.5, read: 3, end: 3 } as const;
-/** How many have to follow him up for it to be a crowd. */
-export const CROWD_OF = 5;
 
 /** Under The End: how this run went. */
 export const RUN_SUMS = { level: "Level {n}", kills: "{n} foes beaten", curios: "{n} curiosities found", curio: "1 curiosity found" } as const;

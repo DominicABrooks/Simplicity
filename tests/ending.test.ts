@@ -270,7 +270,7 @@ describe("the end of the story path", () => {
       const shot = creditsShot(g), cam = creditsCamera(g);
       if (shot && seen[seen.length - 1] !== g.area.def.id + shot.says) { seen.push(g.area.def.id + shot.says); said.push(shot.says); expect(cam).not.toBeNull(); }
     }
-    expect(said).toEqual([SHOT_SAYS.greyed, SHOT_SAYS.slimes, SHOT_SAYS.chronicle, SHOT_SAYS.eggs, SHOT_SAYS.hatch, SHOT_SAYS.fells]);
+    expect(said).toEqual([SHOT_SAYS.greyed, SHOT_SAYS.eggs, SHOT_SAYS.hatch, SHOT_SAYS.fells]);
     expect(runSum(g)).toContain("Level");
     endCredits(g);
     expect(g.area.def.id).toBe("castle");
