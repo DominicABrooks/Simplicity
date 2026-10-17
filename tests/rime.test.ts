@@ -2,6 +2,7 @@
 // mage with wider novas and faster bolts, frost setting under his feet; once beaten, beaten for the run, her circlet
 // left behind and the lake thawed in a ring round where she stood. And the hunter's longbow, in his doorway.
 import { describe, expect, it } from "vitest";
+import type { Entity } from "../src/core/ecs.ts";
 import { loadArea } from "../src/areas/index.ts";
 import { RIME_AT } from "../src/areas/hollow.ts";
 import { SPELLS } from "../src/data/enemies.ts";
@@ -219,14 +220,16 @@ describe("Rime's icicles and her ice block", () => {
     expect(out.bolt.life).toBe(0);
   });
 
-  it("seals herself in ice when he carves too much off her up close (arrows don't count), and nothing hurts her in it", async () => {
+  /** A hit on her (a blade, or a shot from range), and a frame of the fight. */
+  const hit = (g: Game, e: Entity, melee = true) => { hitEnemy(g, e, 1, melee); rimeFightSystem(g, DT); };
+
+  it("hit twice in a row (blade or arrow), and the coin says the ice: seals herself in, and nothing hurts her in it", async () => {
     const { g, e, f } = await fighting(), hp = g.world.need(e, "health"), enemy = g.world.need(e, "enemy");
-    g.rng.next = () => 0.5;                                   // no crits
-    for (let i = 0; i < 6; i++) hitEnemy(g, e, 2, false);     // shot, from range
-    rimeFightSystem(g, DT);
-    expect(f.block).toBeNull();
-    for (let i = 0; i < Math.ceil(RIME_FIGHT.block.melee / 2) + 1; i++) hitEnemy(g, e, 2);   // up close, a little past it
-    rimeFightSystem(g, DT);
+    g.rng.next = () => 0.3;                                   // no crits; the coin comes down for the block
+    expect(RIME_FIGHT.crowded).toEqual({ hits: 2, within: 3, chance: 0.5 });
+    hit(g, e, false);
+    expect(f.block).toBeNull();                               // one: nothing yet
+    hit(g, e);
     expect(f.block).not.toBeNull();
     expect(enemy.warded).toBe(true);
     expect(g.world.need(e, "mage").held).toBe(true);
@@ -235,17 +238,61 @@ describe("Rime's icicles and her ice block", () => {
     expect(hp.hp).toBe(before);
   });
 
-  it("a few blows spread out don't do it: the melee wears off", async () => {
-    const { g, e, f } = await fighting();
-    g.rng.next = () => 0.5;
-    for (let i = 0; i < 8; i++) { hitEnemy(g, e, 2); for (let t = 0; t < 2; t += 0.1) rimeFightSystem(g, 0.1); }
+  it("hit twice in a row, and the coin says away (or the block's not ready): she blinks", async () => {
+    const { g, e, f } = await fighting(), her = g.world.need(e, "transform");
+    let i = 0;
+    g.rng.next = () => [0.7, 0.92, 0.55, 0.81, 0.63, 0.97][i++ % 6]!;   // no crits; the coin for the blink; and wherever she blinks to, somewhere
+    Object.assign(g.world.need(g.player, "transform"), { x: her.x, y: her.y + 10 });
+    let was = { x: her.x, y: her.y };
+    hit(g, e); hit(g, e);
     expect(f.block).toBeNull();
+    expect(Math.hypot(her.x - was.x, her.y - was.y)).toBeGreaterThan(8);
+    g.rng.next = () => [0.3, 0.92, 0.55, 0.81, 0.63, 0.97][i++ % 6]!;   // the coin for the block, but she's only just been in it
+    i = 0;
+    f.blockCD = 5;
+    was = { x: her.x, y: her.y };
+    hit(g, e); hit(g, e);
+    expect(f.block).toBeNull();
+    expect(Math.hypot(her.x - was.x, her.y - was.y)).toBeGreaterThan(8);
+  });
+
+  it("blinks only to somewhere well inside her ring of ice, never up against the wall, and away from him", async () => {
+    const { g, e, f } = await fighting(), her = g.world.need(e, "transform"), me = g.world.need(g.player, "transform");
+    g.rng.reseed(7);
+    const B = RIME_FIGHT.blink;
+    for (let n = 0; n < 40; n++) {
+      f.blockCD = 99;                                         // the block not ready: every time, a blink
+      const a = n * 2.4;                                      // him all round the ring, right up against her
+      Object.assign(me, { x: f.x + Math.cos(a) * 30, y: f.y + Math.sin(a) * 30 });
+      Object.assign(her, { x: me.x - Math.cos(a) * 8, y: me.y - Math.sin(a) * 8 });
+      const was = { x: her.x, y: her.y };
+      g.world.need(e, "health").hp = 50;
+      f.lastHp = 50; f.hits = 0;
+      hitEnemy(g, e, 1); rimeFightSystem(g, DT);
+      hitEnemy(g, e, 1); rimeFightSystem(g, DT);
+      expect(Math.hypot(her.x - was.x, her.y - was.y)).toBeGreaterThan(8);
+      expect(Math.hypot(her.x - f.x, her.y - f.y)).toBeLessThanOrEqual(RIME_FIGHT.keepIn - B.wall + 1);
+      expect(Math.hypot(her.x - me.x, her.y - me.y)).toBeGreaterThanOrEqual(B.away);
+    }
+  });
+
+  it("never blinks away just for him coming close; and hits spread out don't count as in a row", async () => {
+    const { g, e, f } = await fighting(), brain = g.world.need(e, "mage"), her = g.world.need(e, "transform");
+    brain.blinkCD = 0;
+    rimeFightSystem(g, DT);
+    expect(brain.blinkCD).toBeGreaterThan(0);
+    g.rng.next = () => 0.3;
+    const was = { x: her.x, y: her.y };
+    for (let i = 0; i < 4; i++) { hit(g, e); for (let t = 0; t < RIME_FIGHT.crowded.within + 0.2; t += 0.1) rimeFightSystem(g, 0.1); }
+    expect(f.block).toBeNull();
+    expect(f.hits).toBe(1);
+    expect(Math.hypot(her.x - was.x, her.y - was.y)).toBeLessThan(8);
   });
 
   it("fills the floor with falling icicles while she's in the block, then bursts out freezing anyone at her side", async () => {
     const { g, e, f } = await fighting(), B = RIME_FIGHT.block;
-    g.world.need(e, "enemy").melee = B.melee + 1;
-    rimeFightSystem(g, DT);
+    g.rng.next = () => 0.3;                                   // the coin for the block
+    hit(g, e); hit(g, e);
     expect(f.block).not.toBeNull();
     f.nextPatches = 99;
     const me = g.world.need(g.player, "transform"), health = g.world.need(g.player, "health"), status = g.world.need(g.player, "status");
@@ -267,8 +314,7 @@ describe("Rime's icicles and her ice block", () => {
     expect(g.world.need(e, "enemy").warded).toBe(false);
     expect(status.frozen).toBe(B.burst.freeze);
     // And not again straight away.
-    g.world.need(e, "enemy").melee = B.melee * 2;
-    rimeFightSystem(g, DT);
+    hit(g, e); hit(g, e);
     expect(f.block).toBeNull();
   });
 });

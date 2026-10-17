@@ -110,17 +110,26 @@ export function blinkMage(g: Game, p: Transform, s: Transform, b: MageBrain, kb:
   for (let i = 0; i < MAGE.blinkTries; i++) {
     const a = g.rng.next() * Math.PI * 2, d = MAGE.blinkMin + g.rng.next() * (MAGE.blinkMax - MAGE.blinkMin);
     const x = Math.round(p.x + Math.cos(a) * d), y = Math.round(p.y + Math.sin(a) * d);
-    if ([[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]].some(([ox, oy]) => blocked(g.map, x + ox!, y + oy!, true))) continue;
-    g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "arcane" });
-    sound(g, "blink", s);
-    s.x = x; s.y = y;
-    kb.vx = kb.vy = 0;
-    g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "arcane" });
-    b.blinkCD = MAGE.blinkCooldown;
-    b.stuckT = 0;
-    b.timer = Math.max(b.timer, MAGE.afterBlink);
+    if (!clearAt(g, x, y)) continue;
+    blinkMageTo(g, s, b, kb, x, y);
     return;
   }
+}
+
+/** Is there room for a mage to come down at (x, y): clear of trees and water on all sides? */
+export const clearAt = (g: Game, x: number, y: number): boolean =>
+  ![[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]].some(([ox, oy]) => blocked(g.map, x + ox!, y + oy!, true));
+
+/** Gone in a burst, and there at (x, y) in another: a beat before casting again, and blink not ready for a while. */
+export function blinkMageTo(g: Game, s: Transform, b: MageBrain, kb: Knockback, x: number, y: number): void {
+  g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "arcane" });
+  sound(g, "blink", s);
+  s.x = x; s.y = y;
+  kb.vx = kb.vy = 0;
+  g.fx.push({ type: "burst", x: s.x, y: s.y, palette: "arcane" });
+  b.blinkCD = MAGE.blinkCooldown;
+  b.stuckT = 0;
+  b.timer = Math.max(b.timer, MAGE.afterBlink);
 }
 
 /** Sword drawn: chase the hero and swing on the same curve as the hero's swipes. */

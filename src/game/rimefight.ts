@@ -3,9 +3,9 @@
 // between them, she rises out of the ice in the middle, and nobody leaves until one of them falls. There's nowhere to
 // hide in there: just her; patches of frost creeping over the ice round him, one always under his feet, that freeze
 // him solid if he's still standing in them when they set; and every so often she stands still and throws icicles out
-// across the ice in rings and spirals for him to weave through. Carve too much off her up close and she seals herself
-// in a block of ice that nothing hurts, while the floor fills with frost and falling icicles, then bursts out of it
-// in a nova that freezes anyone still at her side. When she falls, the lake thaws
+// across the ice in rings and spirals for him to weave through. Hit her twice in a row and she's had enough: as like
+// as not she seals herself in a block of ice that nothing hurts, while the floor fills with frost and falling icicles,
+// then bursts out of it in a nova that freezes anyone still at her side; or else she blinks away. When she falls, the lake thaws
 // in a ring round where she stood, open water for the rest of the run. Drawn by the rimefrost view (src/render/rime.ts),
 // on an entity made for the fight at the stage's middle, and once she's fallen, on one that keeps the thaw.
 import type { Entity } from "../core/ecs.ts";
@@ -20,6 +20,7 @@ import { toast, type Game } from "./game.ts";
 import { heroParts } from "./hero.ts";
 import { sound } from "./sfx.ts";
 import { spawnBolt } from "./spawn.ts";
+import { blinkMageTo, clearAt } from "../systems/mage.ts";
 
 /** A patch of frost creeping over the ice (t < warn), then frozen hard (t < warn + hold). Cell top-left, like everything. */
 export interface Patch { x: number; y: number; t: number; hit: boolean }
@@ -45,6 +46,8 @@ export interface RimeFight {
   /** Her last stand (seconds in, the spiral's angle and when the next round and ring go), while it lasts. */
   stand: { t: number; angle: number; next: number; nextRing: number } | null;
   blockCD: number;
+  /** Hits on her in a row (F.crowded), seconds since the last, and her health last frame (to see them land). */
+  hits: number; sinceHit: number; lastHp: number;
   falls: Fall[];
   nextFalls: number;
   /** The entity it's drawn on. */
@@ -88,12 +91,13 @@ function rise(g: Game): void {
   const view = g.world.create({ transform: { ...at }, renderable: { kind: "rimefrost" } });
   fights.set(g, {
     ...at, t: 0, angry: false, patches: [], nextPatches: 2, view,
-    volley: null, nextVolley: F.volley.first, nextPattern: "rings", block: null, blockCD: 0, stand: null, falls: [], nextFalls: 0,
+    volley: null, nextVolley: F.volley.first, nextPattern: "rings", block: null, blockCD: 0, hits: 0, sinceHit: 0, lastHp: Infinity, stand: null, falls: [], nextFalls: 0,
   });
   g.shake = Math.max(g.shake, 2);
   sound(g, "nova", at);
   toast(g, F.say.shut, true);
-  summonBoss(g);
+  const rime = summonBoss(g);
+  if (rime !== null) fights.get(g)!.lastHp = g.world.need(rime, "health").hp;
   toast(g, F.say.rise);
 }
 
@@ -132,11 +136,18 @@ function run(g: Game, f: RimeFight, rime: Entity, dt: number): void {
     fallsAndPatches(g, f, dt, safe, false);
     return;
   }
-  // Melee wears off; too much of it, and into the ice she goes.
-  const B = F.block;
+  // Hit twice in a row: into the ice she goes, or away she blinks, by the toss of a coin (the block, only when she can).
+  // Never a mage's own blink away for the hero coming close.
   f.blockCD = Math.max(0, f.blockCD - dt);
-  enemy.melee = Math.max(0, (enemy.melee ?? 0) - (B.melee / B.window) * dt);
-  if (!f.block && f.blockCD <= 0 && enemy.melee >= B.melee) seal(g, f, rime);
+  brain.blinkCD = Math.max(brain.blinkCD, 1);
+  f.sinceHit += dt;
+  if (hp.hp < f.lastHp) { f.hits = f.sinceHit <= F.crowded.within ? f.hits + 1 : 1; f.sinceHit = 0; }
+  f.lastHp = hp.hp;
+  if (!f.block && f.hits >= F.crowded.hits) {
+    f.hits = 0;
+    if (f.blockCD <= 0 && g.rng.next() < F.crowded.chance) seal(g, f, rime);
+    else blinkAway(g, f, rime, h.pos);
+  }
   if (f.block) blockPhase(g, f, rime, dt, safe);
   else volleys(g, f, rime, dt);
   brain.held = !!f.block || !!f.volley;
@@ -280,7 +291,25 @@ function standPhase(g: Game, f: RimeFight, rime: Entity, dt: number, safe: boole
   }
 }
 
-/** Too much carved off her up close: into a block of ice she goes. */
+/**
+ * Hit twice in a row, and the coin came down for the blink: away she goes, somewhere inside her ring of ice and well
+ * in from it (never into the wall, to be pushed back out of it), and away from the hero; of the spots she looks at,
+ * the furthest from him that's clear.
+ */
+function blinkAway(g: Game, f: RimeFight, rime: Entity, hero: { x: number; y: number }): void {
+  const B = F.blink, reach = F.keepIn - B.wall;
+  let best: { x: number; y: number; d: number } | null = null;
+  for (let i = 0; i < MAGE.blinkTries; i++) {
+    const a = g.rng.next() * Math.PI * 2, r = Math.sqrt(g.rng.next()) * reach;
+    const x = Math.round(f.x + Math.cos(a) * r), y = Math.round(f.y + Math.sin(a) * r), d = Math.hypot(x - hero.x, y - hero.y);
+    if (!clearAt(g, x, y) || (best && d <= best.d)) continue;
+    best = { x, y, d };
+    if (d >= B.away) break;
+  }
+  if (best) blinkMageTo(g, g.world.need(rime, "transform"), g.world.need(rime, "mage"), g.world.need(rime, "knockback"), best.x, best.y);
+}
+
+/** Hit twice in a row, and the coin came down for it: into a block of ice she goes. */
 function seal(g: Game, f: RimeFight, rime: Entity): void {
   const at = g.world.need(rime, "transform"), brain = g.world.need(rime, "mage");
   f.block = { t: 0 };

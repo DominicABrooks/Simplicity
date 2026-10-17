@@ -51,13 +51,22 @@ export const RIME_FIGHT = {
     spiral: { arms: [2, 2], shots: [5, 6], gap: 0.24, turn: 0.32 },
   },
   /**
-   * The ice block: carve `melee` damage off her up close within about `window` seconds and she seals herself in ice
-   * for `hold` seconds. Nothing hurts her in there, and the floor fills: frost patches, and icicles falling out of the
-   * cold (marked on the ice `warn` seconds before they land, `radius` px across). Then she bursts out in a nova that
-   * freezes anyone still up against her. Not again for `cooldown` seconds after.
+   * Hit `hits` times in a row (blade or arrow, none more than `within` seconds after the last), she's had enough: by
+   * the toss of a coin (`chance` the block), she seals herself in ice or blinks away. She never blinks away just for
+   * the hero coming close, as a mage would.
+   */
+  crowded: { hits: 2, within: 3, chance: 0.5 },
+  /** Where she blinks to: somewhere inside her ring of ice, at least `wall` px in from where it keeps her (so never up
+   *  against it) and at least `away` px from the hero. */
+  blink: { wall: 10, away: 26 },
+  /**
+   * The ice block: she seals herself in ice for `hold` seconds. Nothing hurts her in there, and the floor fills: frost
+   * patches, and icicles falling out of the cold (marked on the ice `warn` seconds before they land, `radius` px
+   * across). Then she bursts out in a nova that freezes anyone still up against her. Not again for `cooldown` seconds
+   * after (crowded then, she blinks).
    */
   block: {
-    melee: 12, window: 4, hold: 5, cooldown: 18,
+    hold: 5, cooldown: 8,
     patches: { every: 1.8, count: 2 },
     falls: { every: 0.8, count: 2, warn: 1.3, radius: 7, damage: 1, shatter: 0.5 },
     burst: { radius: 26, freeze: 1 },
