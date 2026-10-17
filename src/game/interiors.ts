@@ -13,8 +13,8 @@ import type { Resident } from "../world/residents.ts";
 import type { Walker } from "./components.ts";
 import { setState, type Game } from "./game.ts";
 
-/** Each inside you've been asked into: who's in, and where they stand. */
-const insides = new Map<string, { people: Resident[]; spots: Spot[] }>();
+/** Each inside you've been asked into: whose house it is, who's in, and where they stand. */
+const insides = new Map<string, { household: Resident[]; people: Resident[]; spots: Spot[] }>();
 /** The people standing about inside the house the hero's in, and where they stand (px) facing which way. */
 let standing: { e: Entity; x: number; y: number; facing: number }[] = [];
 
@@ -25,9 +25,14 @@ const NOTICE = 30, ROOM_FOR = { house: 7, inn: 12 } as const;
 export function goInside(g: Game, area: string, house: Extract<Prop, { kind: "house" }>, household: readonly Resident[], home: readonly Resident[], name: string): void {
   const { def, spots } = interiorOf(area, house, household, name);
   registerArea(def);
-  insides.set(def.id, { people: [...home], spots });
+  insides.set(def.id, { household: [...household], people: [...home], spots });
   g.travel = { area: def.id, entry: "in" };
   setState(g, "travel");
+}
+
+/** Whose house the hero's inside, if he's in one: everyone who lives there, home or not. */
+export function householdHere(g: Game): readonly Resident[] {
+  return (g.area.def.indoors && insides.get(g.area.def.id)?.household) || [];
 }
 
 /** On arriving somewhere: if it's a house's inside, put its people in it. */

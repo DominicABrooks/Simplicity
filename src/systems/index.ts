@@ -33,6 +33,7 @@ import { spiritSystem } from "../game/spirits.ts";
 import { greatKoiSystem } from "../game/greatkoi.ts";
 import { hushSystem } from "../game/hush.ts";
 import { quaySystem } from "../game/quay.ts";
+import { rangersBowSystem } from "../game/fells.ts";
 import { despawnSystem, pickupSystem } from "./pickups.ts";
 import { sentrySystem } from "./sentry.ts";
 import { swordSystem } from "./sword.ts";
@@ -59,7 +60,7 @@ export const HERO_SYSTEMS: System[] = [
 
 /** Everything else, in groups. A group is skipped once the hero has fallen. */
 export const WORLD_SYSTEMS: System[][] = [
-  [hushSystem, arrowSystem, enemyPhysicsSystem, hauntSystem, eerieSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, calderFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, fairyRingSystem, underhillSystem, hunterHutSystem, petSystem, undercroftSystem, sealChamberSystem, quaySystem, victorySystem],
+  [hushSystem, arrowSystem, enemyPhysicsSystem, hauntSystem, eerieSystem, mageSystem, bossSystem, cinderFightSystem, rimeFightSystem, calderFightSystem, ghostSystem, slimeSystem, greatKoiSystem, deathSystem, spawnerSystem, sentrySystem, wardenSystem, yssaSystem, spiritSystem, stoneSystem, fairyRingSystem, underhillSystem, hunterHutSystem, petSystem, undercroftSystem, sealChamberSystem, quaySystem, rangersBowSystem, victorySystem],
   [boltSystem, strikeSystem, riftSystem, homeStoneSystem],
 ];
 

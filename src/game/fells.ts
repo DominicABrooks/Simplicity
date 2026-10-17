@@ -1,14 +1,19 @@
 // The Fells' house in the Wallside (src/data/fells.ts): Meg Fell's own lines, and her husband's grey cloak hung from
 // the window, as the Ranger's note says, so whoever has the note can find the house. It hangs there till the King lets
-// Wystan out (src/game/ending.ts: the head laid at his feet); then Meg takes it in for good.
-import { MEG_TALK } from "../data/fells.ts";
+// Wystan out (src/game/ending.ts: the head laid at his feet); then Meg takes it in for good. Inside, his bow leans by
+// the chest, for the hero to take.
+import { MEG_TALK, RANGERS_BOW, RANGERS_BOW_SAYS } from "../data/fells.ts";
 import { HALF, T } from "../data/world.ts";
+import { makeItem, type Item } from "../items/items.ts";
 import type { Prop } from "../world/area.ts";
+import { blocked } from "../world/collision.ts";
 import { FACING_YAW, houseBody, houseDoor, local } from "../world/plans.ts";
 import type { Resident } from "../world/residents.ts";
 import { beaten } from "./bosses.ts";
 import { headLaid } from "./ending.ts";
-import type { Game } from "./game.ts";
+import { toast, type Game } from "./game.ts";
+import { householdHere } from "./interiors.ts";
+import { dropLoot } from "./spawn.ts";
 import { loadCensus } from "./townsfolk.ts";
 
 /** Is this Meg Fell: the Ranger's wife, the grown woman of the Fells at home? */
@@ -50,4 +55,55 @@ export function watchFells(g: Game): void {
       g.world.create({ transform: { x: at.x * T - HALF, y: at.z * T - HALF }, cloak: { yaw, y: up ? UP : DOWN }, renderable: { kind: "cloak" } });
     });
   });
+}
+
+/** Is this the Fells' house: the Ranger's family's? */
+export const isFells = (household: readonly Resident[]): boolean => household.some(r => r.family === "fell" && !r.prisoner);
+
+/** Is the Ranger's bow his already: in the bag, in hand or in his hand? */
+const hasBow = (g: Game): boolean => {
+  const inv = g.inventory, is = (i: Item | null | undefined) => i?.name === RANGERS_BOW.name;
+  return inv.grid.some(e => is(e.item)) || is(inv.held) || Object.values(inv.equip).some(is);
+};
+
+/** The Ranger's bow, lying here, if it is. */
+const bowHere = (g: Game): boolean => g.world.query("pickup").some(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === RANGERS_BOW.name);
+
+/** Whether he's been told this run that the bow's there (once is enough). */
+const seen = new WeakMap<Game, { told: boolean }>();
+function seenBow(g: Game): { told: boolean } {
+  let s = seen.get(g);
+  if (!s) {
+    const fresh = { told: false };
+    seen.set(g, s = fresh);
+    g.events.on("reset", () => { fresh.told = false; });
+  }
+  return s;
+}
+
+/**
+ * Every frame: in the Fells' house, the Ranger's bow leans by the chest (where src/world/interiors.ts puts it: on the
+ * hearth's wall, left of the fire), on the floor just in front of it where he can get at it, till he has it; the first
+ * time each run, he's told so.
+ */
+export function rangersBowSystem(g: Game): void {
+  if (!isFells(householdHere(g)) || bowHere(g) || hasBow(g)) return;
+  const { x, y } = byTheChest(g);
+  const bow = makeItem(RANGERS_BOW.type, RANGERS_BOW.rarity, { ...RANGERS_BOW.mods }, RANGERS_BOW.name);
+  bow.note = RANGERS_BOW.note;
+  g.world.remove(dropLoot(g, x, y, bow), "despawn");          // it's waited this long
+  if (!seenBow(g).told) { seenBow(g).told = true; toast(g, RANGERS_BOW_SAYS); }
+}
+
+/** Where the bow lies (an entity's top-left, game px): the nearest open floor to the front of the chest, a step out at most. */
+function byTheChest(g: Game): { x: number; y: number } {
+  const cx = (g.map.width / 2 - 2.3) * T - HALF, cy = 1.4 * T - HALF;
+  for (let r = 0; r <= 2 * T; r += 2) {
+    for (let a = 0; a < 16; a++) {
+      const x = cx + Math.round(Math.cos((a / 16) * Math.PI * 2) * r), y = cy + Math.abs(Math.round(Math.sin((a / 16) * Math.PI * 2) * r));
+      if (!blocked(g.map, x, y, true)) return { x, y };
+      if (r === 0) break;
+    }
+  }
+  return { x: cx, y: cy + T };
 }
