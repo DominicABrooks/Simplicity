@@ -106,7 +106,7 @@ function releaseSpell(g: Game, h: HeroParts, s: Transform, b: MageBrain, dx: num
 }
 
 /** Teleport to a random open spot 5-9 tiles from the hero, clear of trees and water on all sides. */
-function blinkMage(g: Game, p: Transform, s: Transform, b: MageBrain, kb: Knockback): void {
+export function blinkMage(g: Game, p: Transform, s: Transform, b: MageBrain, kb: Knockback): void {
   for (let i = 0; i < MAGE.blinkTries; i++) {
     const a = g.rng.next() * Math.PI * 2, d = MAGE.blinkMin + g.rng.next() * (MAGE.blinkMax - MAGE.blinkMin);
     const x = Math.round(p.x + Math.cos(a) * d), y = Math.round(p.y + Math.sin(a) * d);
