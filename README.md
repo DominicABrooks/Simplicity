@@ -144,7 +144,7 @@ Your gear and level travel with you; each area keeps its own creatures.
 
 **Numbers.** White for your hits, red for damage you take, green for healing, lilac for experience.
 
-**Experience and levels.** Kills give experience (10 for a slime, 50 for a mage). Level up and you're healed fully and grow a little faster and tougher: more life every two levels, more damage every four. The cap is level 20.
+**Experience and levels.** Kills give experience (10 for a slime, 50 for a mage). Level up and you're healed fully and grow a little faster and tougher, with more life every two levels. Damage comes only from your weapon and gear. The cap is level 20.
 
 **Potions** restore two hearts. Slimes drop one now and then, and mages half the time.
 

@@ -17,11 +17,13 @@ import { createKoiPond } from "./koi.ts";
 import { greatKoiBeaten, greatKoiOut } from "../game/greatkoi.ts";
 import type { Projector } from "./projector.ts";
 import { createOcclusion } from "./occlusion.ts";
+import { caveClearing } from "./cave.ts";
 import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
 import { createTrance } from "./trance.ts";
 import { createErlKingView, erlKingFocus } from "./erlking.ts";
+import { createFireflyLead } from "./fey.ts";
 import { compactScenery, freezeScenery } from "./compact.ts";
 import { buildTerrain, groundUnderBridges } from "./terrain.ts";
 import { smooth } from "../core/math.ts";
@@ -85,6 +87,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
   const occlusion = createOcclusion(scene);
   const targetRing = createTargetRing(ctx);
   const erlKing = createErlKingView(ctx);                    // under the hill, his throne, and him (src/game/underhill.ts)
+  const fireflies = createFireflyLead(ctx);                  // after dark in the Witchwood, the way to the fairy ring
   const weather = createWeatherView(ctx, { sky, fog, fill, sun });
 
   // Arriving in an area: free the last area's scenery and build this one's, then jump the camera to
@@ -99,7 +102,8 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     // Drawn: the map, or its view when it shows what lies past its edges (the next district along).
     const view = layout.view ?? { map: layout.map, x: 0, y: 0, props: [] }, props = [...layout.props, ...view.props];
     const bridges = props.filter(p => p.kind === "bridge" || p.kind === "stoneBridge" || p.kind === "drawbridge").map(p => shift(p, -view.x * T, -view.y * T));
-    const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view, !!def.indoors);
+    const caves = props.flatMap(p => (p.kind === "cave" ? [caveClearing(shift(p, -view.x * T, -view.y * T))] : []));   // no trees up through their boulders
+    const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view, !!def.indoors, caves);
     scenery.add(terrain.group);
     const lively: THREE.Object3D[] = [];                     // what the props that animate put in the scenery
     const built = props.map(prop => {
@@ -115,6 +119,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     koi.setMap(layout.map, layout.props);
     targetRing.setProps(props);
     ambient.setMap(layout.map, !!def.life?.ambient);
+    fireflies.set(props);
     const p = g.world.need(g.player, "transform");
     const [x, z] = toWorld(p.x, p.y);
     camTarget.set(x, 0, z);
@@ -158,6 +163,7 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
       ambient.update(dt, t, px, pz, g.hour);
       for (const update of animated) update(t, dt);
       erlKing.update(g, t, dt);
+      fireflies.update(g, t, dt);
       occlusion.update(reel ? camTarget.x : px, reel ? camTarget.z : pz, toCamera, dt);
       targetRing.update(g, t);
 

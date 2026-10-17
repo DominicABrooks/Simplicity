@@ -30,6 +30,17 @@ describe("targeting", () => {
     expect(pickTarget(g, flat, { x: 400 + 30, y: 400 })).toBeNull();
   });
 
+  it("never picks someone behind the camera, whose capsule the projection flings across the screen", () => {
+    const { g, slime } = setup();
+    // Feet thrown far off one way and head far off the other, the line between them crossing the cursor.
+    const flipped: Projector = { ...flat, gameToScreen: (_x, _y, h = 0) => (h ? { x: -4e5, y: -4e5 } : { x: 4e5, y: 4e5 }) };
+    expect(pickTarget(g, flipped, { x: 400, y: 400 })).toBeNull();
+    // Far behind it, the head comes out below the feet.
+    const behind: Projector = { ...flat, gameToScreen: (x, y, h = 0) => ({ x: x * 4, y: y * 4 + h * 32 }) };
+    expect(pickTarget(g, behind, { x: 400, y: 400 })).toBeNull();
+    expect(pickTarget(g, flat, { x: 400, y: 400 })).toBe(slime);
+  });
+
   it("can target the campfire", () => {
     const { g } = setup();
     const [fire] = g.world.query("targetable", "transform").find(([, { targetable }]) => targetable.name === "Campfire")!;

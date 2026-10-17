@@ -11,6 +11,7 @@ import { layHead, leaveHead } from "./head.ts";
 import { spawnBed, spawnTent } from "./sleeping.ts";
 import { lockedOut } from "./undercroft.ts";
 import { passedBarricade, wardenStops, wardenSystem } from "./watchword.ts";
+import { yssaSystem } from "./yssa.ts";
 import { cancelActions } from "./combat.ts";
 import { breakRings } from "./fairyring.ts";
 import { setState, toast, type Game } from "./game.ts";
@@ -48,7 +49,8 @@ export function enterArea(g: Game, def: AreaDef, entry: string): void {
     if (prop.kind === "dummy" || prop.kind === "target") spawnTraining(g, prop.kind === "dummy" ? "dummy" : "butt", prop.x - HALF, prop.y - HALF, FACING_ANGLE[prop.facing]);
   }
   layHead(g);
-  wardenSystem(g, Infinity);                                 // the woodwardens in their gate, or aside if he's through
+  wardenSystem(g, Infinity);                                 // the woodwardens in their gate, or aside if he's through,
+  yssaSystem(g, Infinity);                                   // and Yssa at her post, so nothing first turns up behind them
   const life = def.life;
   if (life?.enemies) for (let i = 0; i < SPAWNING.startSlimes; i++) spawnEnemy(g, 80);
   if (life?.potions) {

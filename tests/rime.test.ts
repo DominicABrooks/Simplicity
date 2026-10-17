@@ -26,6 +26,7 @@ import { enterArea } from "../src/game/travel.ts";
 import { deathSystem, spawnerSystem } from "../src/systems/enemies.ts";
 import { mageSystem, novaRadius } from "../src/systems/mage.ts";
 import { pickupSystem } from "../src/systems/pickups.ts";
+import { step } from "../src/systems/index.ts";
 
 const DT = 1 / 60;
 
@@ -163,7 +164,7 @@ describe("Rime", () => {
     setState(g, "play");
     enterArea(g, await loadArea("hollow"), "stone");
     expect(standOff(g, 3)).toBeDefined();
-    expect(g.map).toBe(g.area.layout.map);
+    expect(g.map.tiles).toBe(g.area.layout.map.tiles);           // the lake frozen again (Yssa's in the map, at her post)
   });
 });
 
@@ -360,7 +361,7 @@ describe("Rime's last stand", () => {
   });
 
   it("comes out after it, spent, still with the health she had; and the next blow that should finish her does", async () => {
-    const g = await inHollow(), [e, { health }] = standOff(g, 3)!, f = rimeFight(g)!, enemy = g.world.need(e, "enemy");
+    const g = await inHollow(), [e, { health }] = standOff(g, 3)!, f = rimeFight(g)!, enemy = g.world.need(e, "enemy"), next = g.rng.next;
     g.rng.next = () => 0.5;
     health.hp = 2;
     hitEnemy(g, e, 5);
@@ -379,6 +380,7 @@ describe("Rime's last stand", () => {
     // The Hollow stays quiet after her, until he leaves and comes back.
     for (let i = 0; i < 20; i++) { g.spawnTimer = 0; spawnerSystem(g, 1); }
     expect(g.world.count("enemy")).toBe(0);
+    g.rng.next = next;                                       // (stuck at 0.5, every spot it picks is in the thawed ring)
     enterArea(g, await loadArea("hollow"), "stone");
     expect(g.world.count("enemy")).toBeGreaterThan(0);
   });
@@ -434,5 +436,30 @@ describe("the hunter's hut", () => {
     enterArea(g, await loadArea("hollow"), "stone");
     hunterHutSystem(g);
     expect(bows()).toHaveLength(1);
+  });
+});
+
+describe("the thaw, with Yssa in the Hollow too", () => {
+  it("stays open water through a whole tick of every system, with her solid in the map as well", async () => {
+    const g = await inHollow();
+    const [, { health, transform }] = standOff(g, 3)!;
+    const at = { ...transform };
+    health.hp = 0;
+    bossSystem(g, DT);
+    deathSystem(g);
+    setState(g, "play");
+    for (let i = 0; i < 60; i++) step(g, DT);                // a second of every system, past the blow's hitstop
+    const cx = at.x / T + 0.5, cy = at.y / T + 0.5, lake = g.area.layout.map.tiles, ring: [number, number][] = [];
+    for (let y = 0; y < lake.length; y++) for (let x = 0; x < lake[0]!.length; x++) if (lake[y]![x] === Tile.Ice && inThaw(x, y, cx, cy)) ring.push([x, y]);
+    expect(ring.length).toBeGreaterThan(20);
+    for (const [x, y] of ring) expect(g.map.tiles[y]![x]).toBe(Tile.Water);
+    expect(g.map.solids.length).toBe(g.area.layout.map.solids.length + 1);   // Yssa, at the foot of the climb
+
+    // And the same on coming back: the thaw and her both there from the first frame.
+    enterArea(g, await loadArea("hollow"), "stone");
+    for (const [x, y] of ring) expect(g.map.tiles[y]![x]).toBe(Tile.Water);
+    expect(g.map.solids.length).toBe(g.area.layout.map.solids.length + 1);
+    for (let i = 0; i < 60; i++) step(g, DT);
+    for (const [x, y] of ring) expect(g.map.tiles[y]![x]).toBe(Tile.Water);
   });
 });

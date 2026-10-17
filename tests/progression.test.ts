@@ -8,9 +8,9 @@ describe("progression", () => {
   });
 
   it("grants raw stats per level", () => {
-    expect(levelBonus(1)).toEqual({ level: 1, speed: 0, life: 0, damage: 0 });
-    expect(levelBonus(5)).toEqual({ level: 5, speed: 8, life: 2, damage: 1 });
-    expect(levelBonus(20)).toEqual({ level: 20, speed: 38, life: 9, damage: 4 });
+    expect(levelBonus(1)).toEqual({ level: 1, speed: 0, life: 0 });
+    expect(levelBonus(5)).toEqual({ level: 5, speed: 8, life: 2 });
+    expect(levelBonus(20)).toEqual({ level: 20, speed: 38, life: 9 });
   });
 });
 

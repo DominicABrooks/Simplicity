@@ -108,6 +108,7 @@ export function createInventoryView(model: Inventory, icons: ItemIcons, hooks: I
       return span;
     }));
     renderHeld();
+    updatePreview();                                         // (nothing held now, as on closing with something in hand: no preview left behind)
   }
 
   function renderHeld(): void {

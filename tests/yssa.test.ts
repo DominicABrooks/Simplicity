@@ -1,5 +1,5 @@
 // Yssa on the track west out of the Ashwild: she stands in it until the hero writes her her name, wherever he learnt
-// it (from Cinder as he falls, from the woodcutters' hut door, or from last time); then she steps aside, and the
+// it (from Cinder as he falls, or from last time: the woodcutters' hut door only warns she'll ask); then she steps aside, and the
 // track runs on to the Frozen Hollow. A new run starts her afresh.
 import { describe, expect, it } from "vitest";
 import { loadArea } from "../src/areas/index.ts";
@@ -78,9 +78,9 @@ describe("Yssa's track", () => {
     expect(walkWest(g)).toBeLessThan(3 * T);                 // a new run: back in the track
   });
 
-  it("is named by Cinder as he falls, and on the woodcutters' hut door", async () => {
+  it("is named by Cinder as he falls; the woodcutters' hut door warns she'll ask, but doesn't name her", async () => {
     expect(CINDER_LAST_WORDS.join(" ")).toContain(YSSA.word);
-    expect(HUT_CARVING.lines.join(" ").toLowerCase()).toContain(YSSA.word.toLowerCase());
+    expect(HUT_CARVING.lines.join(" ").toLowerCase()).not.toContain(YSSA.word.toLowerCase());
     const g = await inAshwild(), hut = g.area.layout.props.find(p => p.kind === "hall")!;
     if (hut.kind !== "hall") throw new Error("no hut");
     Object.assign(g.world.need(g.player, "transform"), { x: hut.rect.x + hut.rect.w / 2 - HALF, y: hut.rect.y + hut.rect.h - HALF });

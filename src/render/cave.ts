@@ -1,12 +1,13 @@
-// A cave mouth: a heap of grey boulders around a dark opening, with moss on top and rubble at its
-// foot. Built facing south (the opening toward the camera); turned around to face north.
+// A cave mouth: a heap of grey boulders around a dark opening, with moss on top (or, in the snow, snow lying
+// on it) and rubble at its foot. Built facing south (the opening toward the camera); turned around to face north.
 import * as THREE from "three";
 import { PAL } from "../data/palette.ts";
 import type { Prop } from "../world/area.ts";
 import { GROUND, onGround, PX_PER_TILE, type RenderContext } from "./context.ts";
-import { hash } from "./terrain.ts";
+import { hash, type Clearing } from "./terrain.ts";
 
 const STONE = ["#8a8378", "#9d968a", "#77706a", "#6b655f"];
+const SNOW = "#eef3f7";
 
 export function buildCave(ctx: RenderContext, parent: THREE.Group, prop: Extract<Prop, { kind: "cave" }>): void {
   const { lambert, basic } = ctx, cave = new THREE.Group();
@@ -39,11 +40,12 @@ export function buildCave(ctx: RenderContext, parent: THREE.Group, prop: Extract
     basic("#000000", { transparent: true, opacity: 0.35, depthWrite: false, ...onGround(GROUND.stain) }));
   spill.position.set(0, 0.015, 0.12);
   cave.add(mouth, hollow, spill);
-  // Moss on top, rubble at the foot.
+  // Moss on top (in the snow, snow lying flatter and wider), rubble at the foot.
   for (let k = 0; k < 4; k++) {
-    const moss = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16 + hash(k, 5, 305) * 0.08, 0), lambert(PAL.G));
-    moss.position.set(-0.6 + k * 0.4, 1.75 + hash(k, 6, 306) * 0.15, -0.15);
-    moss.scale.y = 0.6;
+    const r = (0.16 + hash(k, 5, 305) * 0.08) * (prop.snow ? 1.35 : 1);
+    const moss = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), lambert(prop.snow ? SNOW : PAL.G));
+    moss.position.set(-0.6 + k * 0.4, 1.75 + hash(k, 6, 306) * 0.15 - (prop.snow ? 0.06 : 0), -0.15);
+    moss.scale.y = prop.snow ? 0.45 : 0.6;
     cave.add(moss);
   }
   for (let k = 0; k < 5; k++) {
@@ -54,4 +56,10 @@ export function buildCave(ctx: RenderContext, parent: THREE.Group, prop: Extract
   cave.position.set(prop.x / PX_PER_TILE, 0, prop.y / PX_PER_TILE);
   if (prop.facing === "north") cave.rotation.y = Math.PI;
   parent.add(cave);
+}
+
+/** The ground the boulders cover (tiles), so no tree grows up through them: an ellipse a little wider than the heap, over its back. */
+export function caveClearing(prop: Extract<Prop, { kind: "cave" }>): Clearing {
+  const back = prop.facing === "south" ? -0.75 : 0.75;
+  return { x: prop.x / PX_PER_TILE, z: prop.y / PX_PER_TILE + back, rx: 2.3, rz: 1.4 };
 }

@@ -90,7 +90,7 @@ describe("Inventory", () => {
       makeItem("ring", "magic", { dash: 20 }),
     ]);
     const s = inv.stats();
-    expect(s).toMatchObject({ level: 9, damage: 1 + 2, crit: 2, life: 2 + 4, speed: 5 + 16, dash: 60 });
+    expect(s).toMatchObject({ level: 9, damage: 1, crit: 2, life: 2 + 4, speed: 5 + 16, dash: 60 });
     expect(s.gear).toMatchObject({ weapon: "magic", boots: "rare", ring: "magic", helm: null, weaponType: "blade" });
   });
 

@@ -1,8 +1,13 @@
 // What the fair folk leave: a fairy ring in a glade, pale mushrooms come up in a circle on a band of grass
 // greener than the rest, the grass inside it a little paler; and by night their caps glow faintly and small
-// lights drift slowly round above it. Low-poly, at the hero's scale. Or, once the fair folk are gone, broken.
+// lights drift slowly round above it. Low-poly, at the hero's scale. Or, once the fair folk are gone, broken. And
+// fireflies after dark, drifting in a loose trail from wherever he is in the woods, thickening as it nears the ring, to
+// lead him to it.
 import * as THREE from "three";
-import { T } from "../data/world.ts";
+import { HALF, T } from "../data/world.ts";
+import { fireflyLead, ringHere, wayToRing } from "../game/fairyring.ts";
+import type { Game } from "../game/game.ts";
+import type { Prop } from "../world/area.ts";
 import { put } from "./castle.ts";
 import { GROUND, onGround, type RenderContext } from "./context.ts";
 import type { PropView } from "./props.ts";
@@ -171,6 +176,121 @@ function buildBrokenRing(ctx: RenderContext, parent: THREE.Group, p: PropOf<"fai
         s.m.position.y = 0.7 * (1 - f);
         s.m.scale.setScalar(1 - f * 0.7);
         s.m.visible = dark > 0.02;
+      }
+    },
+  };
+}
+
+/** How many fireflies come out along the way ahead of him, and how many more where it ends at the ring. */
+const AHEAD = 20, GATHERED = 12;
+/** How far on along the way ahead of him they come out (tiles: about as far as the screen shows), and how far back from the ring they gather. */
+const WINDOW = 6, GATHER = 5;
+/** How far a firefly comes out to one side of the way (world units), less close in by the ring. */
+const STRAY = 0.45;
+/** How long a firefly is out, from fading in to gone (seconds), at least and at most; and how long it takes to fade in, and out. */
+const LIFE = [4, 7] as const, FADE_IN = 1.2, FADE_OUT = 1.6;
+/** How fast a firefly drifts on the way the way goes (world units a second). */
+const DRIFT = 0.22;
+
+/** The fireflies that lead him to a fairy ring after dark (src/game/fairyring.ts, fireflyLead and wayToRing). */
+export interface FireflyLead {
+  /** Arriving in an area: lead him to its fairy ring, if it has one to be led to; else nothing. */
+  set(props: readonly Prop[]): void;
+  update(g: Game, t: number, dt: number): void;
+}
+
+/**
+ * Fireflies leading him to a fairy ring: the same soft blinking lights as the ring's own, coming out one by one along
+ * the way to it from wherever he is, over open ground round the trees and the water. Each fades in somewhere a little
+ * to one side of the way, drifts slowly on along it towards the ring for a few seconds, wandering and bobbing, and fades
+ * out again, and another comes out somewhere else; once out, it goes its own way whatever he does, so as he walks the
+ * old ones fade behind him and new ones come out ahead. Most come out a little way on ahead of him, so wherever he
+ * stands a few are drifting off the right way; more where the way ends at the ring, so the trail thickens as he nears
+ * it. They come out as the night does, and go as softly once he's found the ring.
+ */
+export function createFireflyLead(ctx: RenderContext): FireflyLead {
+  const { glow, light, scene } = ctx, group = new THREE.Group();
+  scene.add(group);
+  // A mote, and a soft round glow about it facing the camera, as the woods' other fireflies have (src/render/ambient.ts).
+  const moteGeo = new THREE.OctahedronGeometry(0.05, 0), haloGeo = new THREE.CircleGeometry(0.17, 8);
+  const add = { transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending } as const;
+  interface Leader {
+    m: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>; halo: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+    /** Whether it comes out near the ring rather than on ahead of him. */
+    gathers: boolean;
+    /** Where it came out (world X/Z), the way it drifts (along the way, towards the ring), and how far it strays from it. */
+    x: number; z: number; dx: number; dz: number; near: number;
+    /** How long it's been out (below 0, how long till it comes out), and how long it'll be out. */
+    age: number; life: number;
+    phase: number; rate: number;
+  }
+  const leaders: Leader[] = Array.from({ length: AHEAD + GATHERED }, (_, i) => {
+    const m = new THREE.Mesh(moteGeo, glow("#e4f8a8", { ...add })), halo = new THREE.Mesh(haloGeo, glow("#b0e46c", { ...add }));
+    halo.rotation.x = -0.94;
+    m.add(halo);
+    m.visible = false;
+    group.add(m);
+    return { m, halo, gathers: i >= AHEAD, x: 0, z: 0, dx: 0, dz: 0, near: 1, age: 0, life: 0, phase: hash(i, 3, 551) * 10, rate: 1.1 + hash(i, 4, 552) * 1.2 };
+  });
+  /** The way from his tile to the ring, which tile it was worked out from, and how long it is (world units). */
+  let way: THREE.CatmullRomCurve3 | null = null, from = "", length = 0, led = false, shown = 0;
+  const at = new THREE.Vector3(), tangent = new THREE.Vector3();
+  /** Out somewhere along the way: on ahead of him, or near the ring, more of them the nearer it; or, with no way, not yet. */
+  const comeOut = (f: Leader) => {
+    f.life = LIFE[0] + Math.random() * (LIFE[1] - LIFE[0]);
+    if (!way) { f.age = -Math.random(); f.life = 0; return; }
+    const d = f.gathers ? GATHER * Math.random() ** 2 : length - 0.6 - Math.random() * WINDOW;   // how far from the ring
+    const u = Math.min(1, Math.max(0, 1 - d / length));
+    way.getPointAt(u, at);
+    way.getTangentAt(u, tangent);
+    f.near = Math.min(1, 0.35 + Math.max(0, d) / GATHER);
+    const side = (Math.random() * 2 - 1) * STRAY * f.near;
+    f.x = at.x - tangent.z * side; f.z = at.z + tangent.x * side;
+    f.dx = tangent.x; f.dz = tangent.z;
+    f.age = 0;
+  };
+
+  return {
+    set(props) {
+      led = props.some(p => p.kind === "fairyRing" && !!p.lead && !p.broken && !p.quiet);
+      way = null; from = ""; length = 0; shown = 0;
+      // Not all at once: each comes out in its own time.
+      for (const f of leaders) { f.age = -Math.random() * LIFE[1]; f.life = 0; f.m.visible = false; }
+    },
+
+    update(g, t, dt) {
+      // Eased in and out, so they gather and go softly; and brighter the darker it is, as the ring's own lights are.
+      const want = led ? fireflyLead(g) : 0;
+      shown += Math.sign(want - shown) * Math.min(Math.abs(want - shown), dt * 0.5);
+      const dark = Math.min(1, Math.max(0, (1 - light.value) / 0.6)), on = shown * dark;
+      group.visible = on > 0.01;
+      if (!group.visible) return;
+      // The way on from the tile he's on, worked out again each time he steps onto another: only where the next ones
+      // come out, never moving those already out.
+      const p = g.world.need(g.player, "transform"), here = `${Math.floor((p.x + HALF) / T)},${Math.floor((p.y + HALF) / T)}`;
+      if (here !== from) {
+        from = here;
+        const tiles = wayToRing(g, p.x, p.y), ring = ringHere(g);
+        const points = tiles.filter((_, i) => i === 0 || (tiles.length - 1 - i) % 2 === 0).map(([x, y]) => new THREE.Vector3(x / T, 0, y / T));
+        if (ring && points.length) points[points.length - 1]!.set(ring.x / T, 0, ring.y / T);
+        way = points.length >= 2 ? new THREE.CatmullRomCurve3(points, false, "centripetal") : null;
+        length = way ? way.getLength() : 0;
+        if (length < 0.5) way = null;                            // he's there
+      }
+      for (const f of leaders) {
+        const was = f.age;
+        f.age += dt;
+        if (was < 0 && f.age >= 0 || f.age >= f.life) comeOut(f);
+        if (f.age < 0 || f.life <= 0) { f.m.visible = false; continue; }
+        // Drifting on the way the way went where it came out, wandering a little either side, bobbing up and down.
+        const go = DRIFT * f.near * f.age, wander = Math.sin(t * 0.37 + f.phase) * 0.15 * f.near;
+        f.m.position.set(f.x + f.dx * go - f.dz * wander, 0.45 + Math.sin(t * 1.1 + f.phase) * 0.2, f.z + f.dz * go + f.dx * wander);
+        // Blinking like any firefly, but never quite out near the ring; fading in as it comes out, and out as it goes.
+        const blink = Math.max(0.45 * (1 - f.near), Math.sin(t * f.rate + f.phase)) ** 2;
+        const life = Math.min(1, f.age / FADE_IN, (f.life - f.age) / FADE_OUT);
+        f.m.material.opacity = on * Math.max(0, life) * (0.25 + 0.75 * blink);
+        f.halo.material.opacity = f.m.material.opacity * 0.55;
+        f.m.visible = true;
       }
     },
   };

@@ -68,7 +68,7 @@ export function rimeFightSystem(g: Game, dt: number): void {
   if (g.area.def.id !== "hollow") return;
   const at = fellAt(g, "rime");
   if (at) {                                                 // the thaw stays for the run
-    g.map = thawed(g.area.layout.map, at);
+    if (g.map.tiles !== lake(g).tiles) g.map = lake(g);    // (once it's thawed, leave Yssa's solid in it be)
     if (thawViews.get(g)?.in !== g.area) thawViews.set(g, { e: g.world.create({ transform: { ...at }, renderable: { kind: "rimefrost" } }), in: g.area });
   }
   const f = fights.get(g);
@@ -363,6 +363,12 @@ function keepIn(f: RimeFight, t: { x: number; y: number }): void {
 export function inThaw(x: number, y: number, cx: number, cy: number): boolean {
   const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
   return d >= F.thaw.inner && d <= F.thaw.outer;
+}
+
+/** The Hollow's lake as it stands this run: thawed round where she fell, once she has (Yssa's built on it: src/game/yssa.ts). */
+export function lake(g: Game): TileMap {
+  const at = g.area.def.id === "hollow" ? fellAt(g, "rime") : null;
+  return at ? thawed(g.area.layout.map, at) : g.area.layout.map;
 }
 
 /** The lake with the ring round where she fell (cell top-left) thawed to open water. */

@@ -82,7 +82,7 @@ function build(): AreaLayout {
   town.fill([cave.x - 3, cave.y - 3, 6, 3], Tile.Tree);
   town.fill([cave.x - 1, cave.y - 1, 2, 1], Tile.Wall);    // the rock the opening's cut into (hidden under its boulders)
   town.fill([cave.x - 1, cave.y, 2, 1], Tile.Path);        // trodden right up into it
-  town.add({ kind: "cave", x: cave.x * T, y: cave.y * T, facing: "south" });
+  town.add({ kind: "cave", x: cave.x * T, y: cave.y * T, facing: "south", snow: true });
 
   // The climb: the frozen stream north from the bowl's rim to the map's edge, and the notch Yssa steps aside into.
   for (let y = 0; y <= CLIMB.post; y++) town.set(CLIMB.x, y, Tile.Path);
@@ -126,7 +126,7 @@ export const area: AreaDef = {
   name: "The Frozen Hollow",
   build,
   // Slimes, and only Frost mages, more of them, out on the ice. No critters or grass: it's under the snow.
-  life: { enemies: true, potions: true, ambient: false, mages: { schools: ["frost"], extra: 2, on: Tile.Ice } },
+  life: { enemies: true, potions: true, ambient: false, mages: { schools: ["frost"], chance: 0.2, on: Tile.Ice } },   // a few, not a crowd: the lake is mostly slimes
 };
 
 /** Where Rime rises (cell top-left): the middle of the frozen lake, the middle of her stage. */

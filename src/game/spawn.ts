@@ -5,9 +5,10 @@ import { LOOT_DESPAWN } from "../data/items.ts";
 import { BASE_HP } from "../data/player.ts";
 import { KING } from "../data/king.ts";
 import { GUARD, TRAINING, TRAINING_HP, type TrainingKind } from "../data/npcs.ts";
-import { CAMPFIRE_TARGET } from "../data/world.ts";
+import { CAMPFIRE_TARGET, HALF, T, type Tile } from "../data/world.ts";
 import type { Item } from "../items/items.ts";
-import { randomGroundSpot } from "../world/collision.ts";
+import { randomGroundSpot, type Point } from "../world/collision.ts";
+import { walkableFrom } from "../world/map.ts";
 import type { Game } from "./game.ts";
 import { toast } from "./game.ts";
 import { atPeace } from "./peace.ts";
@@ -30,20 +31,30 @@ export function createHero(g: Game): Entity {
 
 /**
  * A new enemy somewhere at least minDist px from the hero: usually a slime, but once you've proven
- * yourself, sometimes a mage (more often, and more at once, as you level).
+ * yourself, sometimes a mage (more often, and more at once, as you level). Only where he could walk to: never behind
+ * Yssa or the woodwardens while they're standing in the way (g.map has them in it).
  */
 export function spawnEnemy(g: Game, minDist: number): void {
   const hero = g.world.get(g.player, "transform");
-  const p = hero && randomGroundSpot(g.map, g.rng, hero, minDist);
+  const reach = hero && walkableFrom(g.map, Math.floor((hero.x + HALF) / T), Math.floor((hero.y + HALF) / T));
+  const spot = (on?: Tile): Point | null => {
+    for (let i = 0; hero && reach && i < 20; i++) {
+      const p = randomGroundSpot(g.map, g.rng, hero, minDist, on);
+      if (!p) return null;
+      if (reach.has((p.y / T) * g.map.width + p.x / T)) return p;
+    }
+    return null;
+  };
+  const p = spot();
   if (!p) return;
   const level = g.world.get(g.player, "hero")?.level ?? 1;
   // Where the area says which mages live there (the deep woods), they come from the start, and more of them.
   const mages = g.area.def.life?.mages, schools = mages?.schools ?? SCHOOL_ORDER;
-  const cap = mageCap(level) + (mages?.extra ?? 0), chance = mages ? Math.max(0.45, mageChance(level)) : mageChance(level);
+  const cap = mageCap(level) + (mages?.extra ?? 0), chance = mages ? mages.chance ?? Math.max(0.45, mageChance(level)) : mageChance(level);
   // Once Calder's head is at the King's feet, no more of the Greyed come (src/game/peace.ts).
   if (!atPeace(g) && (mages || g.kills >= MAGE_MIN_KILLS) && g.world.count("mage") < cap && g.rng.next() < chance) {
     const school = schools[Math.floor(g.rng.next() * schools.length)]!;
-    const hp = mageHp(level), at = (mages?.on !== undefined && randomGroundSpot(g.map, g.rng, hero, minDist, mages.on)) || p;
+    const hp = mageHp(level), at = (mages?.on !== undefined && spot(mages.on)) || p;
     g.world.create({
       transform: at,
       knockback: { vx: 0, vy: 0 },

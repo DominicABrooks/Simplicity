@@ -1070,7 +1070,7 @@ function keepInCrowd(g: Game, s: Streets, w: Walker, t: { x: number; y: number }
       const own = 1 + (((w.id * 7919) % 201) / 100 - 1) * CROWD.spread;   // their own pace, give or take
       const speed = d > 10 ? CROWD.hurry : CROWD.pace * own * Math.min(1, 0.45 + d / 8);
       const step = Math.min(d, speed * dt), from = { x: t.x, y: t.y };
-      moveBy(g.map, t, (dx / d) * step, (dy / d) * step, true);
+      moveBy(g.map, t, (dx / d) * step, (dy / d) * step, true, false);   // not steered round: their place is often just behind it
       w.facing = Math.atan2(dy, dx);
       if (Math.hypot(t.x - from.x, t.y - from.y) < step * 0.3) w.moving = false;   // in the way: as near as they'll get
     }
