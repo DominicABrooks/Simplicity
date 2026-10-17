@@ -1,7 +1,7 @@
 // The Grey Ringer, St Mary's ghost, played in the browser: she only rises at night for a hero who's heard the
 // city whisper about her; she's fought among the graves until she's laid to rest; and dawn sends her back.
 import { expect, test, type Page } from "@playwright/test";
-import { GHOST_NAME, GHOST_SAYS } from "../src/data/ghost.ts";
+import { GHOST, GHOST_NAME, GHOST_SAYS, HOLLOW_BITE } from "../src/data/ghost.ts";
 import { aimAt, expectToast, find, journey, keepHeroAlive, placeHero, play, setHour, startGame, toasts, waitFor } from "./game.ts";
 
 /** To the Market Quarter at midnight, having heard the rumour `heard` times, standing by the churchyard gate. */
@@ -69,12 +69,14 @@ test("she rises for a hero who's heard the rumour, is fought among the graves, a
   const after = await page.evaluate(() => ({ ...window.simplicity.haunting() }));
   expect(after).toEqual({ heard: 0, night: "laid" });
   // (He may already have walked over one and picked it up: on the ground or in the bag, both are there.)
-  const goods = await page.evaluate(() => {
-    const g = window.simplicity.game, isGood = (r: string) => r === "rare";
-    const ground = g.world.query("pickup").filter(([, c]) => c.pickup.kind === "loot" && isGood(c.pickup.item.rarity)).length;
-    return ground + g.inventory.grid.filter(e => isGood(e.item.rarity)).length;
-  });
-  expect(goods).toBeGreaterThanOrEqual(2);
+  // Hollow Bite (legendary), and a rare thing or more besides.
+  const goods = await page.evaluate(bite => {
+    const g = window.simplicity.game;
+    const items = [...g.world.query("pickup").flatMap(([, c]) => (c.pickup.kind === "loot" ? [c.pickup.item] : [])), ...g.inventory.grid.map(e => e.item)];
+    return { bite: items.filter(i => i.name === bite && i.rarity === "legendary").length, rare: items.filter(i => i.rarity === "rare").length };
+  }, HOLLOW_BITE[3]);
+  expect(goods.bite).toBe(1);
+  expect(goods.rare).toBeGreaterThanOrEqual(GHOST.reward.items);
   expect(await page.evaluate(() => window.simplicity.game.kills)).toBeGreaterThanOrEqual(1);
 
   // And she doesn't rise again tonight.
