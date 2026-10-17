@@ -10,6 +10,7 @@
     "dev": "vite",
     "prebuild": "npm run assets",
     "build": "tsc --noEmit && vite build",
+    "build:itch": "npm run build -- --base ./ --sourcemap false --outDir dist-itch --emptyOutDir && tsx tools/zip-itch.ts",
     "preview": "vite preview",
     "pretest": "npm run assets",
     "test": "vitest run",
