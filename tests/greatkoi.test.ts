@@ -17,8 +17,9 @@ import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
-import { deathSystem, spawnerSystem } from "../src/systems/enemies.ts";
+import { deathSystem, enemyPhysicsSystem, spawnerSystem } from "../src/systems/enemies.ts";
 import { step } from "../src/systems/index.ts";
+import { blocked } from "../src/world/collision.ts";
 
 const DT = 1 / 60;
 const HOLE = { x: ICE_HOLE.x * T, y: ICE_HOLE.y * T };
@@ -100,6 +101,29 @@ describe("the Great Koi", () => {
     expect(koi.hop).toBe(0);
     expect(Math.hypot(me.x - k.x, me.y - k.y)).toBeLessThan(GREAT_KOI.slam);
     expect(health.hp).toBe(hp0 - GREAT_KOI.damage);
+  });
+
+  it("stays on the grotto's floor through a whole fight: it can't leap, slide or be knocked into the rock", async () => {
+    const g = await atTheHole();
+    strike(g);
+    const [, { transform: k, knockback: kb }] = g.world.query("koi", "transform", "knockback").at(0)!;
+    const me = g.world.need(g.player, "transform"), health = g.world.need(g.player, "health");
+    // He stands out past the floor's edge all round, in the rock itself, so every leap is at the walls; and every
+    // second or so it takes a blow that sends it flying the same way.
+    const rock = g.map.tiles.flatMap((row, y) => row.flatMap((t, x) => (t === Tile.Wall ? [{ x: x * T, y: y * T }] : [])));
+    for (let i = 0; i < 60 * 60; i++) {
+      if (i % 90 === 0) {
+        Object.assign(me, rock[(i * 7919) % rock.length]);
+        const dx = me.x - k.x, dy = me.y - k.y, d = Math.hypot(dx, dy) || 1;
+        kb.vx = (dx / d) * 200; kb.vy = (dy / d) * 200;
+      }
+      health.hp = health.maxHp;
+      greatKoiSystem(g, DT);
+      enemyPhysicsSystem(g, DT);
+      const under = g.map.tiles[Math.floor((k.y + 4) / T)]?.[Math.floor((k.x + 4) / T)];
+      expect(blocked(g.map, k.x, k.y, false), `frame ${i}: at ${k.x.toFixed(1)},${k.y.toFixed(1)}`).toBe(false);
+      expect([Tile.Ice, Tile.Water], `frame ${i}`).toContain(under);
+    }
   });
 
   it("draws breath and spits a fan of freezing water at him", async () => {
