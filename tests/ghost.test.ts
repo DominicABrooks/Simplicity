@@ -185,8 +185,9 @@ describe("the fight", () => {
     expect(ghostOut(g)).toBeNull();
     const loot = g.world.query("pickup").map(([, { pickup }]) => pickup);
     expect(loot.filter(p => p.kind === "loot" && p.item.rarity === "rare").length).toBe(GHOST.reward.items);
-    const bite = loot.filter(p => p.kind === "loot" && p.item.name === HOLLOW_BITE[3]);
-    expect(bite.map(p => p.kind === "loot" && p.item.rarity)).toEqual(["legendary"]);
+    // By rarity, not name: a rare's random name can come up "Hollow Bite" too.
+    const bite = loot.filter(p => p.kind === "loot" && p.item.rarity === "legendary");
+    expect(bite.map(p => p.kind === "loot" && p.item.name)).toEqual([HOLLOW_BITE[3]]);
     expect(loot.filter(p => p.kind === "potion").length).toBeGreaterThanOrEqual(GHOST.reward.potions);
     expect(g.journal.ghost).toBe(1);
     expect(hauntingOf(g)).toEqual({ heard: 0, night: "laid" });
