@@ -4,6 +4,7 @@ import { THRONE, UNDERHILL as U } from "../data/underhill.ts";
 import { HALF, T } from "../data/world.ts";
 import { erlKingSays } from "../game/underhill.ts";
 import type { Game } from "../game/game.ts";
+import { SKIP_KEY } from "../input/input.ts";
 import type { Projector } from "../render/projector.ts";
 
 /** How high over the throne's foot his words float (world units): over his antlers. */
@@ -14,7 +15,7 @@ export function createErlSpeech(g: Game, view: Projector): { draw(): void } {
   el.id = "erlSpeech";
   const hint = document.createElement("div");
   hint.id = "erlSkip";
-  hint.textContent = "Enter: next   Esc: skip";
+  hint.textContent = `Enter: next   ${SKIP_KEY}: skip`;
   document.body.append(el, hint);
   let line = "";
   return {

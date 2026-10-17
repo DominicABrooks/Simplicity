@@ -1,8 +1,7 @@
 // The credits (STORY.md, "0:55"; src/ui/credits.ts draws the caption and The End over them). After the King's had his
 // say, they don't play back what he's just been through: they show what came of it, a short shot at a time, in the
-// game's own world, building to the dragons. The Greyed losing their grey, the slimes gone still, the King reading the
-// true chronicle at the cross; the Vael coming over the bridge for their eggs and the Old Mother flying in over it for
-// them, and the eggs hatching beside her under the Greyspines (her and her hatchlings drawn in src/render/dragons.ts);
+// game's own world, building to the dragons. The Greyed losing their grey; the Vael coming over the bridge for their
+// eggs and the Old Mother flying in over it for them, and the eggs hatching beside her under the Greyspines (her and her hatchlings drawn in src/render/dragons.ts);
 // and last his own ending, asleep in the Fells' house with a lantern of his own in the window, the Ranger home by the
 // fire with Meg. Some of what's said changes with what else he did. Each shot loads its area, clears off anything
 // that'd wander in, stands the people in it, and moves the camera itself (in, out, round), the clock running on so
@@ -10,16 +9,13 @@
 // under them all, coming round a little different each time. After, he's put back where he was.
 import { loadArea } from "../areas/index.ts";
 import type { Entity } from "../core/ecs.ts";
-import { CREDITS_TIME, CROWD_OF, RUN_SUMS, SHOT_SAYS, SHOT_SAYS_TOO, type ShotId } from "../data/ending.ts";
+import { CREDITS_TIME, RUN_SUMS, SHOT_SAYS, type ShotId } from "../data/ending.ts";
 import { CURIO_IDS } from "../data/items.ts";
 import { CREDITS_AIR } from "../data/sfx.ts";
-import { MAGE_TARGET, SCHOOLS, SLIME, SLIME_TARGET, type School } from "../data/enemies.ts";
-import { SPAWN } from "../areas/witchwood.ts";
+import { MAGE_TARGET, SCHOOLS, type School } from "../data/enemies.ts";
 import { HALF, T, Tile } from "../data/world.ts";
 import type { AreaDef, Prop } from "../world/area.ts";
-import { solidAt } from "../world/collision.ts";
 import { forgetLayout, layoutOf } from "../world/layouts.ts";
-import { propSolids } from "../world/solids.ts";
 import { interiorOf, type Spot } from "../world/interiors.ts";
 import type { Resident } from "../world/residents.ts";
 import { registerArea } from "../areas/index.ts";
@@ -136,8 +132,6 @@ export function creditsFrom(g: Game, id: ShotId, at: string | null = null): void
 /** Every shot's id and its moments' names (the moments are known once it's staged; these are the names it gives them). */
 export const SHOT_MOMENTS: Record<ShotId, readonly string[]> = {
   greyed: ["start", "first", "half", "last", "end"],
-  slimes: ["start", "end"],
-  chronicle: ["start", "end"],
   eggs: ["start", "vael", "gilding", "glow", "gatehouse", "eggs", "wall", "away", "end"],
   hatch: ["start", "first", "second", "third", "out", "rear", "roar", "breaths", "song", "end"],
   fells: ["start", "end"],
@@ -257,23 +251,6 @@ function setAside(r: Reel): void {
   for (const s of r.shots) if (s.alters) forgetLayout(r.defs.get(s.id)?.id ?? s.area);
 }
 
-/** The Market Quarter cleared for the King's reading: its stalls taken down (and nothing standing where they stood). */
-async function marketCleared(): Promise<AreaDef> {
-  const def = await loadArea("capital");
-  return {
-    ...def,
-    build() {
-      const layout = def.build(), stalls = layout.props.filter(p => p.kind === "stall");
-      const gone = new Set(stalls.flatMap(propSolids).map(s => JSON.stringify(s)));
-      return {
-        ...layout,
-        props: layout.props.filter(p => p.kind !== "stall"),
-        map: { ...layout.map, solids: layout.map.solids.filter(s => !gone.has(JSON.stringify(s))) },
-      };
-    },
-  };
-}
-
 /** The King's Bridge kept clear for the Vael: a place of its own for the shot, so none of the townsfolk come out onto it. */
 async function bridgeCleared(): Promise<AreaDef> {
   return { ...(await loadArea("kingsroad")), id: "kingsroad:the-vael" };
@@ -297,19 +274,6 @@ const keys = (frames: readonly [number, Cam][]) => (k: number): Cam => {
   return { x: lerp(from.x, to.x, e), y: lerp(from.y, to.y, e), zoom: lerp(from.zoom, to.zoom, e), yaw: lerp(from.yaw, to.yaw, e) };
 };
 const propOf = <K extends Prop["kind"]>(g: Game, kind: K) => g.area.layout.props.find((p): p is Extract<Prop, { kind: K }> => p.kind === kind);
-
-/**
- * The first of these places (px, centres) with nothing solid within `room` px of it (no stall, no wall), and nothing
- * between it and the camera (south of it, `view` px down), so whoever stands there stands clear in the shot, not
- * hidden behind a stall's awning; or the first, if none is.
- */
-function clearOf(g: Game, spots: readonly (readonly [number, number])[], room = T, view = 3 * T): [number, number] {
-  const around = [[0, 0], [room, 0], [-room, 0], [0, room], [0, -room]];
-  for (let down = T; down <= view; down += T) around.push([0, down], [-room, down], [room, down]);
-  const clear = ([x, y]: readonly [number, number]) => around.every(([dx, dy]) => !solidAt(g.map, x + dx!, y + dy!));
-  const at = spots.find(clear) ?? spots[0]!;
-  return [at[0], at[1]];
-}
 
 /** Stand him at (x, y) (px, his centre), looking toward (tx, ty); walking, if he's moving. */
 function heroAt(g: Game, x: number, y: number, tx: number, ty: number, walking = false): void {
@@ -340,35 +304,6 @@ function greyed(g: Game, school: School, x: number, y: number): Entity {
     targetable: { name: SCHOOLS[school].name, hostile: true, ...MAGE_TARGET },
     renderable: { kind: "mage" },
   });
-}
-
-/** A slime, sitting still (cell top-left). */
-function slime(g: Game, x: number, y: number): Entity {
-  return g.world.create({
-    transform: { x, y },
-    knockback: { vx: 0, vy: 0 },
-    health: { hp: SLIME.hp, maxHp: SLIME.hp },
-    enemy: { kind: "slime", flash: 0, face: 1 },
-    slime: { timer: 99, hop: 0, dx: 0, dy: 0 },
-    targetable: { hostile: true, ...SLIME_TARGET },
-    renderable: { kind: "slime" },
-  });
-}
-
-/**
- * The townsfolk out in the street, gathered round (x, y) (px) in a crescent on the near side, facing it and staying
- * put; and the dogs and cats about, wherever they are, stood still and looking at it too.
- */
-function gatherRound(g: Game, x: number, y: number, r: number): void {
-  g.world.query("walker", "transform").forEach(([, c], i, all) => {
-    const a = Math.PI * (0.15 + 0.7 * (i / Math.max(1, all.length - 1))), d = r + (i % 3) * 6;
-    const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.8;   // the crescent a little squashed, for the camera
-    Object.assign(c.transform, { x: px - HALF, y: py - HALF });
-    Object.assign(c.walker, { path: [], moving: false, wait: 999, follow: null, goIn: false, task: null, facing: Math.atan2(y - py, x - px) });   // each looking right at it
-  });
-  for (const [, { pet, transform: t }] of g.world.query("pet", "transform")) {
-    Object.assign(pet, { path: [], moving: false, running: false, greeting: false, wait: 999, facing: Math.atan2(y - t.y - HALF, x - t.x - HALF) });
-  }
 }
 
 /**
@@ -447,38 +382,6 @@ const SHOTS: readonly Shot[] = [
         from: cam(x, y + 1.5 * T, 1.3, -0.4), to: cam(x, y + 1.5 * T, 1.1, 0.4), says: SHOT_SAYS.greyed,
         moments: { first: them[0]!.at + 0.02, half: them[Math.floor(n / 2)]!.at + 0.02, last: them[n - 1]!.at + 0.04 },
         play: k => { for (const m of them) if (k >= m.at && g.world.isAlive(m.e)) crumble(g, m.e, palette[m.school]); },
-      };
-    },
-  },
-  {
-    // Back in the clearing where he woke: the slimes sat about on the trail by the camp, quite still.
-    id: "slimes", area: "witchwood", hour: 17.5, had: () => true,
-    stage(g) {
-      // The trail south of where he woke, the nearest stretch of it: a slime on every other tile.
-      const sx = Math.floor(SPAWN.x / T), sy = Math.floor(SPAWN.y / T), trail: [number, number][] = [];
-      for (let y = sy + 1; y <= sy + 10; y++) for (let x = sx - 10; x <= sx + 10; x++) if (g.map.tiles[y]?.[x] === Tile.Path) trail.push([x, y]);
-      trail.sort((a, b) => Math.hypot(a[0] - sx, a[1] - sy) - Math.hypot(b[0] - sx, b[1] - sy));
-      const sat = trail.slice(0, 18).filter((_, i) => i % 2 === 0), n = Math.max(1, sat.length);
-      for (const [x, y] of sat) slime(g, x * T + ((x * 7) % 3) - 1, y * T + ((y * 5) % 3) - 1);
-      const cx = (sat.reduce((m, [x]) => m + x, 0) / n) * T + HALF, cy = (sat.reduce((m, [, y]) => m + y, 0) / n) * T + HALF;
-      heroAt(g, cx - 2 * T, cy - 2 * T, cx, cy);
-      return { from: cam(cx, cy, 1.0, 0.5), to: cam(cx, cy, 0.75, -0.25), says: SHOT_SAYS.slimes };
-    },
-  },
-  {
-    // The market cross the next morning: the King on its steps reading the true chronicle, the city gathered round.
-    id: "chronicle", area: "capital", load: marketCleared, alters: true, hour: 9.5, had: () => true,
-    stage(g, run) {
-      // On the cross's steps in front of it (the stalls are down for it: see marketCleared), or, if anything's in the
-      // way after all, beside it along the aisle, wherever he stands clear in the shot.
-      const cross = propOf(g, "cross")!, along = [2.4, -2.4, 4.6, -4.6, 6.6, -6.6].map(k => [cross.x + k * T, cross.y + 0.4 * T] as const);
-      const [x, ky] = clearOf(g, [[cross.x, cross.y + 2.2 * T], ...along]);
-      spawnKing(g, x - HALF, ky - HALF, Math.PI / 2);
-      gatherRound(g, x, ky, 3.2 * T);
-      heroAt(g, x + 4 * T, ky + 3 * T, x, ky);
-      return {
-        from: cam(x, ky, 0.55, 0.3), to: cam(x, ky + 0.5 * T, 0.62, -0.3), says: [SHOT_SAYS.chronicle, followedLine(run.followed)].filter(Boolean).join(" "),
-        play: () => gatherRound(g, x, ky, 3.2 * T),
       };
     },
   },
@@ -636,12 +539,6 @@ const SHOTS: readonly Shot[] = [
     },
   },
 ];
-
-/** What's said after the chronicle, by how many followed him up the hill: nothing, a few, or a crowd. */
-function followedLine(n: number): string {
-  const F = SHOT_SAYS_TOO.followed;
-  return n <= 0 ? F.none : n < CROWD_OF ? F.few : F.crowd;
-}
 
 /** The Fells' house as made for the credits: where people stand in it, and the Ranger and his wife. */
 let fells: { spots: Spot[]; wystan?: Resident; meg?: Resident } | null = null;

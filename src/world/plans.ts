@@ -162,16 +162,19 @@ export function houseDoor(p: PropOf<"house">): { along: number; at: XZ } {
 /** How thick and tall a room's walls are (world units): low, so the camera sees in over them. */
 export const ROOM_WALL = { thick: 0.35, high: 1.25, gap: 1.3 } as const;
 
+/** How wide a room's doorway is (tiles): its own width, or the usual. */
+export const doorWidth = (p: PropOf<"room">): number => p.doorW ?? ROOM_WALL.gap;
+
 /**
- * A room's walls, as boxes (centre and size, world units) just inside its rect, with a doorway `gap` wide
- * in the door wall, its near edge `doorAt` tiles along that wall (from the west, or from the north).
+ * A room's walls, as boxes (centre and size, world units) just inside its rect, with a doorway (doorWidth) in the
+ * door wall, its near edge `doorAt` tiles along that wall (from the west, or from the north).
  */
 export function roomWalls(p: PropOf<"room">): { x: number; z: number; w: number; d: number }[] {
   const x0 = p.rect.x / T, z0 = p.rect.y / T, x1 = (p.rect.x + p.rect.w) / T, z1 = (p.rect.y + p.rect.h) / T, t = ROOM_WALL.thick;
   const out: { x: number; z: number; w: number; d: number }[] = [];
   // Along a side, from a to b, leaving the doorway open if this is the door's side.
   const run = (side: Facing, a: number, b: number, at: number, horizontal: boolean) => {
-    const cuts = side === p.door ? [[a, a + p.doorAt], [a + p.doorAt + ROOM_WALL.gap, b]] : [[a, b]];
+    const cuts = side === p.door ? [[a, a + p.doorAt], [a + p.doorAt + doorWidth(p), b]] : [[a, b]];
     for (const [s, e] of cuts) if (e! - s! > 0.01) out.push(horizontal ? { x: (s! + e!) / 2, z: at, w: e! - s!, d: t } : { x: at, z: (s! + e!) / 2, w: t, d: e! - s! });
   };
   run("north", x0, x1, z0 + t / 2, true);

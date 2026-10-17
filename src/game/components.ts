@@ -279,6 +279,8 @@ export interface Sentry {
   want: number;
   /** Seconds until they next glance somewhere else. */
   next: number;
+  /** Speaking to the hero (a woodwarden calling after him: src/game/watchword.ts): they turn right round to him, post or no post. */
+  heed?: boolean;
 }
 
 /** Something to practise on in a castle yard (see TRAINING): it rocks when hit and never goes down. */

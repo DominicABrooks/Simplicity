@@ -1,5 +1,5 @@
 // Cutscenes: short scenes the game plays for you, control taken away and the screen letterboxed, the camera
-// moving on its own. Each is a list of beats, played in order (see src/game/cutscene.ts). Escape skips.
+// moving on its own. Each is a list of beats, played in order (see src/game/cutscene.ts). Q (or Escape) skips.
 import { KING_HOMECOMING } from "./ending.ts";
 import { KING_AUDIENCE, KINGS_TASK } from "./king.ts";
 

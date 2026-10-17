@@ -1,7 +1,9 @@
 // The watchword the King's woodwardens ask for at the barricade (src/data/king.ts): always the same, and only the
 // player can know it. The hero can't talk, so a warden hands him a scrap of paper and a stub of crayon; the player
 // writes it (src/ui/paper.ts) and hands it back. Right, and the wardens let him through for the rest of the run;
-// wrong, and they don't. Until then they stand in the barricade's gate (wardenSystem). A new run (the hero waking again) starts at the barricade afresh.
+// wrong, and they don't. Until then they stand in the barricade's gate (wardenSystem). Once he's through, as he comes to
+// the end of the trail past the gate, a warden calls a warning after him: how to jump and dodge what's in there
+// (warnOnTheWay). A new run (the hero waking again) starts at the barricade afresh.
 import type { Entity } from "../core/ecs.ts";
 import { WARDEN_TALK, WOODWARDEN } from "../data/ashwild.ts";
 import { WATCHWORD } from "../data/king.ts";
@@ -21,14 +23,14 @@ export const PAPER_LENGTH = 24;
 /** What the paper's for: the King's watchword for a warden, or for Yssa her name or the river's (src/game/yssa.ts). */
 export type Asks = "watchword" | YssaAsks;
 
-interface Barricade { passed: boolean; writing: Entity | null; asks: Asks }
+interface Barricade { passed: boolean; writing: Entity | null; asks: Asks; warned: boolean; warner: Entity | null }
 const barricades = new WeakMap<Game, Barricade>();
 function barricade(g: Game): Barricade {
   let b = barricades.get(g);
   if (!b) {
-    const fresh: Barricade = { passed: false, writing: null, asks: "watchword" };
+    const fresh: Barricade = { passed: false, writing: null, asks: "watchword", warned: false, warner: null };
     barricades.set(g, b = fresh);
-    g.events.on("reset", () => { fresh.passed = false; fresh.writing = null; });
+    g.events.on("reset", () => { fresh.passed = false; fresh.writing = null; fresh.warned = false; fresh.warner = null; });
   }
   return b;
 }
@@ -137,10 +139,67 @@ export function wardenSystem(g: Game, dt: number): void {
     if (Math.abs(want - t.x) < 0.5) at[west ? "west" : "east"] = true;
   }
   g.map = wardensIn(g.area.layout.map, gate, open, at);
-  if (open || dt === Infinity) return;
+  if (dt === Infinity) return;
+  if (open) { warnOnTheWay(g, gate); return; }
   // Walking into them: a word from one of them now and then.
   const fx = p.x + FEET.x, fy = p.y + FEET.y + FEET.h;
   if (fx + FEET.w > gate.x0 && fx < gate.x1 && Math.abs(fy - (gate.y - HALF + FEET.y)) < 1.5 && g.input.keys.size > 0) wardenStops(g);
+}
+
+/** How far short of the trail's end (px) the warden calls after him: a couple of steps before he's out of the Witchwood. */
+const WARN_AT = 2.5 * T;
+
+/**
+ * Through the gate and nearly at the end of the trail, the first time each run: the nearer warden turns round and calls
+ * after him that it's dangerous out there, and how to jump and dodge. He stops to hear it out, and goes on when it's
+ * done; and the warden turns back to his watch.
+ */
+function warnOnTheWay(g: Game, gate: Gate): void {
+  const b = barricade(g), p = g.world.need(g.player, "transform");
+  if (b.warner !== null && g.world.get(g.player, "conversation")?.key !== "warning") {   // done: back to his watch
+    const s = g.world.get(b.warner, "sentry");
+    if (s) s.heed = false;
+    b.warner = null;
+  }
+  if (b.warned || g.state !== "play" || g.world.has(g.player, "conversation") || p.y + FEET.y < gate.stakes) return;
+  const out = g.area.layout.exits.find(x => x.needs === "watchword");
+  if (!out || p.y + FEET.y + FEET.h < out.rect.y - WARN_AT) return;
+  b.warned = true;
+  g.input.keys.clear();
+  b.warner = nearestWarden(g);
+  if (b.warner !== null) {
+    const s = g.world.get(b.warner, "sentry");
+    if (s) s.heed = true;
+    g.target = b.warner;                                     // the ring on the one speaking
+  }
+  g.world.add(g.player, "conversation", { with: g.player, name: WOODWARDEN.name, key: "warning", lines: [...WARDEN_TALK.warn], line: 0, t: 0 });
+}
+
+/** The woodwarden nearest the hero, if there's one here. */
+function nearestWarden(g: Game): Entity | null {
+  const p = g.world.need(g.player, "transform");
+  let near: Entity | null = null, best = Infinity;
+  for (const [e, { transform: t, targetable }] of g.world.query("transform", "targetable")) {
+    if (targetable.name !== WOODWARDEN.name) continue;
+    const d = Math.hypot(t.x - p.x, t.y - p.y);
+    if (d < best) { best = d; near = e; }
+  }
+  return near;
+}
+
+/** The warden calling his warning after him right now, if one is. */
+export const warningFrom = (g: Game): Entity | null => barricade(g).warner;
+
+/** Whether a warden's called his warning after him yet this run. */
+export const warned = (g: Game): boolean => barricade(g).warned;
+
+/** Every frame, before he moves: while the warden's warning is up, he stands and hears it out (nothing he presses moves him). */
+export function holdForWarning(g: Game): void {
+  if (g.world.get(g.player, "conversation")?.key !== "warning") return;
+  const input = g.input;
+  input.keys.clear();
+  input.attackPressed = input.attackReleased = input.jumpPressed = false;
+  input.dashRequest = null;
 }
 
 /** A warden tells him no (once every couple of seconds at most; a new run starts its clock again). */

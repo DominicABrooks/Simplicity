@@ -1,6 +1,6 @@
 // The credits after the King's had his say (src/game/credits.ts), and the world after them (src/game/peace.ts): each
 // shot holds long enough for its line to be read; the walk home and the head at the King's feet aren't played over
-// again; the chronicle says how many followed him up; the last shot is his own, asleep in the top room of the Fells'
+// again; the last shot is his own, asleep in the top room of the Fells'
 // house with a lantern of his own lit in the window, the Ranger home by the fire with Meg; a tune comes round under the
 // whole reel; and once it's over the Greyed stop coming, the slimes let him be (and he them), and the city's talk is
 // done with the Edict.
@@ -10,7 +10,7 @@ import { area as capital } from "../src/areas/capital.ts";
 import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { CALDER_STAND } from "../src/areas/rift.ts";
-import { CREDITS_TIME, CROWD_OF, SHOT_SAYS, SHOT_SAYS_TOO } from "../src/data/ending.ts";
+import { CREDITS_TIME, SHOT_SAYS } from "../src/data/ending.ts";
 import { CALDER_FIGHT as F, CALDERS_HEAD } from "../src/data/rift.ts";
 import { SLIME } from "../src/data/enemies.ts";
 import { T } from "../src/data/world.ts";
@@ -21,7 +21,6 @@ import { BEFORE_ONLY, EDICT, EDICT_AFTER, STALE_AFTER } from "../src/data/voices
 import { folkLines, guardLines } from "../src/game/conversation.ts";
 import { SHOT_MOMENTS, creditsAsleep, creditsFrom, creditsShot, rollCredits, shotLength, updateCredits } from "../src/game/credits.ts";
 import { Rng } from "../src/core/rng.ts";
-import { crowdOf } from "../src/game/crowd.ts";
 import { holdInput, skipCutscene, updateCutscene, watchCutscenes } from "../src/game/cutscene.ts";
 import { endCredits, homeStoneSystem, watchEnding } from "../src/game/ending.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
@@ -29,7 +28,6 @@ import { atPeace, spared } from "../src/game/peace.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { endTalk, updateTalk } from "../src/game/talk.ts";
-import { enterPets } from "../src/game/pets.ts";
 import { enterTownsfolk, loadCensus, residentById, setCensus } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { makeItem } from "../src/items/items.ts";
@@ -38,7 +36,6 @@ import { FAMILIES } from "../src/world/people.ts";
 import { layoutOf } from "../src/world/layouts.ts";
 import { isMeg, megLines } from "../src/game/fells.ts";
 import { residentsOf } from "../src/world/residents.ts";
-import { solidAt } from "../src/world/collision.ts";
 import { weatherSystem } from "../src/systems/weather.ts";
 import { FIGHT_CLEARS } from "../src/data/weather.ts";
 
@@ -129,57 +126,25 @@ describe("the credits", () => {
     expect(g.hitstop).toBe(0);                                                   // or nothing in them would move, or turn
   });
 
-  it("stand the King clear of the market stalls at the cross, reading the chronicle, everyone looking at him", async () => {
-    const g = await atTheCastle();
-    g.events.on("area", () => { enterTownsfolk(g); enterPets(g); });
-    toTheKing(g);
-    await rollCredits(g);
-    let checked = false;
-    for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60) && !checked; i++) {
-      if (!creditsShot(g)?.says.startsWith(SHOT_SAYS.chronicle)) continue;
-      const king = g.world.query("renderable", "transform").find(([, c]) => c.renderable.kind === "king")?.[1].transform;
-      if (!king) continue;
-      const x = king.x + 4, y = king.y + 4;
-      for (const [dx, dy] of [[0, 0], [T, 0], [-T, 0], [0, T], [0, -T]]) expect(solidAt(g.map, x + dx!, y + dy!), `${dx},${dy}`).toBe(false);
-      for (const [, { walker: w, transform: t }] of g.world.query("walker", "transform")) {   // and everyone gathered round looking at him
-        const at = Math.atan2(king.y - t.y, king.x - t.x);
-        expect(Math.abs(Math.atan2(Math.sin(w.facing - at), Math.cos(w.facing - at)))).toBeLessThan(0.02);
-      }
-      for (const [, { pet, transform: t }] of g.world.query("pet", "transform")) {   // the dogs and cats too
-        const at = Math.atan2(king.y - t.y, king.x - t.x);
-        expect(Math.abs(Math.atan2(Math.sin(pet.facing - at), Math.cos(pet.facing - at)))).toBeLessThan(0.02);
-      }
-      checked = true;
-    }
-    expect(checked).toBe(true);
-  });
-
-  it("take the stalls down for the King's reading, keep the townsfolk off the bridge for the Vael, and put it all back after", async () => {
+  it("keep the townsfolk off the bridge for the Vael, and put it back after", async () => {
     const g = await atTheCastle();
     g.events.on("area", () => enterTownsfolk(g));                                // the townsfolk come out, as in the game
     toTheKing(g);
     await rollCredits(g);
-    let market = false, bridge = false;
+    let bridge = false;
     for (let i = 0; i < 60 * 240 && !updateCredits(g, 1 / 60); i++) {
-      const says = creditsShot(g)?.says ?? "";
-      if (says.startsWith(SHOT_SAYS.chronicle)) {
-        expect(g.area.layout.props.some(p => p.kind === "stall")).toBe(false);
-        expect(g.world.query("walker").length).toBeGreaterThan(0);                // the city's still there to hear him
-        market = true;
-      }
-      if (says === SHOT_SAYS.eggs) {
-        expect(g.world.query("walker")).toHaveLength(0);
-        bridge = true;
-      }
+      if (creditsShot(g)?.says !== SHOT_SAYS.eggs) continue;
+      expect(g.world.query("walker")).toHaveLength(0);
+      bridge = true;
     }
-    expect([market, bridge]).toEqual([true, true]);
+    expect(bridge).toBe(true);
     endCredits(g);
-    enterArea(g, await loadArea("capital"), "stone");
-    expect(g.area.layout.props.some(p => p.kind === "stall")).toBe(true);        // the market as it was
+    enterArea(g, await loadArea("kingsroad"), "cave");
+    expect(g.area.def.id).toBe("kingsroad");                                     // the bridge as it was
   });
 
   it("can be started from any shot and any moment in it, as it would be by then (playtesting: ?shot=eggs&at=gilding)", async () => {
-    expect(Object.keys(SHOT_MOMENTS).sort()).toEqual(["chronicle", "eggs", "fells", "greyed", "hatch", "slimes"]);
+    expect(Object.keys(SHOT_MOMENTS).sort()).toEqual(["eggs", "fells", "greyed", "hatch"]);
     const at = async (moment: string) => {
       const g = await atTheCastle();
       toTheKing(g);
@@ -198,22 +163,20 @@ describe("the credits", () => {
   });
 
   it("keep what it all meant short, and let the pictures carry it", () => {
-    for (const says of [SHOT_SAYS.greyed, SHOT_SAYS.slimes, SHOT_SAYS.chronicle, SHOT_SAYS.fells, ...Object.values(SHOT_SAYS_TOO.followed)]) {
+    for (const says of [SHOT_SAYS.greyed, SHOT_SAYS.fells]) {
       expect(words(says), says).toBeLessThanOrEqual(25);
     }
   });
 
-  it("don't play back what he did, only what came of it; the chronicle says a crowd followed him; the last shot is his own", async () => {
+  it("don't play back what he did, only what came of it; the last shot is his own", async () => {
     const g = await atTheCastle();
-    crowdOf(g).following = people.filter(r => r.age >= 14).slice(0, CROWD_OF + 2).map(r => r.id);
     toTheKing(g);
     expect(g.state).toBe("credits");
     const shots = await playThrough(g);
     const said = shots.map(s => s.says);
     expect(said[0]).toBe(SHOT_SAYS.greyed);                  // straight to what it meant: no stone, no King, no Calder
     expect(said.some(s => /woke|followed you up the hill with|at the King's feet|Calder looked/.test(s))).toBe(false);
-    expect(said).toEqual([SHOT_SAYS.greyed, SHOT_SAYS.slimes, `${SHOT_SAYS.chronicle} ${SHOT_SAYS_TOO.followed.crowd}`, SHOT_SAYS.eggs, SHOT_SAYS.hatch, SHOT_SAYS.fells]);
-    expect(said).toContain(`${SHOT_SAYS.chronicle} ${SHOT_SAYS_TOO.followed.crowd}`);
+    expect(said).toEqual([SHOT_SAYS.greyed, SHOT_SAYS.eggs, SHOT_SAYS.hatch, SHOT_SAYS.fells]);
     const last = shots[shots.length - 1]!;
     expect(last.says).toBe(SHOT_SAYS.fells);
     expect(last.asleep).toBe(true);                          // in the bed in the Fells' top room
@@ -234,13 +197,6 @@ describe("the credits", () => {
     expect(creditsAsleep(g)).toBeNull();
   });
 
-  it("say only the chronicle when nobody followed him up", async () => {
-    const g = await atTheCastle();
-    crowdOf(g).following = [];
-    toTheKing(g);
-    const said = (await playThrough(g)).map(s => s.says);
-    expect(said).toContain(SHOT_SAYS.chronicle);
-  });
 });
 
 describe("the Fells", () => {

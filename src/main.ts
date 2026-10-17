@@ -4,7 +4,7 @@ import "./styles.css";
 import { createGame, setState, tickRunTime, toast } from "./game/game.ts";
 import { dropItem, eatItem } from "./game/actions.ts";
 import { resetGame } from "./game/reset.ts";
-import { bindInput } from "./input/input.ts";
+import { bindInput, isSkip } from "./input/input.ts";
 import { pickTarget, updateTarget } from "./input/targeting.ts";
 import { createRenderer } from "./render/renderer.ts";
 import { step } from "./systems/index.ts";
@@ -47,6 +47,7 @@ import { createMusicPlayer } from "./audio/music.ts";
 import { exposeDebug, wantsDebug } from "./debug.ts";
 import { useCurio } from "./game/quay.ts";
 import { followAcorn, holdForFey, hurryErlKing } from "./game/underhill.ts";
+import { holdForWarning } from "./game/watchword.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -114,9 +115,9 @@ g.events.on("state", ({ state }) => {
     });
 });
 // Talking: clicking someone friendly (or E with them targeted) talks instead of attacking; while they're
-// talking, a click or Enter, Space or E goes on, and Escape ends it. In a cutscene the same goes on through
-// what's said, nothing else does anything, and Escape skips the scene. The Erl-King likewise: on to his next line, or
-// Escape for past all of it.
+// talking, a click or Enter, Space or E goes on, and Q (or Escape) ends it. In a cutscene the same goes on through
+// what's said, nothing else does anything, and Q (or Escape) skips the scene. The Erl-King likewise: on to his next
+// line, or Q (or Escape) for past all of it. Q because in fullscreen the browser keeps Escape for itself.
 const SAY_ON = ["enter", " ", "e", "j"];
 const input = bindInput(g, {
   toggleInventory: inventory.toggle, toggleJournal, toggleMap: map.toggle, closePanels,
@@ -130,11 +131,11 @@ const input = bindInput(g, {
   },
   talkKey: k => {
     if (sleeping(g)) { wake(g); return true; }              // and so does any key
-    if (cutscene(g) && k === "escape") { skipCutscene(g); return true; }
-    if ((k === "escape" || SAY_ON.includes(k)) && hurryErlKing(g, k === "escape")) return true;
+    if (cutscene(g) && isSkip(k)) { skipCutscene(g); return true; }
+    if ((isSkip(k) || SAY_ON.includes(k)) && hurryErlKing(g, isSkip(k))) return true;
     if (cutscene(g) && !talking(g)) return k === "e";       // nobody to talk to but who the scene says
     if (talking(g)) {
-      if (k === "escape") { endTalk(g); return true; }
+      if (isSkip(k)) { endTalk(g); return true; }
       if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
       return false;
     }
@@ -166,6 +167,7 @@ function frame(now: number): void {
   updateResting(g, dt);                                    // before the hero moves: anything he does gets him up
   updateSleeping(g, dt);                                   // and asleep, nothing held moves him
   holdForFey(g);                                           // nor while the fair folk have him (src/game/underhill.ts)
+  holdForWarning(g);                                       // nor while a woodwarden calls his warning after him (src/game/watchword.ts)
   step(g, dt);
   updateCutscene(g, dt);                                   // after: the scene walks him, and says where to look
   updateTalk(g, dt);

@@ -87,7 +87,8 @@ Along the screen's edges:
 | **I** or **Tab** | Inventory |
 | **M** | Map |
 | **N** | Music on or off (it remembers) |
-| **Esc** | Close a panel, end a conversation, skip a cutscene |
+| **Q** | Skip a cutscene, the Erl-King's speech or the credits, or end a conversation |
+| **Esc** | Close a panel (and skip, like Q, outside fullscreen) |
 | Hold **R** | Restart the run |
 
 Walk into water to swim.
