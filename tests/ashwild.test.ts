@@ -136,10 +136,13 @@ describe("the Ashwild", () => {
     return cinder(g);
   }
 
-  it("is ash woods, back up the trail to the Witchwood, and down Yssa's track to the Frozen Hollow", () => {
+  it("is ash woods, back up the trail to the Witchwood, down Yssa's track to the Frozen Hollow, and in at the huts' doors", () => {
     const layout = ashwild.build();
     expect(layout.map.look).toBe("ash");
-    expect(layout.exits.map(x => x.to)).toEqual([{ area: "witchwood", entry: "ashwild" }, { area: "hollow", entry: "ashwild" }]);
+    expect(layout.exits.map(x => x.to)).toEqual([
+      { area: "witchwood", entry: "ashwild" }, { area: "hollow", entry: "ashwild" },
+      { area: "cutterhut", entry: "in" }, { area: "woodshed", entry: "in" },
+    ]);
     expect(layout.props.filter(p => p.kind === "crack").length).toBeGreaterThan(10);
   });
 

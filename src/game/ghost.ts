@@ -5,7 +5,7 @@
 // What she does once she's up is src/systems/ghost.ts; the townsfolk running from her, src/game/townsfolk.ts.
 import type { Entity } from "../core/ecs.ts";
 import { isDay } from "../data/daylight.ts";
-import { BELL_HOME, GHOST, GHOST_NAME, GHOST_SAYS, HOLLOW_BITE, ghostChance, ghostHp } from "../data/ghost.ts";
+import { BELL_HOME, GHOST, GHOST_NAME, GHOST_SAYS, RINGERS_SHROUD, ghostChance, ghostHp } from "../data/ghost.ts";
 import type { Rect } from "../data/world.ts";
 import type { Point } from "../world/collision.ts";
 import { carryingCurio, spentCurios } from "./curios.ts";
@@ -140,9 +140,9 @@ export function ghostSolid(g: Game, e: Entity, solid: boolean): void {
   }
 }
 
-/** Her grave goods, left where she's laid to rest: Hollow Bite, a rare thing or two besides, and potions. */
+/** Her grave goods, left where she's laid to rest: the Ringer's Shroud, a rare thing or two besides, and potions. */
 export function graveGoods(g: Game, x: number, y: number): void {
-  const items = [makeItem(...HOLLOW_BITE), ...Array.from({ length: GHOST.reward.items }, () => rollItem(g.rng, "rare"))];
+  const items = [makeItem(...RINGERS_SHROUD), ...Array.from({ length: GHOST.reward.items }, () => rollItem(g.rng, "rare"))];
   items.forEach((item, i) => dropLoot(g, x + (i - (items.length - 1) / 2) * 10, y, item));
   for (let i = 0; i < GHOST.reward.potions; i++) spawnPotion(g, x + (i - (GHOST.reward.potions - 1) / 2) * 10, y + 9);
 }

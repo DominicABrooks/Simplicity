@@ -4,6 +4,7 @@
 // past the woodcutters' huts, left in a hurry; through glades where the Ember mages hunt; down to the
 // Greyed's first camp at the far end: a ring of burnt standing stones round a scorched circle, where Cinder waits.
 // Off the cracked glade, a narrow track runs west to the Frozen Hollow, and Yssa stands in it (src/game/yssa.ts).
+// Both the woodcutters' huts can be gone into (src/areas/cutterhut.ts, src/areas/woodshed.ts).
 import { Rng } from "../core/rng.ts";
 import { YSSA_TRACK } from "../data/ashwild.ts";
 import { HALF, T, Tile } from "../data/world.ts";
@@ -26,6 +27,11 @@ const CAMP_AT = GLADES[3];
 const ASH_STONE_Y = 6;
 /** The arena's ring of stones: how far out (tiles), and how many, one left out at the north for the trail. */
 const ARENA = { radius: 6.5, pillars: 14 } as const;
+/** The woodcutters' two huts in the first glade (game px): their home, its door south, and the workshop, its door west. */
+const HOME_HUT = px([Math.round(GLADES[0].x) - 3, GLADES[0].y - 3, 3, 3]), SHED_HUT = px([Math.round(GLADES[0].x) + 1, GLADES[0].y - 2, 3, 3]);
+/** Where each hut's door is (game px): the middle of its door side, on the wall's face (src/world/plans.ts, hallBody). */
+const HOME_DOOR = { x: HOME_HUT.x + HOME_HUT.w / 2, y: HOME_HUT.y + HOME_HUT.h / 2 + (HOME_HUT.h / T - 0.3) * T / 2 };
+const SHED_DOOR = { x: SHED_HUT.x + SHED_HUT.w / 2 - (SHED_HUT.w / T - 0.3) * T / 2, y: SHED_HUT.y + SHED_HUT.h / 2 };
 
 function build(): AreaLayout {
   const rng = new Rng(SEED), town = new Town(W, H, Tile.Tree);
@@ -63,10 +69,9 @@ function build(): AreaLayout {
   for (let x = 0; x < W; x++) if (x < trailX(0) || x > trailX(0) + 1) town.set(x, 0, Tile.Tree);
 
   // The woodcutters' huts, left in a hurry: two small timber huts in the first glade, a cart, a pile of logs.
-  const huts = GLADES[0];
-  town.add({ kind: "hall", rect: px([Math.round(huts.x) - 3, huts.y - 3, 3, 3]), door: "south", roof: "#6b6a64", storeys: 1, stone: false });
-  town.add({ kind: "hall", rect: px([Math.round(huts.x) + 1, huts.y - 2, 3, 3]), door: "west", roof: "#5d5a54", storeys: 1, stone: false });
-  town.add({ kind: "stock", x: (huts.x + 0.5) * T, y: (huts.y + 2) * T, what: "crates" });
+  town.add({ kind: "hall", rect: HOME_HUT, door: "south", roof: "#6b6a64", storeys: 1, stone: false });
+  town.add({ kind: "hall", rect: SHED_HUT, door: "west", roof: "#5d5a54", storeys: 1, stone: false });
+  town.add({ kind: "stock", x: (GLADES[0].x + 0.5) * T, y: (GLADES[0].y + 2) * T, what: "crates" });
 
   // The Greyed's camp: no tents, no fire, just the ring of burnt stones round a scorched circle, the gap in
   // it to the north where the trail comes in, and Cinder in the middle.
@@ -105,10 +110,16 @@ function build(): AreaLayout {
       hollow: { x: 3 * T, y: YSSA_TRACK.row * T },
       // Waking by the ash stone: a couple of steps on down the trail from it.
       stone: { x: (trailX(ASH_STONE_Y + 2) + 0.5) * T, y: (ASH_STONE_Y + 2) * T },
+      // Out of the huts' doors, on the step outside each.
+      cutterhut: { x: HOME_DOOR.x - HALF, y: HOME_DOOR.y + 4 },
+      woodshed: { x: SHED_DOOR.x - 11, y: SHED_DOOR.y - HALF },
     },
     [
       { rect: { x: trailX(0) * T, y: 0, w: 2 * T, h: 6 }, to: { area: "witchwood", entry: "ashwild" } },
       { rect: { x: 0, y: YSSA_TRACK.row * T, w: 6, h: T }, to: { area: "hollow", entry: "ashwild" } },
+      // In at the huts' doors: a strip against the wall, the door's width, so walking into the door goes in.
+      { rect: { x: HOME_DOOR.x - HALF, y: HOME_DOOR.y - 2, w: T, h: 5 }, to: { area: "cutterhut", entry: "in" } },
+      { rect: { x: SHED_DOOR.x - 3, y: SHED_DOOR.y - HALF, w: 5, h: T }, to: { area: "woodshed", entry: "in" } },
     ],
   );
   return { ...layout, map: { ...layout.map, look: "ash" } };

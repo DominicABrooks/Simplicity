@@ -1,7 +1,8 @@
 // The Fells (src/world/people.ts): the Ranger's family, in the Wallside, the house with the grey cloak at the window.
 // The Ranger's note tells whoever finds it to go to Meg Fell; this is what she says when he does. She hangs her
 // husband's cloak from the window every evening so he'll know the house when he comes home (src/game/fells.ts hangs
-// it there till the King lets him go), and she has no idea where he is.
+// it there till the King lets him go), and she has no idea where he is. His bow's still at home, by the chest.
+import type { ItemType, Mods, Rarity } from "./items.ts";
 
 /** What Meg Fell says, by how far the story's come: before Calder's beaten, and after. Then the next line along, each time. */
 export const MEG_TALK = {
@@ -24,3 +25,15 @@ export const MEG_TALK = {
     "If it's over... then maybe the King can let him go. Maybe.",
   ],
 } as const;
+
+/**
+ * The Ranger's own bow, left at home by the chest the night the King's men came for him (src/game/fells.ts): a
+ * legendary longbow of grey ash, there for him whenever he's in the Fells' house, till he has it.
+ */
+export const RANGERS_BOW = {
+  type: "bow" as ItemType, rarity: "legendary" as Rarity, name: "Wystan's Longbow",
+  mods: { crit: 5, speed: 10, dash: 10 } satisfies Mods,
+  note: "The King's Ranger's own bow. He left it home the night they came for him",
+} as const;
+/** The first time he sees it in a run. */
+export const RANGERS_BOW_SAYS = "By the chest leans a longbow of grey ash, strung and waiting. The Ranger's own.";

@@ -63,7 +63,7 @@ export const GHOST = {
   angry: 0.5,
   /** Fading: gone (and untouchable) this long, then back this far from you, already tolling. */
   fade: { gone: 1.3, behind: 22, chance: 0.35 },
-  /** What laying her to rest is worth: from her grave goods, Hollow Bite and another rare thing or two; and a potion or two. */
+  /** What laying her to rest is worth: from her grave goods, the Ringer's Shroud and another rare thing or two; and a potion or two. */
   reward: { items: 1, potions: 2 },
   /** Townsfolk within this far (px) of her when she's out run for it, this many times their walking pace. */
   scare: 170, run: 2.4,
@@ -135,5 +135,8 @@ export const BELL_HOME = {
   rest: "Ismay Tollen rings the curfew, and the churchyard is quiet. Quiet for good, this time.",
 } as const;
 
-/** The best of her grave goods, left whenever she's laid to rest (beaten, or the bell brought home): a legendary blade. */
-export const HOLLOW_BITE: KitPiece = ["blade", "legendary", { crit: 6, life: 2, dash: 15 }, "Hollow Bite"];
+/**
+ * The best of her grave goods, left whenever she's laid to rest (beaten, or the bell brought home): the grey shroud she
+ * was put under in, a legendary robe.
+ */
+export const RINGERS_SHROUD: KitPiece = ["robe", "legendary", { crit: 6, life: 2, dash: 15 }, "The Ringer's Shroud"];

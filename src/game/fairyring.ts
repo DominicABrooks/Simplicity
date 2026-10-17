@@ -7,9 +7,10 @@
 // voices when they speak. Once he's come back up from the hill the third time, with the watchers there and the Erl-King
 // gone (src/game/underhill.ts), the ring is broken: nothing happens in it any more, and it looks it (src/render/fey.ts).
 // Till he's first found it in a run, after dark fireflies lead him to it from wherever he is in the woods (fireflyLead,
-// wayToRing).
+// wayToRing). And the first thing they tell him, while it's still shut, is the woodcutters' strongbox's number.
 import { FAIRY_RING as F, FEY_GIFT } from "../data/fey.ts";
 import { FEY_SAYINGS } from "../data/feysayings.ts";
+import { LOCKBOX_FEY } from "../data/lockbox.ts";
 import { SUNRISE, SUNSET, isDay } from "../data/daylight.ts";
 import { HALF, T, isSolidTile } from "../data/world.ts";
 import { makeItem } from "../items/items.ts";
@@ -17,6 +18,7 @@ import type { Prop } from "../world/area.ts";
 import type { TileMap } from "../world/map.ts";
 import { toast, type Game } from "./game.ts";
 import { visitsUnderhill } from "./underhill.ts";
+import { lockboxOpen } from "./lockbox.ts";
 import { sound } from "./sfx.ts";
 import { dropLoot } from "./spawn.ts";
 
@@ -37,14 +39,16 @@ interface Trance {
   chime: number; hum: number;
   /** Whether he's stood in the ring after dark this run: the fireflies have nothing left to show him. */
   found: boolean;
+  /** Whether they've told him the woodcutters' strongbox's number this run (src/game/lockbox.ts): the first thing they say. */
+  toldCode: boolean;
 }
 const trances = new WeakMap<Game, Trance>();
 const trance = (g: Game): Trance => {
   let s = trances.get(g);
   if (!s) {
-    const fresh: Trance = { x: NaN, y: NaN, inside: false, still: 0, saying: null, next: 0, unsaid: [], said: 0, last: null, chime: 0, hum: 0, found: false };
+    const fresh: Trance = { x: NaN, y: NaN, inside: false, still: 0, saying: null, next: 0, unsaid: [], said: 0, last: null, chime: 0, hum: 0, found: false, toldCode: false };
     trances.set(g, s = fresh);
-    g.events.on("reset", () => { fresh.found = false; });       // a new run: he's to find it again
+    g.events.on("reset", () => { fresh.found = false; fresh.toldCode = false; });   // a new run: he's to find it again, and be told again
   }
   return s;
 };
@@ -102,7 +106,10 @@ function leave(g: Game, s: Trance, x: number, y: number): void {
   s.last = null;
 }
 
-/** Stood still long enough, the fair folk talk to him, a line at a time; once he moves, they leave off till he's still again. */
+/**
+ * Stood still long enough, the fair folk talk to him, a line at a time; once he moves, they leave off till he's still
+ * again. While the woodcutters' strongbox is still shut, the first thing they tell him each run is its number.
+ */
 function speak(g: Game, s: Trance, dt: number): void {
   if (s.saying) {
     s.saying.age += dt;
@@ -113,9 +120,15 @@ function speak(g: Game, s: Trance, dt: number): void {
   }
   if (s.still < F.speakFrom) { s.next = 0; return; }
   if ((s.next -= dt) > 0) return;
-  if (!s.unsaid.length) s.unsaid = FEY_SAYINGS.map((_, i) => i);
-  const [i] = s.unsaid.splice(Math.floor(g.rng.next() * s.unsaid.length), 1);
-  const text = FEY_SAYINGS[i!]!;
+  let text: string;
+  if (!s.toldCode && !lockboxOpen(g)) {
+    s.toldCode = true;
+    text = LOCKBOX_FEY;
+  } else {
+    if (!s.unsaid.length) s.unsaid = FEY_SAYINGS.map((_, i) => i);
+    const [i] = s.unsaid.splice(Math.floor(g.rng.next() * s.unsaid.length), 1);
+    text = FEY_SAYINGS[i!]!;
+  }
   s.saying = { text, age: 0, hold: Math.max(F.line.hold, text.length * F.line.perChar), n: s.said++ };
   s.last = text;
 }

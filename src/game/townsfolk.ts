@@ -618,7 +618,8 @@ function doorstepLines(g: Game, s: Streets, r: Resident, door: Door): string[] {
   }
   if (r.stance === "informer" && !child && !night) lines.push(pick(D.wary));
   const I = TOWNSFOLK.invite, servant = noble && r.role === "servant";
-  const welcome = night || child || servant || r.stance === "informer" || open === D.open.grumpy ? 0
+  const welcome = door.household.some(p => p.family === "fell" && !p.prisoner) ? 1   // the Ranger's family: whoever's come up from the south is let in
+    : night || child || servant || r.stance === "informer" || open === D.open.grumpy ? 0
     : inn ? I.inn : open === D.open.cheerful ? I.cheerful : open === D.open.nervous ? I.nervous : I.day;
   if (s.rng.next() < welcome) {
     lines.push(pick(inn ? D.comeInn : D.come));

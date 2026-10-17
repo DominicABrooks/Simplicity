@@ -33,6 +33,7 @@ import { endingTalk, headLaid } from "./ending.ts";
 import { carryingHead } from "./head.ts";
 import { atPeace } from "./peace.ts";
 import { isMeg, megLines } from "./fells.ts";
+import { abelLines, isAbel } from "./lockbox.ts";
 
 /** Can this be talked to? Friendly people only: guards and the townsfolk. */
 export function canTalk(g: Game, e: Entity | null): e is Entity {
@@ -65,10 +66,10 @@ export function startTalk(g: Game, e: Entity | null): boolean {
   // The woodwardens at the barricade ask for the King's watchword, and hand him paper to write it on; once he's through, he's through.
   const warden = name === WOODWARDEN.name, yssa = isYssa(g, e), asking = (warden && !passedBarricade(g)) || (yssa && yssaAsking(g));
   // At the end, the townsfolk and the guards have only one thing to talk about (src/game/ending.ts).
-  const meg = resident !== undefined && isMeg(resident);
-  const ending = !isKing && !meg && (resident || g.world.has(e, "sentry")) && !warden && !yssa && !isGil(g, e) && !g.world.has(e, "spirit")
+  const meg = resident !== undefined && isMeg(resident), abel = isAbel(g, e);
+  const ending = !isKing && !meg && !abel && (resident || g.world.has(e, "sentry")) && !warden && !yssa && !isGil(g, e) && !g.world.has(e, "spirit")
     ? endingTalk(g, key, resident, who?.crowd?.mode === "follow") : null;
-  const lines = ending ? ending : meg ? megLines(g, visits) : isKing ? kingLines(g, visits)
+  const lines = ending ? ending : meg ? megLines(g, visits) : abel ? abelLines(g, visits) : isKing ? kingLines(g, visits)
     : warden ? [...(asking ? WARDEN_TALK.ask : WARDEN_TALK.through)]
     : yssa ? yssaLines(g)
     : g.world.has(e, "spirit") ? spiritLines(g, e)
