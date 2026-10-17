@@ -47,6 +47,7 @@ import { createMusicPlayer } from "./audio/music.ts";
 import { exposeDebug, wantsDebug } from "./debug.ts";
 import { useCurio } from "./game/quay.ts";
 import { followAcorn, holdForFey, hurryErlKing } from "./game/underhill.ts";
+import { holdForWarning } from "./game/watchword.ts";
 
 const g = createGame();
 const view = createRenderer(byId<HTMLCanvasElement>("screen"), g);
@@ -166,6 +167,7 @@ function frame(now: number): void {
   updateResting(g, dt);                                    // before the hero moves: anything he does gets him up
   updateSleeping(g, dt);                                   // and asleep, nothing held moves him
   holdForFey(g);                                           // nor while the fair folk have him (src/game/underhill.ts)
+  holdForWarning(g);                                       // nor while a woodwarden calls his warning after him (src/game/watchword.ts)
   step(g, dt);
   updateCutscene(g, dt);                                   // after: the scene walks him, and says where to look
   updateTalk(g, dt);

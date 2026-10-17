@@ -11,7 +11,8 @@ export const WOODWARDEN = { name: "Woodwarden" } as const;
 /**
  * What they say. Before he's given them the watchword: asking for it, and handing him a scrap of paper and a stub of
  * crayon to write it on (src/game/watchword.ts). Then, reading it: right, wrong ({written}: what he wrote), blank, or
- * the paper not handed back at all. And once he's through, that's that.
+ * the paper not handed back at all. And once he's through, that's that: but a warden calls a word of warning after him
+ * as he comes to the end of the trail, the first time each run (src/game/watchword.ts, warnOnTheWay).
  */
 export const WARDEN_TALK = {
   ask: [
@@ -30,6 +31,12 @@ export const WARDEN_TALK = {
   blank: ["A blank page. Very funny.", "No watchword, no way through."],
   kept: ["Keep it, then. But you're not getting past without the watchword."],
   through: ["Go on through, then. Mind yourself in there."],
+  /** Called after him as he nears the end of the trail past the gate, once a run: how to keep out of the way of what's in there. */
+  warn: [
+    "Just so you know, it's dangerous out there.",
+    "You can jump over attacks with Space.",
+    "You can also dodge through attacks by double-tapping any direction.",
+  ],
   /** Walking up to the gate before he's given them the watchword: one of these, over a warden, and back you step. */
   stop: ["No further! King's orders.", "Watchword? No? Then no.", "Back you go, little one.", "Nobody goes deeper. Nobody."],
 } as const;
