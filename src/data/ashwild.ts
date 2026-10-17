@@ -130,9 +130,9 @@ export const CINDER_READY = {
 /**
  * Yssa of the Frost (HERO.md), on the narrow track west out of the Ashwild, down to the Frozen Hollow. She doesn't fight;
  * she lets nobody by who doesn't know her name, and the woodcutters only ever called her the white lady. The hero can't
- * talk, so she hands him a curl of birch bark and a stub of charcoal: the player writes it (src/game/yssa.ts). Two
- * places tell it: Cinder, as the grey goes out of him (CINDER_FALLS), and a carving on the woodcutters' hut door
- * (HUT_CARVING). A player who knows it already can walk straight past the camp.
+ * talk, so she hands him a curl of birch bark and a stub of charcoal: the player writes it (src/game/yssa.ts). Only
+ * Cinder tells it, as the grey goes out of him (CINDER_FALLS); the carving on the woodcutters' hut door (HUT_CARVING)
+ * says she wants it, not what it is. A player who knows it already can walk straight past the camp.
  */
 export const YSSA = {
   /** What her target shows: what the woodcutters called her. */
@@ -151,24 +151,24 @@ export const YSSA_TRACK = { row: 29, post: 11 } as const;
 
 export const YSSA_TALK = {
   ask: [
-    "(A tall woman in frost-white robes stands in the track. The cold comes off her the way light comes off a lamp.)",
-    "You aren't one of them. Good. Down this track the wood turns to winter, and the Greyed walk on the ice.",
-    "We're Vael, they and I: the old orders of the south, Ember, Frost and Storm. They were my wardens once, sent north to hold the cracks under this wood shut. They held them too long. Every spell opens the window in your face a little wider, and something looked in through theirs, and stayed.",
-    "When you beat one, the grey goes out of them, and what's left of them goes home. It's the kindest thing anyone can do for them now. It can't see you, little one. Use that.",
-    "I let nobody by who doesn't know me. Not what the woodcutters call me. My name.",
-    "(She holds out a curl of birch bark and a stub of charcoal.)",
+    "(A tall woman in frost-white robes stands in the track, cold coming off her like light off a lamp.)",
+    "You aren't one of them. Good. Down this track the wood turns to winter, and the Greyed walk the ice.",
+    "They're Vael, like me: Ember, Frost and Storm, the old orders of the south. My wardens, once, sent north to hold the cracks under this wood shut. They held too long. Every spell opens a window in you; something looked in through theirs, and stayed.",
+    "Beat one and the grey goes out of them, and what's left goes home. It's the kindest thing you can do for them. And it can't see you, little one. Use that.",
+    "Nobody passes who doesn't know me. Not what the woodcutters call me: my name.",
+    "(She holds out birch bark and a stub of charcoal.)",
   ],
   right: [
-    '(She reads the bark, and something in her face thaws.) "Yssa." Six hundred years since anyone wrote it.',
-    "Who told you? No. I can guess. Go on, then. Mind the ice.",
+    '(She reads it, and her face thaws.) "Yssa." Six hundred years since anyone wrote it.',
+    "Who told you? No, I can guess. Go on. Mind the ice.",
   ],
   wrong: [
-    '(She reads the bark.) "{written}." (She lets it fall. It frosts over before it lands.)',
-    "That isn't my name. Come back when you know me.",
+    '"{written}." (She lets the bark fall. It frosts over before it lands.)',
+    "Not my name. Come back when you know me.",
   ],
   blank: ["(She turns the bare bark over, and back.) Nothing.", "Come back when you know me."],
   kept: ["Keep it, then. Come back when you know me."],
-  through: ["The track is open to you. Go carefully. The Hollow is colder than it looks."],
+  through: ["The track's open to you. Go carefully: the Hollow's colder than it looks."],
   /** Walking into her before she's read her name: one of these over her, and back you step. */
   stop: ["Not yet.", "Do you know me?", "(The cold off her stops you dead.)", "Who am I, little one?"],
 } as const;
@@ -178,7 +178,7 @@ export const HUT_CARVING = {
   name: "Carved in the door",
   lines: [
     "(Someone has cut letters into the door with a knife, deep and in a hurry.)",
-    "IF THE WHITE LADY STOPS YOU ON THE WEST TRACK DONT RUN. GIVE HER HER NAME. SHES YSSA. MOTHER KNEW HER. WAT",
+    "IF THE WHITE LADY STOPS YOU ON THE WEST TRACK DONT RUN. GIVE HER HER NAME. MOTHER KNEW IT. WAT",
   ],
 } as const;
 

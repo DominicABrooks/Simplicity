@@ -8,6 +8,7 @@ import { cancelActions, damagePlayer } from "../game/combat.ts";
 import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { heroParts, type HeroParts } from "../game/hero.ts";
+import { hushed } from "../game/hush.ts";
 import { spawnBolt, spawnStrike } from "../game/spawn.ts";
 import { MAGE_SWING_TIME, mageSwingK, relativeAngle, sweptThrough, swingRel } from "../game/swing.ts";
 import { blocked, moveBy } from "../world/collision.ts";
@@ -26,6 +27,8 @@ function updateMage(g: Game, h: HeroParts, e: Entity, s: Transform, b: MageBrain
   const school = SCHOOLS[b.school];
   b.blinkCD = Math.max(0, b.blinkCD - dt);
   b.specialCD = Math.max(0, b.specialCD - dt);
+  // He's talking to someone (src/game/hush.ts): it lets the spell it was gathering go, sheathes its sword, and waits.
+  if (hushed(g)) { b.casting = false; b.castK = 0; b.melee = false; b.swing = null; b.moving = false; b.stuckT = 0; return; }
   if (b.casting && b.spell) {
     const charge = SPELLS[b.spell].charge * (b.spell === "nova" ? b.boost?.novaCharge ?? 1 : 1);
     b.castT += dt;

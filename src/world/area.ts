@@ -43,6 +43,8 @@ export type Prop =
       y: number;
       /** The way the opening faces (and you walk in from the opposite side of it). */
       facing: "north" | "south";
+      /** Under snow (the Frozen Hollow's ice cave): snow lying on top of it, not moss. */
+      snow?: boolean;
     }
   // Town buildings. Rects and points are game px (heights are world units, one tile each); their
   // footprints should be Wall tiles in the map (except what you walk under: arcades, bridges, gates).
@@ -244,8 +246,11 @@ export interface AreaLayout {
 export interface AreaLife {
   /** Slimes and mages, topped up over time. */
   enemies: boolean;
-  /** Which mages come, from the start rather than after a few kills, how many more than usual, and the ground they keep to (anywhere, if left out). */
-  mages?: { schools: readonly School[]; extra?: number; on?: Tile };
+  /**
+   * Which mages come, from the start rather than after a few kills, how many more than usual, how likely each new
+   * arrival is to be one (at least 45%, if left out), and the ground they keep to (anywhere, if left out).
+   */
+  mages?: { schools: readonly School[]; extra?: number; chance?: number; on?: Tile };
   /** Potions scattered on arrival. */
   potions: boolean;
   /** Critters and grass, reeds and mushrooms. */

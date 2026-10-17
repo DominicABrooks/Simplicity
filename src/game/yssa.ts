@@ -1,11 +1,11 @@
 // Yssa of the Frost (src/data/ashwild.ts). Like the woodwardens with the King's watchword, she wants something only the
 // player can know, written on her birch bark (the same scrap of paper: src/ui/paper.ts), and keeps two posts. First the
-// narrow track west out of the Ashwild, down to the Frozen Hollow, where she wants her name: Cinder says it as he falls,
-// and it's cut into the woodcutters' hut door. Then the foot of the climb north out of the Hollow, up to the Thunder
+// narrow track west out of the Ashwild, down to the Frozen Hollow, where she wants her name: Cinder says it as he falls
+// (the woodcutters' hut door only warns that she'll ask for it). Then the foot of the climb north out of the Hollow, up to the Thunder
 // Rift (src/data/hollow.ts, CLIMB), where she wants the name of the river frozen in it: Rime sings it as she falls, and
 // the hunter scratched it on his hut door. At each she stands in the way until it's written, then steps aside for the
 // rest of the run; once he's been down to the Hollow, she's gone on ahead of him and the Ashwild's track is empty.
-// Nobody makes him fight for either word, and a player who knows one already can go straight to her. A new run (the
+// The river's name he needn't fight for; her own comes from Cinder. A player who knows one already can go straight to her. A new run (the
 // hero waking again) starts her afresh.
 import type { Entity } from "../core/ecs.ts";
 import { HUT_CARVING, YSSA, YSSA_TALK, YSSA_TRACK } from "../data/ashwild.ts";
@@ -15,6 +15,7 @@ import { FACING_ANGLE } from "../world/area.ts";
 import { FEET } from "../world/collision.ts";
 import type { TileMap } from "../world/map.ts";
 import { combatText } from "./combat.ts";
+import { lake } from "./rimefight.ts";
 import { cutscene } from "./cutscene.ts";
 import { toast, type Game } from "./game.ts";
 import { speak } from "./talk.ts";
@@ -143,7 +144,7 @@ export function yssaSystem(g: Game, dt: number): void {
   if (post.asks === "name" && s.down && s.passed.has("name")) { g.map = g.area.layout.map; return; }   // she's gone on down to the Hollow
   const open = s.passed.has(post.asks), want = spot(post, open);
   const her = yssaHere(g) ?? spawnYssa(g, want.x - HALF, want.y - HALF, post.facing);
-  g.map = herIn(g.area.layout.map, post, open);
+  g.map = herIn(lake(g), post, open);                     // on the Hollow's lake, thawed once Rime has fallen
   const t = g.world.need(her, "transform"), dx = want.x - HALF - t.x, dy = want.y - HALF - t.y, d = Math.hypot(dx, dy);
   if (d > 0) { const k = Math.min(1, STEP_ASIDE * dt / d); t.x += dx * k; t.y += dy * k; }
   if (open) return;

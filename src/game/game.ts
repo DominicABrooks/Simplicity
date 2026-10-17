@@ -54,7 +54,7 @@ export interface Floater {
 }
 
 export interface GameEvents {
-  toast: { text: string; good: boolean };
+  toast: { text: string; good: boolean; brief?: boolean };
   state: { state: GameState };
   /** A new run started: a fresh hero and bag, back home. */
   reset: Record<string, never>;
@@ -126,6 +126,7 @@ export function createGame(): Game {
     journal: emptyJournal(),
   };
   g.inventory.subscribe(stats => applyStats(g, stats));
+  g.inventory.onEquip(item => toast(g, `Equipped ${item.name}`, true, true));
   return g;
 }
 
@@ -162,6 +163,7 @@ export function setState(g: Game, state: GameState): void {
   g.events.emit("state", { state });
 }
 
-export function toast(g: Game, text: string, good = false): void {
-  g.events.emit("toast", { text, good });
+/** `brief`: a passing note ("Equipped Worn Boots"): the next brief one takes its place at once, rather than waiting its turn. */
+export function toast(g: Game, text: string, good = false, brief = false): void {
+  g.events.emit("toast", { text, good, brief });
 }

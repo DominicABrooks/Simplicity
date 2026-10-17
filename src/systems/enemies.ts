@@ -13,6 +13,7 @@ import { toast, type Game } from "../game/game.ts";
 import { sound } from "../game/sfx.ts";
 import { graveGoods, laidToRest } from "../game/ghost.ts";
 import { heroParts } from "../game/hero.ts";
+import { hushed } from "../game/hush.ts";
 import { dropLoot, spawnEnemy, spawnPotion } from "../game/spawn.ts";
 import { rollItem } from "../items/items.ts";
 import { moveBy, overlap } from "../world/collision.ts";
@@ -30,24 +31,29 @@ export function enemyPhysicsSystem(g: Game, dt: number): void {
 
 /**
  * Slimes hop: toward the hero when they can see you (and you're not swimming), otherwise anywhere. Touching you hurts.
- * Once it's all over they let him be, and are nothing to fight: no target ring on them (src/game/peace.ts).
+ * Once it's all over they let him be, and are nothing to fight: no target ring on them (src/game/peace.ts). While he's
+ * talking to someone they let him be too, for a while (src/game/hush.ts): one coming at him turns away.
  */
 export function slimeSystem(g: Game, dt: number): void {
-  const { pos: p, motion, status } = heroParts(g), calm = atPeace(g);
+  const { pos: p, motion, status } = heroParts(g), calm = atPeace(g), hush = hushed(g);
   for (const [e, { transform: s, slime, enemy }] of g.world.query("slime", "transform", "enemy")) {
     if (calm && g.world.has(e, "targetable")) { g.world.remove(e, "targetable"); if (g.target === e) g.target = null; }
+    if (hush && slime.dx * (p.x - s.x) + slime.dy * (p.y - s.y) > 0) {                         // coming at him: it thinks better of it
+      slime.dx = -slime.dx; slime.dy = -slime.dy;
+      if (slime.dx) enemy.face = Math.sign(slime.dx);
+    }
     if (slime.hop > 0) {
       slime.hop = Math.max(0, slime.hop - dt);
       moveBy(g.map, s, slime.dx * SLIME.hopSpeed * dt, slime.dy * SLIME.hopSpeed * dt, true);
     } else if ((slime.timer -= dt) <= 0) {
       const dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy);
-      if (d < SLIME.sight && !motion.swimming && !calm) { slime.dx = dx / d; slime.dy = dy / d; }
+      if (d < SLIME.sight && !motion.swimming && !calm && !hush) { slime.dx = dx / d; slime.dy = dy / d; }
       else { const a = g.rng.next() * Math.PI * 2; slime.dx = Math.cos(a); slime.dy = Math.sin(a); }
       if (slime.dx) enemy.face = Math.sign(slime.dx);
       slime.hop = SLIME.hopTime;
       slime.timer = SLIME.hopEvery + g.rng.next() * SLIME.hopEvery;
     }
-    if (!calm && status.hurt <= 0 && motion.jump <= 0 && motion.dash <= 0 && overlap(p, s)) damagePlayer(g, s.x, s.y);
+    if (!calm && !hush && status.hurt <= 0 && motion.jump <= 0 && motion.dash <= 0 && overlap(p, s)) damagePlayer(g, s.x, s.y);
   }
 }
 
@@ -99,7 +105,8 @@ export function spawnerSystem(g: Game, dt: number): void {
   if (!g.area.def.life?.enemies) return;                    // only where enemies live
   if (bossHere(g) !== null) return;                          // nothing else turns up while a boss fight's on,
   if (quietAfterBoss(g)) return;                             // nor after it, until he's left and come back,
-  if (greatKoiOut(g) !== null) return;                       // nor while the Great Koi's out of the water
+  if (greatKoiOut(g) !== null) return;                       // nor while the Great Koi's out of the water,
+  if (hushed(g)) return;                                     // nor while he's talking to someone (src/game/hush.ts)
   const cap = Math.min(SPAWNING.maxCap, SPAWNING.baseCap + Math.floor(g.kills / SPAWNING.killsPerCap));
   if ((g.spawnTimer -= dt) > 0) return;
   g.spawnTimer = SPAWNING.every;

@@ -67,14 +67,17 @@ export function bindInput(g: Game, hooks: InputHooks): { mouse(): { x: number; y
   });
   addEventListener("mousedown", e => {
     if (g.state !== "play" || e.button !== 0 || isHandled(e) || isUiTarget(e.target)) return;   // clicks on the UI aren't attacks
+    e.preventDefault();                                     // a press on the world is the game's: no drag or selection starting under the bow's draw,
+    focus();                                                 // (which would stop the press focusing the page: in an iframe, the keys would go nowhere)
     if (hooks.talkClick({ x: e.clientX, y: e.clientY })) return;
     input.attackPressed = true;
   });
   addEventListener("mouseup", e => { if (e.button === 0) input.attackReleased = true; });
+  addEventListener("dragstart", e => e.preventDefault());   // nothing here is dragged the browser's way (the bag drags its own)
   let overUi = false;
   addEventListener("mousemove", e => { mouse = { x: e.clientX, y: e.clientY }; overUi = isUiTarget(e.target); });
   addEventListener("mouseleave", () => { mouse = null; });
-  addEventListener("blur", () => input.keys.clear());
+  addEventListener("blur", () => { input.keys.clear(); input.attackReleased = true; });   // let go off the window: let go of the bow too
 
   return { mouse: () => mouse, overUi: () => overUi };
 }

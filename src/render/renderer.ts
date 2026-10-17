@@ -17,6 +17,7 @@ import { createKoiPond } from "./koi.ts";
 import { greatKoiBeaten, greatKoiOut } from "../game/greatkoi.ts";
 import type { Projector } from "./projector.ts";
 import { createOcclusion } from "./occlusion.ts";
+import { caveClearing } from "./cave.ts";
 import { buildProp } from "./props.ts";
 import { createRenderSystem } from "./renderSystem.ts";
 import { createTargetRing } from "./targetRing.ts";
@@ -101,7 +102,8 @@ export function createRenderer(canvas: HTMLCanvasElement, g: Game): Renderer {
     // Drawn: the map, or its view when it shows what lies past its edges (the next district along).
     const view = layout.view ?? { map: layout.map, x: 0, y: 0, props: [] }, props = [...layout.props, ...view.props];
     const bridges = props.filter(p => p.kind === "bridge" || p.kind === "stoneBridge" || p.kind === "drawbridge").map(p => shift(p, -view.x * T, -view.y * T));
-    const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view, !!def.indoors);
+    const caves = props.flatMap(p => (p.kind === "cave" ? [caveClearing(shift(p, -view.x * T, -view.y * T))] : []));   // no trees up through their boulders
+    const terrain = buildTerrain(ctx, groundUnderBridges(view.map, bridges), view, !!def.indoors, caves);
     scenery.add(terrain.group);
     const lively: THREE.Object3D[] = [];                     // what the props that animate put in the scenery
     const built = props.map(prop => {

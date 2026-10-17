@@ -56,11 +56,21 @@ describe("collision against shapes", () => {
     expect(p.y).toBeLessThan(before.y);
   });
 
-  it("never lets a fast move skip through a thin post", () => {
-    const map = open([{ kind: "circle", x: 80, y: 80, r: 1 }]);
+  it("never lets a fast move skip through a thin wall", () => {
+    const map = open([{ kind: "box", x: 79, y: 40, w: 1, h: 80 }]);
     const p = { x: 60, y: 80 - FEET.y - FEET.h / 2 };
     moveBy(map, p, 40, 0, false);                                  // a whole dash in one frame
     expect(p.x + FEET.x + FEET.w).toBeLessThanOrEqual(79);
+  });
+
+  it("goes round a thin post rather than through it", () => {
+    const map = open([{ kind: "circle", x: 80, y: 80, r: 1 }]);
+    const p = { x: 60, y: 80 - FEET.y - FEET.h / 2 };
+    for (let x = 0; x < 40; x += 2) {                              // a dash, frame by frame
+      moveBy(map, p, 2, 0, false);
+      expect(blocked(map, p.x, p.y, false)).toBe(false);
+    }
+    expect(p.x + FEET.x).toBeGreaterThan(81);                      // past it
   });
 
   it("stops shots in shapes and trees but not in open air", () => {

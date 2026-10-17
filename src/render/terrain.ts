@@ -50,7 +50,10 @@ export function groundUnderBridges(map: TileMap, props: readonly Prop[]): TileMa
   return { ...map, tiles };
 }
 
-/** The scenery for a map whose top-left tile is at `origin` (tiles) in the world. */
+/** Ground where no tree or bush may grow, in the map's tiles: an ellipse, centre (x, z) and radii rx, rz. What a cave's boulders cover. */
+export interface Clearing { x: number; z: number; rx: number; rz: number }
+
+/** The scenery for a map whose top-left tile is at `origin` (tiles) in the world; nothing grows in `clear`. */
 /** Grass and leaves recoloured, the same pattern: drained to a warm grey in the ash woods, slate-blue in the Thunder Rift. One copy each. */
 const ashCopies = new Map<THREE.Texture, THREE.CanvasTexture>(), stormCopies = new Map<THREE.Texture, THREE.CanvasTexture>();
 /** The ash woods' grass and leaves: gone grey. */
@@ -78,7 +81,7 @@ function recoloured(t: THREE.CanvasTexture, copies: Map<THREE.Texture, THREE.Can
   return out;
 }
 
-export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, y: 0 }, indoors = false): { group: THREE.Group; trees: TreeSet } {
+export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, y: 0 }, indoors = false, clear: readonly Clearing[] = []): { group: THREE.Group; trees: TreeSet } {
   const { lambert, tex } = ctx, world = new THREE.Group();
   const { width: W, height: H, tiles } = map;
   const isWater = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tiles[y]![x] === Tile.Water;
@@ -193,6 +196,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
   // Trees: map trees (nudged off the grid) plus a band of trees climbing the foothills. Some are firs:
   // a few along the treeline, more in the deep woods and up the slopes.
   const placed: [number, number, number, number, boolean][] = [];   // [x, z, scale, y, fir]
+  const cleared = (x: number, z: number) => clear.some(c => ((x - c.x) / c.rx) ** 2 + ((z - c.z) / c.rz) ** 2 < 1);
   const openNear = (x: number, y: number, r: number) => {
     for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (walkable(x + i, y + j)) return true;
     return false;
@@ -201,13 +205,14 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
   const age = (x: number, z: number) => (storm ? (openNear(x - 0.5, z - 0.5, 1) ? 1.15 : 1.4) : 1);
   for (const [x, z] of treeTiles) {
     const fir = hash(x, z, 20) < (openNear(x - 0.5, z - 0.5, 2) ? 0.2 : 0.55);
+    if (cleared(x, z)) continue;
     placed.push([x + (hash(x, z, 1) - 0.5) * 0.3, z + (hash(x, z, 2) - 0.5) * 0.3, (0.8 + hash(x, z, 3) * 0.45) * age(x, z), 0, fir]);
   }
   if (!indoors) for (let y = -4; y < H + 4; y++) for (let x = -4; x < W + 4; x++) {
     if (x >= 0 && y >= 0 && x < W && y < H) continue;
     const tx = x + 0.5 + (hash(x, y, 6) - 0.5) * 0.7, tz = y + 0.5 + (hash(x, y, 7) - 0.5) * 0.7;
     const d = outside(tx, tz);
-    if (d > 3 || hash(x, y, 4) > 0.65 - d * 0.18) continue;   // thinning out as the slope climbs
+    if (d > 3 || hash(x, y, 4) > 0.65 - d * 0.18 || cleared(tx, tz)) continue;   // thinning out as the slope climbs
     placed.push([tx, tz, 0.9 + hash(x, y, 5) * 0.5, mountainHeight(tx, tz) - 0.05, hash(x, y, 20) < 0.3 + d * 0.15]);
   }
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), none = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -262,6 +267,7 @@ export function buildTerrain(ctx: RenderContext, map: TileMap, origin = { x: 0, 
       if (!walkable(x + dx, y + dy) || hash(x * 3 + dx, y * 3 + dy, 13) > 0.55) continue;
       const bx = x + 0.5 + dx * 0.32 + (hash(x, y, 14 + dx) - 0.5) * 0.4;
       const bz = y + 0.5 + dy * 0.32 + (hash(x, y, 15 + dy) - 0.5) * 0.4;
+      if (cleared(bx, bz)) continue;
       if (hash(x + dx, y + dy, 16) < 0.18) rocks.push([bx, bz, 0.7 + hash(x, y, 17) * 0.6]);
       else bushes.push([bx, bz, 0.7 + hash(x, y, 18) * 0.5]);
     }

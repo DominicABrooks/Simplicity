@@ -19,23 +19,28 @@ export function bindOverlay(g: Game): void {
  * lines: the ring waking, the nest behind the sealed door) take turns, each up long enough to read, rather than each
  * wiping out the last; the same line said again while it's up or waiting isn't said twice. In a boss fight they keep
  * quiet: nothing's said from the moment it starts till the victory's been celebrated (src/game/bossbar.ts inBossFight).
+ * A brief note (putting something on) doesn't wait behind another: the newest one replaces it, up at once.
  */
 export function bindToasts(g: Game): void {
-  const el = byId("toast"), waiting: { text: string; good: boolean }[] = [];
-  let timer: ReturnType<typeof setTimeout> | undefined, showing: string | null = null;
+  const el = byId("toast");
+  let waiting: { text: string; good: boolean; brief?: boolean }[] = [];
+  let timer: ReturnType<typeof setTimeout> | undefined, showing: string | null = null, showingBrief = false;
   const next = (): void => {
     if (inBossFight(g)) waiting.length = 0;                  // a fight's begun: what was still to say goes unsaid
     const t = waiting.shift();
     if (!t) { el.hidden = true; showing = null; timer = undefined; return; }
     el.textContent = showing = t.text;
+    showingBrief = t.brief === true;
     el.hidden = false;
     el.classList.toggle("good", t.good);
     timer = setTimeout(next, waiting.length || t.text.length > 40 ? Math.max(TOAST_MS, t.text.length * TOAST_READ_MS) : TOAST_MS);
   };
-  g.events.on("toast", ({ text, good }) => {
+  g.events.on("toast", ({ text, good, brief }) => {
     if (inBossFight(g)) return;
-    if (text === showing || waiting.some(w => w.text === text)) return;
-    waiting.push({ text, good });
+    if (brief) waiting = waiting.filter(w => !w.brief);      // the newest note is the only one worth saying
+    else if (text === showing || waiting.some(w => w.text === text)) return;
+    if (brief && showingBrief) { waiting.unshift({ text, good, brief }); clearTimeout(timer); next(); return; }
+    waiting.push({ text, good, brief });
     if (timer === undefined) next();
   });
 }

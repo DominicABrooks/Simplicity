@@ -125,23 +125,23 @@ export const CLIMB = {
 
 export const CLIMB_TALK = {
   ask: [
-    "(Yssa is waiting at the foot of a frozen stream, as if she'd always been there.)",
-    "Up there is the Thunder Rift, and Calder. He was my best pupil once. He held the great crack shut alone for forty years, and he went grey first, and deepest. I send nobody up to him who doesn't know what they're walking into.",
-    "This was a river, before Rime sang it to sleep. It comes down out of the great crack, and runs all the way under the King's bridge. Write me its name, and I'll wake it.",
-    "(She holds out a curl of birch bark and a stub of charcoal.)",
+    "(Yssa waits at the foot of a frozen stream, as if she'd always been there.)",
+    "Up there is the Thunder Rift, and Calder, my best pupil once. He held the great crack shut alone for forty years, and went grey first and deepest. I send nobody up who doesn't know what they're walking into.",
+    "This was a river till Rime sang it to sleep. It runs from the great crack all the way under the King's bridge. Write me its name, and I'll wake it.",
+    "(She holds out birch bark and a stub of charcoal.)",
   ],
   right: [
-    `(She reads the bark, and says it to the ice, softly, the way you'd wake a child.) "Aurel."`,
-    "(Somewhere under the ice, water starts to run. The frozen stream cracks into steps.)",
+    `(She says it softly to the ice, the way you'd wake a child.) "Aurel."`,
+    "(Water starts to run under the ice, and the frozen stream cracks into steps.)",
     "Go on up. Mind the lightning: it comes out of a clear sky.",
   ],
   wrong: [
-    `(She reads the bark.) "{written}." (The ice doesn't stir.)`,
-    "That isn't its name. It runs under the King's own bridge, little one. Come back when you know it.",
+    `"{written}." (The ice doesn't stir.)`,
+    "Not its name. It runs under the King's own bridge, little one. Come back when you know it.",
   ],
   blank: ["(She turns the bare bark over, and back.) Nothing.", "Come back when you know its name."],
   kept: ["Keep it, then. Come back when you know its name."],
-  through: ["The river's awake. Go on up, and go carefully."],
+  through: ["The river's awake. Go on up, carefully."],
   /** Walking into her before she's read the river's name: one of these over her, and back you step. */
   stop: ["Not yet.", "Its name first.", "(The cold off her stops you dead.)", "What's the river called, little one?"],
 } as const;

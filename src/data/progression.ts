@@ -8,10 +8,9 @@ export interface LevelBonus {
   level: number;
   speed: number;   // percent
   life: number;    // extra hearts
-  damage: number;
 }
 
-/** +2% speed per level, +1 life every 2 levels, +1 damage every 4 levels. */
+/** +2% speed per level, +1 life every 2 levels. Damage comes only from gear. */
 export function levelBonus(level: number): LevelBonus {
-  return { level, speed: (level - 1) * 2, life: Math.floor((level - 1) / 2), damage: Math.floor((level - 1) / 4) };
+  return { level, speed: (level - 1) * 2, life: Math.floor((level - 1) / 2) };
 }

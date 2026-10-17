@@ -219,8 +219,8 @@ watches him and nods: **Yssa**. She doesn't fight. She's the only robed one who 
 **The way on is a name.** Off the cracked glade a narrow track runs west, down to the Frozen Hollow, and Yssa
 stands in it. Like the woodwardens with the watchword, she lets nobody by who doesn't know her: she hands him
 birch bark and charcoal, and he has to write her name. The woodcutters only ever called her the white lady.
-Two places tell it: Cinder, with his last words, and a warning cut into the woodcutters' hut door. Nobody has to
-fight Cinder to go on, and a player who knows the name can walk straight past the camp.
+Only Cinder tells it, with his last words; a warning cut into the woodcutters' hut door says she'll ask, but not
+what to answer. A player who knows the name already can walk straight past the camp.
 
 **0:28 Cinder (3 min).** The Greyed's first camp. **Cinder**, the Ember lieutenant: faster fire, more
 blinks, and the sheep orb in volleys of three. *Tests:* dashing through gaps, punishing after a blink.

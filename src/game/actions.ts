@@ -2,7 +2,7 @@
 import { COMBAT_COLORS } from "../data/ui.ts";
 import type { Item } from "../items/items.ts";
 import { combatText } from "./combat.ts";
-import { toast, type Game } from "./game.ts";
+import type { Game } from "./game.ts";
 import { holdOntoHead, keepIfHead } from "./head.ts";
 import { dropLoot } from "./spawn.ts";
 
@@ -13,15 +13,11 @@ export function dropItem(g: Game, item: Item): void {
   keepIfHead(g, dropLoot(g, p.x, p.y, item, true), item);   // there's only the one
 }
 
-/** Eat a fish from the bag. False (and the fish is kept) at full health. */
+/** Eat a fish from the bag: it heals what it can, and can be eaten at full health too. */
 export function eatItem(g: Game, item: Item): boolean {
   const health = g.world.need(g.player, "health"), p = g.world.need(g.player, "transform");
-  if (health.hp >= health.maxHp) {
-    toast(g, "Already at full health");
-    return false;
-  }
-  const heal = item.heal ?? 0;
-  health.hp = Math.min(health.maxHp, health.hp + heal);
-  combatText(g, p.x, p.y, `+${heal}`, COMBAT_COLORS.heal);
+  const heal = Math.min(item.heal ?? 0, Math.max(0, health.maxHp - health.hp));
+  health.hp += heal;
+  combatText(g, p.x, p.y, heal > 0 ? `+${heal}` : "Tasty", COMBAT_COLORS.heal);
   return true;
 }

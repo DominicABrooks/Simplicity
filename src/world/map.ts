@@ -1,5 +1,5 @@
-import { Tile, isSolidTile } from "../data/world.ts";
-import type { Shape } from "./shapes.ts";
+import { T, Tile, isSolidTile } from "../data/world.ts";
+import { anyContains, type Shape } from "./shapes.ts";
 
 /** The tile grid, indexed [y][x]. */
 export interface TileMap {
@@ -21,13 +21,25 @@ export const isOpenGround = (t: Tile): boolean => t === Tile.Grass || t === Tile
 
 /** Every non-solid tile reachable from (tx, ty) by stepping up, down, left or right. Keys are y * width + x. */
 export function reachableFrom(map: TileMap, tx: number, ty: number): Set<number> {
+  return flood(map, tx, ty, (x, y) => isSolidTile(map.tiles[y]![x]!));
+}
+
+/**
+ * Like reachableFrom, but what stands on the map stops the walk too: a tile whose middle is inside one of its solids
+ * (a barricade's stakes, the woodwardens in its gate, Yssa in the track) is as good as a wall. Where enemies may turn up.
+ */
+export function walkableFrom(map: TileMap, tx: number, ty: number): Set<number> {
+  return flood(map, tx, ty, (x, y) => isSolidTile(map.tiles[y]![x]!) || anyContains(map.solids, (x + 0.5) * T, (y + 0.5) * T));
+}
+
+function flood(map: TileMap, tx: number, ty: number, stops: (x: number, y: number) => boolean): Set<number> {
   const seen = new Set([ty * map.width + tx]);
   const queue: [number, number][] = [[tx, ty]];
   while (queue.length) {
     const [x, y] = queue.pop()!;
     for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as [number, number][]) {
       const k = ny * map.width + nx;
-      if (seen.has(k) || nx < 0 || ny < 0 || nx >= map.width || ny >= map.height || isSolidTile(map.tiles[ny]![nx]!)) continue;
+      if (seen.has(k) || nx < 0 || ny < 0 || nx >= map.width || ny >= map.height || stops(nx, ny)) continue;
       seen.add(k);
       queue.push([nx, ny]);
     }

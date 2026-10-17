@@ -37,17 +37,59 @@ export function blocked(map: TileMap, x: number, y: number, blocksWater: boolean
 
 /** The most a move goes in one step, so nothing fast (a dash, a slow frame) skips through a thin post. */
 const STEP = 2;
+/** How far to one side a mover is steered round what's in front of him (a trunk, a post, the corner of a
+ * wall): up to this many px. A tree is a whole tile, so 5 of the 7 px either way that would clear it. */
+const NUDGE = 5;
+/** Steered round only when heading within about 27 degrees of straight at it (sideways no more than half
+ * of forwards); more sideways than that and he already slides along it on his own. */
+const NUDGE_ANGLE = 0.5;
+
+/**
+ * The shortest sideways shift, no more than NUDGE px, that clears a step of `fwd` px along one axis
+ * (x if `alongX`, else y); its sign is the side. Ties go the way `lean` points (his own sideways push).
+ * 0 if there's none.
+ */
+function sidestep(map: TileMap, p: Point, alongX: boolean, fwd: number, lean: number, blocksWater: boolean): number {
+  const clear = (side: number) => alongX ? !blocked(map, p.x + fwd, p.y + side, blocksWater) : !blocked(map, p.x + side, p.y + fwd, blocksWater);
+  const first = lean < 0 ? -1 : 1;
+  for (let d = 0.5; d <= NUDGE; d += 0.5) {
+    if (clear(first * d)) return first * d;
+    if (clear(-first * d)) return -first * d;
+  }
+  return 0;
+}
 
 /**
  * Move by (dx, dy) in small steps, one axis at a time, so you slide along walls instead of sticking, and
- * come to rest right against whatever stops you.
+ * come to rest right against whatever stops you. Heading (nearly) straight into the edge of something,
+ * a tree, a post, a pillar, the end of a wall, you're steered sideways round it at the speed you were
+ * going rather than stopped on it; head-on into its middle, or into a wall that runs on, you stop.
+ * Not if `steer` is false: for someone headed for a spot just behind it, who'd only weave to and fro.
  */
-export function moveBy(map: TileMap, p: Point, dx: number, dy: number, blocksWater: boolean): void {
-  const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / STEP)), sx = dx / n, sy = dy / n;
-  let xFree = sx !== 0, yFree = sy !== 0;
-  for (let i = 0; i < n && (xFree || yFree); i++) {
-    if (xFree) { if (blocked(map, p.x + sx, p.y, blocksWater)) xFree = false; else p.x += sx; }
-    if (yFree) { if (blocked(map, p.x, p.y + sy, blocksWater)) yFree = false; else p.y += sy; }
+export function moveBy(map: TileMap, p: Point, dx: number, dy: number, blocksWater: boolean, steer = true): void {
+  const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / STEP)), sx = dx / n, sy = dy / n, step = Math.hypot(sx, sy);
+  for (let i = 0; i < n; i++) {
+    const xOk = sx !== 0 && !blocked(map, p.x + sx, p.y, blocksWater);
+    if (xOk) p.x += sx;
+    const yOk = sy !== 0 && !blocked(map, p.x, p.y + sy, blocksWater);
+    if (yOk) p.y += sy;
+    if (xOk || yOk || !steer) {
+      if ((xOk && yOk) || !steer) continue;
+      // One axis moved, the other's blocked: steer round it only if that was nearly all the move.
+      if (xOk ? Math.abs(sx) > NUDGE_ANGLE * Math.abs(sy) : Math.abs(sy) > NUDGE_ANGLE * Math.abs(sx)) continue;
+      if (xOk) p.x -= sx; else p.y -= sy;                        // the steer takes over the little sideways part
+    }
+    // Blocked going forwards (the main axis): shift sideways towards the nearer way round.
+    const alongX = Math.abs(sx) >= Math.abs(sy), fwd = alongX ? sx : sy, lean = alongX ? sy : sx;
+    if (fwd === 0 || Math.abs(lean) > NUDGE_ANGLE * Math.abs(fwd)) continue;
+    const side = sidestep(map, p, alongX, fwd, lean, blocksWater);
+    if (side === 0) {                                             // nothing to steer round: keep any sideways part
+      if (lean !== 0) { if (alongX) { if (!blocked(map, p.x, p.y + lean, blocksWater)) p.y += lean; } else if (!blocked(map, p.x + lean, p.y, blocksWater)) p.x += lean; }
+      continue;
+    }
+    const shift = Math.sign(side) * Math.min(Math.abs(side), step);
+    if (alongX) { if (!blocked(map, p.x, p.y + shift, blocksWater)) p.y += shift; }
+    else if (!blocked(map, p.x + shift, p.y, blocksWater)) p.x += shift;
   }
 }
 

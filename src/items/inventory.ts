@@ -34,6 +34,7 @@ export class Inventory {
   /** The item on the cursor, if any. */
   held: Item | null = null;
   private readonly listeners: ((stats: InventoryStats) => void)[] = [];
+  private readonly wearers: ((item: Item) => void)[] = [];
 
   /** `bonus` supplies the hero's level bonuses, which add to the gear's stat totals. */
   constructor(private readonly bonus: () => LevelBonus) {}
@@ -41,6 +42,11 @@ export class Inventory {
   /** Called after every change with the new stat totals. */
   subscribe(fn: (stats: InventoryStats) => void): void {
     this.listeners.push(fn);
+  }
+
+  /** Called when the player puts something on (dragged to its slot or right-clicked), not when a run dresses him. */
+  onEquip(fn: (item: Item) => void): void {
+    this.wearers.push(fn);
   }
 
   /** Re-total and notify (also used after a level-up changes the bonus). */
@@ -85,7 +91,7 @@ export class Inventory {
     const gear = Object.fromEntries(SLOT_KEYS.map(k => [k, this.equip[k]?.rarity ?? null])) as Gear;
     gear.weaponType = this.equip.weapon?.type ?? null;
     const b = this.bonus();
-    return { level: b.level, damage: Math.max(1, t.damage) + b.damage, crit: t.crit, life: t.life + b.life, speed: t.speed + b.speed, dash: Math.min(60, t.dash), gear };
+    return { level: b.level, damage: Math.max(1, t.damage), crit: t.crit, life: t.life + b.life, speed: t.speed + b.speed, dash: Math.min(60, t.dash), gear };
   }
 
   // ---------- Actions ----------
@@ -121,9 +127,10 @@ export class Inventory {
   putHeldInSlot(slot: Slot): void {
     if (!this.held || this.held.slot !== slot) return;
     const old = this.equip[slot];
-    this.equip[slot] = this.held;
+    const item = this.equip[slot] = this.held;
     this.held = old ?? null;
     this.changed();
+    for (const fn of this.wearers) fn(item);
   }
 
   /** Right-click equip: the replaced item goes where this one was, or the first free spot. */
@@ -143,6 +150,7 @@ export class Inventory {
       }
     }
     this.changed();
+    for (const fn of this.wearers) fn(entry.item);
   }
 
   /** Right-click an equipped item: back into the bag, if there's room. */
