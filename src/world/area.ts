@@ -163,7 +163,11 @@ export type Prop =
   | { kind: "stoneRing"; x: number; y: number; radius: number; stones: number; gap: number }
   /** A fairy ring (src/render/fey.ts): pale mushrooms in a circle `radius` tiles out, lights drifting round it after dark. Not solid.
    * Its spell takes anyone standing in it at night (src/game/fairyring.ts), unless it's `quiet` (the fair folk's own, under the hill). */
-  | { kind: "fairyRing"; x: number; y: number; radius: number; quiet?: boolean; broken?: boolean }
+  | {
+      kind: "fairyRing"; x: number; y: number; radius: number; quiet?: boolean; broken?: boolean;
+      /** Whether fireflies lead him to it after dark, from wherever he is in its area (src/game/fairyring.ts, wayToRing). */
+      lead?: boolean;
+    }
   /** A barricade of sharpened stakes across a trail, open only at its gate: `gate` tiles from its west end, `gateW` wide. */
   | { kind: "barricade"; rect: Rect; gate: number; gateW: number }
   /** A cold crack in the ground, `len` tiles long, turned `angle` (a game angle): where the dark gets in. Not solid. */

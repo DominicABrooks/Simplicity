@@ -6,12 +6,15 @@
 // it sounds (src/data/sfx.ts): a slow run of notes in and out, soft bells and a low wavering hum as it deepens, and far-off
 // voices when they speak. Once he's come back up from the hill the third time, with the watchers there and the Erl-King
 // gone (src/game/underhill.ts), the ring is broken: nothing happens in it any more, and it looks it (src/render/fey.ts).
+// Till he's first found it in a run, after dark fireflies lead him to it from wherever he is in the woods (fireflyLead,
+// wayToRing).
 import { FAIRY_RING as F, FEY_GIFT } from "../data/fey.ts";
 import { FEY_SAYINGS } from "../data/feysayings.ts";
-import { isDay } from "../data/daylight.ts";
-import { HALF } from "../data/world.ts";
+import { SUNRISE, SUNSET, isDay } from "../data/daylight.ts";
+import { HALF, T, isSolidTile } from "../data/world.ts";
 import { makeItem } from "../items/items.ts";
 import type { Prop } from "../world/area.ts";
+import type { TileMap } from "../world/map.ts";
 import { toast, type Game } from "./game.ts";
 import { visitsUnderhill } from "./underhill.ts";
 import { sound } from "./sfx.ts";
@@ -32,11 +35,17 @@ interface Trance {
   last: string | null;
   /** Seconds till the next bell, and the next hum. */
   chime: number; hum: number;
+  /** Whether he's stood in the ring after dark this run: the fireflies have nothing left to show him. */
+  found: boolean;
 }
 const trances = new WeakMap<Game, Trance>();
 const trance = (g: Game): Trance => {
   let s = trances.get(g);
-  if (!s) trances.set(g, s = { x: NaN, y: NaN, inside: false, still: 0, saying: null, next: 0, unsaid: [], said: 0, last: null, chime: 0, hum: 0 });
+  if (!s) {
+    const fresh: Trance = { x: NaN, y: NaN, inside: false, still: 0, saying: null, next: 0, unsaid: [], said: 0, last: null, chime: 0, hum: 0, found: false };
+    trances.set(g, s = fresh);
+    g.events.on("reset", () => { fresh.found = false; });       // a new run: he's to find it again
+  }
   return s;
 };
 /** How long a line is up, from fading in to gone. */
@@ -63,6 +72,7 @@ export function fairyRingSystem(g: Game, dt: number): void {
   const was = s.inside;
   s.inside = !!ring && !isDay(g.hour) && Math.hypot(p.x + HALF - ring.x, p.y + HALF - ring.y) < ring.radius * 2 * HALF;
   s.still = s.inside && !moved ? s.still + dt : 0;
+  if (s.inside) s.found = true;
   const spoke = s.said;
   speak(g, s, dt);
   if (s.said > spoke) sound(g, "feyVoice");
@@ -123,4 +133,71 @@ export function uiFadeOf(g: Game): number {
 export function tranceOf(g: Game): number {
   const s = trance(g);
   return s.inside ? F.base + (1 - F.base) * Math.min(1, s.still / F.full) : 0;
+}
+
+/**
+ * How strongly fireflies lead him to the fairy ring right now, 0 to 1: only where there's a whole ring with a way to it
+ * (the Witchwood's), only after dark, coming on over the first hour of the night and going over the last, and only
+ * till he's first stood in it this run.
+ */
+export function fireflyLead(g: Game): number {
+  const ring = ringHere(g);
+  if (!ring?.lead || trance(g).found) return 0;
+  return Math.min(1, Math.max(0, g.hour - SUNSET, SUNRISE - g.hour));
+}
+
+/** For each map with a ring to be led to: how many steps every tile is from the ring, walking (-1, no way). */
+const stepsTo = new WeakMap<TileMap, Int32Array>();
+/** How many steps each tile of the map is from the ring's tile, a step at a time where he can walk (-1 where there's no way). */
+function stepsToRing(map: TileMap, ring: FairyRing): Int32Array {
+  let steps = stepsTo.get(map);
+  if (steps) return steps;
+  const { width: W, height: H, tiles } = map, from = Math.floor(ring.y / T) * W + Math.floor(ring.x / T);
+  steps = new Int32Array(W * H).fill(-1);
+  steps[from] = 0;
+  for (const queue = [from]; queue.length;) {
+    const i = queue.shift()!, x = i % W, y = (i - x) / W;
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as const) {
+      const n = ny * W + nx;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H || steps[n] !== -1 || isSolidTile(tiles[ny]![nx]!)) continue;
+      steps[n] = steps[i]! + 1;
+      queue.push(n);
+    }
+  }
+  stepsTo.set(map, steps);
+  return steps;
+}
+
+/**
+ * The way the fireflies lead him to the ring from (x, y) (game px, a cell's top-left, as he stands): the middles of the
+ * tiles he'd walk through, his own first and the ring's last, each a step nearer, never through trees or water. If
+ * he's somewhere there's no walking from (brushing the trees' edge), it starts from the nearest tile there is. Empty where
+ * there's no ring to lead him to, or no way to it.
+ */
+export function wayToRing(g: Game, x: number, y: number): [number, number][] {
+  const ring = ringHere(g);
+  if (!ring?.lead) return [];
+  const map = g.area.layout.map, W = map.width, steps = stepsToRing(map, ring);
+  const tx = Math.floor((x + HALF) / T), ty = Math.floor((y + HALF) / T);
+  let at = -1;
+  for (let r = 0; r <= 2 && at < 0; r++) {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const nx = tx + dx, ny = ty + dy, n = ny * W + nx;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= map.height || steps[n]! < 0) continue;
+      if (at < 0 || steps[n]! < steps[at]!) at = n;
+    }
+  }
+  if (at < 0) return [];
+  const way: [number, number][] = [];
+  for (;;) {
+    const cx = at % W, cy = (at - cx) / W;
+    way.push([(cx + 0.5) * T, (cy + 0.5) * T]);
+    if (steps[at] === 0) return way;
+    // On to the neighbour a step nearer: across rather than along, turn and turn about, so the way doesn't run in long
+    // straight legs and then turn sharp.
+    const next = (way.length % 2 ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : [[0, 1], [0, -1], [1, 0], [-1, 0]])
+      .map(([dx, dy]) => (cy + dy!) * W + cx + dx!)
+      .find(n => n >= 0 && n < steps.length && Math.abs((n % W) - cx) <= 1 && steps[n] === steps[at]! - 1);
+    at = next!;
+  }
 }

@@ -132,8 +132,8 @@ export function buildMap(): TileMap {
 const PROPS: Prop[] = [
   { kind: "camp", ...CAMP },
   { kind: "cave", x: CAVE_X, y: 0, facing: "south" },
-  // A fairy ring in the flowered glade at the end of the deer trail.
-  { kind: "fairyRing", x: GLADE.x * T, y: GLADE.y * T, radius: 1.6 },
+  // A fairy ring in the flowered glade at the end of the deer trail, and after dark, fireflies to lead him to it.
+  { kind: "fairyRing", x: GLADE.x * T, y: GLADE.y * T, radius: 1.6, lead: true },
   // The Ranger's stone, the oldest in the valley, where he wakes at the start of a run (src/game/stones.ts).
   { kind: "oldStone", x: SPAWN.x + HALF, y: SPAWN.y + HALF, name: "The Ranger's stone", entry: "start" },
   // The King's woodwardens' barricade across the trail, two wardens standing in its gate until he's written them the
