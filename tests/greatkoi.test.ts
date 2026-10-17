@@ -12,6 +12,7 @@ import { bossBar } from "../src/game/bossbar.ts";
 import { spentCurios } from "../src/game/curios.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { greatKoiBeaten, greatKoiOut, greatKoiSystem } from "../src/game/greatkoi.ts";
+import { LAIRS } from "../src/game/lairs.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { spawnEnemy } from "../src/game/spawn.ts";
 import { enterArea } from "../src/game/travel.ts";
@@ -170,5 +171,20 @@ describe("the legendary pole", () => {
     a.fishing = { phase: "cast", x: water.x, y: water.y, t: FISHING.castTime, biteAt: 0, basin: false };
     step(g, DT);
     expect(a.fishing?.biteAt).toBeCloseTo((FISHING.biteMin + FISHING.biteRange) * LEGENDARY_CATCH_ODDS.bite);
+  });
+});
+
+describe("coming to the Great Koi ready, to playtest (?boss=koi)", () => {
+  it("in the grotto, it's hooked and out on the ice, and he's a few steps south of the hole, clear of it", async () => {
+    const g = createGame();
+    resetGame(g);
+    setState(g, "play");
+    const lair = LAIRS.koi;
+    enterArea(g, await loadArea(lair.area), lair.entry);
+    const at = lair.stage(g), koi = greatKoiOut(g);
+    expect(koi).not.toBeNull();
+    const k = g.world.need(koi!, "transform");
+    expect(at.y - k.y).toBeGreaterThanOrEqual(4 * T);
+    expect(g.map.tiles[Math.floor((at.y + 4) / T)]![Math.floor((at.x + 4) / T)]).toBe(Tile.Ice);
   });
 });

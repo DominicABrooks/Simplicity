@@ -284,7 +284,7 @@ export function exposeDebug(g: Game, view: Renderer): void {
         isDoor(e) ? [{ id: e, name: c.targetable.name, x: c.transform.x, y: c.transform.y, home: whoIsHome(g, e).length }] : []),
     },
   });
-  // ?boss=cinder (with &god, &freeze): straight into the fight, after main.ts has put the title up. ?area=hollow (with
+  // ?boss=cinder (rime, calder, ringer, koi; with &god, &freeze): straight into the fight, after main.ts has put the title up. ?area=hollow (with
   // &entry=stone): straight there. ?hour=23 (0 to 24, fractions too): that time of day, there or wherever you start.
   // ?curio=bell (key, stone, eye, bottle): a fresh run with it in the bag, a few steps from where it belongs.
   const q = new URLSearchParams(location.search), who = q.get("boss"), where = q.get("area"), at = q.get("hour"), end = q.get("ending"), cur = q.get("curio");
