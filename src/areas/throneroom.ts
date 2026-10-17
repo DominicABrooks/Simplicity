@@ -12,12 +12,15 @@ import type { AreaDef, AreaLayout, Facing, FurnitureItem } from "../world/area.t
 import { Town, px } from "../world/townkit.ts";
 
 const W = 20, H = 26;
-/** The doors, mid-south wall (on a whole tile, so the doorway's tile is open), the hall's middle line, and where the dais's front edge is. */
-const DOOR_AT = W / 2 - 1, MID = W / 2, DAIS_FRONT = 5.4;
+/**
+ * The hall's middle line; the doors, mid-south wall, wide enough for the carpet (2 tiles, src/render/interior.ts) to run
+ * out between their gilded posts, and centred on it; and where the dais's front edge is.
+ */
+const MID = W / 2, DOOR_W = 2.4, DOOR_AT = MID - DOOR_W / 2, DAIS_FRONT = 5.4;
 
 function build(): AreaLayout {
   const town = new Town(W, H, Tile.Cobble);
-  town.add({ kind: "room", rect: px([0, 0, W, H]), floor: "marble", wall: "#e9dcc4", door: "south", doorAt: DOOR_AT });
+  town.add({ kind: "room", rect: px([0, 0, W, H]), floor: "marble", wall: "#e9dcc4", door: "south", doorAt: DOOR_AT, doorW: DOOR_W });
   const add = (item: FurnitureItem, x: number, y: number, facing: Facing) => town.add({ kind: "furniture", item, x: x * T, y: y * T, facing });
 
   // The dais across the north end, the throne on it, and the King before the throne.
@@ -58,7 +61,7 @@ function build(): AreaLayout {
     // In through the doors, at the foot of the carpet.
     { door: { x: MID * T - HALF, y: (H - 3.6) * T - HALF } },
     // Out through the doors, onto the keep's stairs in the castle ward.
-    [{ rect: { x: DOOR_AT * T, y: (H - 1) * T + 3, w: 1.3 * T, h: T - 3 }, to: { area: "castle", entry: "keep" } }],
+    [{ rect: { x: DOOR_AT * T, y: (H - 1) * T + 3, w: DOOR_W * T, h: T - 3 }, to: { area: "castle", entry: "keep" } }],
   );
 }
 

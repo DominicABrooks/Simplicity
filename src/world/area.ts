@@ -213,8 +213,11 @@ export type Prop =
   /** A water trough. */
   | { kind: "trough"; rect: Rect }
   // Inside a house (src/render/interior.ts): the room, and what's in it.
-  /** A room: its floor (planks, flagstones in a stone house, or the throne room's marble), low walls round it (so the camera sees in) and a doorway in one, doorAt tiles along it. */
-  | { kind: "room"; rect: Rect; floor: "planks" | "flags" | "marble"; wall: string; door: Facing; doorAt: number }
+  /**
+   * A room: its floor (planks, flagstones in a stone house, or the throne room's marble), low walls round it (so the camera
+   * sees in) and a doorway in one, doorAt tiles along it, doorW tiles wide (the usual 1.3 if left out: src/world/plans.ts).
+   */
+  | { kind: "room"; rect: Rect; floor: "planks" | "flags" | "marble"; wall: string; door: Facing; doorAt: number; doorW?: number }
   /** A piece of furniture, centred at (x, y), its front toward its facing. */
   | { kind: "furniture"; item: FurnitureItem; x: number; y: number; facing: Facing };
 

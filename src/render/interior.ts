@@ -4,7 +4,7 @@
 // a rug, a cradle. Low-poly and hand-painted, at the hero's scale (about 1.1 tall), like the town outside.
 import * as THREE from "three";
 import { T } from "../data/world.ts";
-import { DAIS_HIGH, FACING_YAW, FURNITURE, ROOM_WALL, roomWalls } from "../world/plans.ts";
+import { DAIS_HIGH, FACING_YAW, FURNITURE, ROOM_WALL, doorWidth, roomWalls } from "../world/plans.ts";
 import { GROUND, box, onFace, onGround, type RenderContext } from "./context.ts";
 import { put } from "./castle.ts";
 import type { PropView } from "./props.ts";
@@ -55,7 +55,7 @@ export function buildRoom(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ro
       put(g, box(s.w + 0.02, 0.5, s.d + 0.02), wainscot, s.x, 0.25, s.z);
       for (const y of [0.52, high + 0.05]) put(g, box(s.w + 0.05, 0.07, s.d + 0.05), gold, s.x, y, s.z);
     }
-    const along = p.door === "north" || p.door === "south", t = ROOM_WALL.thick, gap = ROOM_WALL.gap;
+    const along = p.door === "north" || p.door === "south", t = ROOM_WALL.thick, gap = doorWidth(p);
     const at = (k: number) => (along ? { x: x0 + p.doorAt + k, z: p.door === "north" ? z0 + t / 2 : z0 + d - t / 2 } : { x: p.door === "west" ? x0 + t / 2 : x0 + w - t / 2, z: z0 + p.doorAt + k });
     for (const k of [0, gap]) { const q = at(k); put(g, box(0.2, H + 0.6, 0.2), gold, q.x, (H + 0.6) / 2, q.z); }   // gilded door posts
     const lintel = at(gap / 2);
@@ -74,7 +74,7 @@ export function buildRoom(ctx: RenderContext, parent: THREE.Group, p: PropOf<"ro
     put(g, tiledBox(s.w, H, s.d, 0.8), wall, s.x, H / 2, s.z);
     put(g, box(s.w + 0.04, 0.08, s.d + 0.04), beam, s.x, H + 0.04, s.z);
   }
-  const along = p.door === "north" || p.door === "south", t = ROOM_WALL.thick, gap = ROOM_WALL.gap;
+  const along = p.door === "north" || p.door === "south", t = ROOM_WALL.thick, gap = doorWidth(p);
   const at = (k: number) => (along ? { x: x0 + p.doorAt + k, z: p.door === "north" ? z0 + t / 2 : z0 + d - t / 2 } : { x: p.door === "west" ? x0 + t / 2 : x0 + w - t / 2, z: z0 + p.doorAt + k });
   for (const k of [0, gap]) { const q = at(k); put(g, box(0.16, H + 0.4, 0.16), beam, q.x, (H + 0.4) / 2, q.z); }   // door posts, taller than the wall
   const lintel = at(gap / 2);
