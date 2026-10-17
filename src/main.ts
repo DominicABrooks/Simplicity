@@ -23,6 +23,8 @@ import { FEATURES } from "./data/features.ts";
 import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "./game/talk.ts";
 import { createDialogue } from "./ui/dialogue.ts";
 import { createPaper } from "./ui/paper.ts";
+import { createPinPad } from "./ui/pinpad.ts";
+import { tryLockbox } from "./game/lockbox.ts";
 import { enterInterior, updateInterior } from "./game/interiors.ts";
 import { enterTownsfolk, knock, updateTownsfolk } from "./game/townsfolk.ts";
 import { updateChatter } from "./game/chatter.ts";
@@ -57,6 +59,7 @@ const labels = createLabels(g, view);
 const resetBar = createResetBar(g);
 const dialogue = createDialogue(g);
 const paper = createPaper(g);
+const pinPad = createPinPad(g);
 const letterbox = createLetterbox(g);
 const sleepShade = createSleepShade(g, view);
 const feyFade = createFeyFade(g);
@@ -123,7 +126,7 @@ const input = bindInput(g, {
     if (hurryErlKing(g, false)) return true;
     if (cutscene(g)) return true;
     const hit = pickTarget(g, view, at);
-    return knock(g, hit) || startResting(g, hit) || startSleeping(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a campfire: sit by it; a tent or a bed: sleep; a dog or cat: pet it; someone: talk
+    return knock(g, hit) || tryLockbox(g, hit) || startResting(g, hit) || startSleeping(g, hit) || startPetting(g, hit) || startTalk(g, hit);   // a door: knock; a strongbox: set its wheels; a campfire: sit by it; a tent or a bed: sleep; a dog or cat: pet it; someone: talk
   },
   talkKey: k => {
     if (sleeping(g)) { wake(g); return true; }              // and so does any key
@@ -135,7 +138,7 @@ const input = bindInput(g, {
       if (SAY_ON.includes(k)) { advanceTalk(g); return true; }
       return false;
     }
-    return k === "e" && (knock(g, g.target) || startResting(g, g.target) || startSleeping(g, g.target) || startPetting(g, g.target) || startTalk(g, g.target));
+    return k === "e" && (knock(g, g.target) || tryLockbox(g, g.target) || startResting(g, g.target) || startSleeping(g, g.target) || startPetting(g, g.target) || startTalk(g, g.target));
   },
 });
 
@@ -183,6 +186,7 @@ function frame(now: number): void {
   resetBar.draw();
   dialogue.draw();
   paper.draw();
+  pinPad.draw();
   letterbox.draw();
   credits.draw(dt);
   feyFade.draw(dt);                                        // deep in a fairy ring, the screen's own furniture fades

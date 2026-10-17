@@ -147,7 +147,11 @@ export const MUSIC_FADE = 2.5;
  * Areas that share a theme rather than have their own: Capital City, from the King's Bridge to the castle ward, plays
  * the castle's, so it carries on unbroken from one district to the next. (Not the Throne Room: that has its own.)
  */
-const SHARED: Record<string, ThemeId> = { capital: "castle", kingsroad: "castle", castle: "castle" };
+const SHARED: Record<string, ThemeId> = {
+  capital: "castle", kingsroad: "castle", castle: "castle",
+  // The woodcutters' huts in the Ashwild: the grey woods' own tune, on in through the door.
+  cutterhut: "ashwild", woodshed: "ashwild",
+};
 
 /** How dark it has to be (daylight under this) for a theme to give way to its `night` one. */
 const NIGHT_FALLS = 0.35;

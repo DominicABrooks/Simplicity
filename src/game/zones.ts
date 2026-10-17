@@ -29,6 +29,9 @@ export const ZONES: Record<string, Zone> = {
   underhill: { entry: "arrive" },
   /** Through the barricade, kitted as he'd be on the way to Cinder. */
   ashwild: { entry: "witchwood", ready: CINDER_READY, passed: passBarricade },
+  /** The woodcutters' huts in the Ashwild (src/game/lockbox.ts: the strongbox in the first), in at the door, kitted the same. */
+  cutterhut: { entry: "in", ready: CINDER_READY, passed: passBarricade },
+  woodshed: { entry: "in", ready: CINDER_READY, passed: passBarricade },
   /** Down Yssa's track, with Cinder's Brand in hand and Rime's gear on; the hunter's longbow is still in his hut. */
   hollow: {
     entry: "ashwild",

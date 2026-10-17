@@ -1,9 +1,12 @@
 // Old Gil and his glass eye, and the letter in the bottle (the story is in src/data/quay.ts and docs/CURIOSITIES.md).
 // Gil sits by his boat at the foot of the King's Bridge. Talk to him with the Glass Eye in the bag and he takes it
 // back, and tells the hero what the river showed it: Ael's Thorn, on the bed of the lake in the Clearing, where it
-// lies from then on (until he has it). The Sealed Bottle is read from the bag: a letter from himself, last time round.
+// lies from then on (until he has it). The Sealed Bottle is read from the bag: a letter from himself, last time round,
+// telling him one thing he hasn't yet found or solved.
 import type { Entity } from "../core/ecs.ts";
 import { GIL, GIL_TALK, LETTER, THORN, THORN_SAYS } from "../data/quay.ts";
+import { LOCKBOX_LETTER } from "../data/lockbox.ts";
+import { lockboxOpen } from "./lockbox.ts";
 import { CURIO_IDS, type CurioId } from "../data/items.ts";
 import { T, Tile } from "../data/world.ts";
 import { makeItem, type Item } from "../items/items.ts";
@@ -78,10 +81,16 @@ export function useCurio(g: Game, item: Item): boolean {
   return true;
 }
 
-/** The letter: its opening, a line for each curiosity still to take where it belongs, and its close. */
-export function letterLines(g: Game): string[] {
+/** The secrets the letter could tell him now: where each curiosity still to take home belongs, and the strongbox's number while it's shut. */
+export function letterSecrets(g: Game): string[] {
   const left = CURIO_IDS.filter((id): id is Exclude<CurioId, "bottle"> => id !== "bottle" && !spentCurios(g).has(id));
-  return [LETTER.open, ...(left.length ? left.map(id => LETTER.hints[id]) : [LETTER.none]), LETTER.close];
+  return [...left.map(id => LETTER.hints[id]), ...(lockboxOpen(g) ? [] : [LOCKBOX_LETTER])];
+}
+
+/** The letter: its opening, one secret he hasn't yet found or solved (any of them, by chance), and its close. */
+export function letterLines(g: Game): string[] {
+  const secrets = letterSecrets(g);
+  return [LETTER.open, secrets.length ? secrets[Math.floor(g.rng.next() * secrets.length)]! : LETTER.none, LETTER.close];
 }
 
 /**

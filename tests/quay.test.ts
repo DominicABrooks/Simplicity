@@ -8,7 +8,9 @@ import { GIL_TALK, LETTER, THORN, THORN_SAYS } from "../src/data/quay.ts";
 import { Tile } from "../src/data/world.ts";
 import { carryingCurio, spentCurios } from "../src/game/curios.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
-import { gilHere, letterLines, lakeBed, useCurio } from "../src/game/quay.ts";
+import { gilHere, letterLines, letterSecrets, lakeBed, useCurio } from "../src/game/quay.ts";
+import { openLockbox } from "../src/game/lockbox.ts";
+import { LOCKBOX_LETTER } from "../src/data/lockbox.ts";
 import { resetGame } from "../src/game/reset.ts";
 import { endTalk, startTalk, talking } from "../src/game/talk.ts";
 import { setCensus } from "../src/game/townsfolk.ts";
@@ -84,7 +86,7 @@ describe("Ael's Thorn", () => {
 });
 
 describe("the letter in the bottle", () => {
-  it("is opened from the bag and read, as soon as he's free to: a hint for each curiosity still to take home", async () => {
+  it("is opened from the bag and read, as soon as he's free to: one secret he hasn't found or solved yet", async () => {
     const { g } = await at(HOME.id, "cave", ["bottle"]);
     spentCurios(g).add("bell");
     const bottle = g.inventory.grid.find(e => e.item.curio === "bottle")!;
@@ -97,15 +99,29 @@ describe("the letter in the bottle", () => {
     step(g, DT);
     const c = talking(g)!;
     expect(c.name).toBe(LETTER.name);
+    expect(c.lines).toHaveLength(3);
     expect(c.lines[0]).toBe(LETTER.open);
-    expect(c.lines).toContain(LETTER.hints.key);
-    expect(c.lines).not.toContain(LETTER.hints.bell);
+    expect([LETTER.hints.stone, LETTER.hints.key, LETTER.hints.eye, LOCKBOX_LETTER]).toContain(c.lines[1]);
     expect(c.lines.at(-1)).toBe(LETTER.close);
+  });
+
+  it("only ever tells a secret that's still one: never a curiosity he's taken home, nor the strongbox once it's open", async () => {
+    const { g } = await at(HOME.id, "cave");
+    spentCurios(g).add("bell");
+    spentCurios(g).add("stone");
+    expect(letterSecrets(g)).toEqual([LETTER.hints.key, LETTER.hints.eye, LOCKBOX_LETTER]);
+    const told = new Set(Array.from({ length: 60 }, () => letterLines(g)[1]));
+    expect(told).toEqual(new Set(letterSecrets(g)));        // any of them, by chance, and nothing else
+    for (const id of ["key", "eye"] as const) spentCurios(g).add(id);
+    expect(letterLines(g)).toEqual([LETTER.open, LOCKBOX_LETTER, LETTER.close]);
+    openLockbox(g);
+    expect(letterSecrets(g)).toEqual([]);
   });
 
   it("knows when there's nothing left to find", async () => {
     const { g } = await at(HOME.id, "cave");
     for (const id of ["stone", "key", "eye", "bell"] as const) spentCurios(g).add(id);
+    openLockbox(g);
     expect(letterLines(g)).toEqual([LETTER.open, LETTER.none, LETTER.close]);
   });
 });

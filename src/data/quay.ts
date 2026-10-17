@@ -47,14 +47,14 @@ export const LETTER = {
   name: "A letter in your own hand",
   /** It opens: */
   open: "You've done this before. You won't remember. I didn't. So I'm writing it down, and putting it back in the river.",
-  /** One line for each curiosity he hasn't yet taken where it belongs this run. */
+  /** What it might tell, one secret only: where a curiosity he hasn't yet taken home this run belongs (or the strongbox's number: LOCKBOX_LETTER). */
   hints: {
     stone: "The warm stone wants to go home. There's a ring of them under St Mary's, with a gap.",
     key: "The rusted key is for the low door at the foot of St Mary's tower, by the churchyard.",
     eye: "The glass eye is Old Gil's. He sits by his boat at the foot of the King's Bridge.",
     bell: "The little bell is Ismay's. Take it to her in the churchyard, after dark. She won't hurt you.",
   } satisfies Record<Exclude<CurioId, "bottle">, string>,
-  /** If they're all done already. */
+  /** If there's nothing left for it to tell. */
   none: "You've found everything else already. Of course you have. You always do, eventually.",
   /** And it ends: */
   close: "The sky over the Rift is clear. Don't trust it. And when it's over, take the King's offer of a bed. -- You",
