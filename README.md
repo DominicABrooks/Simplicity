@@ -23,10 +23,11 @@
 11. [Night, weather and music](#10-night-weather-and-music)
 12. [Fishing](#11-fishing)
 13. [Bosses](#12-bosses)
-14. [Falling, and the old stones](#13-falling-and-the-old-stones)
-15. [Skipping ahead](#14-skipping-ahead)
-16. [Running it yourself](#15-running-it-yourself)
-17. [How it's built](#16-how-its-built)
+14. [Secrets](#13-secrets)
+15. [Falling, and the old stones](#14-falling-and-the-old-stones)
+16. [Skipping ahead](#15-skipping-ahead)
+17. [Running it yourself](#16-running-it-yourself)
+18. [How it's built](#17-how-its-built)
 
 ---
 
@@ -116,7 +117,7 @@ Listen to what the King tells you. The woodwardens will ask you for the watchwor
 </tr>
 </table>
 
-There are a few more places besides, off the story path, for whoever goes looking.
+There are a few more places besides, off the story path, for whoever goes looking (see [Secrets](#13-secrets)).
 
 Your gear and level travel with you; each area keeps its own creatures.
 
@@ -218,13 +219,68 @@ Each of the Greyed's lieutenants waits at the end of their part of the wood, and
 </tr>
 </table>
 
-## 13. Falling, and the old stones
+## 13. Secrets
+
+Nothing in this section is needed to finish the game, and the game won't point you to any of it. Each is a few minutes off the story path, with a story at the end of it.
+
+### The fairy ring
+
+![Standing still in the fairy ring after dark](docs/manual/fairy.gif)
+
+In a glade in the Witchwood there's a ring of pale flowers. By day it's just flowers. Stand in it after dark and the world starts to swim, and the longer you stand still, the deeper it goes: first the woods fade to the fair folk's lights, then the hearts and bars go too, and then they start talking to you. One step and it eases back. If they said anything while you stood there, they leave you something to remember it by: a warm, humming **Fey Acorn**.
+
+![Under the Hill, before the Erl-King's throne](docs/manual/underhill.png)
+
+Right-click the acorn in your bag and follow it, and you're taken **Under the Hill**, to a glade under a violet that isn't a sky, before the **Erl-King** on his throne of moss. He has something to tell you, and a gift. Go back and he has a little more to say. Go a third time and the throne is empty. The Hill remembers how many times you've been, even after you start a new run.
+
+### The city after dark
+
+![Someone watching from the end of the street, at night in the Market Quarter](docs/manual/watcher.png)
+
+After the curfew bell, Kingsholm's streets empty out, and things start to happen while you walk them alone. A shutter bangs with no one at the window. Footsteps keep pace behind you and stop when you do. A lamp gutters out as you pass and lights again on its own. A well whispers. Someone stands at the end of the street, watching you, and isn't there when you get close. Anyone still out runs for home.
+
+None of it can hurt you, and nothing tells you what just happened: you see it and hear it, or you don't. The watcher isn't only the city's, either. Out in the woods after dark, look at the edge of the trees.
+
+Ask the townsfolk about it in the daytime. Some of them will tell you about the **Dim Man**, a part at a time.
+
+### The curiosities
+
+One catch in ten on your fishing line is something stranger than a koi: a **Little Handbell**, a **Rusted Key**, a **Mysterious Stone**, a **Glass Eye** or a **Sealed Bottle**. Each belongs somewhere in the city, and the townsfolk will notice it in your bag and drop a hint. Take it home and something happens. The bell, for one, is the Grey Ringer's, and she'd like it back.
+
+### St Mary's Undercroft
+
+![The Undercroft under St Mary's, and the ring of old stones](docs/manual/undercroft.png)
+
+There's a low, locked door at the foot of St Mary's tower, just off the churchyard. The sexton lost the key years ago; if you fish it up, it opens. Down the steps is **the Undercroft**: the church's dead in their chest tombs along the walls, a few candles still burning, and at the far end something much older than the church, a ring of standing stones with one stone missing.
+
+Bring the missing stone home and the ring wakes, and gives you the **Ringstone Pendant**. Wear it to each of the five old stones in the valley and let it drink. Then there's a little door behind the ring, carved with three flames, a snowflake and a lightning bolt, that the masons keep sealing up.
+
+![Behind the little door: the deep places](docs/manual/deep.gif)
+
+What's behind it is for you to find out.
+
+### How it ends
+
+<details>
+<summary><b>Spoilers:</b> the end of the story, and the credits</summary>
+
+<br>
+
+The credits aren't a list of names. They're the story of what happened after, shot by shot, and which shots you get depends on what you did in your run.
+
+![The Vael's eggs carried back over the King's Bridge](docs/manual/eggs.png)
+
+![Three small dragons hatch under the Greyspines](docs/manual/hatch.gif)
+
+</details>
+
+## 14. Falling, and the old stones
 
 Old, flat, faintly warm stones stand along the way: by the camp, at the fountain, and at the entrance of each part of the deep woods. Touch one and it glows. If you fall, you wake on the last stone you touched with your gear and level kept, though you might lose your potions.
 
 Hold **R** for a second to give up and start the whole run again.
 
-## 14. Skipping ahead
+## 15. Skipping ahead
 
 Short on time? A few URL parameters jump straight to the good parts, on the published site too:
 
@@ -239,7 +295,7 @@ Short on time? A few URL parameters jump straight to the good parts, on the publ
 
 For example: https://dominicabrooks.github.io/Simplicity/?boss=calder&god
 
-## 15. Running it yourself
+## 16. Running it yourself
 
 You need [Node.js](https://nodejs.org) 20 or newer.
 
@@ -264,7 +320,7 @@ Then open http://localhost:8123/Simplicity/. The dev server reloads as you edit.
 
 CI runs lint, typecheck, tests and the build on every push and pull request, and every push to `main` that passes republishes the game to GitHub Pages (`.github/workflows/pages.yml`).
 
-## 16. How it's built
+## 17. How it's built
 
 TypeScript with an entity-component-system design, rendered with [three.js](https://threejs.org), bundled with Vite. There are no other runtime dependencies. See [ARCHITECTURE.md](ARCHITECTURE.md) for how it fits together, [ART_STYLE.md](ART_STYLE.md) for the look, and [STORY.md](STORY.md) for the hour, beat by beat (spoilers). The world's background is in [LORE.md](LORE.md), [HISTORY.md](HISTORY.md), [HERO.md](HERO.md) and [FAMILIES.md](FAMILIES.md).
 
