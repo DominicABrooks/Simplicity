@@ -1,6 +1,5 @@
 // Where to find each boss, for playtesting (src/debug.ts): their area and the way in, the level and gear a
 // hero on the straight path has on reaching them, and how to set the fight up once he's there.
-import { ICE_HOLE } from "../areas/grotto.ts";
 import { CINDER_READY } from "../data/ashwild.ts";
 import { RINGER_READY } from "../data/ghost.ts";
 import { RIME_READY } from "../data/hollow.ts";
@@ -65,7 +64,9 @@ export const LAIRS = {
   koi: {
     area: "grotto", entry: "hollow", ready: RIME_READY,
     stage(g) {
-      const x = (ICE_HOLE.x + ICE_HOLE.w / 2) * T - HALF, y = (ICE_HOLE.y + ICE_HOLE.h / 2) * T - HALF;
+      // (the hole from the grotto's own layout: importing the area here would bundle it in with the game)
+      const hole = g.area.layout.props.find((p): p is Extract<Prop, { kind: "iceWalls" }> => p.kind === "iceWalls")!.hole!;
+      const x = (hole.x + hole.w / 2) * T - HALF, y = (hole.y + hole.h / 2) * T - HALF;
       hookGreatKoi(g, x, y);                                  // struck: out it comes
       return { x, y: y + 5 * T };                             // a few steps south of the hole, out on the ice
     },
