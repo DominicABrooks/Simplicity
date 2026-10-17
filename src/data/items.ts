@@ -5,8 +5,11 @@ export type Rarity = "normal" | "magic" | "rare" | "legendary";
 export type Slot = "helm" | "amulet" | "weapon" | "armor" | "ring" | "boots";
 export type ItemType = "blade" | "hood" | "robe" | "boots" | "ring" | "amulet" | "bow" | "rod" | "fish" | "bread" | "stone"
   | "runestone" | "key" | "eye" | "bottle" | "bell" | "acorn";
-export type StatKey = "damage" | "life" | "speed" | "dash";
+export type StatKey = "damage" | "crit" | "life" | "speed" | "dash";
 export type Stats = Partial<Record<StatKey, number>>;
+/** What an item can have on top of its base: anything but damage, which only a weapon's base gives. */
+export type ModKey = Exclude<StatKey, "damage">;
+export type Mods = Partial<Record<ModKey, number>>;
 
 export interface ItemBase {
   name: string;
@@ -55,8 +58,8 @@ export const FISH: Record<Rarity, { name: string; heal: number }> = {
 
 /**
  * Now and then it isn't a koi on the hook at all but something stranger, lost in the water who knows how: one catch
- * in every twenty (CURIO_WINDOW), somewhere in the twenty, is one of these, never one you're already carrying. Each
- * says something of itself.
+ * in every ten (CURIO_WINDOW), somewhere in the ten, is one of these, never one you're already carrying; the first of a
+ * run sooner, one in the first five. Each says something of itself.
  */
 export type CurioId = "stone" | "key" | "eye" | "bottle" | "bell";
 export const CURIOS: Record<CurioId, { type: ItemType; name: string; note: string }> = {
@@ -67,7 +70,7 @@ export const CURIOS: Record<CurioId, { type: ItemType; name: string; note: strin
   bell:   { type: "bell", name: "Little Handbell", note: "It rings at nine every night, though nobody rings it." },
 };
 export const CURIO_IDS = Object.keys(CURIOS) as CurioId[];
-export const CURIO_WINDOW = 20;
+export const CURIO_WINDOW = { first: 5, after: 10 } as const;
 
 /** What people give the hero when they talk to him: the gift lines in src/data/voices.ts say which. */
 export type GiftKind = "loaf" | "koi" | "stone";
@@ -100,8 +103,8 @@ export interface Affix {
 }
 
 /** Stats an item can roll. Prefixes and suffixes name magic items. */
-export const AFFIXES: Record<StatKey, Affix> = {
-  damage: { min: 1, max: 1, prefix: "Keen", text: v => `+${v} Damage`, slots: ["weapon", "ring", "amulet"] },
+export const AFFIXES: Record<ModKey, Affix> = {
+  crit:   { min: 1, max: 2, prefix: "Keen", text: v => `+${v}% Critical Strike Chance`, slots: ["weapon", "ring", "amulet"] },
   life:   { min: 1, max: 2, prefix: "Sturdy", text: v => `+${v} Life`, slots: ["helm", "armor", "boots", "ring", "amulet"] },
   speed:  { min: 4, max: 10, suffix: "of Haste", text: v => `+${v}% Movement Speed`, slots: ["boots", "ring", "amulet", "armor"] },
   dash:   { min: 10, max: 20, suffix: "of the Wind", text: v => `${v}% Faster Dash Recovery`, slots: ["boots", "armor", "amulet", "helm"] },
@@ -121,7 +124,7 @@ export const RARE_B = ["Shroud", "Fang", "Ward", "Whisper", "Veil", "Bite", "Son
 export const RARITY_ODDS = { rare: 0.12, magic: 0.45 } as const;
 
 /** A piece of gear to hand the hero ready-made (see the bosses' READY kits): its type, rarity, affixes and name. */
-export type KitPiece = readonly [type: ItemType, rarity: Rarity, mods: Stats, name: string];
+export type KitPiece = readonly [type: ItemType, rarity: Rarity, mods: Mods, name: string];
 
 /** What you start with, in the bag. */
 export const STARTER_KIT: [ItemType, string][] = [

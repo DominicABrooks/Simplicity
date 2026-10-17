@@ -40,7 +40,7 @@ const fishing = (page: Page) => page.evaluate(() => { const g = window.simplicit
 
 /**
  * Cast at the water (press, wind up, release), wait for the bite, and strike, every roll of the dice at the strike
- * coming up `roll`: the lowest makes it a curiosity (one in twenty), a middling one an ordinary koi.
+ * coming up `roll`: the lowest makes it a curiosity (the run's first comes up in its first five catches), a middling one an ordinary koi.
  */
 async function castAndStrike(page: Page, water: { x: number; y: number }, roll: number): Promise<void> {
   const at = await page.evaluate(w => window.simplicity.view.gameToScreen(w.x, w.y, 0), water);

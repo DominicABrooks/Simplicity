@@ -119,7 +119,7 @@ export const CINDER_FIGHT = {
 export const CINDER_READY = {
   level: 5,
   kit: [
-    ["blade", "magic", { damage: 1 }, "Hammond Steel"],
+    ["blade", "magic", { crit: 2 }, "Hammond Steel"],
     ["hood", "normal", {}, "Worn Hood"],
     ["robe", "magic", { life: 1 }, "Sturdy Robe"],
     ["boots", "magic", { speed: 6 }, "Boots of Haste"],

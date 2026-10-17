@@ -224,6 +224,33 @@ describe("Calder's fight", () => {
     expect(now - health.hp).toBe(3);
   });
 
+  it("hit with a blade twice in a row, blinks away; an arrow between, or too long a wait, starts the count again", async () => {
+    const { g, e, f } = await fighting();
+    f.nextShape = 99;
+    const him = g.world.need(e, "transform"), brain = g.world.need(e, "mage");
+    brain.blinkCD = 0;
+    calderFightSystem(g, DT);
+    expect(brain.blinkCD).toBeGreaterThan(0);                 // never a mage's own blink away when crowded: he stands
+    const blade = () => { hitEnemy(g, e, 1, true); calderFightSystem(g, DT); };
+    const at = () => ({ x: him.x, y: him.y });
+    g.rng.next = () => 0.99;                                  // no crits; and wherever he blinks to, it's somewhere
+    let was = at();
+    blade();
+    expect(at()).toEqual(was);                               // one: he stands
+    hitEnemy(g, e, 1, false);                                 // an arrow lands between
+    calderFightSystem(g, DT);
+    blade();
+    expect(at()).toEqual(was);                               // the count began again
+    for (let t = 0; t < F.crowded.within + 0.2; t += DT) calderFightSystem(g, DT);
+    was = at();
+    blade();
+    expect(at()).toEqual(was);                               // too long since: begun again
+    blade();
+    expect(Math.hypot(him.x - was.x, him.y - was.y)).toBeGreaterThan(F.jump);   // two in a row: gone
+    calderFightSystem(g, DT);
+    expect(f.earth).toBeGreaterThan(0);                       // and stopped to earth himself where he came down
+  });
+
   it("at half his health blinks to the middle into a cage of lightning, and the whole ring is his until it bursts", async () => {
     const { g, e, f } = await fighting(), toasts: string[] = [];
     g.events.on("toast", ({ text }) => toasts.push(text));

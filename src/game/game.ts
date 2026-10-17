@@ -149,6 +149,7 @@ function applyStats(g: Game, st: InventoryStats): void {
   const hero = g.world.get(g.player, "hero"), health = g.world.get(g.player, "health");
   if (!hero || !health) return;
   hero.damage = st.damage;
+  hero.crit = st.crit;
   hero.speedMul = 1 + st.speed / 100;
   hero.dashMul = 1 - st.dash / 100;
   hero.gear = st.gear;

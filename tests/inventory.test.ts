@@ -85,12 +85,12 @@ describe("Inventory", () => {
   it("totals gear and level bonuses, capping dash recovery at 60%", () => {
     const inv = fresh(9);
     inv.reset([
-      makeItem("blade", "magic", { damage: 1 }),
+      makeItem("blade", "magic", { crit: 2 }),
       makeItem("boots", "rare", { dash: 50, life: 2 }),
       makeItem("ring", "magic", { dash: 20 }),
     ]);
     const s = inv.stats();
-    expect(s).toMatchObject({ level: 9, damage: 2 + 2, life: 2 + 4, speed: 5 + 16, dash: 60 });
+    expect(s).toMatchObject({ level: 9, damage: 1 + 2, crit: 2, life: 2 + 4, speed: 5 + 16, dash: 60 });
     expect(s.gear).toMatchObject({ weapon: "magic", boots: "rare", ring: "magic", helm: null, weaponType: "blade" });
   });
 

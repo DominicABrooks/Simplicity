@@ -10,7 +10,7 @@
 // Every time after that, there are more of them, and they stand a little nearer.
 //
 // The pixel font has capitals, digits and . , : ; ! ? ' - + = / ( ) [ ] < > % _ & * and nothing else.
-import type { Stats } from "./items.ts";
+import type { Mods } from "./items.ts";
 
 /** The glade's middle (tiles), and where the Erl-King's throne stands (centre, tiles, and how wide): at its head. */
 export const GLADE_MID = { x: 16, y: 14 } as const;
@@ -87,7 +87,7 @@ export const WATCHER_MURMURS: readonly string[] = [
 export const REEL_RING = {
   type: "ring",
   name: "Ring of the Long Reel",
-  mods: { damage: 3, life: 4, speed: 20, dash: 30 } satisfies Stats,
+  mods: { crit: 5, life: 4, speed: 20, dash: 30 } satisfies Mods,
   note: "The Founder dropped it dancing, the night he stole the eggs. The fair folk kept it for whoever came down first.",
 } as const;
 

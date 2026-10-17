@@ -11,7 +11,7 @@ import { CALDER_STAND } from "../src/areas/rift.ts";
 import { SCENES } from "../src/data/cutscenes.ts";
 import { CROWD, HOMECOMING, KING_AFTER, KING_HOMECOMING, KING_NO_PROOF, SHOT_SAYS } from "../src/data/ending.ts";
 import { AFTER, AFTER_GUARD, HEAD, HEAD_GUARD } from "../src/data/endtalk.ts";
-import { CALDER_FIGHT as F, CALDERS_HEAD } from "../src/data/rift.ts";
+import { CALDER_FIGHT as F, CALDERS_HEAD, HEAD_KEPT } from "../src/data/rift.ts";
 import { HALF, T } from "../src/data/world.ts";
 import { beaten, bossSystem } from "../src/game/bosses.ts";
 import { calderFightSystem } from "../src/game/calderfight.ts";
@@ -26,7 +26,7 @@ import { advanceTalk, endTalk, startTalk, talking, updateTalk } from "../src/gam
 import { populate, residentById, setCensus, updateTownsfolk } from "../src/game/townsfolk.ts";
 import { arrive, enterArea } from "../src/game/travel.ts";
 import { dropItem } from "../src/game/actions.ts";
-import { despawnSystem, pickupSystem } from "../src/systems/pickups.ts";
+import { despawnSystem } from "../src/systems/pickups.ts";
 import { layoutOf } from "../src/world/layouts.ts";
 import { makeItem } from "../src/items/items.ts";
 import { deathSystem } from "../src/systems/enemies.ts";
@@ -104,6 +104,22 @@ describe("the end of the story path", () => {
     expect(g.hour).toBe(HOMECOMING.dawn);
     expect(carryingHead(g)).toBe(true);
     expect(processionOn(g)).toBe(true);
+  });
+
+  it("without the head in his bag, the stone won't take him: it says so once, and waits till he's fetched it", async () => {
+    const g = await calderBeaten();                          // the head's lying at the crack where Calder fell
+    for (let t = 0; t < F.crack.shut + 0.1; t += DT) calderFightSystem(g, DT);
+    const toasts: string[] = [];
+    g.events.on("toast", ({ text }) => toasts.push(text));
+    const stone = riftStone(g), p = g.world.need(g.player, "transform");
+    Object.assign(p, { x: stone.x - HALF, y: stone.y - HALF });
+    for (let i = 0; i < 10; i++) homeStoneSystem(g);
+    expect(g.travel).toBeNull();
+    expect(g.state).toBe("play");
+    expect(toasts.filter(t => t === HOMECOMING.noHead)).toHaveLength(1);
+    g.inventory.add(makeItem(...CALDERS_HEAD));              // fetched
+    homeStoneSystem(g);
+    expect(g.travel).toMatchObject({ area: "capital", entry: "stone" });
   });
 
   it("the stone stays dark in a run where he hasn't beaten Calder", async () => {
@@ -330,24 +346,37 @@ describe("the end of the story path", () => {
     expect(AFTER_GUARD).not.toContain(hear(after)[0]);
   });
 
-  it("the head never fades on the ground: dropped from the bag, it's still there long after, to pick up again", async () => {
+  it("once it's in the bag he won't let it go: dropped, it goes straight back in, and nothing's left on the ground", async () => {
     const g = createGame();
     resetGame(g);
     setState(g, "play");
     const capitalDef = await loadArea("capital");
     enterArea(g, capitalDef, entryOf(capitalDef));
+    const toasts: string[] = [];
+    g.events.on("toast", ({ text }) => toasts.push(text));
     const head = makeItem(...CALDERS_HEAD);
     g.inventory.add(head);
     g.inventory.grid = g.inventory.grid.filter(e => e.item !== head);   // taken out of the bag, as the UI does
     dropItem(g, head);
-    expect(carryingHead(g)).toBe(false);
-    for (let t = 0; t < 120; t += DT) despawnSystem(g, DT);
-    expect(headsLying(g)).toHaveLength(1);
-    const p = g.world.need(g.player, "transform");
-    p.x += 3 * T; pickupSystem(g);                           // steps off it...
-    p.x -= 3 * T; pickupSystem(g);                           // ...and back on
     expect(carryingHead(g)).toBe(true);
     expect(headsLying(g)).toHaveLength(0);
+    expect(toasts).toContain(HEAD_KEPT);
+  });
+
+  it("dropped with the bag full, the head still goes back in, and something else goes on the ground to make room", async () => {
+    const g = createGame();
+    resetGame(g);
+    setState(g, "play");
+    const capitalDef = await loadArea("capital");
+    enterArea(g, capitalDef, entryOf(capitalDef));
+    while (g.inventory.add(makeItem(...CALDERS_HEAD))) { /* fill every cell */ }
+    g.inventory.grid = g.inventory.grid.filter(e => e.item.name !== HEAD_NAME);
+    while (g.inventory.add(makeItem("ring", "normal", {}, "Plain Ring"))) { /* full of rings */ }
+    const lyingBefore = g.world.query("pickup").length;
+    dropItem(g, makeItem(...CALDERS_HEAD));
+    expect(carryingHead(g)).toBe(true);
+    expect(headsLying(g)).toHaveLength(0);
+    expect(g.world.query("pickup").length).toBe(lyingBefore + 1);   // one ring set down for it
   });
 
   it("left lying, the head waits where he left it while he's elsewhere, and a new run forgets it", async () => {

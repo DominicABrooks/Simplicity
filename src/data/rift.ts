@@ -43,7 +43,8 @@ export const CALDER = {
  *   for a blade.
  * - the eye of the storm (below `phases[1]`): the whole triangle at once, or a rod at a time arcing to where he stands;
  *   and the bullseye, rings of strikes round the hero closing in to where he stood.
- * Whenever he blinks he stops a moment after to earth himself, and a blade in that moment cuts twice as deep. His
+ * He doesn't blink away when the hero comes close, as a mage would: up close he draws his sword. But hit him with a
+ * blade twice in a row and he blinks away (to the next rod, once they're in): he won't be cut down where he stands. Whenever he blinks he stops a moment after to earth himself, and a blade in that moment cuts twice as deep. His
  * static turns any arrow short of a full draw. And the crack: every time the hero's knocked back it opens wider, and
  * every time he lands a hit it closes a little; the wider it is, the harder its cold pulls him toward it, the faster
  * Calder goes, and the further its dark reaches across the ground (stepping into it hurts).
@@ -90,6 +91,9 @@ export const CALDER_FIGHT = {
   /** After any blink, he stops this long to earth himself (s); a blade in that moment: damage times `cut`. How far he
    *  has to have moved in a frame to count as a blink (px). */
   earth: 0.9, cut: 2, jump: 20,
+  /** Hit with a blade this many times in a row, he blinks away (to the next rod, once they're in). In a row: no arrow
+   *  landing between, and none more than `within` seconds after the last. */
+  crowded: { hits: 2, within: 3 },
   /** His static: an arrow that isn't a full draw is turned aside this close to him (px). */
   static: 14,
   crack: {
@@ -139,6 +143,9 @@ export const CALDER_FALLS = ["All through the Witchwood, the Greyed stand still 
  * where it lies, and it's for carrying back to the King (the way home and the King's ending are their own pieces).
  */
 export const CALDERS_HEAD: KitPiece = ["runestone", "legendary", {}, "Calder's Head"];
+
+/** Said when he tries to put the head down: once it's in the bag, it stays there till it's at the King's feet. */
+export const HEAD_KEPT = "You won't let go of Calder's head. It's for the King";
 
 /**
  * What a hero on the straight path has on reaching Calder (STORY.md: about level 9, everything above plus the climb's

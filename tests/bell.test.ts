@@ -5,7 +5,7 @@ import { area as capital } from "../src/areas/capital.ts";
 import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { loadArea } from "../src/areas/index.ts";
-import { BELL_HOME, GHOST } from "../src/data/ghost.ts";
+import { BELL_HOME, GHOST, HOLLOW_BITE } from "../src/data/ghost.ts";
 import { carryingCurio, spentCurios } from "../src/game/curios.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
 import { churchyardOf, ghostOut, hauntingOf, riseGhost } from "../src/game/ghost.ts";
@@ -76,6 +76,7 @@ describe("Ismay's bell", () => {
     expect(ghostOut(g)).toBeNull();
     expect(toasts).toContain(BELL_HOME.rest);
     expect(g.world.count("pickup")).toBeGreaterThan(loot);
+    expect(g.world.query("pickup").filter(([, c]) => c.pickup.kind === "loot" && c.pickup.item.name === HOLLOW_BITE[3] && c.pickup.item.rarity === "legendary")).toHaveLength(1);
     expect(g.world.need(g.player, "health").hp).toBeGreaterThanOrEqual(hp);   // her tolls hurt nobody now
     // Another night, the whole city whispering about her: she stays down.
     hauntingOf(g).heard = 50;

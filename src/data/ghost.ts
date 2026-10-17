@@ -30,7 +30,7 @@ export const GHOST_TITLE = "Ghost of St Mary's";
 export const RINGER_READY = {
   level: 2,
   kit: [
-    ["blade", "magic", { damage: 1 }, "Keen Blade"],
+    ["blade", "magic", { crit: 2 }, "Keen Blade"],
     ["hood", "normal", {}, "Worn Hood"],
     ["robe", "magic", { life: 1 }, "Sturdy Robe"],
     ["boots", "magic", { dash: 15 }, "Boots of the Wind"],
@@ -63,8 +63,8 @@ export const GHOST = {
   angry: 0.5,
   /** Fading: gone (and untouchable) this long, then back this far from you, already tolling. */
   fade: { gone: 1.3, behind: 22, chance: 0.35 },
-  /** What laying her to rest is worth: two rare things from her grave goods, and a potion or two. */
-  reward: { items: 2, potions: 2 },
+  /** What laying her to rest is worth: from her grave goods, Hollow Bite and another rare thing or two; and a potion or two. */
+  reward: { items: 1, potions: 2 },
   /** Townsfolk within this far (px) of her when she's out run for it, this many times their walking pace. */
   scare: 170, run: 2.4,
   /** Hit ring and height (world units), as a target. */
@@ -134,3 +134,6 @@ export const BELL_HOME = {
   ring: 2.4,
   rest: "Ismay Tollen rings the curfew, and the churchyard is quiet. Quiet for good, this time.",
 } as const;
+
+/** The best of her grave goods, left whenever she's laid to rest (beaten, or the bell brought home): a legendary blade. */
+export const HOLLOW_BITE: KitPiece = ["blade", "legendary", { crit: 6, life: 2, dash: 15 }, "Hollow Bite"];

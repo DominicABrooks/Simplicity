@@ -5,7 +5,7 @@
 // was standing there to make its footings. All but one ring of stones, which the sexton's grandfather's
 // grandfather locked away under the church, so nobody would ask what it was. One stone was gone even then. It
 // turned up in the river, the way things do in this city, on the end of a little stone child's fishing line.
-import type { ItemType, Rarity, Stats } from "./items.ts";
+import type { ItemType, Mods, Rarity } from "./items.ts";
 
 export const UNDERCROFT = {
   /** How near the socket (px) he must bring the stone for it to go home, and when he first feels it warm. */
@@ -18,7 +18,7 @@ export const UNDERCROFT = {
   wake: 60,
   /** What it leaves him: a pendant with a chip of the ring in it. Legendary: worn, it drinks from the old stones, and
    *  burning it opens the little door behind the ring (src/game/pendant.ts). Its note says as much, quietly. */
-  reward: { type: "amulet" as ItemType, rarity: "legendary" as Rarity, name: "Ringstone Pendant", mods: { life: 3, damage: 2, speed: 10 } satisfies Stats },
+  reward: { type: "amulet" as ItemType, rarity: "legendary" as Rarity, name: "Ringstone Pendant", mods: { life: 3, crit: 4, speed: 10 } satisfies Mods },
   /** How long (s) the little door takes to swing open, while he's kept out of it. */
   swing: 1.6,
 } as const;
@@ -44,7 +44,7 @@ export const CHAMBER = {
   nest: { x: 5, y: 3.8 },
   /** How near the nest (px) he comes to read it, and what's left by it, once a run. How near the crack's middle to reach the stitches. */
   near: 18, crack: 10,
-  gift: { type: "hood" as ItemType, rarity: "legendary" as Rarity, name: "Warden's Wrap", mods: { life: 4, speed: 8, dash: 25 } satisfies Stats,
+  gift: { type: "hood" as ItemType, rarity: "legendary" as Rarity, name: "Warden's Wrap", mods: { life: 4, speed: 8, dash: 25 } satisfies Mods,
     note: "A Vael warden's wrap, dropped by the empty nest not long ago. One of the wardens sent north to hold the cracks came down here too. It smells of snow." },
 } as const;
 

@@ -7,6 +7,8 @@
 export const HOMECOMING = {
   dawn: 6,
   glows: "The rift stone glows brighter than any stone has before",
+  /** Touching it without Calder's head: it won't take him home till he has it. */
+  noHead: "The stone is warm under your hand, but it waits. You've left something behind: Calder's head",
 } as const;
 
 /**
@@ -128,6 +130,7 @@ export const END_CARD = {
   by: "Dominic Brooks",
   help: "with help from AI",
   note: [
+    "Thank you for playing!",
     "I have no plans to ever monetize this game. It's a passion project.",
   ],
   donate: "If you'd like to donate, 100% of anything you give goes back into improving the game.",

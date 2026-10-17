@@ -1,5 +1,5 @@
 import type { Rng } from "../core/rng.ts";
-import { AFFIXES, BASES, CURIOS, FISH, GIFTS, RARE_A, RARE_B, RARITY_ODDS, type CurioId, type GiftKind, type ItemType, type Rarity, type Slot, type StatKey, type Stats } from "../data/items.ts";
+import { AFFIXES, BASES, CURIOS, FISH, GIFTS, RARE_A, RARE_B, RARITY_ODDS, type CurioId, type GiftKind, type ItemType, type Rarity, type ModKey, type Mods, type Slot, type Stats } from "../data/items.ts";
 
 export interface Item {
   id: number;
@@ -12,7 +12,7 @@ export interface Item {
   /** The base type's built-in stats. */
   base: Stats;
   /** Rolled affixes. */
-  mods: Stats;
+  mods: Mods;
   /** Food only: hearts restored when eaten. */
   heal?: number;
   /** A curiosity fished up (see CURIOS): which one. */
@@ -23,7 +23,7 @@ export interface Item {
 
 let nextId = 1;
 
-export function makeItem(type: ItemType, rarity: Rarity = "normal", mods: Stats = {}, name?: string): Item {
+export function makeItem(type: ItemType, rarity: Rarity = "normal", mods: Mods = {}, name?: string): Item {
   const b = BASES[type];
   return { id: nextId++, type, rarity, name: name ?? b.name, slot: b.slot, w: b.w, h: b.h, base: { ...b.base }, mods };
 }
@@ -37,9 +37,9 @@ export function rollItem(rng: Rng, minRarity: Rarity = "normal"): Item {
   let rarity: Rarity = r < RARITY_ODDS.rare ? "rare" : r < RARITY_ODDS.magic ? "magic" : "normal";
   if (minRarity === "magic" && rarity === "normal") rarity = "magic";
   if (minRarity === "rare") rarity = "rare";
-  const pool = (Object.keys(AFFIXES) as StatKey[]).filter(k => slot && AFFIXES[k].slots.includes(slot));
+  const pool = (Object.keys(AFFIXES) as ModKey[]).filter(k => slot && AFFIXES[k].slots.includes(slot));
   const count = rarity === "rare" ? Math.min(3, pool.length) : rarity === "magic" ? 1 + Math.floor(rng.next() * 2) : 0;
-  const mods: Stats = {};
+  const mods: Mods = {};
   const picks = [...pool];
   for (let i = 0; i < count && picks.length; i++) {
     const k = picks.splice(Math.floor(rng.next() * picks.length), 1)[0]!;
@@ -48,7 +48,7 @@ export function rollItem(rng: Rng, minRarity: Rarity = "normal"): Item {
   }
   let name = BASES[type].name;
   if (rarity === "magic") {
-    const keys = Object.keys(mods) as StatKey[];
+    const keys = Object.keys(mods) as ModKey[];
     const pre = keys.find(k => AFFIXES[k].prefix), suf = keys.find(k => AFFIXES[k].suffix);
     name = [pre && AFFIXES[pre].prefix, name, suf && AFFIXES[suf].suffix].filter(Boolean).join(" ");
   } else if (rarity === "rare") {

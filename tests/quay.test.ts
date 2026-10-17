@@ -72,6 +72,7 @@ describe("Ael's Thorn", () => {
     spentCurios(g).add("eye");
     step(g, DT);
     expect(thorn()).toHaveLength(1);
+    expect(thorn().map(([, c]) => c.pickup.kind === "loot" && c.pickup.item.rarity)).toEqual(["legendary"]);
     expect(toasts).toContain(THORN_SAYS);
     const [e] = thorn()[0]!, c = { transform: g.world.need(e, "transform") }, bed = lakeBed(g)!;
     expect(g.map.tiles[Math.floor((c.transform.y + 4) / 8)]![Math.floor((c.transform.x + 4) / 8)]).toBe(Tile.Water);

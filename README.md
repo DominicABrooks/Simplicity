@@ -1,16 +1,249 @@
 # Simplicity
 
-A fantasy RPG that plays in 2D and looks like a late-90s 3D game: chunky low-poly models with PlayStation-style rendering, in the browser.
+**A solo game jam entry: a one-hour fantasy RPG built in 72 hours.** It plays in 2D and looks like a late-90s 3D game, with chunky low-poly models and PlayStation-style rendering, right in the browser.
 
-**Play it in your browser: https://dominicabrooks.github.io/Simplicity/**
+**▶ Play it: https://dominicabrooks.github.io/Simplicity/**
 
-Every push to `main` republishes the game there (see `.github/workflows/pages.yml`).
+![Fighting Cinder, the Ember Lieutenant, in his ring of fire](docs/manual/cinder.gif)
 
-## Run it locally
+---
+
+## Instruction manual
+
+1. [About the jam](#about-the-jam)
+2. [Getting started](#1-getting-started)
+3. [Controls](#2-controls)
+4. [The story so far](#3-the-story-so-far)
+5. [The lands of the kingdom](#4-the-lands-of-the-kingdom)
+6. [Fighting](#5-fighting)
+7. [The Greyed](#6-the-greyed)
+8. [Your gear](#7-your-gear)
+9. [The map](#8-the-map)
+10. [Talking to people](#9-talking-to-people)
+11. [Night, weather and music](#10-night-weather-and-music)
+12. [Fishing](#11-fishing)
+13. [Bosses](#12-bosses)
+14. [Falling, and the old stones](#13-falling-and-the-old-stones)
+15. [Skipping ahead](#14-skipping-ahead)
+16. [Running it yourself](#15-running-it-yourself)
+17. [How it's built](#16-how-its-built)
+
+---
+
+## About the jam
+
+Simplicity was made for a self-imposed, 72-hour solo game jam. There was no theme; the only rules were the clock and doing it alone.
+
+The goal going in was a whole game, start to credits, rather than a demo: about an hour of story for a player who goes straight from beat to beat, with exploring, fishing and loot-hunting on top for anyone who wants them. That meant keeping the play simple (move, swing, shoot, talk, all on a flat 2D map) and spending the time on the world instead: the look, the city and its people, the fights and the story.
+
+What got made in the 72 hours:
+
+- **A complete story**, from waking on a stone in the woods to the credits, with cutscenes, dialogue and an ending.
+- **Twelve areas** across the woods, the capital and what's under it, with interiors you can walk into.
+- **Five bosses**, each with its own fight.
+- **Real-time combat** with sword and bow against slimes and three schools of mage, with loot, levels and gear that shows on your character.
+- **A living capital**: townsfolk with homes, jobs and gossip, doors to knock on, a day and night cycle and weather.
+- **Music made up as it plays**, which follows the hour and the weather.
+- **No asset packs**: every sprite, palette and the pixel font are text files in this repo, built by the project's own tools, and every 3D model is built in code.
+
+It was built fast and it shows in places. Rough edges are part of the jam.
+
+---
+
+## 1. Getting started
+
+![The title screen](docs/manual/title.png)
+
+Open the game in a desktop browser (it wants a keyboard and a mouse) and press any key. There's nothing to install and no account; your progress through the story lives in this run, and the run starts over if you reload.
+
+You wake by a campfire in the Witchwood, next to an old stone that glows under your hand.
+
+![The camp in the Witchwood, where you wake](docs/manual/witchwood.png)
+
+Along the screen's edges:
+
+- **Top left:** your hearts. Run out and you fall.
+- **Top middle:** the time of day, sun to moon.
+- **Bottom:** your experience bar, with your level in the medallion at its left end.
+- **Bottom right:** buttons for the inventory (I), the map (M) and the journal (coming soon).
+- **Top right:** a reminder that holding R restarts the run.
+
+## 2. Controls
+
+| Control | Action |
+| --- | --- |
+| **W A S D** or **arrow keys** | Move |
+| Double-tap a direction | Dash (you can't be hurt mid-dash) |
+| **Mouse** | Aim |
+| **Left click** or **J** | Attack where you aim. With a bow, hold to draw and release to shoot. With a fishing pole, hold to wind up a cast |
+| **Space** | Jump |
+| **E** (or click them) | Talk to someone, knock on a door, rest, pet an animal |
+| **Enter**, **Space** or **E** | Next line, in a conversation |
+| **I** or **Tab** | Inventory |
+| **M** | Map |
+| **N** | Music on or off (it remembers) |
+| **Esc** | Close a panel, end a conversation, skip a cutscene |
+| Hold **R** | Restart the run |
+
+Walk into water to swim.
+
+## 3. The story so far
+
+You're a stranger in the kingdom, and you can't speak. The way deeper into the Witchwood is barred: the King's woodwardens have staked off the old trail, and nobody goes past without the King's watchword. Robed things have been seen in the woods.
+
+So you go north, through the cave, over the King's Bridge and into the capital, and up to the castle to stand before **King Osric**. He reads the Ranger's note you carry, works out what you are, and asks you for the one thing his frightened kingdom needs: go deep into the Witchwood and kill **Calder**, leader of the Greyed, the mages haunting it.
+
+Listen to what the King tells you. The woodwardens will ask you for the watchword, and you'll have to write it down for them yourself; nothing in the game will write it for you.
+
+## 4. The lands of the kingdom
+
+<table>
+<tr>
+<td width="50%"><img src="docs/manual/bridge.png" alt="The King's Bridge"><br><b>The King's Bridge.</b> Out of the cave, between gilded lions, and over the great river on a bridge of white marble and gold leaf, to Southgate in the city wall.</td>
+<td width="50%"><img src="docs/manual/market.png" alt="The Market Quarter"><br><b>The Market Quarter.</b> The heart of the capital: the great fountain, the market stalls, St Mary's and St Giles', the inns and the lanes of timber-framed houses.</td>
+</tr>
+<tr>
+<td><img src="docs/manual/castle.png" alt="The Castle"><br><b>The Castle.</b> Up Castle Street, over the drawbridge and the moat, and into the ward: the keep, the great hall, the barracks and the smithy.</td>
+<td><img src="docs/manual/throne.png" alt="The Throne Room"><br><b>The Throne Room.</b> Up the keep's stairs: the King on his dais, the Royal Guard along the carpet.</td>
+</tr>
+<tr>
+<td><img src="docs/manual/ashwild.png" alt="The Ashwild"><br><b>The Ashwild.</b> Past the barricade, where the trees go ash-grey and cold cracks run across the ground. Ember mages hunt here.</td>
+<td><img src="docs/manual/hollow.png" alt="The Frozen Hollow"><br><b>The Frozen Hollow.</b> A sunken valley where it's always winter, around a frozen lake. Frost mages patrol the ice.</td>
+</tr>
+<tr>
+<td><img src="docs/manual/grotto.png" alt="The Koi Grotto"><br><b>The Koi Grotto.</b> An ice cave under the Hollow's rim, with a hole cut in the ice. Something very large swims down there.</td>
+<td><img src="docs/manual/rift.png" alt="The Thunder Rift"><br><b>The Thunder Rift.</b> The oldest trees in the valley, a storm that never stops, and the great crack. Storm mages hold the paths up to it.</td>
+</tr>
+</table>
+
+There are a few more places besides, off the story path, for whoever goes looking.
+
+Your gear and level travel with you; each area keeps its own creatures.
+
+## 5. Fighting
+
+![The sword: swipes, crits, experience and loot](docs/manual/sword.gif)
+
+**The sword.** Every attack is a wide swipe that alternates direction and steps you forward. Press again mid-swipe to queue the next one, so mashing chains smoothly. Swipes and dashes feed each other: a dash cancels a swipe at any point, and every swipe resets your dash. Weave them: swipe, dash, swipe, dash.
+
+**The bow.** Hold to draw (you can still walk, at half speed) and release to shoot at the cursor. Only a full draw (0.6 seconds) hits hard: a power shot with a glowing arrowhead. A short draw does at most half your damage, and early on it just flops out onto the grass.
+
+**Critical hits.** Every hit has a 10% chance to crit for double damage, shown as a big gold number with a "!". Some weapons, rings and amulets raise the chance.
+
+**Numbers.** White for your hits, red for damage you take, green for healing, lilac for experience.
+
+**Experience and levels.** Kills give experience (10 for a slime, 50 for a mage). Level up and you're healed fully and grow a little faster and tougher: more life every two levels, more damage every four. The cap is level 20.
+
+**Potions** restore two hearts.
+
+## 6. The Greyed
+
+![A Frost mage's nova: get out of the ring before it goes off](docs/manual/frost.gif)
+
+Once you've killed a few slimes, mages start to turn up: robed figures that keep their distance and telegraph every spell with a charge-up in their hands. In the deep woods they're everywhere. There are three schools:
+
+| School | Robes | Watch out for |
+| --- | --- | --- |
+| **Ember** | Red | Fireballs, and a purple orb that turns you into a sheep for 5 seconds (any damage breaks it) |
+| **Frost** | Icy white | Frostbolts that slow you, and **Frost Nova** up close: a ring grows on the ground, and if you're still in it when it goes off, you're frozen solid |
+| **Storm** | Indigo and gold | Fast sparks, and **Lightning Strike**: three circles on and around you, lightning a moment later. Keep moving |
+
+Dash or jump through bolts and the nova; only a dash beats lightning. Get close and a mage blinks away. Catch one while its blink is cooling down and it draws a sword and comes for you. Mages grow tougher and more common as you level, and they always drop a magic item or better.
+
+## 7. Your gear
+
+![The inventory, with a tooltip](docs/manual/inventory.png)
+
+Press **I** (or Tab) for your inventory. Enemies drop loot; walk over it to pick it up.
+
+- **Drag** an item to a cell or an equipment slot, or click to pick it up and click to place it.
+- **Right-click** to equip or unequip, or to eat a koi.
+- **Drop** an item outside the panel to leave it on the ground.
+- **Hover** for a tooltip.
+- Drag the panel by its title to move it; it remembers where you put it.
+
+There are six slots: helm, amulet, weapon, armour, ring and boots. Gear adds damage, life, speed, crit chance and faster dash recovery, and every piece shows on your character. You start with nothing on and a plain starter set in your bag: put it on.
+
+## 8. The map
+
+![The parchment map of the Market Quarter](docs/manual/map.png)
+
+Press **M** for a parchment map of the area you're in, with an arrow for where you are and which way you're facing.
+
+## 9. Talking to people
+
+![Talking to one of the townsfolk in the market square](docs/manual/talk.png)
+
+Walk up to someone and press **E**, or click them. Press Enter, Space or E for the next line.
+
+The capital is full of people with homes to go to, work to do and opinions about their neighbours. They'll tell you rumours and gossip, and a few of them have errands for you. Some rumours are worth chasing. Knock on a front door with **E** and see if anyone's home; at the inns of an evening, they might ask you in.
+
+Nothing hostile lives in the city by day.
+
+## 10. Night, weather and music
+
+![The market square at night, in the rain](docs/manual/night.png)
+
+A whole day passes every ten minutes. The light changes through the day, the townsfolk go home at night, and the city after dark isn't quite the same city. Rain and fog roll in and out.
+
+Every area has its own music, made up as it plays, and it follows the hour and the weather: slower, lower and darker by night, a drone under the rain, thin and echoing in fog. Press **N** to turn it off or on.
+
+## 11. Fishing
+
+![Casting, waiting for the bite, and landing a koi](docs/manual/fishing.gif)
+
+1. Take the **Old Fishing Pole** out of your bag and equip it (right-click it).
+2. Hold the left mouse button to wind up. A ring marks where the cast will land; it turns blue over water.
+3. Release to cast, up to about 5 tiles away.
+4. When the bobber dips and a **!** appears, click within a second to hook the fish.
+
+Catches go in your bag: Pond, Silver and Golden Koi. Right-click one to eat it for 1, 2 or 4 life. Now and then something else comes up on the line.
+
+## 12. Bosses
+
+Each of the Greyed's lieutenants waits at the end of their part of the wood, and when the fight starts, the way out shuts until one of you falls. A health bar appears at the top of the screen.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/manual/cinder.gif" alt="Cinder"><br><b>Cinder, Ember Lieutenant</b> (the Ashwild). The ground erupts under you and walls of fire sweep the circle for you to jump. Bring him low and he steps out through the flames and turns the circle into a furnace.</td>
+<td width="50%"><img src="docs/manual/rime.gif" alt="Rime"><br><b>Rime, Frost Lieutenant</b> (the Frozen Hollow). Frost creeps over the ice under your feet and freezes you if you stand still. Hit her twice in a row and she seals herself in ice or blinks away.</td>
+</tr>
+<tr>
+<td><img src="docs/manual/koi.gif" alt="The Great Koi"><br><b>The Great Koi</b> (the Koi Grotto). Fish through the hole in the ice and see what takes the line. It flops after you in great leaps, slamming down where it lands, and spits fans of freezing water.</td>
+<td><img src="docs/manual/calder.gif" alt="Calder"><br><b>Calder, Storm Captain</b> (the Thunder Rift). Every shape lightning makes: forking sparks, strikes in lines and stars, iron rods he blinks between. After every blink he stops to earth himself; that's your moment.</td>
+</tr>
+<tr>
+<td><img src="docs/manual/ringer.gif" alt="The Grey Ringer"><br><b>The Grey Ringer</b> (St Mary's churchyard, after dark). Only if you've heard the rumours. She drifts through walls and gravestones, tolls her bell in a ring you must dash or jump through, and wails wisps after you.</td>
+<td>Cinder, Rime and Calder are the story. The Great Koi and the Grey Ringer are optional, and worth it.</td>
+</tr>
+</table>
+
+## 13. Falling, and the old stones
+
+Old, flat, faintly warm stones stand along the way: by the camp, at the fountain, and at the entrance of each part of the deep woods. Touch one and it glows. If you fall, you wake on the last stone you touched with your gear and level kept, though you might lose your potions.
+
+Hold **R** for a second to give up and start the whole run again.
+
+## 14. Skipping ahead
+
+Short on time? A few URL parameters jump straight to the good parts, on the published site too:
+
+| Parameter | What it does |
+| --- | --- |
+| `?boss=cinder` | Straight into a boss fight, levelled and geared as you'd be by then: `cinder`, `rime`, `koi`, `calder` or `ringer` |
+| `&god` | You can't be hurt |
+| `&freeze` | The boss stands still |
+| `?area=hollow` | Start a fresh run in an area: `witchwood`, `kingsroad`, `capital`, `castle`, `throneroom`, `ashwild`, `hollow`, `grotto`, `rift` (`&entry=stone` for another way in) |
+| `?hour=23` | Set the time of day, 0 to 24 |
+| `?ending=home` | Watch the ending (spoilers) |
+
+For example: https://dominicabrooks.github.io/Simplicity/?boss=calder&god
+
+## 15. Running it yourself
 
 You need [Node.js](https://nodejs.org) 20 or newer.
 
-```
+```bash
 npm ci
 npm run dev
 ```
@@ -29,64 +262,26 @@ Then open http://localhost:8123/Simplicity/. The dev server reloads as you edit.
 | `npm run format` | Prettier |
 | `npm run assets` | Rebuild sprites and the font from `art/`, `palette/` and `font/` (runs automatically before `dev`, `build` and `test`) |
 
-CI runs lint, typecheck, tests and the build on every push and pull request; a push to `main` deploys only if they all pass.
+CI runs lint, typecheck, tests and the build on every push and pull request, and every push to `main` that passes republishes the game to GitHub Pages (`.github/workflows/pages.yml`).
 
-## Play
+## 16. How it's built
 
-WASD or arrows to move (double-tap a direction to dash), the mouse to aim, Space to jump, J or click to attack in the aimed direction. The buttons in the bottom-right open your inventory (I) and the map (M). Walk into water to swim. Hold R for a second to restart the run. Slimes chase you, and potions restore two hearts.
-
-**Music:** every area has its own tune, made up as it plays, and it changes with the hour and the weather: slower, lower and darker by night, a drone under the rain, thin and echoing in fog. Press N to turn it off or on again; it remembers.
-
-**Map:** press M (or the map button) for a parchment map of the area you're in, showing where you are and which way you're facing, the camp and the caves.
-
-**Areas:** you start in **Witchwood**. A dirt path leads north from the camp through the woods to a cave; walk in to come out at **the King's Bridge** below **Capital City**, the seat of the kingdom of men and the richest city in it, a city of three districts:
-
-- **The King's Bridge**: out of the cave, between two gilded lions on marble plinths, through a great marble gate tower under gilded roofs, and over the great river on a bridge of white marble and gold leaf (the kingdom's arms on every post, its banners hung down the sides, gilded braziers and standards along it, ships moored either side) to Southgate in the city wall.
-- **The Market Quarter**: the high street up to the market square (the great fountain, the market cross, four rows of stalls under bunting, the guildhall over its open arcade, the Crown and the Bell), St Mary's and St Giles', and lanes of tall timber-framed houses, gable end to the street, shops on the main streets.
-- **The Castle**, up Castle Street, built into the city wall: a barbican and a drawbridge over the moat, then one ring of walls round the ward: the keep on its crag, the great hall and its kitchen, the chapel and lodgings, the barracks, the storehouse, the smithy, a well and a training corner.
-
-Guards in the kingdom's colours keep the gates; nothing hostile lives in the city. Walk back into the cave to return. Your gear and level go with you; each area keeps its own creatures.
-
-**Journal (coming soon):** greyed out on the menu bar for now; it's built and switched off in `src/data/features.ts`. A bestiary of every enemy. Each starts as a black silhouette; kill one and its page fills in with its portrait, a little about it, its health, experience, abilities and drops, and how many you've defeated. Your discoveries are saved in the browser and kept across runs. The book button glows when there's a new entry.
-
-**Combat text and crits:** WoW-style numbers float up as pixel text: white for your hits, red for damage you take, green for healing, lilac for XP. Every hit (sword, punch, arrow) has a 10% chance to **crit** for double damage, shown as a big gold number with a "!", with a little extra hitstop, shake and gold sparks.
-
-**Experience:** kills give XP (10 per slime, 50 per mage), shown on the purple bar along the bottom, with your level in the medallion at its left end. Level 2 takes 50 XP and each level needs 40 more, up to level 20. Each level gives raw stats on top of your gear (+2% movement speed per level, +1 life every 2 levels, +1 damage every 4 levels) and, as in WoW, a full heal.
-
-**Mages:** once you've killed a few slimes, a rare mage may appear: a robed twin of you that keeps its distance, telegraphs every spell with a charge-up in its hands, and casts. There are three schools:
-
-- **Ember Mage** (red robes): fireballs, and sometimes a purple orb, **polymorph**, which turns you into a sheep for 5 seconds (a sheep can only walk; any damage breaks it).
-- **Frost Mage** (icy white robes): frostbolts that **chill** you to about half speed for 2.5 s. Get close and it casts **Frost Nova**: a frost ring grows on the ground around it, and if you're still inside when it goes off you're **frozen** in ice for 1.6 s.
-- **Storm Mage** (indigo and gold robes): fast **spark** bolts with a short wind-up, and **Lightning Strike**: three glowing circles appear on and around you, and lightning hits each one 0.9 s later. Keep moving.
-
-Dash or jump through bolts and the nova; only a dash's invulnerability beats lightning. Get close and a mage blinks away (6 s cooldown), including when you pin it against trees or water. Catch it up close while blink is on cooldown and it draws a sword and chases you, swinging (watch for the raised blade), until blink is ready and it escapes. Outrun it (more than about 5.5 tiles) and it goes back to casting. Mages scale with your level: they appear more often (15% of spawns at level 1, up to 50%), more can be out at once (one more every 5 levels, up to 4), and they get tougher (6 health at level 1, +2 per level). They always drop a magic or better item.
-
-**Sword:** every attack is a wide swipe that alternates direction and steps you forward. Pressing during a swipe queues the next one, so mashing chains smoothly, and swipes and dashes feed each other: a dash cancels a swipe at any point and readies your next swipe, and every swipe resets your dash cooldown, so you can weave swipe, dash, swipe, dash. Hits briefly freeze the action and shake the camera.
-
-Slimes drop loot. Walk over it to pick it up, and press I (or Tab) for the inventory: drag an item to a cell or an equipment slot (or click to pick it up and click to place it), right-click to equip or unequip, and drop it outside the panel to leave it on the ground. Drag the panel by its title to move it; it remembers where you put it. Equipment adds damage, life, movement speed and faster dash recovery, and every piece shows on your character. You start with nothing equipped and a plain starter set in your bag.
-
-**Bows:** equip a bow (you start with an Old Short Bow; more drop as loot). Hold the left mouse button to draw: you can still move, at about half speed. Release to shoot at the cursor. A longer draw shoots faster and further, but only a full draw (0.6 s) hits hard: a power shot with your full damage +1 and a glowing arrowhead. A partial draw deals at most half your damage, and if that would be nothing (always, early on) the arrow just flops out and drops to the ground, further the longer you drew; if it reaches an enemy it glances off for 0. Arrows hit the first slime in their path and stick in trees.
-
-**Fishing:** equip the Old Fishing Pole (weapon slot), then hold the left mouse button to wind up: a ring marks where the cast will land (blue over water). Release to cast exactly there, up to about 5 tiles away. When the bobber dips and a **!** appears, click within a second to hook the fish; click early or walk away to reel in. Catches go in your bag: Pond, Silver and Golden Koi. Right-click a koi to eat it for 1, 2 or 4 life. Releasing over land swings a weak attack instead.
-
-## Layout
-
-The game is TypeScript with an entity-component-system design; see [ARCHITECTURE.md](ARCHITECTURE.md) for how it fits together and how to add enemies, items, spells and systems.
+TypeScript with an entity-component-system design, rendered with [three.js](https://threejs.org), bundled with Vite. There are no other runtime dependencies. See [ARCHITECTURE.md](ARCHITECTURE.md) for how it fits together, [ART_STYLE.md](ART_STYLE.md) for the look, and [STORY.md](STORY.md) for the hour, beat by beat (spoilers). The world's background is in [LORE.md](LORE.md), [HISTORY.md](HISTORY.md), [HERO.md](HERO.md) and [FAMILIES.md](FAMILIES.md).
 
 - `src/main.ts`: wires everything together and runs the loop
 - `src/core/`: the ECS (`World`), a typed event bus, the seeded RNG and math helpers
-- `src/data/`: tuning and content as typed tables: player, enemies and spells, items and affixes, tiers, progression
+- `src/data/`: tuning and content as typed tables: player, enemies and spells, items, dialogue, the story's beats
 - `src/areas/`: the areas, one module each (the world map is the links between them)
-- `src/world/`: areas, tile maps and collision
+- `src/world/`: tile maps, collision and the city's layouts and residents
 - `src/items/`: items, loot rolls and the inventory model
-- `src/game/`: components, entity factories and shared combat rules
+- `src/game/`: components, entity factories, bosses, cutscenes and shared combat rules
 - `src/systems/`: gameplay systems (hero, weapons, enemies, mages, spells), run in order by `step()`
-- `src/input/`: keyboard and mouse
 - `src/render/`: the low-poly three.js view, from terrain to critters, with one view per kind of entity
-- `src/ui/`: HUD, inventory panel, tooltip, labels, toasts and overlay
-- `tests/`: Vitest specs, with fixtures captured from the original game
+- `src/audio/`: the generated music and sound
+- `src/ui/`: HUD, inventory, map, dialogue, tooltips and credits
+- `tests/`: Vitest specs
 - `e2e/`: Playwright specs that play the real game in a browser: the road to the King, his audience, the ghost fight, knocking at doors
-- `tools/`: asset builders (`build-sprites.ts`, `build-font.ts`), run with `npm run assets`
-- `tools/lineup/`: the townsfolk outfit lineup, every garment, over-garment, hat and carry (or the census's real people) one to a cell, for checking clothes by eye. With `npm run dev`, open `/Simplicity/lineup.html?set=over&cam=back&pose=walk` (`set`: garment, over, head, carry, pattern, census&n=0; `cam`: three, front, side, back, game, top)
-- `art/`, `palette/`, `font/`: sprite, palette and font sources as text; [ART_STYLE.md](ART_STYLE.md) has the rules
+- `tools/`: asset builders (`build-sprites.ts`, `build-font.ts`), run with `npm run assets`, and the townsfolk outfit lineup (`/Simplicity/lineup.html` on the dev server)
+- `art/`, `palette/`, `font/`: sprite, palette and font sources as text
+- `docs/manual/`: the screenshots and clips in this manual
 - `docs/contact-sheet.png`: every sprite, built from `art/`

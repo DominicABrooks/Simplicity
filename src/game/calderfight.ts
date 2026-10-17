@@ -28,6 +28,7 @@ import { toast, type Game } from "./game.ts";
 import { heroParts } from "./hero.ts";
 import { sound } from "./sfx.ts";
 import { spawnBolt, spawnStrike } from "./spawn.ts";
+import { blinkMage } from "../systems/mage.ts";
 
 interface Point { x: number; y: number }
 /** Lightning along a line from `a` to `b` (cell top-left): marked by a flicker (t < warn), then live (t < warn + live). */
@@ -61,6 +62,8 @@ export interface CalderFight {
   nextBlink: number; rod: number;
   /** Earthing himself after a blink (seconds left). */
   earth: number;
+  /** Blade hits on him in a row (F.crowded), and seconds since the last. */
+  cuts: number; sinceCut: number;
   /** The storm proper, while he's in his cage; and whether it's been yet (it comes once). */
   storm: Storm | null; stormed: boolean;
   /** His sparks still to fork: each one, and how long it's been flying. */
@@ -147,7 +150,7 @@ function shut(g: Game): void {
   const hp = e === null ? 0 : g.world.need(e, "health").hp;
   fights.set(g, {
     ...mid, r: A.r * T, t: 0, mood: 0, open: F.crack.start, nextShape: F.shapes.first, shapes: 0,
-    rods: [], planted: 0, arcs: [], nextArc: 0, side: 0, nextBlink: F.rods.blink, rod: 0, earth: 0, storm: null, stormed: false, forks: new Map(),
+    rods: [], planted: 0, arcs: [], nextArc: 0, side: 0, nextBlink: F.rods.blink, rod: 0, earth: 0, cuts: 0, sinceCut: 0, storm: null, stormed: false, forks: new Map(),
     last: { ...stand, hp, melee: 0, hurt: heroParts(g).status.hurt }, letGo: 0, toldStatic: false, view,
   });
   g.shake = Math.max(g.shake, 2.5);
@@ -184,6 +187,10 @@ function run(g: Game, f: CalderFight, calder: Entity, dt: number): void {
     combatText(g, him.x, him.y - 6, F.say.caught, COMBAT_COLORS.crit, true);
   }
   if (hp.hp < f.last.hp) f.open = Math.max(0, f.open - F.crack.hit);
+  // Blade hits in a row: an arrow landing between, or too long since the last, starts the count again.
+  f.sinceCut += dt;
+  if (cut > 0) { f.cuts = f.sinceCut <= F.crowded.within ? f.cuts + 1 : 1; f.sinceCut = 0; }
+  else if (hp.hp < f.last.hp) f.cuts = 0;
   if (h.status.hurt > f.last.hurt + 0.01) widen(g, f);
   staticField(g, f, him);
   const remember = () => { f.last = { x: him.x, y: him.y, hp: hp.hp, melee, hurt: h.status.hurt }; };
@@ -208,9 +215,16 @@ function run(g: Game, f: CalderFight, calder: Entity, dt: number): void {
     f.mood = mood;
   }
 
-  // A blink (his own, or to the next rod): then he stops to earth himself.
+  // Crowded: hit with a blade twice in a row, he's off (to the next rod, once they're in; otherwise where a mage would).
+  if (f.cuts >= F.crowded.hits && hp.hp > 0) {
+    f.cuts = 0;
+    if (f.rods.length && f.planted >= F.rods.plant) blinkToRod(g, f, him);
+    else blinkMage(g, h.pos, him, brain, g.world.need(calder, "knockback"));
+  }
+  // A blink (when crowded, or to the next rod): then he stops to earth himself. Never a mage's own blink away when the
+  // hero comes close: up close he stands and draws his sword, till a second cut in a row sends him off.
+  brain.blinkCD = Math.max(brain.blinkCD, 1);
   if (f.mood > 0) {
-    brain.blinkCD = Math.max(brain.blinkCD, 1);              // he goes rod to rod now, not where a mage would
     if (f.planted >= F.rods.plant && f.earth <= 0 && (f.nextBlink -= dt) <= 0) blinkToRod(g, f, him);
   }
   if (Math.hypot(him.x - f.last.x, him.y - f.last.y) > F.jump && f.earth <= 0) f.earth = F.earth;

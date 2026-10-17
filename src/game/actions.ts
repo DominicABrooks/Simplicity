@@ -3,11 +3,12 @@ import { COMBAT_COLORS } from "../data/ui.ts";
 import type { Item } from "../items/items.ts";
 import { combatText } from "./combat.ts";
 import { toast, type Game } from "./game.ts";
-import { keepIfHead } from "./head.ts";
+import { holdOntoHead, keepIfHead } from "./head.ts";
 import { dropLoot } from "./spawn.ts";
 
-/** Drop an item at the hero's feet. It waits for them to step off before it can be picked up again. */
+/** Drop an item at the hero's feet. It waits for them to step off before it can be picked up again. Not Calder's head: he keeps hold of that. */
 export function dropItem(g: Game, item: Item): void {
+  if (holdOntoHead(g, item, other => dropItem(g, other))) return;
   const p = g.world.need(g.player, "transform");
   keepIfHead(g, dropLoot(g, p.x, p.y, item, true), item);   // there's only the one
 }

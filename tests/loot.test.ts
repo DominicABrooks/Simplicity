@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Rng } from "../src/core/rng.ts";
-import { AFFIXES, BASES, type StatKey } from "../src/data/items.ts";
+import { AFFIXES, BASES, type ModKey } from "../src/data/items.ts";
 import { makeFish, rollItem, type Item } from "../src/items/items.ts";
 
 const strip = ({ id: _id, ...rest }: Item) => rest;
@@ -12,11 +12,19 @@ describe("rollItem", () => {
     for (let i = 0; i < 50; i++) expect(strip(rollItem(a))).toEqual(strip(rollItem(b)));
   });
 
-  it("rolls exactly what the original game rolled for the same seed", () => {
+  it("rolls exactly what the original game rolled for the same seed (its +1 damage a little crit chance now)", () => {
     const fixture = JSON.parse(readFileSync(new URL("./fixtures/loot.json", import.meta.url), "utf8"));
     const rng = new Rng(1234);
     const rolls = fixture.map((_: unknown, i: number) => strip(rollItem(rng, i % 4 === 0 ? "magic" : "normal")));
-    expect(rolls).toEqual(fixture);
+    // The crit affix took the damage affix's place, rolling from the same dice: put back as it was, all else is the same.
+    const asWas = rolls.map(({ mods: { crit, ...mods }, ...rest }: ReturnType<typeof strip>) => {
+      if (crit !== undefined) {
+        expect(crit).toBeGreaterThanOrEqual(AFFIXES.crit.min);
+        expect(crit).toBeLessThanOrEqual(AFFIXES.crit.max);
+      }
+      return { ...rest, mods: crit === undefined ? mods : { damage: 1, ...mods } };
+    });
+    expect(asWas).toEqual(fixture);
   });
 
   it("never drops starter-only items and only rolls affixes that suit the slot", () => {
@@ -24,7 +32,7 @@ describe("rollItem", () => {
     for (let i = 0; i < 500; i++) {
       const item = rollItem(rng);
       expect(BASES[item.type].noLoot).toBeFalsy();
-      for (const [k, v] of Object.entries(item.mods) as [StatKey, number][]) {
+      for (const [k, v] of Object.entries(item.mods) as [ModKey, number][]) {
         expect(AFFIXES[k].slots).toContain(item.slot);
         expect(v).toBeGreaterThanOrEqual(AFFIXES[k].min);
         expect(v).toBeLessThanOrEqual(AFFIXES[k].max);
@@ -40,7 +48,7 @@ describe("rollItem", () => {
     for (let i = 0; i < 200; i++) {
       const item = rollItem(rng, "magic");
       if (item.rarity !== "magic") continue;
-      const keys = Object.keys(item.mods) as StatKey[];
+      const keys = Object.keys(item.mods) as ModKey[];
       const pre = keys.find(k => AFFIXES[k].prefix), suf = keys.find(k => AFFIXES[k].suffix);
       if (pre) expect(item.name.startsWith(AFFIXES[pre].prefix!)).toBe(true);
       if (suf) expect(item.name.endsWith(AFFIXES[suf].suffix!)).toBe(true);

@@ -27,6 +27,8 @@ import { TOUCH_AT } from "./stones.ts";
 interface Ending {
   /** The glow on the rift stone, in the area it was lit in (lit once per visit). */
   glow: { e: Entity; in: CurrentArea } | null;
+  /** He's touching the stone without the head, and been told it won't take him (told once a touch). */
+  turnedBack: boolean;
   /** He's set the head at the King's feet; the credits have rolled. */
   laid: boolean;
   over: boolean;
@@ -39,9 +41,9 @@ const endings = new WeakMap<Game, Ending>();
 function endingOf(g: Game): Ending {
   let s = endings.get(g);
   if (!s) {
-    const fresh: Ending = { glow: null, laid: false, over: false, told: new Set(), decks: new Map() };
+    const fresh: Ending = { glow: null, turnedBack: false, laid: false, over: false, told: new Set(), decks: new Map() };
     endings.set(g, s = fresh);
-    g.events.on("reset", () => Object.assign(fresh, { glow: null, laid: false, over: false, told: new Set() }));
+    g.events.on("reset", () => Object.assign(fresh, { glow: null, turnedBack: false, laid: false, over: false, told: new Set() }));
   }
   return s;
 }
@@ -93,8 +95,9 @@ function nextOf(g: Game, pool: readonly string[]): string {
 const riftStone = (g: Game) => (g.area.def.id === "rift" ? g.area.layout.props.find(p => p.kind === "oldStone") : undefined);
 
 /**
- * Every frame (with the old stones): in the Rift with the way home open, the rift stone glows; touching it, he goes
- * home, waking at the fountain stone at dawn. True if he's on his way.
+ * Every frame (with the old stones): in the Rift with the way home open, the rift stone glows; touching it with Calder's
+ * head in his bag (or once it's at the King's feet), he goes home, waking at the fountain stone at dawn. Without it, the
+ * stone waits for him to fetch it. True if he's on his way.
  */
 export function homeStoneSystem(g: Game): void { goHome(g); }
 function goHome(g: Game): boolean {
@@ -105,7 +108,12 @@ function goHome(g: Game): boolean {
     toast(g, HOMECOMING.glows, true);
   }
   const p = g.world.need(g.player, "transform");
-  if (Math.hypot(p.x + HALF - stone.x, p.y + HALF - stone.y) > TOUCH_AT) return false;
+  if (Math.hypot(p.x + HALF - stone.x, p.y + HALF - stone.y) > TOUCH_AT) { s.turnedBack = false; return false; }
+  if (!carryingHead(g) && !s.laid) {
+    if (!s.turnedBack) toast(g, HOMECOMING.noHead);
+    s.turnedBack = true;
+    return false;
+  }
   g.fx.push({ type: "burst", x: stone.x - HALF, y: stone.y - HALF, palette: "spark" });
   g.hour = HOMECOMING.dawn;                                  // the fade hides the sky changing
   g.travel = { area: "capital", entry: "stone" };

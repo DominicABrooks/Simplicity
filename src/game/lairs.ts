@@ -10,6 +10,7 @@ import type { Prop } from "../world/area.ts";
 import type { Point } from "../world/collision.ts";
 import type { Game } from "./game.ts";
 import { churchyardOf, ghostOut, hauntingOf, riseGhost } from "./ghost.ts";
+import { hookGreatKoi } from "./greatkoi.ts";
 import { takeBow } from "./hunterhut.ts";
 
 export interface Lair {
@@ -56,6 +57,18 @@ export const LAIRS = {
       hauntingOf(g).night = "risen";
       if (ghostOut(g) === null) riseGhost(g, yard);
       return { x: yard.x + yard.w - 16 - 6 * T, y: yard.y + yard.h + T };   // on the street, west of her grave
+    },
+  },
+  /** The Great Koi, hooked through the hole in the Koi Grotto's ice and out on the floor (src/game/greatkoi.ts). Down
+   *  the Hollow's rim, so about when he'd come to Rime, and as ready. */
+  koi: {
+    area: "grotto", entry: "hollow", ready: RIME_READY,
+    stage(g) {
+      // (the hole from the grotto's own layout: importing the area here would bundle it in with the game)
+      const hole = g.area.layout.props.find((p): p is Extract<Prop, { kind: "iceWalls" }> => p.kind === "iceWalls")!.hole!;
+      const x = (hole.x + hole.w / 2) * T - HALF, y = (hole.y + hole.h / 2) * T - HALF;
+      hookGreatKoi(g, x, y);                                  // struck: out it comes
+      return { x, y: y + 5 * T };                             // a few steps south of the hole, out on the ice
     },
   },
 } satisfies Record<string, Lair>;

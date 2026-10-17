@@ -18,6 +18,8 @@ export type Gear = Record<Slot, Rarity | null> & { weaponType: ItemType | null }
 export interface InventoryStats {
   level: number;
   damage: number;
+  /** Critical strike chance from gear, in percent, on top of everyone's (CRIT.chance). */
+  crit: number;
   life: number;
   speed: number;
   dash: number;
@@ -74,7 +76,7 @@ export class Inventory {
   }
 
   stats(): InventoryStats {
-    const t: Record<StatKey, number> = { damage: 0, life: 0, speed: 0, dash: 0 };
+    const t: Record<StatKey, number> = { damage: 0, crit: 0, life: 0, speed: 0, dash: 0 };
     for (const item of Object.values(this.equip)) {
       if (!item) continue;
       for (const src of [item.base, item.mods])
@@ -83,7 +85,7 @@ export class Inventory {
     const gear = Object.fromEntries(SLOT_KEYS.map(k => [k, this.equip[k]?.rarity ?? null])) as Gear;
     gear.weaponType = this.equip.weapon?.type ?? null;
     const b = this.bonus();
-    return { level: b.level, damage: Math.max(1, t.damage) + b.damage, life: t.life + b.life, speed: t.speed + b.speed, dash: Math.min(60, t.dash), gear };
+    return { level: b.level, damage: Math.max(1, t.damage) + b.damage, crit: t.crit, life: t.life + b.life, speed: t.speed + b.speed, dash: Math.min(60, t.dash), gear };
   }
 
   // ---------- Actions ----------

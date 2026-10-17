@@ -4,7 +4,7 @@
 // of the fog he leaned out over the side to see what was glowing down in the water, and his glass eye dropped
 // out and went in after it. He's worn a patch since, and sworn the river took it on purpose. It had: an eye that's
 // been in the river sees what the river's seen, and the river carries everything down out of the Witchwood.
-import type { CurioId, ItemType, Stats } from "./items.ts";
+import type { CurioId, ItemType, Mods, Rarity } from "./items.ts";
 
 export const GIL = {
   name: "Old Gil",
@@ -38,8 +38,8 @@ export const GIL_TALK = {
   ],
 } as const;
 
-/** What lies on the lake bed, once Gil's told him: Ael's Thorn, a rare blade of grey wood (GEAR.md, the Heartstone). */
-export const THORN = { type: "blade" as ItemType, name: "Ael's Thorn", mods: { damage: 2, life: 1, speed: 6 } satisfies Stats } as const;
+/** What lies on the lake bed, once Gil's told him: Ael's Thorn, a legendary blade of grey wood (GEAR.md, the Heartstone). */
+export const THORN = { type: "blade" as ItemType, rarity: "legendary" as Rarity, name: "Ael's Thorn", mods: { crit: 4, life: 2, speed: 8 } satisfies Mods } as const;
 export const THORN_SAYS = "Something glints on the lake bed, far out in the middle. Gil was right.";
 
 /** The letter in the bottle, in the hero's own blocky hand, from a run he doesn't remember. */

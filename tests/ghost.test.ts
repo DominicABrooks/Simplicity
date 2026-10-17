@@ -6,7 +6,7 @@ import { area as castle } from "../src/areas/castle.ts";
 import { area as kingsroad } from "../src/areas/kingsroad.ts";
 import { loadArea } from "../src/areas/index.ts";
 import { Rng } from "../src/core/rng.ts";
-import { GHOST, GHOST_RUMOURS, ghostChance, ghostHp, isGhostRumour } from "../src/data/ghost.ts";
+import { GHOST, GHOST_RUMOURS, HOLLOW_BITE, ghostChance, ghostHp, isGhostRumour } from "../src/data/ghost.ts";
 import { folkLines } from "../src/game/conversation.ts";
 import { hitEnemy } from "../src/game/combat.ts";
 import { createGame, setState, type Game } from "../src/game/game.ts";
@@ -174,7 +174,7 @@ describe("the fight", () => {
     expect(health.hp).toBeGreaterThan(5);
   });
 
-  it("can be beaten: she leaves rare things and potions, a journal page, and the rumour dies with her", async () => {
+  it("can be beaten: she leaves Hollow Bite, rare things and potions, a journal page, and the rumour dies with her", async () => {
     const g = await inCapital(23);
     hauntingOf(g).heard = 4;
     const e = risen(g), at = g.world.need(e, "transform");
@@ -185,6 +185,8 @@ describe("the fight", () => {
     expect(ghostOut(g)).toBeNull();
     const loot = g.world.query("pickup").map(([, { pickup }]) => pickup);
     expect(loot.filter(p => p.kind === "loot" && p.item.rarity === "rare").length).toBe(GHOST.reward.items);
+    const bite = loot.filter(p => p.kind === "loot" && p.item.name === HOLLOW_BITE[3]);
+    expect(bite.map(p => p.kind === "loot" && p.item.rarity)).toEqual(["legendary"]);
     expect(loot.filter(p => p.kind === "potion").length).toBeGreaterThanOrEqual(GHOST.reward.potions);
     expect(g.journal.ghost).toBe(1);
     expect(hauntingOf(g)).toEqual({ heard: 0, night: "laid" });
